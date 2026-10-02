@@ -97,27 +97,29 @@ def _percentile_rows_to_vector(pctl_rows, label_to_key):
 
 
 # Qualitative phrasing per metric/tier, used to build each comp's "why this
-# player" write-up. 'high'/'low' phrases describe a notably strong or weak
-# trait; 'mid' traits are never mentioned since "about average" tells a
+# player" write-up. Each phrase is a full predicate meant to follow "both" --
+# e.g. "both {phrase}" -- so every entry needs to be a self-contained verb
+# phrase, not a bare noun fragment. 'high'/'low' describe a notably strong or
+# weak trait; 'mid' traits are never mentioned since "about average" tells a
 # coach nothing worth watching for.
 HITTER_TRAITS = {
-    'ev90':           {'high': 'well above-average raw power', 'low': 'modest raw power'},
-    'bat_speed':      {'high': 'plus bat speed', 'low': 'below-average bat speed'},
-    'top50_dist':     {'high': 'carries the ball deep when he connects', 'low': "doesn't hit for much distance"},
-    'launch_quality': {'high': 'a consistently efficient launch angle', 'low': 'still-developing launch angle control'},
-    'squared_up':     {'high': 'excellent barrel control and contact quality', 'low': 'below-average contact quality'},
-    'whiff_pct':      {'high': 'elite bat-to-ball skills -- rarely whiffs', 'low': 'swing-and-miss in his game'},
-    'k_pct':          {'high': 'keeps the strikeouts down', 'low': 'an elevated strikeout rate'},
-    'bb_pct':         {'high': 'a patient approach that draws walks', 'low': 'an aggressive, early-count approach'},
+    'ev90':           {'high': 'hit the ball with well above-average raw power', 'low': 'profile with modest raw power right now'},
+    'bat_speed':      {'high': 'swing with plus bat speed', 'low': 'show below-average bat speed'},
+    'top50_dist':     {'high': 'carry the ball deep when they connect', 'low': "don't hit for much distance yet"},
+    'launch_quality': {'high': 'show a consistently efficient launch angle', 'low': 'are still developing their launch-angle control'},
+    'squared_up':     {'high': 'show excellent barrel control and contact quality', 'low': 'show below-average contact quality'},
+    'whiff_pct':      {'high': 'rarely swing and miss', 'low': 'show some swing-and-miss in their game'},
+    'k_pct':          {'high': 'keep the strikeouts down', 'low': 'carry an elevated strikeout rate'},
+    'bb_pct':         {'high': 'show a patient approach that draws walks', 'low': 'play with an aggressive, early-count approach'},
 }
 PITCHER_TRAITS = {
-    'fb_velo':        {'high': 'plus fastball velocity', 'low': 'below-average velocity, pitching more off command/shape'},
-    'avg_ev_allowed': {'high': 'excellent at limiting hard contact', 'low': 'more hard contact allowed than most'},
-    'strike_pct':     {'high': 'well above-average strike-throwing', 'low': 'below-average strike-throwing'},
-    'fps_pct':        {'high': 'gets ahead in counts early', 'low': 'falls behind in counts more than most'},
-    'k_pct':          {'high': 'a high strikeout rate', 'low': 'a modest strikeout rate, works more off contact'},
-    'bb_pct':         {'high': 'excellent walk avoidance/control', 'low': 'more walks than most'},
-    'whiff_pct':      {'high': 'a swing-and-miss arsenal', 'low': 'a pitch mix hitters make contact against'},
+    'fb_velo':        {'high': 'bring plus fastball velocity', 'low': 'pitch with below-average velocity, leaning more on command and shape'},
+    'avg_ev_allowed': {'high': 'are excellent at limiting hard contact', 'low': 'allow more hard contact than most'},
+    'strike_pct':     {'high': 'show well above-average strike-throwing', 'low': 'show below-average strike-throwing'},
+    'fps_pct':        {'high': 'get ahead in counts early', 'low': 'fall behind in counts more than most'},
+    'k_pct':          {'high': 'post a high strikeout rate', 'low': 'post a modest strikeout rate and work more off contact'},
+    'bb_pct':         {'high': 'show excellent walk avoidance and control', 'low': 'walk more hitters than most'},
+    'whiff_pct':      {'high': 'carry a swing-and-miss arsenal', 'low': 'work with a pitch mix hitters make contact against'},
 }
 HIGH_CUTOFF, LOW_CUTOFF = 72, 32
 
@@ -149,12 +151,12 @@ def _build_blurb(our_vec, cand, keys, traits, our_name, role_noun):
 
     if not phrases:
         return (f"{cand['name']} is the closest statistical match in this reference set for "
-                f"{our_name} right now -- worth studying his overall approach as a {role_noun}.")
+                f"{our_name} right now — worth studying his overall approach as a {role_noun}.")
     if len(phrases) == 1:
         trait_text = phrases[0]
     else:
         trait_text = f'{phrases[0]} and {phrases[1]}'
-    return f"{cand['name']} shares {our_name}'s {trait_text}. Watch for that same pattern on film."
+    return f"{cand['name']} is a close statistical match for {our_name} — both {trait_text}. Watch for that same pattern on film."
 
 
 HITTER_LABEL_TO_KEY = {
