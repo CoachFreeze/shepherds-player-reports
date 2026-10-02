@@ -1,0 +1,10 @@
+{
+  "CoachFreeze": {
+    "display_name": "CoachFreeze",
+    "password_hash": "scrypt:32768:8:1$SsMXQ6Wj6poI6UEC$dbde3c0b4e1867f4ceb302fddbcc54614cc679be13fc0152ee4f4cf543537ac6041cac3d7d3bba43a970c28472e057ea6b2d2dcbb7258bfe108c4b22b056b52b"
+  },
+  "coach": {
+    "display_name": "Head Coach",
+    "password_hash": "scrypt:32768:8:1$HLLMUrziv4RGYXOF$611e1c7dd0027803708b44636cf967138bc20f45319fdc308655ba1d264fa29beb56e270cd84e62215aa197c212cd9ad16d6c57af8af7ee71579d6ae7a7fc9ae"
+  }
+}

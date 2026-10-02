@@ -1,0 +1,198 @@
+/* =========================================================================
+   Font faces are NOT declared here. They're generated at render time by
+   fonts_embed.py, which inlines the real font files as base64 data URIs
+   and gets spliced in before this stylesheet (see render.py) — that keeps
+   each report a single self-contained HTML file with no dependency on a
+   fonts/ folder sitting next to it.
+   ========================================================================= */
+{{ FONT_FACE_CSS }}
+
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow:wght@400;500;600;700&display=swap');
+
+:root{
+  /* --- palette sampled directly from the Illustrator PDFs (pixel-verified) --- */
+  --accent-teal:#5c97a8;      /* frame + panel borders, brand wordmark, dividers */
+  --track-bg:#cddfdc;         /* unfilled percentile-bar track */
+  --badge-navy:#2c3e82;       /* percentile 0-15ish */
+  --badge-blue:#4d65b3;       /* percentile ~15-35 */
+  --badge-blue-mild:#829ac1;  /* percentile ~35-48 */
+  --badge-red-mild:#d98a8f;   /* percentile ~52-65 */
+  --badge-red:#c7353e;        /* percentile ~65-100 */
+  --ink:#231f20;              /* icons, headers, body */
+  --muted:#6b7680;
+  --season-row-bg:#c2c0be;
+
+  /* --- font roles: real family first, close free fallback second --- */
+  --f-name:      'KommonGrotesk', 'Barlow', sans-serif;         /* name/subtitle/bio/POOR-AVG-GREAT/comps */
+  --f-display:   'AspiraXXXNar', 'Oswald', sans-serif;          /* big numbers: badges, arm angle, distances */
+  --f-heading:   'NeuePlakCond', 'Oswald', sans-serif;          /* section headers + metric labels (cond. bold/semibold/regular via font-weight) */
+  --f-chart-ttl: 'NeuePlak', 'Oswald', sans-serif;              /* chart titles */
+  --f-tag:       'NeuePlakText', 'Barlow', sans-serif;          /* tiny "2026" tag + coach's-notes body (via weight) */
+  --f-brand:     'Araboto', 'Barlow', sans-serif;               /* "shepsavant" wordmark */
+  --f-tick:      'ProximaNova', 'Barlow', sans-serif;           /* tiny axis/distance ticks */
+}
+*{box-sizing:border-box;}
+body{ margin:0; background:#e9edee; font-family:var(--f-name); color:var(--ink); }
+
+/* Page = full 8.5x11 sheet (612x792pt -> 816x1056px @ 1pt=1.3333px), but
+   height is NOT fixed: .content sits in normal flow (margin, not absolute
+   positioning) so .sheet grows to fit however tall the real content ends
+   up being, and .frame stretches to match via top/left/right/bottom insets
+   instead of a hardcoded height. A fixed-height sheet with position:absolute
+   content is what caused panels to spill into the gray page background and
+   the frame border to cut across mid-content once a column got taller than
+   the original 1056px budget. min-height keeps a full-page look when
+   content is short; it no longer caps it when content is tall. */
+/* overflow:hidden isn't for clipping here -- it establishes a new block
+   formatting context, which stops .content's top/bottom margins from
+   collapsing THROUGH .sheet's box (the default CSS behavior for a sole
+   block child with no border/padding on the parent to stop it). Without
+   this, that 51px margin escaped outside .sheet entirely instead of
+   creating space inside it, so .frame's 37px bottom inset ended up well
+   above where the content actually ends -- exactly the "Players to Watch"
+   panel sticking out past the frame bug. Confirmed as a real bug in an
+   actual Chromium render, not just our wkhtmltoimage QA tool. */
+.sheet{ width:816px; min-height:1056px; margin:24px auto; background:#fff; position:relative; overflow:hidden; }
+.frame{ position:absolute; top:37px; left:47px; right:47px; bottom:37px; border:1.5px solid var(--accent-teal); }
+/* content sits 14px inside the frame on every side -- the same breathing
+   room panels already get from each other (panel margin-bottom, column
+   gap) -- instead of touching the frame border directly. */
+.content{ width:694px; margin:51px 61px; position:relative; }
+
+/* pulled out by the same 14px content-to-frame gap on three sides so it
+   bleeds all the way to the frame border, while everything else in
+   .content keeps its normal inset */
+.hero{ position:relative; height:229px; overflow:hidden; background:#cfd8da; margin:-14px -14px 0; }
+.hero img{ width:100%; height:100%; object-fit:cover; display:block; }
+.headshot-wrap img{ width:100%; height:100%; object-fit:cover; }
+.hero-placeholder{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:#8b989c; font:600 13px/1.3 var(--f-heading); letter-spacing:.06em; text-transform:uppercase; background:repeating-linear-gradient(135deg,#dbe3e5,#dbe3e5 10px,#cfd8da 10px,#cfd8da 20px); }
+
+/* headshot: centered, split exactly down the middle by the hero/identity
+   boundary — hero is 229px tall, circle is 108px, so top = 229 - 54 = 175
+   puts the boundary line straight through the circle's center. */
+.headshot-wrap{ width:108px; height:108px; border-radius:50%; border:3px solid var(--accent-teal); background:#e8f2ef; position:absolute; left:50%; top:175px; transform:translateX(-50%); display:flex; align-items:center; justify-content:center; overflow:hidden; z-index:2; }
+.headshot-wrap span{ font:500 8.5px/1.2 var(--f-heading); color:var(--accent-teal); text-align:center; text-transform:uppercase; }
+
+.identity{ text-align:center; padding:62px 20px 10px; }
+.identity h1{ font:400 34px/1 var(--f-name); margin:0 0 4px; letter-spacing:.01em; }
+.identity .role{ font:400 20px/1 var(--f-name); margin:0 0 8px; }
+.identity .bio{ font:400 18px/1 var(--f-name); color:var(--ink); }
+.identity .bio b{ font-weight:400; }
+
+.season-table{ width:100%; border-collapse:collapse; margin:6px 0 14px; font:400 13px/1.3 var(--f-heading); }
+.season-table th{ text-align:center; padding:4px 6px; color:var(--muted); font-weight:600; }
+.season-table td{ text-align:center; padding:5px 6px; }
+.season-table tr.total td{ background:var(--season-row-bg); font-weight:700; }
+
+/* base column split (used by hitter reports): 418px left panel. */
+/* margin, not flexbox `gap`, for the column spacing -- the old WebKit
+   engine used for QA screenshots doesn't fully support `gap` and was
+   rendering a stray seam at the column boundary because of it. */
+.columns{ display:flex; }
+.col-left{ flex:0 0 418px; margin-right:14px; } .col-right{ flex:1; min-width:0; }
+/* pitcher reports only: col-left pulled back down (418 -> 370px) to give
+   col-right more room for a bigger Pitch Movement Profile -- the percentile
+   bars lose some width but stay legible. col-right grows from ~262px to
+   ~310px accordingly. Hitter reports keep the wider 418px percentile column. */
+.sheet-pitcher .col-left{ flex:0 0 370px; }
+/* hitter reports: col-left pulled back slightly (418 -> 385px) to grow
+   col-right for a bigger, more legible Spray Chart -- percentile bars stay
+   plenty readable at this width. col-right grows from ~262px to ~295px. */
+.sheet-hitter .col-left{ flex:0 0 385px; }
+
+.panel{ border:1.5px solid var(--accent-teal); padding:14px 16px; margin-bottom:14px; }
+.panel-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; border-bottom:1.5px solid var(--accent-teal); padding-bottom:6px; }
+.panel-title{ display:flex; align-items:center; gap:8px; font:700 20px/1 var(--f-heading); color:var(--ink); }
+.brand{ font:500 17px/1 var(--f-brand); color:var(--accent-teal); }
+.brand-logo{ height:28px; width:auto; display:block; }
+/* client-supplied header lockups (silhouette + wordmark), used in place of
+   the hand-drawn icon + text for sections that have one */
+.section-logo{ height:32px; width:auto; display:block; }
+.coach-notes h3 .coach-logo{ height:36px; }
+.chart-title{ font:600 13px/1 var(--f-chart-ttl); margin-bottom:8px; }
+.chart-title-center{ text-align:center; }
+/* the circular movement plot (and the spray-chart diamond) are narrower
+   than their panel, so without this they default to sitting flush left
+   inside it instead of reading as centered within the panel's bounding box */
+.panel svg{ display:block; margin:0 auto; }
+.chart-tag{ font:900 11px/1 var(--f-tag); color:var(--ink); }
+
+/* percentile bars: widened by trimming the label/value columns down to
+   what the text actually needs, and thickened (7px -> 15px track) so the
+   bar itself reads as the focal element instead of a thin line under the
+   badge. Row pitch grew slightly (33 -> 40px) to give the heavier bar
+   breathing room. The scale-labels row mirrors metric-row's spacer/track/
+   spacer widths so POOR/AVERAGE/GREAT land at 10/50/90% of the SAME track
+   column the bars use -- not the full row -- matching the metric-tick
+   marks drawn on each bar. */
+/* Label/value margins trimmed from 20px to 10px (was pure dead space --
+   the track is flex:1, so tightening these directly hands that width back
+   to the bar itself) and the bar/badge/type sized up accordingly for
+   legibility. Spacer widths below are kept in lockstep with
+   label-width+margin and value-width+margin so POOR/AVERAGE/GREAT still
+   land exactly over the track's 10/50/90% ticks. */
+.scale-labels{ display:flex; align-items:flex-end; margin:4px 0 14px; }
+.scale-spacer-l{ width:86px; flex:0 0 86px; }
+.scale-spacer-r{ width:38px; flex:0 0 38px; }
+.scale-track{ flex:1; position:relative; height:24px; }
+.scale-mark{ position:absolute; bottom:0; transform:translateX(-50%); text-align:center; font:600 12px/1.1 var(--f-name); white-space:nowrap; letter-spacing:.02em; }
+.scale-mark .tri{ display:block; width:0; height:0; margin:2px auto 0; border-left:4px solid transparent; border-right:4px solid transparent; border-bottom:5px solid currentColor; }
+.scale-mark.poor{ color:var(--badge-navy); } .scale-mark.avg{ color:#a9b7bb; } .scale-mark.great{ color:var(--badge-red); }
+.metric-row{ display:flex; align-items:center; margin:0; height:46px; border-bottom:1px dashed var(--accent-teal); }
+.metric-row:last-child{ border-bottom:none; }
+.metric-label{ width:76px; flex:0 0 76px; margin-right:10px; font:400 12px/1.15 var(--f-name); text-align:right; white-space:nowrap; }
+.metric-track{ flex:1; height:20px; background:var(--track-bg); position:relative; border-radius:3px; }
+.metric-fill{ height:100%; border-radius:3px; }
+.metric-tick{ position:absolute; top:-4px; bottom:-4px; width:1.5px; background:rgba(255,255,255,.9); box-shadow:0 0 0 0.5px rgba(0,0,0,.2); }
+.metric-badge{ position:absolute; top:50%; width:37px; height:37px; border-radius:50%; color:#fff; font:900 16px/37px var(--f-display); text-align:center; transform:translate(-50%,-50%); border:2.4px solid #fff; box-shadow:0 0 0 1px rgba(0,0,0,.12); }
+.metric-value{ width:28px; flex:0 0 28px; margin-left:10px; font:400 12px/1.15 var(--f-name); }
+.footnote{ font:600 8.5px/1.3 var(--f-heading); color:var(--muted); text-align:right; margin-top:6px; }
+
+.subsection-title{ display:flex; align-items:center; gap:6px; font:700 17px/1 var(--f-heading); margin:14px 0 4px; }
+
+.coach-notes h3{ display:flex; align-items:center; gap:6px; font:700 17px/1 var(--f-heading); margin:0 0 8px; border-bottom:1.5px solid var(--accent-teal); padding-bottom:6px; }
+.coach-notes p{ font:300 12px/1.55 var(--f-tag); margin:0 0 9px; color:#333; }
+.coach-notes .placeholder{ color:#9aa; font-style:italic; border:1px dashed var(--accent-teal); padding:8px; }
+
+.comps{ border:1.5px solid var(--accent-teal); padding:14px 16px; }
+.comps-title{ text-align:center; font:600 14px/1 var(--f-chart-ttl); margin-bottom:10px; padding-bottom:8px; border-bottom:1.5px solid var(--accent-teal); }
+/* comp rows: switched from a centered circle-grid to a vertical list so each
+   comp can carry a 1-2 sentence "why this player" write-up -- a photo/name
+   row has no room for that text, a full-width row does. Each row is its own
+   flex line (photo left, name/position/blurb stacked right); a dashed rule
+   (matching .metric-row's) separates rows instead of margin alone so a
+   3-row pitcher list and a 5-row hitter list both read cleanly without
+   needing different spacing per family. */
+.comps-list{ display:flex; flex-direction:column; }
+.comp-row{ display:flex; align-items:flex-start; gap:12px; padding:10px 0; border-bottom:1px dashed var(--accent-teal); }
+.comp-row:last-child{ border-bottom:none; padding-bottom:0; }
+.comp-row:first-child{ padding-top:0; }
+.comp-row-photo{ flex:0 0 46px; width:46px; height:46px; border-radius:50%; background:#e3e8e9; border:2.5px solid var(--accent-teal); overflow:hidden; }
+.comp-row-photo img{ width:100%; height:100%; object-fit:cover; object-position:center top; border-radius:50%; display:block; }
+.comp-row-body{ flex:1; min-width:0; }
+.comp-row-name{ font:600 13.5px/1.2 var(--f-name); color:inherit; text-decoration:none; }
+a.comp-row-name:hover{ text-decoration:underline; }
+.comp-row-pos{ font:500 10.5px/1.2 var(--f-name); color:var(--muted); margin-left:6px; }
+.comp-row-blurb{ font:400 11.5px/1.45 var(--f-tag); color:#333; margin:3px 0 0; }
+
+.tracking-table{ width:100%; border-collapse:collapse; font:600 12px/1.3 var(--f-heading); margin-top:6px;}
+.tracking-table th{ text-align:center; padding:5px 3px; color:#fff; background:var(--accent-teal); font-weight:700; font-size:11px; }
+.tracking-table td{ text-align:center; padding:6px 3px; border-bottom:1px solid var(--track-bg); }
+.tracking-table td.type-cell{ text-align:left; font-weight:700; }
+
+.footer-note{ text-align:center; font:600 8px/1.3 var(--f-heading); color:#aab; padding:10px 0 0; }
+.warn-note{ font:400 8.5px/1.3 var(--f-tag); color:#a55; font-style:italic; margin-top:4px; }
+
+/* pitch movement: dotted-rule caption above the circular plot, and the
+   usage/velo mini-table below it (color pill sized by usage%, then three
+   stat rows), columns aligned 1:1 with however many pitch types this
+   pitcher actually threw. */
+.movement-caption{ text-align:center; font:600 10px/1 var(--f-tick); color:var(--accent-teal); letter-spacing:.03em; margin-bottom:6px; }
+.movement-caption-rule{ border-top:2px dotted var(--accent-teal); width:70%; margin:0 auto 6px; }
+.movement-legend{ margin-top:8px; }
+.ml-row{ display:flex; align-items:center; padding:3px 0; }
+.ml-label{ width:56px; flex:0 0 56px; font:600 10px/1.2 var(--f-tick); color:var(--accent-teal); text-align:left; text-transform:uppercase; }
+.ml-label.ml-italic{ font-style:italic; }
+.ml-cell{ flex:1; text-align:center; font:400 13px/1.2 var(--f-name); }
+.ml-header .ml-cell{ font:700 12px/1.2 var(--f-heading); }
+.ml-pill{ display:inline-block; height:12px; border-radius:6px; }
