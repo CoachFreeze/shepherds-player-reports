@@ -137,7 +137,15 @@ def render_hitter(name, totals_row, master_rows, bio):
     ])
     points = e.hitter_spray_points(master_rows, name)
     spray_html = sc.spray_chart_interactive_html(points, width=260, height=232) + sc.spray_chart_legend_html() if points else '<div style="color:#999;font-size:11px;">No batted-ball data</div>'
-    running_html = sc.percentile_bars_html([]) + '<div class="warn-note">⚠ 60 Yard Dash / Sprint Speed require combine timing data not in this workbook.</div>'
+
+    running_rows = e.build_running_metrics(bio.get('sixty_yd_time'))
+    if running_rows:
+        running_html = sc.percentile_bars_html([
+            {'label': r['label'], 'pctl': r['pctl'], 'value_display': f"{r['value']}{r['unit']}"}
+            for r in running_rows
+        ])
+    else:
+        running_html = sc.percentile_bars_html([]) + '<div class="warn-note">⚠ 60 Yard Dash / Sprint Speed require a 60 time -- add it on the intake or edit page.</div>'
 
     auto = ce.find_comps(pctl_rows, 'hitter', our_name=name,
                           position=bio['roles'].get('hit', {}).get('position'), n=5)
@@ -158,11 +166,13 @@ def render_hitter(name, totals_row, master_rows, bio):
     return out_path
 
 
-def process_upload(xlsx_path, name, school, grad_year, position_pitch, position_hit, roles_needed):
+def process_upload(xlsx_path, name, school, grad_year, position_pitch, position_hit, roles_needed, sixty_yd_time=None):
     """roles_needed: set/list containing 'pitch' and/or 'hit'. Returns list of
     (role, out_path) for whichever reports were generated."""
     slug = store.upsert_player_bio(name, school, grad_year, position_pitch, position_hit)
     store.set_last_xlsx(slug, xlsx_path)
+    if sixty_yd_time is not None:
+        store.set_sixty_yd_time(slug, sixty_yd_time)
     bio = store.get_player(slug)
 
     pitching, hitting = e.load_totals(xlsx_path)

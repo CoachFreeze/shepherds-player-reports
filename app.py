@@ -162,6 +162,10 @@ INTAKE_PAGE = """
     <div><label>Pitching position (leave blank if N/A)</label><input type="text" name="position_pitch" placeholder="RHP, LHP"></div>
     <div><label>Hitting position (leave blank if N/A)</label><input type="text" name="position_hit" placeholder="INF, OF, C"></div>
   </div>
+  <div><label>60 time (seconds, hitters only -- leave blank if N/A)</label>
+    <input type="number" step="0.01" min="0" name="sixty_yd_time" placeholder="e.g. 6.85">
+    <p style="font-size:12.5px;color:#8a7557;margin:4px 0 0;">Used to fill in the 60 Yard Dash and Sprint Speed lines on the Running panel. Can be added or changed later from the Edit Comps page without re-uploading.</p>
+  </div>
   <fieldset style="padding:12px 14px;">
     <label style="margin-top:0;">Full Swing export (.xlsx)</label>
     <input type="file" name="xlsx_file" accept=".xlsx" required>
@@ -188,6 +192,12 @@ def intake():
         if not roles_needed:
             roles_needed = ['pitch', 'hit']  # if neither position given, try both
 
+        sixty_yd_time = request.form.get('sixty_yd_time', '').strip()
+        try:
+            sixty_yd_time = float(sixty_yd_time) if sixty_yd_time else None
+        except ValueError:
+            sixty_yd_time = None
+
         f = request.files.get('xlsx_file')
         if not name or not f or not f.filename:
             message, ok = 'Name and a Full Swing export file are required.', False
@@ -197,6 +207,7 @@ def intake():
             try:
                 slug, results = pipeline.process_upload(
                     xlsx_path, name, school, grad_year, position_pitch, position_hit, roles_needed,
+                    sixty_yd_time=sixty_yd_time,
                 )
                 if results:
                     links = ', '.join(f"{role}" for role, _ in results)
@@ -264,6 +275,14 @@ EDIT_COMPS_PAGE = """
 </style>
 <p class="top"><a href="{{ url_for('intake') }}">&larr; Back to intake</a></p>
 <h1>{{ player.name }} &mdash; Players to Watch</h1>
+{% if player.roles.get('hit') %}
+<h2>60 Time / Sprint Speed</h2>
+<form class="inline" method="post" action="{{ url_for('edit_sixty', slug=slug) }}">
+  <input type="number" step="0.01" min="0" name="sixty_yd_time" placeholder="e.g. 6.85" value="{{ player.sixty_yd_time or '' }}">
+  <button type="submit">Save</button>
+</form>
+<p style="font-size:12px;color:#8a7557;margin:6px 0 0;">Saving updates the Running panel on the hitting report immediately -- Sprint Speed (ft/s) and both percentiles are recalculated from this time.</p>
+{% endif %}
 {% for role, label in [('pitch','Pitching'), ('hit','Hitting')] %}
   {% if player.roles.get(role) %}
   <h2>{{ label }}</h2>
@@ -314,6 +333,20 @@ def edit_comps_override(slug, role, index):
 def edit_comps_unlock(slug, role, index):
     store.unlock_comp(slug, role, index)
     pipeline.regenerate_role(slug, role)
+    return redirect(url_for('edit_comps', slug=slug))
+
+
+@app.route('/edit/<slug>/sixty', methods=['POST'])
+@login_required
+def edit_sixty(slug):
+    raw = request.form.get('sixty_yd_time', '').strip()
+    try:
+        seconds = float(raw) if raw else None
+    except ValueError:
+        seconds = None
+    if seconds is not None:
+        store.set_sixty_yd_time(slug, seconds)
+        pipeline.regenerate_role(slug, 'hit')
     return redirect(url_for('edit_comps', slug=slug))
 
 

@@ -107,6 +107,18 @@ def set_last_xlsx(slug, xlsx_path):
     _save(PLAYERS_PATH, players)
 
 
+def set_sixty_yd_time(slug, seconds):
+    """60-yard dash time in seconds (hitters only). Stored on the player so
+    it survives re-uploads/regenerations without needing to be re-entered
+    every time -- pipeline.render_hitter() derives Sprint Speed (ft/s) and
+    both percentiles from this on every render."""
+    players = list_players()
+    entry = players.setdefault(slug, {'comps': {}})
+    entry['sixty_yd_time'] = seconds
+    players[slug] = entry
+    _save(PLAYERS_PATH, players)
+
+
 def set_auto_comps(slug, role, auto_comps, n_slots):
     """Writes the engine's suggestions into every slot that isn't locked by a
     coach. Locked slots are left completely untouched."""

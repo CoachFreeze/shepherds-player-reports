@@ -382,3 +382,22 @@ def build_hitter_percentiles(totals_row, derived):
         {'label': 'BB%', 'value': bb_pct, 'pctl': pct('bb_pct', bb_pct), 'unit': '%'},
     ]
     return [r for r in rows if r['value'] is not None]
+
+
+def build_running_metrics(sixty_yd_time):
+    """60 Yard Dash time (seconds, hand- or laser-timed) -> both the raw time
+    and a derived Sprint Speed in ft/s (60 yards = 180 ft, so ft/s = 180 /
+    time), each with its own percentile. Kept separate from
+    build_hitter_percentiles() -- this never feeds the main percentile board
+    or the MLB-comp matching, only the dedicated Running panel."""
+    sixty_yd_time = _num(sixty_yd_time)
+    if sixty_yd_time is None or sixty_yd_time <= 0:
+        return []
+    sprint_speed = round(180 / sixty_yd_time, 1)
+    rows = [
+        {'label': '60 Yard Dash', 'value': sixty_yd_time,
+         'pctl': bm.interpolate(sixty_yd_time, bm.HITTER['sixty_yd']), 'unit': 's'},
+        {'label': 'Sprint Speed', 'value': sprint_speed,
+         'pctl': bm.interpolate(sprint_speed, bm.HITTER['sprint_speed']), 'unit': ' ft/s'},
+    ]
+    return rows
