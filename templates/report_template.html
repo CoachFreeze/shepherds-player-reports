@@ -85,11 +85,13 @@
         <div class="panel">
           <div class="chart-title">Pitch Tracking</div>
           <table class="tracking-table">
-            <tr><th>Pitch Type</th><th>#</th><th>%</th><th>K%</th><th>Velo</th><th>Spin</th><th>EV</th><th>SO</th><th>Whiff%</th></tr>
+            <tr><th>Pitch Type</th><th>#</th><th>%</th><th>Strike%</th><th>K%</th><th>Velo</th><th>Spin</th><th>EV</th><th>SO</th><th>Whiff%</th></tr>
             {% for t in p.tracking %}
             <tr>
               <td class="type-cell" style="color:{{ t.color }};">{{ t.type }}</td>
-              <td>{{ t.n }}</td><td>{{ '%.1f'|format(t.pct) }}</td><td>{{ '%.1f'|format(t.k_pct) }}</td>
+              <td>{{ t.n }}</td><td>{{ '%.1f'|format(t.pct) }}</td>
+              <td>{{ '%.1f'|format(t.strike_pct) if t.strike_pct is not none else '—' }}</td>
+              <td>{{ '%.1f'|format(t.k_pct) }}</td>
               <td>{{ t.velo if t.velo is not none else '—' }}</td>
               <td>{{ t.spin if t.spin is not none else '—' }}</td>
               <td>{{ t.ev if t.ev is not none else '—' }}</td>
