@@ -62,9 +62,14 @@ What this means in practice:
   added by coaches (uploads, overrides) stays put through spin-downs,
   restarts, and normal traffic. It's only wiped when *you* push a code
   change.
-- **Before you push a change** (a bug fix, a new feature), export or note
-  down anything in `data/players.json` you'd be upset to lose, or re-run
-  the intake form for each player again afterward.
+- **Before you push a code change** (a bug fix, a new feature), go to
+  `/intake` and click "Download current roster data (players.json)" (or
+  visit `/admin/backup/players.json` directly), then drag-and-drop that
+  file into the repo's `data/` folder the same way you'd upload any other
+  changed file, *before* making the code change. Once `data/players.json`
+  is committed with the current roster in it, a future redeploy restores
+  that roster instead of resetting to an old snapshot -- no more re-running
+  the intake form for every player after every deploy.
 - **If this becomes a real pain point**, Render's cheapest paid tier
   (currently ~$7/mo, "Starter") supports attaching a persistent disk, which
   removes this limitation entirely with no code changes — just mount a disk

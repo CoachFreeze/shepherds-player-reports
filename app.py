@@ -123,6 +123,18 @@ def dashboard():
     return render_template_string(DASHBOARD_PAGE, players=players, is_coach=bool(session.get('coach')))
 
 
+@app.route('/admin/backup/players.json')
+@login_required
+def backup_players():
+    """Downloads the live roster data (bios, comps, 60 times) as a plain
+    JSON file. Render's free tier resets this file to whatever's committed
+    in the GitHub repo every time new code is pushed -- download this after
+    adding or changing players, then drag-and-drop it into the repo's
+    data/ folder (same as any other file update) so the current roster
+    survives the next code deploy instead of resetting to an old snapshot."""
+    return send_file(store.PLAYERS_PATH, as_attachment=True, download_name='players.json')
+
+
 @app.route('/report/<slug>/<role>')
 def view_report(slug, role):
     if role not in ('pitching', 'hitting'):
@@ -174,6 +186,7 @@ INTAKE_PAGE = """
   <button type="submit">Generate report(s)</button>
 </form>
 <p style="margin-top:28px;"><a href="{{ url_for('dashboard') }}">&larr; View the public dashboard</a></p>
+<p style="margin-top:10px;font-size:12.5px;"><a href="{{ url_for('backup_players') }}">Download current roster data (players.json)</a> -- after adding players, upload this file into the GitHub repo's <code>data/</code> folder so the roster survives the next code update.</p>
 """
 
 
