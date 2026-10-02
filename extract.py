@@ -162,7 +162,8 @@ def pitcher_master_stats(master_rows, pitcher_name):
     }
 
     by_type = defaultdict(lambda: {'n': 0, 'k': 0, 'swings': 0, 'whiffs': 0,
-                                    'velos': [], 'spins': [], 'evs': [], 'so': 0})
+                                    'velos': [], 'spins': [], 'evs': [], 'so': 0,
+                                    'strikes': 0, 'pitches_with_bs': 0})
     total_pitches = len(prows)
     for r in prows:
         label = PITCH_TYPE_MAP.get(r.get('Pitch Type'))
@@ -184,6 +185,13 @@ def pitcher_master_stats(master_rows, pitcher_name):
             d['spins'].append(r['SpinRate'])
         if _num(r.get('ExitSpeed')) is not None:
             d['evs'].append(r['ExitSpeed'])
+        # Ball/Strike: 1 = strike, 0 = ball -- per-pitch-type Strike%,
+        # same convention as the overall Strike% above.
+        bs = r.get('Ball/Strike')
+        if bs is not None:
+            d['pitches_with_bs'] += 1
+            if bs == 1:
+                d['strikes'] += 1
 
     tracking = []
     for label, d in sorted(by_type.items(), key=lambda kv: -kv[1]['n']):
@@ -193,6 +201,7 @@ def pitcher_master_stats(master_rows, pitcher_name):
             'pct': 100 * d['n'] / total_pitches if total_pitches else 0,
             'k_pct': 100 * d['k'] / d['n'] if d['n'] else 0,
             'whiff_pct': 100 * d['whiffs'] / d['swings'] if d['swings'] else 0,
+            'strike_pct': round(100 * d['strikes'] / d['pitches_with_bs'], 1) if d['pitches_with_bs'] else None,
             'velo': round(sum(d['velos']) / len(d['velos']), 1) if d['velos'] else None,
             'top_velo': round(max(d['velos']), 1) if d['velos'] else None,
             'spin': round(sum(d['spins']) / len(d['spins'])) if d['spins'] else None,
