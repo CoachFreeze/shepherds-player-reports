@@ -1,0 +1,78 @@
+{
+  "jackson_orr": {
+    "comps": {
+      "hit": [
+        {
+          "blurb": "Whit Merrifield shares Jackson Orr's doesn't hit for much distance and keeps the strikeouts down. Watch for that same pattern on film.",
+          "distance": 21.04,
+          "name": "Whit Merrifield",
+          "position": "2B/OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Jeff McNeil shares Jackson Orr's keeps the strikeouts down and doesn't hit for much distance. Watch for that same pattern on film.",
+          "distance": 21.62,
+          "name": "Jeff McNeil",
+          "position": "2B/OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Kevin Kiermaier is the closest statistical match in this reference set for Jackson Orr right now -- worth studying his overall approach as a hitter.",
+          "distance": 22.85,
+          "name": "Kevin Kiermaier",
+          "position": "OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Steven Kwan shares Jackson Orr's keeps the strikeouts down and doesn't hit for much distance. Watch for that same pattern on film.",
+          "distance": 24.13,
+          "name": "Steven Kwan",
+          "position": "OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Riley Greene is the closest statistical match in this reference set for Jackson Orr right now -- worth studying his overall approach as a hitter.",
+          "distance": 32.91,
+          "name": "Riley Greene",
+          "position": "OF",
+          "source": "auto"
+        }
+      ],
+      "pitch": [
+        {
+          "blurb": "Framber Valdez shares Jackson Orr's excellent at limiting hard contact. Watch for that same pattern on film.",
+          "distance": 40.86,
+          "name": "Framber Valdez",
+          "position": "LHP",
+          "source": "auto"
+        },
+        {
+          "blurb": "Ranger Su\u00e1rez shares Jackson Orr's excellent at limiting hard contact and below-average velocity, pitching more off command/shape. Watch for that same pattern on film.",
+          "distance": 45.71,
+          "name": "Ranger Su\u00e1rez",
+          "position": "LHP",
+          "source": "auto"
+        },
+        {
+          "blurb": "Chris Sale shares Jackson Orr's a swing-and-miss arsenal and excellent at limiting hard contact. Watch for that same pattern on film.",
+          "distance": 48.24,
+          "name": "Chris Sale",
+          "position": "LHP",
+          "source": "auto"
+        }
+      ]
+    },
+    "grad_year": 2032,
+    "last_xlsx_path": "/mnt/user-data/uploads/2026_Shepherds_Live_AB_Data.xlsx",
+    "name": "Jackson Orr",
+    "roles": {
+      "hit": {
+        "position": "OF"
+      },
+      "pitch": {
+        "position": "LHP"
+      }
+    },
+    "school": "La Mirada HS"
+  }
+}
