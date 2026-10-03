@@ -50,6 +50,57 @@
     "school": "West Texas A&M",
     "sixty_yd_time": 7.53
   },
+  "caleb_koontz": {
+    "comps": {
+      "hit": [
+        {
+          "blurb": "Willy Adames is a close statistical match for Caleb Koontz \u2014 both carry an elevated strikeout rate. Watch for that same pattern on film.",
+          "distance": 34.24,
+          "name": "Willy Adames",
+          "position": "SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Andr\u00e9s Gim\u00e9nez is the closest statistical match in this reference set for Caleb Koontz right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 39.59,
+          "name": "Andr\u00e9s Gim\u00e9nez",
+          "position": "2B/SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Fernando Tatis Jr. is the closest statistical match in this reference set for Caleb Koontz right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 41.41,
+          "name": "Fernando Tatis Jr.",
+          "position": "OF/SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Francisco Lindor is the closest statistical match in this reference set for Caleb Koontz right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 42.11,
+          "name": "Francisco Lindor",
+          "position": "SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Pete Alonso is a close statistical match for Caleb Koontz \u2014 both carry an elevated strikeout rate. Watch for that same pattern on film.",
+          "distance": 42.17,
+          "name": "Pete Alonso",
+          "position": "1B",
+          "source": "auto"
+        }
+      ]
+    },
+    "grad_year": 2028,
+    "last_xlsx_path": "/opt/render/project/src/data/uploads/caleb_koontz_2026_Shepherds_Live_AB_Data.xlsx",
+    "name": "Caleb Koontz",
+    "roles": {
+      "hit": {
+        "position": "INF"
+      }
+    },
+    "school": "Fullerton College",
+    "sixty_yd_time": 7.73
+  },
   "carter_walsh": {
     "comps": {
       "hit": [
