@@ -65,7 +65,7 @@ def _resolve_comps(comps_list):
     return out
 
 
-def render_pitcher(name, totals_row, master_rows, bio):
+def render_pitcher(name, totals_row, master_rows, bio, trackman_rows=None):
     slug = store.slugify(name)
     velo_ev = e.pitcher_velo_ev_metrics(master_rows, name)
     overall, tracking = e.pitcher_master_stats(master_rows, name)
@@ -79,10 +79,22 @@ def render_pitcher(name, totals_row, master_rows, bio):
         for r in pctl_rows if r['pctl'] is not None
     ])
 
+    # Trackman (optional): real break/spin numbers per pitch type, keyed off
+    # the same labels Full Swing's own `tracking` rows use. Falls back to the
+    # old sample/placeholder values for any pitch type it has no data for
+    # (or when no Trackman file was ever attached for this pitcher).
+    tm_movement = e.pitcher_trackman_movement(trackman_rows, name) if trackman_rows else {}
+
     sample_shape = {'Fastball': (7, 14), 'Slider': (-6, -4), 'Changeup': (10, 4), 'Curveball': (-8, -12), 'Other': (6, -2)}
     movement_pitches = []
+    movement_is_sample = False
     for t in tracking:
-        hb, vb = sample_shape.get(t['type'], (0, 0))
+        tm = tm_movement.get(t['type'])
+        if tm and tm.get('hb') is not None and tm.get('ivb') is not None:
+            hb, vb = tm['hb'], tm['ivb']
+        else:
+            hb, vb = sample_shape.get(t['type'], (0, 0))
+            movement_is_sample = True
         movement_pitches.append({'type': t['type'], 'color': t['color'], 'hb': hb, 'vb': vb, 'points': []})
     if movement_pitches:
         movement_html = (
@@ -94,12 +106,23 @@ def render_pitcher(name, totals_row, master_rows, bio):
         movement_html = '<div style="color:#999;font-size:11px;">No pitch data</div>'
 
     spin_pitches = []
+    spin_is_sample = False
     sample_clocks = {'Fastball': ('1:00', '12:45', 15), 'Slider': ('8:45', '8:15', 30),
                       'Changeup': ('1:45', '2:45', -60), 'Curveball': ('7:15', '7:15', 0), 'Other': ('2:00', '1:30', 15)}
     for t in tracking:
-        sb, ob, dv = sample_clocks.get(t['type'], ('12:00', '12:00', 0))
+        tm = tm_movement.get(t['type'])
+        if tm and tm.get('spin_clock'):
+            sb = ob = tm['spin_clock']
+            dv = tm.get('spin_deviation') or 0
+        else:
+            sb, ob, dv = sample_clocks.get(t['type'], ('12:00', '12:00', 0))
+            spin_is_sample = True
         spin_pitches.append({'type': t['type'], 'spin_based': sb, 'observed': ob, 'deviation': dv, 'color': t['color']})
     spin_html = sc.spin_clock_row_svg(spin_pitches) if spin_pitches else '<div style="color:#999;font-size:11px;">No pitch data</div>'
+    # Only show the Spin Direction panel at all once there's real Trackman
+    # spin data for at least one pitch type -- otherwise it's pure fiction
+    # and the old build correctly just hid it (show_spin_direction=False).
+    show_spin_direction = any(tm.get('spin_clock') for tm in tm_movement.values())
 
     bf, so, bb = overall.get('bf'), overall.get('k'), overall.get('bb')
 
@@ -118,7 +141,8 @@ def render_pitcher(name, totals_row, master_rows, bio):
         'bf': bf, 'h': totals_row.get('H'), 'so': so,
         'bb': bb, 'whip': safe_round(totals_row.get('WHIP'), 2),
         'tracking': tracking, 'comps': comps_display,
-        'movement_is_sample': True, 'spin_is_sample': True, 'show_spin_direction': False,
+        'movement_is_sample': movement_is_sample, 'spin_is_sample': spin_is_sample,
+        'show_spin_direction': show_spin_direction,
         'action_photo': None, 'headshot': None, 'coach_notes': None,
     }
     html = tpl.render(p=p, css=CSS, pctl_html=pctl_html, movement_html=movement_html, spin_html=spin_html, brand=BRAND)
@@ -166,23 +190,26 @@ def render_hitter(name, totals_row, master_rows, bio):
     return out_path
 
 
-def process_upload(xlsx_path, name, school, grad_year, position_pitch, position_hit, roles_needed, sixty_yd_time=None):
+def process_upload(xlsx_path, name, school, grad_year, position_pitch, position_hit, roles_needed, sixty_yd_time=None, trackman_path=None):
     """roles_needed: set/list containing 'pitch' and/or 'hit'. Returns list of
     (role, out_path) for whichever reports were generated."""
     slug = store.upsert_player_bio(name, school, grad_year, position_pitch, position_hit)
     store.set_last_xlsx(slug, xlsx_path)
     if sixty_yd_time is not None:
         store.set_sixty_yd_time(slug, sixty_yd_time)
+    if trackman_path is not None:
+        store.set_last_trackman(slug, trackman_path)
     bio = store.get_player(slug)
 
     pitching, hitting = e.load_totals(xlsx_path)
     master = e.load_master_rows(xlsx_path)
+    trackman_rows = e.load_trackman_rows(bio.get('last_trackman_path'))
 
     results = []
     if 'pitch' in roles_needed:
         row = next((r for r in pitching if r['Name'] == name), None)
         if row:
-            out = render_pitcher(name, row, master, bio)
+            out = render_pitcher(name, row, master, bio, trackman_rows)
             results.append(('pitch', out))
     if 'hit' in roles_needed:
         row = next((r for r in hitting if r['Name'] == name), None)
@@ -204,8 +231,9 @@ def regenerate_role(slug, role):
     pitching, hitting = e.load_totals(bio['last_xlsx_path'])
     master = e.load_master_rows(bio['last_xlsx_path'])
     if role == 'pitch':
+        trackman_rows = e.load_trackman_rows(bio.get('last_trackman_path'))
         row = next((r for r in pitching if r['Name'] == name), None)
-        return render_pitcher(name, row, master, bio) if row else None
+        return render_pitcher(name, row, master, bio, trackman_rows) if row else None
     else:
         row = next((r for r in hitting if r['Name'] == name), None)
         return render_hitter(name, row, master, bio) if row else None

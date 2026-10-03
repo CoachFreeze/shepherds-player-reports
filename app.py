@@ -183,6 +183,11 @@ INTAKE_PAGE = """
     <input type="file" name="xlsx_file" accept=".xlsx" required>
     <p style="font-size:12.5px;color:#8a7557;">The workbook must include this player's rows on the Master and Totals tabs.</p>
   </fieldset>
+  <fieldset style="padding:12px 14px;">
+    <label style="margin-top:0;">Trackman export (.csv, pitchers only -- optional)</label>
+    <input type="file" name="trackman_file" accept=".csv">
+    <p style="font-size:12.5px;color:#8a7557;">If this player's school gives him a Trackman report, attach its CSV here to fill in real Pitch Movement Profile and Spin Direction numbers instead of the sample placeholder values. Leave blank if he doesn't have one -- everything else still works the same.</p>
+  </fieldset>
   <button type="submit">Generate report(s)</button>
 </form>
 <p style="margin-top:28px;"><a href="{{ url_for('dashboard') }}">&larr; View the public dashboard</a></p>
@@ -212,15 +217,20 @@ def intake():
             sixty_yd_time = None
 
         f = request.files.get('xlsx_file')
+        tm_f = request.files.get('trackman_file')
         if not name or not f or not f.filename:
             message, ok = 'Name and a Full Swing export file are required.', False
         else:
             xlsx_path = os.path.join(UPLOAD_DIR, f'{store.slugify(name)}_{f.filename}')
             f.save(xlsx_path)
+            trackman_path = None
+            if tm_f and tm_f.filename:
+                trackman_path = os.path.join(UPLOAD_DIR, f'{store.slugify(name)}_trackman_{tm_f.filename}')
+                tm_f.save(trackman_path)
             try:
                 slug, results = pipeline.process_upload(
                     xlsx_path, name, school, grad_year, position_pitch, position_hit, roles_needed,
-                    sixty_yd_time=sixty_yd_time,
+                    sixty_yd_time=sixty_yd_time, trackman_path=trackman_path,
                 )
                 if results:
                     links = ', '.join(f"{role}" for role, _ in results)

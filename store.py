@@ -107,6 +107,18 @@ def set_last_xlsx(slug, xlsx_path):
     _save(PLAYERS_PATH, players)
 
 
+def set_last_trackman(slug, csv_path):
+    """Path to this player's most recently uploaded Trackman CSV (pitching
+    only -- optional, alongside the Full Swing workbook). Same pattern as
+    set_last_xlsx(): render_pitcher() reads real break/spin data from this
+    file when present, and falls back to sample values when it's absent."""
+    players = list_players()
+    entry = players.setdefault(slug, {'comps': {}})
+    entry['last_trackman_path'] = csv_path
+    players[slug] = entry
+    _save(PLAYERS_PATH, players)
+
+
 def set_sixty_yd_time(slug, seconds):
     """60-yard dash time in seconds (hitters only). Stored on the player so
     it survives re-uploads/regenerations without needing to be re-entered
