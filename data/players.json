@@ -1,4 +1,55 @@
 {
+  "carter_walsh": {
+    "comps": {
+      "hit": [
+        {
+          "blurb": "Mookie Betts is a close statistical match for Carter Walsh \u2014 both show a patient approach that draws walks and keep the strikeouts down. Watch for that same pattern on film.",
+          "distance": 19.91,
+          "name": "Mookie Betts",
+          "position": "OF/SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Juan Soto is a close statistical match for Carter Walsh \u2014 both show a patient approach that draws walks and keep the strikeouts down. Watch for that same pattern on film.",
+          "distance": 24.69,
+          "name": "Juan Soto",
+          "position": "OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Steven Kwan is a close statistical match for Carter Walsh \u2014 both keep the strikeouts down. Watch for that same pattern on film.",
+          "distance": 31.14,
+          "name": "Steven Kwan",
+          "position": "OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Shohei Ohtani is a close statistical match for Carter Walsh \u2014 both show a patient approach that draws walks and show a consistently efficient launch angle. Watch for that same pattern on film.",
+          "distance": 33.25,
+          "name": "Shohei Ohtani",
+          "position": "OF/DH",
+          "source": "auto"
+        },
+        {
+          "blurb": "Yordan Alvarez is a close statistical match for Carter Walsh \u2014 both show a consistently efficient launch angle. Watch for that same pattern on film.",
+          "distance": 33.8,
+          "name": "Yordan Alvarez",
+          "position": "OF/DH",
+          "source": "auto"
+        }
+      ]
+    },
+    "grad_year": 2027,
+    "last_xlsx_path": "/opt/render/project/src/data/uploads/carter_walsh_2026_Shepherds_Live_AB_Data.xlsx",
+    "name": "Carter Walsh",
+    "roles": {
+      "hit": {
+        "position": "OF"
+      }
+    },
+    "school": "Northwest Nazarene University",
+    "sixty_yd_time": 6.65
+  },
   "jackson_orr": {
     "comps": {
       "hit": [
