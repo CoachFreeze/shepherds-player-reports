@@ -177,6 +177,83 @@
     },
     "school": "La Mirada HS"
   },
+  "reagan_samples": {
+    "comps": {
+      "hit": [
+        {
+          "blurb": "Mookie Betts is a close statistical match for Reagan Samples \u2014 both keep the strikeouts down and show a patient approach that draws walks. Watch for that same pattern on film.",
+          "distance": 28.49,
+          "name": "Mookie Betts",
+          "position": "OF/SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Jose Ramirez is a close statistical match for Reagan Samples \u2014 both keep the strikeouts down. Watch for that same pattern on film.",
+          "distance": 29.07,
+          "name": "Jose Ramirez",
+          "position": "3B",
+          "source": "auto"
+        },
+        {
+          "blurb": "Francisco Lindor is the closest statistical match in this reference set for Reagan Samples right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 29.13,
+          "name": "Francisco Lindor",
+          "position": "SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Jose Altuve is the closest statistical match in this reference set for Reagan Samples right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 29.73,
+          "name": "Jose Altuve",
+          "position": "2B",
+          "source": "auto"
+        },
+        {
+          "blurb": "Ketel Marte is the closest statistical match in this reference set for Reagan Samples right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 29.75,
+          "name": "Ketel Marte",
+          "position": "2B",
+          "source": "auto"
+        }
+      ],
+      "pitch": [
+        {
+          "blurb": "Tanner Houck is a close statistical match for Reagan Samples \u2014 both are excellent at limiting hard contact. Watch for that same pattern on film.",
+          "distance": 29.69,
+          "name": "Tanner Houck",
+          "position": "RHP",
+          "source": "auto"
+        },
+        {
+          "blurb": "Sonny Gray is a close statistical match for Reagan Samples \u2014 both are excellent at limiting hard contact. Watch for that same pattern on film.",
+          "distance": 30.61,
+          "name": "Sonny Gray",
+          "position": "RHP",
+          "source": "auto"
+        },
+        {
+          "blurb": "Kyle Hendricks is a close statistical match for Reagan Samples \u2014 both pitch with below-average velocity, leaning more on command and shape. Watch for that same pattern on film.",
+          "distance": 31.03,
+          "name": "Kyle Hendricks",
+          "position": "RHP",
+          "source": "auto"
+        }
+      ]
+    },
+    "grad_year": 2029,
+    "last_xlsx_path": "/opt/render/project/src/data/uploads/reagan_samples_2026_Shepherds_Live_AB_Data.xlsx",
+    "name": "Reagan Samples",
+    "roles": {
+      "hit": {
+        "position": "INF"
+      },
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Biola University",
+    "sixty_yd_time": 7.9
+  },
   "ryan_han": {
     "comps": {
       "hit": [
