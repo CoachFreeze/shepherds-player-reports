@@ -11,6 +11,8 @@ import os
 import re
 from werkzeug.security import generate_password_hash, check_password_hash
 
+import github_sync
+
 BUILD_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BUILD_DIR, 'data')
 COACHES_PATH = os.path.join(DATA_DIR, 'coaches.json')
@@ -76,6 +78,15 @@ def coach_display_name(username):
 
 def list_players():
     return _load(PLAYERS_PATH, {})
+
+
+def sync_to_github():
+    """Best-effort: pushes the current data/players.json straight to GitHub
+    (see github_sync.py). Called once at the end of each coach-facing
+    action (a new upload, a comp override, a 60-time edit) rather than
+    after every individual setter, so one action produces one commit
+    instead of several. A no-op if GITHUB_TOKEN/GITHUB_REPO aren't set."""
+    github_sync.sync_players_json(list_players())
 
 
 def get_player(slug):

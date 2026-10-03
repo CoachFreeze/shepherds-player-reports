@@ -216,6 +216,7 @@ def process_upload(xlsx_path, name, school, grad_year, position_pitch, position_
         if row:
             out = render_hitter(name, row, master, bio)
             results.append(('hit', out))
+    store.sync_to_github()
     return slug, results
 
 
@@ -233,7 +234,9 @@ def regenerate_role(slug, role):
     if role == 'pitch':
         trackman_rows = e.load_trackman_rows(bio.get('last_trackman_path'))
         row = next((r for r in pitching if r['Name'] == name), None)
-        return render_pitcher(name, row, master, bio, trackman_rows) if row else None
+        out = render_pitcher(name, row, master, bio, trackman_rows) if row else None
     else:
         row = next((r for r in hitting if r['Name'] == name), None)
-        return render_hitter(name, row, master, bio) if row else None
+        out = render_hitter(name, row, master, bio) if row else None
+    store.sync_to_github()
+    return out
