@@ -1,0 +1,620 @@
+{
+  "aidan_young": {
+    "comps": {
+      "hit": [
+        {
+          "blurb": "Willy Adames is a close statistical match for Aidan Young \u2014 both carry an elevated strikeout rate. Watch for that same pattern on film.",
+          "distance": 26.3,
+          "name": "Willy Adames",
+          "position": "SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Fernando Tatis Jr. is a close statistical match for Aidan Young \u2014 both hit the ball with well above-average raw power. Watch for that same pattern on film.",
+          "distance": 31.87,
+          "name": "Fernando Tatis Jr.",
+          "position": "OF/SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Pete Alonso is a close statistical match for Aidan Young \u2014 both hit the ball with well above-average raw power and carry an elevated strikeout rate. Watch for that same pattern on film.",
+          "distance": 32.9,
+          "name": "Pete Alonso",
+          "position": "1B",
+          "source": "auto"
+        },
+        {
+          "blurb": "Gunnar Henderson is a close statistical match for Aidan Young \u2014 both hit the ball with well above-average raw power. Watch for that same pattern on film.",
+          "distance": 33.03,
+          "name": "Gunnar Henderson",
+          "position": "SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Andr\u00e9s Gim\u00e9nez is the closest statistical match in this reference set for Aidan Young right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 33.29,
+          "name": "Andr\u00e9s Gim\u00e9nez",
+          "position": "2B/SS",
+          "source": "auto"
+        }
+      ]
+    },
+    "grad_year": 2027,
+    "last_xlsx_path": "/opt/render/project/src/data/uploads/aidan_young_2026_Shepherds_Live_AB_Data.xlsx",
+    "name": "Aidan Young",
+    "roles": {
+      "hit": {
+        "position": "INF"
+      }
+    },
+    "school": "West Texas A&M",
+    "sixty_yd_time": 7.53
+  },
+  "andrew_craig": {
+    "comps": {
+      "pitch": [
+        {
+          "blurb": "Paul Skenes is the closest statistical match in this reference set for Andrew Craig right now \u2014 worth studying his overall approach as a pitcher.",
+          "distance": Infinity,
+          "name": "Paul Skenes",
+          "position": "RHP",
+          "source": "auto"
+        },
+        {
+          "blurb": "Shane Bieber is the closest statistical match in this reference set for Andrew Craig right now \u2014 worth studying his overall approach as a pitcher.",
+          "distance": Infinity,
+          "name": "Shane Bieber",
+          "position": "RHP",
+          "source": "auto"
+        },
+        {
+          "blurb": "Kyle Hendricks is the closest statistical match in this reference set for Andrew Craig right now \u2014 worth studying his overall approach as a pitcher.",
+          "distance": Infinity,
+          "name": "Kyle Hendricks",
+          "position": "RHP",
+          "source": "auto"
+        }
+      ]
+    },
+    "grad_year": 2030,
+    "last_xlsx_path": "/opt/render/project/src/data/uploads/andrew_craig_2026_Shepherds_Live_AB_Data.xlsx",
+    "name": "Andrew Craig",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Hope College"
+  },
+  "caleb_koontz": {
+    "comps": {
+      "hit": [
+        {
+          "blurb": "Willy Adames is a close statistical match for Caleb Koontz \u2014 both carry an elevated strikeout rate. Watch for that same pattern on film.",
+          "distance": 34.24,
+          "name": "Willy Adames",
+          "position": "SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Andr\u00e9s Gim\u00e9nez is the closest statistical match in this reference set for Caleb Koontz right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 39.59,
+          "name": "Andr\u00e9s Gim\u00e9nez",
+          "position": "2B/SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Fernando Tatis Jr. is the closest statistical match in this reference set for Caleb Koontz right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 41.41,
+          "name": "Fernando Tatis Jr.",
+          "position": "OF/SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Francisco Lindor is the closest statistical match in this reference set for Caleb Koontz right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 42.11,
+          "name": "Francisco Lindor",
+          "position": "SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Pete Alonso is a close statistical match for Caleb Koontz \u2014 both carry an elevated strikeout rate. Watch for that same pattern on film.",
+          "distance": 42.17,
+          "name": "Pete Alonso",
+          "position": "1B",
+          "source": "auto"
+        }
+      ]
+    },
+    "grad_year": 2028,
+    "last_xlsx_path": "/opt/render/project/src/data/uploads/caleb_koontz_2026_Shepherds_Live_AB_Data.xlsx",
+    "name": "Caleb Koontz",
+    "roles": {
+      "hit": {
+        "position": "INF"
+      }
+    },
+    "school": null,
+    "sixty_yd_time": 7.73
+  },
+  "carter_walsh": {
+    "comps": {
+      "hit": [
+        {
+          "blurb": "Mookie Betts is a close statistical match for Carter Walsh \u2014 both show a patient approach that draws walks and keep the strikeouts down. Watch for that same pattern on film.",
+          "distance": 19.91,
+          "name": "Mookie Betts",
+          "position": "OF/SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Juan Soto is a close statistical match for Carter Walsh \u2014 both show a patient approach that draws walks and keep the strikeouts down. Watch for that same pattern on film.",
+          "distance": 24.69,
+          "name": "Juan Soto",
+          "position": "OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Steven Kwan is a close statistical match for Carter Walsh \u2014 both keep the strikeouts down. Watch for that same pattern on film.",
+          "distance": 31.14,
+          "name": "Steven Kwan",
+          "position": "OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Shohei Ohtani is a close statistical match for Carter Walsh \u2014 both show a patient approach that draws walks and show a consistently efficient launch angle. Watch for that same pattern on film.",
+          "distance": 33.25,
+          "name": "Shohei Ohtani",
+          "position": "OF/DH",
+          "source": "auto"
+        },
+        {
+          "blurb": "Yordan Alvarez is a close statistical match for Carter Walsh \u2014 both show a consistently efficient launch angle. Watch for that same pattern on film.",
+          "distance": 33.8,
+          "name": "Yordan Alvarez",
+          "position": "OF/DH",
+          "source": "auto"
+        }
+      ]
+    },
+    "grad_year": 2027,
+    "last_xlsx_path": "/opt/render/project/src/data/uploads/carter_walsh_2026_Shepherds_Live_AB_Data.xlsx",
+    "name": "Carter Walsh",
+    "roles": {
+      "hit": {
+        "position": "OF"
+      }
+    },
+    "school": "Northwest Nazarene University",
+    "sixty_yd_time": 6.65
+  },
+  "easton_steck": {
+    "comps": {
+      "hit": [
+        {
+          "blurb": "Kyle Schwarber is a close statistical match for Easton Steck \u2014 both show a patient approach that draws walks and hit the ball with well above-average raw power. Watch for that same pattern on film.",
+          "distance": 13.81,
+          "name": "Kyle Schwarber",
+          "position": "OF/DH",
+          "source": "auto"
+        },
+        {
+          "blurb": "Aaron Judge is a close statistical match for Easton Steck \u2014 both show a patient approach that draws walks and hit the ball with well above-average raw power. Watch for that same pattern on film.",
+          "distance": 14.72,
+          "name": "Aaron Judge",
+          "position": "OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Joey Gallo is a close statistical match for Easton Steck \u2014 both show some swing-and-miss in their game and carry an elevated strikeout rate. Watch for that same pattern on film.",
+          "distance": 17.43,
+          "name": "Joey Gallo",
+          "position": "OF/1B",
+          "source": "auto"
+        },
+        {
+          "blurb": "Fernando Tatis Jr. is a close statistical match for Easton Steck \u2014 both hit the ball with well above-average raw power and carry the ball deep when they connect. Watch for that same pattern on film.",
+          "distance": 24.1,
+          "name": "Fernando Tatis Jr.",
+          "position": "OF/SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Teoscar Hern\u00e1ndez is a close statistical match for Easton Steck \u2014 both show some swing-and-miss in their game and carry an elevated strikeout rate. Watch for that same pattern on film.",
+          "distance": 26.82,
+          "name": "Teoscar Hern\u00e1ndez",
+          "position": "OF",
+          "source": "auto"
+        }
+      ]
+    },
+    "grad_year": 2028,
+    "last_xlsx_path": "/opt/render/project/src/data/uploads/easton_steck_2026_Shepherds_Live_AB_Data.xlsx",
+    "name": "Easton Steck",
+    "roles": {
+      "hit": {
+        "position": "OF"
+      }
+    },
+    "school": "Millikin University",
+    "sixty_yd_time": 6.65
+  },
+  "gabriel_esteban": {
+    "comps": {
+      "pitch": [
+        {
+          "blurb": "Dylan Cease is a close statistical match for Gabriel Esteban \u2014 both walk more hitters than most. Watch for that same pattern on film.",
+          "distance": 38.58,
+          "name": "Dylan Cease",
+          "position": "RHP",
+          "source": "auto"
+        },
+        {
+          "blurb": "Tanner Houck is a close statistical match for Gabriel Esteban \u2014 both are excellent at limiting hard contact. Watch for that same pattern on film.",
+          "distance": 44.69,
+          "name": "Tanner Houck",
+          "position": "RHP",
+          "source": "auto"
+        },
+        {
+          "blurb": "Sonny Gray is a close statistical match for Gabriel Esteban \u2014 both are excellent at limiting hard contact. Watch for that same pattern on film.",
+          "distance": 45.82,
+          "name": "Sonny Gray",
+          "position": "RHP",
+          "source": "auto"
+        }
+      ]
+    },
+    "grad_year": 2028,
+    "last_xlsx_path": "/opt/render/project/src/data/uploads/gabriel_esteban_2026_Shepherds_Live_AB_Data.xlsx",
+    "name": "Gabriel Esteban",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "San Diego City College"
+  },
+  "jackson_orr": {
+    "comps": {
+      "hit": [
+        {
+          "blurb": "Whit Merrifield shares Jackson Orr's doesn't hit for much distance and keeps the strikeouts down. Watch for that same pattern on film.",
+          "distance": 21.04,
+          "name": "Whit Merrifield",
+          "position": "2B/OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Jeff McNeil shares Jackson Orr's keeps the strikeouts down and doesn't hit for much distance. Watch for that same pattern on film.",
+          "distance": 21.62,
+          "name": "Jeff McNeil",
+          "position": "2B/OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Kevin Kiermaier is the closest statistical match in this reference set for Jackson Orr right now -- worth studying his overall approach as a hitter.",
+          "distance": 22.85,
+          "name": "Kevin Kiermaier",
+          "position": "OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Steven Kwan shares Jackson Orr's keeps the strikeouts down and doesn't hit for much distance. Watch for that same pattern on film.",
+          "distance": 24.13,
+          "name": "Steven Kwan",
+          "position": "OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Riley Greene is the closest statistical match in this reference set for Jackson Orr right now -- worth studying his overall approach as a hitter.",
+          "distance": 32.91,
+          "name": "Riley Greene",
+          "position": "OF",
+          "source": "auto"
+        }
+      ],
+      "pitch": [
+        {
+          "blurb": "Framber Valdez shares Jackson Orr's excellent at limiting hard contact. Watch for that same pattern on film.",
+          "distance": 40.86,
+          "name": "Framber Valdez",
+          "position": "LHP",
+          "source": "auto"
+        },
+        {
+          "blurb": "Ranger Su\u00e1rez shares Jackson Orr's excellent at limiting hard contact and below-average velocity, pitching more off command/shape. Watch for that same pattern on film.",
+          "distance": 45.71,
+          "name": "Ranger Su\u00e1rez",
+          "position": "LHP",
+          "source": "auto"
+        },
+        {
+          "blurb": "Chris Sale shares Jackson Orr's a swing-and-miss arsenal and excellent at limiting hard contact. Watch for that same pattern on film.",
+          "distance": 48.24,
+          "name": "Chris Sale",
+          "position": "LHP",
+          "source": "auto"
+        }
+      ]
+    },
+    "grad_year": 2032,
+    "last_xlsx_path": "/mnt/user-data/uploads/2026_Shepherds_Live_AB_Data.xlsx",
+    "name": "Jackson Orr",
+    "roles": {
+      "hit": {
+        "position": "OF"
+      },
+      "pitch": {
+        "position": "LHP"
+      }
+    },
+    "school": "La Mirada HS"
+  },
+  "michael_caranna": {
+    "comps": {
+      "hit": [
+        {
+          "blurb": "Willy Adames is a close statistical match for Michael Caranna \u2014 both carry an elevated strikeout rate. Watch for that same pattern on film.",
+          "distance": 33.95,
+          "name": "Willy Adames",
+          "position": "SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Brenton Doyle is a close statistical match for Michael Caranna \u2014 both carry an elevated strikeout rate and show some swing-and-miss in their game. Watch for that same pattern on film.",
+          "distance": 35.39,
+          "name": "Brenton Doyle",
+          "position": "OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Riley Greene is the closest statistical match in this reference set for Michael Caranna right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 36.3,
+          "name": "Riley Greene",
+          "position": "OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Kevin Kiermaier is the closest statistical match in this reference set for Michael Caranna right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 36.82,
+          "name": "Kevin Kiermaier",
+          "position": "OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Teoscar Hern\u00e1ndez is a close statistical match for Michael Caranna \u2014 both show some swing-and-miss in their game and carry an elevated strikeout rate. Watch for that same pattern on film.",
+          "distance": 38.36,
+          "name": "Teoscar Hern\u00e1ndez",
+          "position": "OF",
+          "source": "auto"
+        }
+      ]
+    },
+    "grad_year": 2030,
+    "last_xlsx_path": "/opt/render/project/src/data/uploads/michael_caranna_2026_Shepherds_Live_AB_Data.xlsx",
+    "name": "Michael Caranna",
+    "roles": {
+      "hit": {
+        "position": "C"
+      }
+    },
+    "school": "Coe College",
+    "sixty_yd_time": 7.7
+  },
+  "michael_chang": {
+    "comps": {
+      "hit": [
+        {
+          "blurb": "Willy Adames is a close statistical match for Michael Chang \u2014 both carry an elevated strikeout rate. Watch for that same pattern on film.",
+          "distance": 34.59,
+          "name": "Willy Adames",
+          "position": "SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Andr\u00e9s Gim\u00e9nez is the closest statistical match in this reference set for Michael Chang right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 41.2,
+          "name": "Andr\u00e9s Gim\u00e9nez",
+          "position": "2B/SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Joey Gallo is a close statistical match for Michael Chang \u2014 both show some swing-and-miss in their game and carry an elevated strikeout rate. Watch for that same pattern on film.",
+          "distance": 41.6,
+          "name": "Joey Gallo",
+          "position": "OF/1B",
+          "source": "auto"
+        },
+        {
+          "blurb": "Fernando Tatis Jr. is the closest statistical match in this reference set for Michael Chang right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 42.9,
+          "name": "Fernando Tatis Jr.",
+          "position": "OF/SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Pete Alonso is a close statistical match for Michael Chang \u2014 both carry an elevated strikeout rate. Watch for that same pattern on film.",
+          "distance": 43.08,
+          "name": "Pete Alonso",
+          "position": "1B",
+          "source": "auto"
+        }
+      ]
+    },
+    "grad_year": 2029,
+    "last_xlsx_path": "/opt/render/project/src/data/uploads/michael_chang_2026_Shepherds_Live_AB_Data.xlsx",
+    "name": "Michael Chang",
+    "roles": {
+      "hit": {
+        "position": "INF"
+      }
+    },
+    "school": "Wheaton College",
+    "sixty_yd_time": 7.16
+  },
+  "reagan_samples": {
+    "comps": {
+      "hit": [
+        {
+          "blurb": "Mookie Betts is a close statistical match for Reagan Samples \u2014 both keep the strikeouts down and show a patient approach that draws walks. Watch for that same pattern on film.",
+          "distance": 28.49,
+          "name": "Mookie Betts",
+          "position": "OF/SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Jose Ramirez is a close statistical match for Reagan Samples \u2014 both keep the strikeouts down. Watch for that same pattern on film.",
+          "distance": 29.07,
+          "name": "Jose Ramirez",
+          "position": "3B",
+          "source": "auto"
+        },
+        {
+          "blurb": "Francisco Lindor is the closest statistical match in this reference set for Reagan Samples right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 29.13,
+          "name": "Francisco Lindor",
+          "position": "SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Jose Altuve is the closest statistical match in this reference set for Reagan Samples right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 29.73,
+          "name": "Jose Altuve",
+          "position": "2B",
+          "source": "auto"
+        },
+        {
+          "blurb": "Ketel Marte is the closest statistical match in this reference set for Reagan Samples right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 29.75,
+          "name": "Ketel Marte",
+          "position": "2B",
+          "source": "auto"
+        }
+      ],
+      "pitch": [
+        {
+          "blurb": "Tanner Houck is a close statistical match for Reagan Samples \u2014 both are excellent at limiting hard contact. Watch for that same pattern on film.",
+          "distance": 29.69,
+          "name": "Tanner Houck",
+          "position": "RHP",
+          "source": "auto"
+        },
+        {
+          "blurb": "Sonny Gray is a close statistical match for Reagan Samples \u2014 both are excellent at limiting hard contact. Watch for that same pattern on film.",
+          "distance": 30.61,
+          "name": "Sonny Gray",
+          "position": "RHP",
+          "source": "auto"
+        },
+        {
+          "blurb": "Kyle Hendricks is a close statistical match for Reagan Samples \u2014 both pitch with below-average velocity, leaning more on command and shape. Watch for that same pattern on film.",
+          "distance": 31.03,
+          "name": "Kyle Hendricks",
+          "position": "RHP",
+          "source": "auto"
+        }
+      ]
+    },
+    "grad_year": 2029,
+    "last_xlsx_path": "/opt/render/project/src/data/uploads/reagan_samples_2026_Shepherds_Live_AB_Data.xlsx",
+    "name": "Reagan Samples",
+    "roles": {
+      "hit": {
+        "position": "INF"
+      },
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Biola University",
+    "sixty_yd_time": 7.9
+  },
+  "ryan_han": {
+    "comps": {
+      "hit": [
+        {
+          "blurb": "Andr\u00e9s Gim\u00e9nez is the closest statistical match in this reference set for Ryan Han right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 26.86,
+          "name": "Andr\u00e9s Gim\u00e9nez",
+          "position": "2B/SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Whit Merrifield is a close statistical match for Ryan Han \u2014 both play with an aggressive, early-count approach and don't hit for much distance yet. Watch for that same pattern on film.",
+          "distance": 27.05,
+          "name": "Whit Merrifield",
+          "position": "2B/OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Ozzie Albies is a close statistical match for Ryan Han \u2014 both play with an aggressive, early-count approach. Watch for that same pattern on film.",
+          "distance": 30.08,
+          "name": "Ozzie Albies",
+          "position": "2B",
+          "source": "auto"
+        },
+        {
+          "blurb": "Jeff McNeil is a close statistical match for Ryan Han \u2014 both keep the strikeouts down and don't hit for much distance yet. Watch for that same pattern on film.",
+          "distance": 30.44,
+          "name": "Jeff McNeil",
+          "position": "2B/OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Nolan Arenado is the closest statistical match in this reference set for Ryan Han right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 32.51,
+          "name": "Nolan Arenado",
+          "position": "3B",
+          "source": "auto"
+        }
+      ]
+    },
+    "grad_year": 2027,
+    "last_xlsx_path": "/opt/render/project/src/data/uploads/ryan_han_2026_Shepherds_Live_AB_Data.xlsx",
+    "name": "Ryan Han",
+    "roles": {
+      "hit": {
+        "position": "INF"
+      }
+    },
+    "school": "Biola University",
+    "sixty_yd_time": 7.35
+  },
+  "sebastian_garcia": {
+    "comps": {
+      "pitch": [
+        {
+          "blurb": "Dylan Cease is a close statistical match for Sebastian Garcia \u2014 both post a high strikeout rate and carry a swing-and-miss arsenal. Watch for that same pattern on film.",
+          "distance": 24.77,
+          "name": "Dylan Cease",
+          "position": "RHP",
+          "source": "auto"
+        },
+        {
+          "blurb": "Tanner Houck is a close statistical match for Sebastian Garcia \u2014 both are excellent at limiting hard contact and post a high strikeout rate. Watch for that same pattern on film.",
+          "distance": 31.15,
+          "name": "Tanner Houck",
+          "position": "RHP",
+          "source": "auto"
+        },
+        {
+          "blurb": "Sonny Gray is a close statistical match for Sebastian Garcia \u2014 both are excellent at limiting hard contact. Watch for that same pattern on film.",
+          "distance": 32.45,
+          "name": "Sonny Gray",
+          "position": "RHP",
+          "source": "auto"
+        }
+      ]
+    },
+    "grad_year": 2026,
+    "last_xlsx_path": "/opt/render/project/src/data/uploads/sebastian_garcia_2026_Shepherds_Live_AB_Data.xlsx",
+    "name": "Sebastian Garcia",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "University of Hawaii at Hilo"
+  }
+}
