@@ -1,4 +1,8 @@
 """Extracts per-player data from 2026_Shepherds_Live_AB_Data.xlsx for the report generator."""
+import csv
+import math
+import os
+import re
 import openpyxl
 from collections import defaultdict
 import benchmarks as bm
@@ -382,6 +386,182 @@ def build_hitter_percentiles(totals_row, derived):
         {'label': 'BB%', 'value': bb_pct, 'pctl': pct('bb_pct', bb_pct), 'unit': '%'},
     ]
     return [r for r in rows if r['value'] is not None]
+
+
+# --- Trackman (optional, pitching-only) --------------------------------
+# Full Swing's own export has no break/spin data at all (see the Pitch
+# Movement Profile / Spin Direction "sample values" warning notes), but some
+# players also get a Trackman report from their school -- this section reads
+# that CSV and fills those two charts with real numbers when one's attached.
+#
+# ASSUMPTIONS, not yet verified against a real export (no sample file was
+# available when this was written -- re-check against one as soon as you
+# have it, especially the column names and the SpinAxis clock-face mapping):
+#   - Column names follow Trackman's standard per-pitch CSV export, but
+#     spelling/spacing varies by export settings, so each field is looked up
+#     against a short list of likely header spellings (case/space/dash
+#     insensitive) rather than one exact name.
+#   - Pitcher name may be "First Last" or "Last, First" -- normalized by
+#     lowercasing and comparing the sorted set of name words, not exact match.
+#   - SpinAxis is in degrees, 0 = 12:00, increasing clockwise (standard
+#     clock-face convention) -- this is the one most likely to need fixing
+#     once a real file shows up.
+#   - A standard Trackman export has only ONE measured spin axis (no
+#     Hawk-Eye-style dual measurement), so "spin-based" and "observed" clock
+#     are both filled from that same SpinAxis value; SpinEfficiency (when
+#     present) is converted to a gyro-angle "deviation" in degrees via
+#     acos(efficiency) as an approximation, not an exact match for what
+#     Baseball Savant's own spin-based-vs-observed chart measures.
+#   - Induced Vertical Break is preferred over raw Vertical Break when both
+#     are present, since IVB (gravity removed) is what the movement-profile
+#     chart is meant to show.
+
+TRACKMAN_TYPE_MAP = {
+    'fourseamfastball': 'Fastball', 'fourseam': 'Fastball', 'fastball': 'Fastball',
+    'twoseamfastball': 'Fastball', 'twoseam': 'Fastball',
+    'sinker': 'Sinker',
+    'slider': 'Slider', 'sweeper': 'Slider',
+    'changeup': 'Changeup', 'change': 'Changeup',
+    'curveball': 'Curveball', 'curve': 'Curveball', 'knucklecurve': 'Curveball',
+    'cutter': 'Cutter',
+    'splitter': 'Splitter', 'splitfinger': 'Splitter',
+}
+
+_TM_PITCHER_COLS = ['Pitcher', 'PitcherName', 'Pitcher Name']
+_TM_TYPE_COLS = ['TaggedPitchType', 'AutoPitchType', 'PitchType', 'Pitch Type']
+_TM_HB_COLS = ['HorzBreak', 'Horizontal Break', 'HBreak', 'HB']
+_TM_IVB_COLS = ['InducedVertBreak', 'Induced Vertical Break', 'IVB']
+_TM_VB_COLS = ['VertBreak', 'Vertical Break', 'VB']
+_TM_SPIN_RATE_COLS = ['SpinRate', 'Spin Rate']
+_TM_SPIN_AXIS_COLS = ['SpinAxis', 'Spin Axis']
+_TM_SPIN_EFF_COLS = ['SpinEfficiency', 'Spin Efficiency', 'Spin Efficiency (release)']
+
+
+def _tm_get(row, candidates):
+    """Case/space/dash-insensitive header lookup against whatever columns
+    this particular Trackman export actually has."""
+    for c in candidates:
+        if c in row:
+            return row[c]
+    norm_targets = {c.strip().lower().replace(' ', '').replace('-', '') for c in candidates}
+    for k, v in row.items():
+        nk = (k or '').strip().lower().replace(' ', '').replace('-', '')
+        if nk in norm_targets:
+            return v
+    return None
+
+
+def _tm_num(v):
+    try:
+        if v is None or str(v).strip() == '':
+            return None
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def _normalize_name(raw):
+    if not raw:
+        return ''
+    raw = str(raw).strip()
+    if ',' in raw:
+        last, first = [p.strip() for p in raw.split(',', 1)]
+        raw = f'{first} {last}'
+    return ' '.join(sorted(re.findall(r"[a-z]+", raw.lower())))
+
+
+def _normalize_pitch_type(raw):
+    if not raw:
+        return None
+    key = str(raw).strip().lower().replace(' ', '').replace('-', '')
+    return TRACKMAN_TYPE_MAP.get(key)
+
+
+def _circular_mean_deg(degrees):
+    if not degrees:
+        return None
+    sin_sum = sum(math.sin(math.radians(d)) for d in degrees)
+    cos_sum = sum(math.cos(math.radians(d)) for d in degrees)
+    return math.degrees(math.atan2(sin_sum, cos_sum)) % 360
+
+
+def _deg_to_clock(deg):
+    if deg is None:
+        return None
+    total_minutes = (deg % 360) / 360 * 720  # 720 "minutes" = 12 hours around the clock face
+    hour = int(total_minutes // 60) % 12
+    minute = int(round(total_minutes % 60)) % 60
+    return f'{hour or 12}:{minute:02d}'
+
+
+def _gyro_deg_from_efficiency(eff):
+    if eff is None:
+        return None
+    eff = eff / 100 if eff > 1.5 else eff  # tolerate either 0-1 or 0-100 scale
+    eff = max(-1.0, min(1.0, eff))
+    return round(math.degrees(math.acos(eff)))
+
+
+def load_trackman_rows(csv_path):
+    """Reads a Trackman per-pitch CSV export into a list of plain dicts.
+    No fixed schema assumed beyond "it has headers" -- pitcher_trackman_movement()
+    does its own flexible column matching against whatever's actually there.
+    Missing/not-yet-uploaded file just means no Trackman data -- same as a
+    player who never got one -- rather than an error."""
+    if not csv_path or not os.path.exists(csv_path):
+        return []
+    with open(csv_path, newline='', encoding='utf-8-sig') as f:
+        return list(csv.DictReader(f))
+
+
+def pitcher_trackman_movement(trackman_rows, pitcher_name):
+    """Groups a Trackman export's break/spin numbers by pitch type for one
+    pitcher, normalized to this app's own pitch-type labels (Fastball,
+    Slider, Changeup, Curveball, Cutter, Splitter, Sinker) so they line up
+    with the Full-Swing-derived `tracking` rows they're merged into.
+    Returns {type: {'hb', 'ivb', 'spin_rate', 'spin_clock', 'spin_deviation'}}."""
+    if not trackman_rows:
+        return {}
+    target = _normalize_name(pitcher_name)
+    by_type = defaultdict(lambda: {'hb': [], 'ivb': [], 'spin_rate': [], 'spin_axis': [], 'spin_eff': []})
+
+    for row in trackman_rows:
+        raw_name = _tm_get(row, _TM_PITCHER_COLS)
+        if _normalize_name(raw_name) != target:
+            continue
+        label = _normalize_pitch_type(_tm_get(row, _TM_TYPE_COLS))
+        if not label:
+            continue
+        d = by_type[label]
+        hb = _tm_num(_tm_get(row, _TM_HB_COLS))
+        ivb = _tm_num(_tm_get(row, _TM_IVB_COLS))
+        if ivb is None:
+            ivb = _tm_num(_tm_get(row, _TM_VB_COLS))  # raw break as a fallback, not induced
+        spin_rate = _tm_num(_tm_get(row, _TM_SPIN_RATE_COLS))
+        spin_axis = _tm_num(_tm_get(row, _TM_SPIN_AXIS_COLS))
+        spin_eff = _tm_num(_tm_get(row, _TM_SPIN_EFF_COLS))
+        if hb is not None:
+            d['hb'].append(hb)
+        if ivb is not None:
+            d['ivb'].append(ivb)
+        if spin_rate is not None:
+            d['spin_rate'].append(spin_rate)
+        if spin_axis is not None:
+            d['spin_axis'].append(spin_axis)
+        if spin_eff is not None:
+            d['spin_eff'].append(spin_eff)
+
+    out = {}
+    for label, d in by_type.items():
+        clock = _deg_to_clock(_circular_mean_deg(d['spin_axis'])) if d['spin_axis'] else None
+        out[label] = {
+            'hb': round(sum(d['hb']) / len(d['hb']), 1) if d['hb'] else None,
+            'ivb': round(sum(d['ivb']) / len(d['ivb']), 1) if d['ivb'] else None,
+            'spin_rate': round(sum(d['spin_rate']) / len(d['spin_rate'])) if d['spin_rate'] else None,
+            'spin_clock': clock,
+            'spin_deviation': _gyro_deg_from_efficiency(sum(d['spin_eff']) / len(d['spin_eff'])) if d['spin_eff'] else None,
+        }
+    return out
 
 
 def build_running_metrics(sixty_yd_time):
