@@ -1,4 +1,55 @@
 {
+  "aidan_young": {
+    "comps": {
+      "hit": [
+        {
+          "blurb": "Willy Adames is a close statistical match for Aidan Young \u2014 both carry an elevated strikeout rate. Watch for that same pattern on film.",
+          "distance": 26.3,
+          "name": "Willy Adames",
+          "position": "SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Fernando Tatis Jr. is a close statistical match for Aidan Young \u2014 both hit the ball with well above-average raw power. Watch for that same pattern on film.",
+          "distance": 31.87,
+          "name": "Fernando Tatis Jr.",
+          "position": "OF/SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Pete Alonso is a close statistical match for Aidan Young \u2014 both hit the ball with well above-average raw power and carry an elevated strikeout rate. Watch for that same pattern on film.",
+          "distance": 32.9,
+          "name": "Pete Alonso",
+          "position": "1B",
+          "source": "auto"
+        },
+        {
+          "blurb": "Gunnar Henderson is a close statistical match for Aidan Young \u2014 both hit the ball with well above-average raw power. Watch for that same pattern on film.",
+          "distance": 33.03,
+          "name": "Gunnar Henderson",
+          "position": "SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Andr\u00e9s Gim\u00e9nez is the closest statistical match in this reference set for Aidan Young right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 33.29,
+          "name": "Andr\u00e9s Gim\u00e9nez",
+          "position": "2B/SS",
+          "source": "auto"
+        }
+      ]
+    },
+    "grad_year": 2027,
+    "last_xlsx_path": "/opt/render/project/src/data/uploads/aidan_young_2026_Shepherds_Live_AB_Data.xlsx",
+    "name": "Aidan Young",
+    "roles": {
+      "hit": {
+        "position": "INF"
+      }
+    },
+    "school": "West Texas A&M",
+    "sixty_yd_time": 7.53
+  },
   "carter_walsh": {
     "comps": {
       "hit": [
