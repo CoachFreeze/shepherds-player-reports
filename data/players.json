@@ -74,5 +74,41 @@
       }
     },
     "school": "La Mirada HS"
+  },
+  "sebastian_garcia": {
+    "comps": {
+      "pitch": [
+        {
+          "blurb": "Dylan Cease is a close statistical match for Sebastian Garcia \u2014 both post a high strikeout rate and carry a swing-and-miss arsenal. Watch for that same pattern on film.",
+          "distance": 24.77,
+          "name": "Dylan Cease",
+          "position": "RHP",
+          "source": "auto"
+        },
+        {
+          "blurb": "Tanner Houck is a close statistical match for Sebastian Garcia \u2014 both are excellent at limiting hard contact and post a high strikeout rate. Watch for that same pattern on film.",
+          "distance": 31.15,
+          "name": "Tanner Houck",
+          "position": "RHP",
+          "source": "auto"
+        },
+        {
+          "blurb": "Sonny Gray is a close statistical match for Sebastian Garcia \u2014 both are excellent at limiting hard contact. Watch for that same pattern on film.",
+          "distance": 32.45,
+          "name": "Sonny Gray",
+          "position": "RHP",
+          "source": "auto"
+        }
+      ]
+    },
+    "grad_year": 2026,
+    "last_xlsx_path": "/opt/render/project/src/data/uploads/sebastian_garcia_2026_Shepherds_Live_AB_Data.xlsx",
+    "name": "Sebastian Garcia",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "University of Hawaii at Hilo"
   }
 }
