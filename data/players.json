@@ -177,6 +177,57 @@
     },
     "school": "La Mirada HS"
   },
+  "ryan_han": {
+    "comps": {
+      "hit": [
+        {
+          "blurb": "Andr\u00e9s Gim\u00e9nez is the closest statistical match in this reference set for Ryan Han right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 26.86,
+          "name": "Andr\u00e9s Gim\u00e9nez",
+          "position": "2B/SS",
+          "source": "auto"
+        },
+        {
+          "blurb": "Whit Merrifield is a close statistical match for Ryan Han \u2014 both play with an aggressive, early-count approach and don't hit for much distance yet. Watch for that same pattern on film.",
+          "distance": 27.05,
+          "name": "Whit Merrifield",
+          "position": "2B/OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Ozzie Albies is a close statistical match for Ryan Han \u2014 both play with an aggressive, early-count approach. Watch for that same pattern on film.",
+          "distance": 30.08,
+          "name": "Ozzie Albies",
+          "position": "2B",
+          "source": "auto"
+        },
+        {
+          "blurb": "Jeff McNeil is a close statistical match for Ryan Han \u2014 both keep the strikeouts down and don't hit for much distance yet. Watch for that same pattern on film.",
+          "distance": 30.44,
+          "name": "Jeff McNeil",
+          "position": "2B/OF",
+          "source": "auto"
+        },
+        {
+          "blurb": "Nolan Arenado is the closest statistical match in this reference set for Ryan Han right now \u2014 worth studying his overall approach as a hitter.",
+          "distance": 32.51,
+          "name": "Nolan Arenado",
+          "position": "3B",
+          "source": "auto"
+        }
+      ]
+    },
+    "grad_year": 2028,
+    "last_xlsx_path": "/opt/render/project/src/data/uploads/ryan_han_2026_Shepherds_Live_AB_Data.xlsx",
+    "name": "Ryan Han",
+    "roles": {
+      "hit": {
+        "position": "INF"
+      }
+    },
+    "school": "Biola University",
+    "sixty_yd_time": 7.35
+  },
   "sebastian_garcia": {
     "comps": {
       "pitch": [
