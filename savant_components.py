@@ -228,7 +228,11 @@ def movement_plot_svg(pitches, width=340, height=340, max_range=24, all_pitches=
                 tip = f'{p["type"]}  IVB {vb:.1f}\u2033 \u00b7 HB {hb:.1f}\u2033' + (f' \u00b7 {velo:.1f} mph' if velo else '')
                 svg.append(
                     f'<circle class="mv-pt" cx="{x:.1f}" cy="{y:.1f}" r="{pt_r}" fill="{color}" fill-opacity="0.7" '
-                    f'stroke="{color}" stroke-width="1" data-tip="{tip}"><title>{tip}</title></circle>')
+                    f'stroke="{color}" stroke-width="1" data-tip="{tip}" data-ptype="{p["type"]}" data-pcolor="{color}" '
+                    f'data-pvelo="{velo:.1f}" data-pivb="{vb:.1f}" data-phb="{hb:.1f}"/>' if velo else
+                    f'<circle class="mv-pt" cx="{x:.1f}" cy="{y:.1f}" r="{pt_r}" fill="{color}" fill-opacity="0.7" '
+                    f'stroke="{color}" stroke-width="1" data-tip="{tip}" data-ptype="{p["type"]}" data-pcolor="{color}" '
+                    f'data-pivb="{vb:.1f}" data-phb="{hb:.1f}"/>')
         svg.append('</svg>')
         return ''.join(svg)
 
@@ -639,7 +643,10 @@ def location_heatmap_html(pitches, width=340, uid='loc'):
             tip = (f'{p["type"]} \u00b7 {call} \u00b7 {l["count"]} \u00b7 side {l["side"]:+.2f} ft, height {l["height"]:.2f} ft'
                    + (f' \u00b7 {l["velo"]:.1f} mph' if l.get('velo') else ''))
             svg.append(f'<circle class="mv-pt {uid}-dot" data-type="{p["type"]}" cx="{X(l["side"]):.1f}" cy="{Y(l["height"]):.1f}" r="5.5" '
-                       f'fill="{p["color"]}" fill-opacity="0.85" stroke="#fff" stroke-width="1.2" data-tip="{tip}"/>')
+                       f'fill="{p["color"]}" fill-opacity="0.85" stroke="#fff" stroke-width="1.2" data-tip="{tip}" '
+                       f'data-ptype="{p["type"]}" data-pcolor="{p["color"]}"'
+                       + (f' data-pvelo="{l["velo"]:.1f}"' if l.get('velo') else '')
+                       + f' data-psub="{call} \u00b7 {l["count"]}"/>')
         svg.append('</svg>')
 
         def stat(name):
