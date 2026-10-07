@@ -107,7 +107,8 @@ def percentile_bars_html(rows, title=None, css_classes=True, badge_size=37, comp
 # arm-side/glove-side which flips with a pitcher's handedness), and
 # "MORE RISE" / "MORE DROP" stacked labels down the left side.
 
-def movement_plot_svg(pitches, width=340, height=340, max_range=24, all_pitches=False):
+def movement_plot_svg(pitches, width=340, height=340, max_range=24, all_pitches=False,
+                      r24_frac=None, font_scale=1.0, pt_r=7):
     """
     pitches: list of {'type': str, 'color': '#hex', 'hb': float, 'vb': float,
                        'points': [(hb, vb), ...]}  # optional individual pitches
@@ -116,6 +117,11 @@ def movement_plot_svg(pitches, width=340, height=340, max_range=24, all_pitches=
     dot carrying data-* attributes (and an SVG <title>) so the page can show
     an IVB/HB tooltip on hover, and skips the bold per-type average marker.
     In that mode points are (hb, vb) or (hb, vb, velo) tuples.
+    r24_frac: if set, the 24" ring takes that fraction of the canvas half-width
+    and the wash/crosshair stop at the canvas edge -- the "fill the whole
+    canvas" layout used for the big Trackman-report plot (default layout
+    reserves a fixed 48px margin instead). font_scale/pt_r scale labels and
+    dot size to match.
     """
     cx, cy = width / 2, height / 2
     # r24 is the true 24" ring's pixel radius, and scale (px per inch) is
@@ -129,10 +135,16 @@ def movement_plot_svg(pitches, width=340, height=340, max_range=24, all_pitches=
     # r24 scales with the canvas (fixed 48px margin reserved outside it for
     # the wash/axis/label extension) rather than being a hardcoded pixel
     # value, so bumping width/height up also grows the ring automatically.
-    r24 = min(width, height) / 2 - 48
+    if r24_frac:
+        half = min(width, height) / 2
+        r24 = half * r24_frac
+        wash_r = min(r24 * 1.25, half - 2)
+        axis_end = wash_r
+    else:
+        r24 = min(width, height) / 2 - 48
+        wash_r = r24 * 1.25
+        axis_end = wash_r * 1.15
     scale = r24 / 24
-    wash_r = r24 * 1.25
-    axis_end = wash_r * 1.15
 
     def to_xy(hb, vb):
         return cx + hb * scale, cy - vb * scale
@@ -169,7 +181,7 @@ def movement_plot_svg(pitches, width=340, height=340, max_range=24, all_pitches=
     # than the 24" label floating out at the decorative axis extension.
     # Font sizes bumped ~30% across the whole chart for legibility, since
     # the canvas itself is capped by the column width it has to fit in.
-    tick_fs = 11
+    tick_fs = 11 * font_scale
     for d in (6, 12, 18, 24):
         x = cx - d * scale
         svg.append(f'<text x="{x:.1f}" y="{cy-7:.1f}" font-size="{tick_fs}" fill="{label_col}" text-anchor="middle">{d}&quot;</text>')
@@ -187,8 +199,12 @@ def movement_plot_svg(pitches, width=340, height=340, max_range=24, all_pitches=
     # mirror images of each other around the horizontal axis (cy) so the
     # pair reads as centered on it rather than the drop block hanging lower
     # than the rise block sits high.
-    label_fs, tri_fs = 12, 13
-    label_x = max(6, cx - axis_end - 32)
+    label_fs, tri_fs = 12 * font_scale, 13 * font_scale
+    if r24_frac:
+        # sit just inside the wash's left edge at the label's own height
+        label_x = cx - math.sqrt(max(wash_r ** 2 - (r24 * 0.55 + 20) ** 2, 0)) + 8
+    else:
+        label_x = max(6, cx - axis_end - 32)
     rise_y = cy - r24 * 0.55
     svg.append(f'<text x="{label_x}" y="{rise_y-13:.1f}" font-size="{label_fs}" font-weight="700" fill="{label_col}">MORE</text>')
     svg.append(f'<text x="{label_x}" y="{rise_y+4:.1f}" font-size="{label_fs}" font-weight="700" fill="{label_col}">RISE</text>')
@@ -204,14 +220,14 @@ def movement_plot_svg(pitches, width=340, height=340, max_range=24, all_pitches=
             if not p.get('points'):
                 # no individual pitches for this type (e.g. placeholder data) -> keep the bold average marker
                 x, y = to_xy(p['hb'], p['vb'])
-                svg.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="7.8" fill="{color}" fill-opacity="0.7" stroke="#fff" stroke-width="1.7"/>')
+                svg.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{pt_r + 0.8}" fill="{color}" fill-opacity="0.7" stroke="#fff" stroke-width="1.7"/>')
             for pt in p.get('points', []):
                 hb, vb = pt[0], pt[1]
                 velo = pt[2] if len(pt) > 2 else None
                 x, y = to_xy(hb, vb)
                 tip = f'{p["type"]}  IVB {vb:.1f}\u2033 \u00b7 HB {hb:.1f}\u2033' + (f' \u00b7 {velo:.1f} mph' if velo else '')
                 svg.append(
-                    f'<circle class="mv-pt" cx="{x:.1f}" cy="{y:.1f}" r="7" fill="{color}" fill-opacity="0.7" '
+                    f'<circle class="mv-pt" cx="{x:.1f}" cy="{y:.1f}" r="{pt_r}" fill="{color}" fill-opacity="0.7" '
                     f'stroke="{color}" stroke-width="1" data-tip="{tip}"><title>{tip}</title></circle>')
         svg.append('</svg>')
         return ''.join(svg)
@@ -509,3 +525,156 @@ def spray_chart_legend_html():
     )
     return (f'<div style="display:flex;flex-wrap:wrap;justify-content:center;'
             f'font:500 10px Arial,sans-serif;color:#555;margin-top:10px;">{dots}</div>')
+
+
+# ---------------------------------------------------------------------------
+# 4. PITCH LOCATION HEAT MAP (Trackman plate location)
+# ---------------------------------------------------------------------------
+_CALL_LABELS = {'StrikeCalled': 'Called strike', 'BallCalled': 'Ball', 'InPlay': 'In play',
+                'StrikeSwinging': 'Swinging strike', 'FoulBall': 'Foul', 'FoulBallNotFieldable': 'Foul',
+                'FoulBallFieldable': 'Foul', 'HitByPitch': 'Hit by pitch', 'BallinDirt': 'Ball in dirt'}
+
+# strike zone as drawn (17" plate, generic 1.5-3.5 ft) and the "in zone" test
+# that lets the ball's edge touch it (plate half-width .708 ft + ball radius .12)
+_ZONE_X, _ZONE_BOT, _ZONE_TOP = 0.708, 1.5, 3.5
+_IN_X, _IN_BOT, _IN_TOP = 0.83, 1.38, 3.62
+
+
+def _in_zone(side, height):
+    return abs(side) <= _IN_X and _IN_BOT <= height <= _IN_TOP
+
+
+def _heat_color(t):
+    """t in 0..1 -> (rgb, opacity): transparent pale blue -> yellow -> red."""
+    stops = [(0.0, (120, 170, 215)), (0.35, (250, 235, 150)), (0.7, (240, 150, 70)), (1.0, (205, 50, 50))]
+    for (a, ca), (b, cb) in zip(stops, stops[1:]):
+        if t <= b:
+            f = (t - a) / (b - a)
+            rgb = tuple(round(ca[i] + (cb[i] - ca[i]) * f) for i in range(3))
+            break
+    else:
+        rgb = stops[-1][1]
+    return rgb, min(0.85, 0.12 + 0.78 * t)
+
+
+def _batter_outline_svg(cx_px, base_y_px, px_per_ft, mirror):
+    """Batter silhouette standing in his box, feet on y=0 and ~5.85 ft tall
+    including the bat. batter_art holds the right-handed figure (catcher's
+    view); the left-handed batter is that same image reflected. Falls back to
+    nothing if the art module is missing, so a chart can never crash on it."""
+    try:
+        import batter_art
+    except ImportError:
+        return ''
+    h = 5.85 * px_per_ft
+    w = h * batter_art.ASPECT
+    img = (f'<image href="{batter_art.BATTER_RHB_PNG}" x="{cx_px - w / 2:.1f}" y="{base_y_px - h:.1f}" '
+           f'width="{w:.1f}" height="{h:.1f}" preserveAspectRatio="xMidYMid meet"/>')
+    if mirror:
+        return f'<g transform="translate({2 * cx_px:.1f},0) scale(-1,1)">{img}</g>'
+    return img
+
+
+def location_heatmap_html(pitches, width=340, uid='loc'):
+    """Outing-style location view: TWO catcher's-view charts side by side --
+    vs left-handed batters (left) and vs right-handed batters (right), each a
+    smoothed density heat map with every pitch as a hoverable dot (class
+    mv-pt) and a batter outline standing in his box. One row of buttons
+    switches both charts between All and each pitch type.
+    pitches: [{'type','color','loc':[{'side','height','velo','call','count','bats'}]}]"""
+    pitches = [p for p in pitches if p.get('loc')]
+    if not pitches:
+        return ''
+    x0, x1, y0, y1 = -2.75, 2.75, -0.45, 5.9
+    k = width / (x1 - x0)                      # px per ft
+    height = round((y1 - y0) * k)
+    X = lambda v: (v - x0) * k
+    Y = lambda v: (y1 - v) * k
+
+    def heat(pts, bw=0.45, step=0.14):
+        gx = [x0 + i * step for i in range(int((x1 - x0) / step))]
+        gy = [y0 + j * step for j in range(int((y1 - y0) / step))]
+        cells, mx = [], 0.0
+        for xx in gx:
+            for yy in gy:
+                d = sum(math.exp(-(((xx + step / 2 - l['side']) ** 2 + (yy + step / 2 - l['height']) ** 2) / (2 * bw * bw)))
+                        for l in pts)
+                cells.append((xx, yy, d))
+                mx = max(mx, d)
+        out = []
+        for xx, yy, d in cells:
+            t = d / mx if mx else 0
+            if t < 0.07:
+                continue
+            (r, g, b), op = _heat_color(t)
+            out.append(f'<rect x="{X(xx):.1f}" y="{Y(yy + step):.1f}" width="{step * k + 1.4:.1f}" height="{step * k + 1.4:.1f}" '
+                       f'fill="rgb({r},{g},{b})" fill-opacity="{op:.2f}"/>')
+        return ''.join(out)
+
+    view_names = ['All'] + [p['type'] for p in pitches]
+
+    def one_chart(side_code, title, uid2):
+        # catcher's view: a righty stands left of the plate, a lefty right
+        mirror = side_code == 'L'
+        locs = [(p, l) for p in pitches for l in p['loc'] if l.get('bats') == side_code]
+        svg = [f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg" '
+               f'font-family="ProximaNova,Helvetica Neue,Arial,sans-serif" style="display:block;width:100%;height:auto;">',
+               f'<defs><filter id="{uid2}-blur" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="3.5"/></filter>'
+               f'<clipPath id="{uid2}-clip"><rect width="{width}" height="{height}"/></clipPath></defs>',
+               f'<rect width="{width}" height="{height}" fill="#f4f8fa"/>']
+        svg.append(_batter_outline_svg(X(1.68 if mirror else -1.68), Y(0.0), k, mirror))
+        for i, name in enumerate(view_names):
+            pts = [l for p, l in locs if name == 'All' or p['type'] == name]
+            svg.append(f'<g class="{uid}-heat" data-view="{name}" clip-path="url(#{uid2}-clip)" style="display:{"block" if i == 0 else "none"}">'
+                       f'<g filter="url(#{uid2}-blur)">{heat(pts) if pts else ""}</g></g>')
+        zl, zr, zt, zb = X(-_ZONE_X), X(_ZONE_X), Y(_ZONE_TOP), Y(_ZONE_BOT)
+        for m in (1, 2):
+            svg.append(f'<line x1="{zl + (zr - zl) * m / 3:.1f}" y1="{zt:.1f}" x2="{zl + (zr - zl) * m / 3:.1f}" y2="{zb:.1f}" stroke="#7c96a5" stroke-width="1" stroke-dasharray="3,3" opacity=".7"/>')
+            svg.append(f'<line x1="{zl:.1f}" y1="{zt + (zb - zt) * m / 3:.1f}" x2="{zr:.1f}" y2="{zt + (zb - zt) * m / 3:.1f}" stroke="#7c96a5" stroke-width="1" stroke-dasharray="3,3" opacity=".7"/>')
+        svg.append(f'<rect x="{zl:.1f}" y="{zt:.1f}" width="{zr - zl:.1f}" height="{zb - zt:.1f}" fill="none" stroke="#5c7585" stroke-width="2"/>')
+        py0, py1, cx, pw = Y(0.0), Y(-0.38), X(0), X(_ZONE_X) - X(0)
+        svg.append(f'<polygon points="{cx - pw:.1f},{py0:.1f} {cx + pw:.1f},{py0:.1f} {cx + pw:.1f},{(py0 + py1) / 2:.1f} {cx:.1f},{py1:.1f} {cx - pw:.1f},{(py0 + py1) / 2:.1f}" fill="#fff" stroke="#5c7585" stroke-width="1.8"/>')
+        for p, l in locs:
+            call = _CALL_LABELS.get(l['call'], l['call'] or 'No result')
+            tip = (f'{p["type"]} \u00b7 {call} \u00b7 {l["count"]} \u00b7 side {l["side"]:+.2f} ft, height {l["height"]:.2f} ft'
+                   + (f' \u00b7 {l["velo"]:.1f} mph' if l.get('velo') else ''))
+            svg.append(f'<circle class="mv-pt {uid}-dot" data-type="{p["type"]}" cx="{X(l["side"]):.1f}" cy="{Y(l["height"]):.1f}" r="5.5" '
+                       f'fill="{p["color"]}" fill-opacity="0.85" stroke="#fff" stroke-width="1.2" data-tip="{tip}"/>')
+        svg.append('</svg>')
+
+        def stat(name):
+            pts = [l for p, l in locs if name == 'All' or p['type'] == name]
+            n = len(pts)
+            if not n:
+                return 'No pitches'
+            z = sum(1 for l in pts if _in_zone(l['side'], l['height']))
+            return f'{n} pitches &middot; {z} in zone ({z / n * 100:.0f}%)'
+        stats = ''.join(f'<div class="{uid}-stat" data-view="{name}" style="display:{"block" if i == 0 else "none"}">{stat(name)}</div>'
+                        for i, name in enumerate(view_names))
+        return (f'<div class="{uid}-col"><div class="{uid}-title">{title}</div>' + ''.join(svg) +
+                f'<div class="{uid}-stats">{stats}</div></div>')
+
+    btns = ''.join(f'<button type="button" class="{uid}-btn{" on" if i == 0 else ""}" data-view="{name}"'
+                   + (f' style="--c:{pitches[i - 1]["color"]}"' if i else '') + f'>{name}</button>'
+                   for i, name in enumerate(view_names))
+    css = (f'<style>.{uid}-btns{{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:2px 0 8px;}}'
+           f'.{uid}-btn{{font:600 12px/1 var(--f-heading);border:1.5px solid var(--c,#5c7585);background:#fff;color:#26343b;border-radius:999px;padding:6px 12px;cursor:pointer;}}'
+           f'.{uid}-btn.on{{background:var(--c,#5c7585);color:#fff;}}'
+           f'.{uid}-row{{display:flex;gap:10px;}} .{uid}-col{{flex:1 1 0;min-width:0;}}'
+           f'.{uid}-title{{font:700 13px/1 var(--f-heading);text-align:center;color:#26343b;margin:0 0 6px;letter-spacing:.02em;}}'
+           f'.{uid}-stats{{font:500 11.5px/1.3 var(--f-heading);color:var(--muted);text-align:center;margin-top:6px;}}</style>')
+    js = (f'<script>(function(){{var uid="{uid}",view="All",mode="both";'
+          f'var vb=document.querySelectorAll("."+uid+"-btn:not(."+uid+"-mbtn)"),mb=document.querySelectorAll("."+uid+"-mbtn");'
+          f'function render(){{vb.forEach(function(b){{b.classList.toggle("on",b.dataset.view===view)}});'
+          f'mb.forEach(function(b){{b.classList.toggle("on",b.dataset.mode===mode)}});'
+          f'document.querySelectorAll("."+uid+"-heat").forEach(function(g){{g.style.display=(g.dataset.view===view&&mode!=="dots")?"block":"none"}});'
+          f'document.querySelectorAll("."+uid+"-stat").forEach(function(g){{g.style.display=g.dataset.view===view?"block":"none"}});'
+          f'document.querySelectorAll("."+uid+"-dot").forEach(function(d){{d.style.display=((view==="All"||d.dataset.type===view)&&mode!=="heat")?"":"none"}});}}'
+          f'vb.forEach(function(b){{b.addEventListener("click",function(){{view=b.dataset.view;render()}})}});'
+          f'mb.forEach(function(b){{b.addEventListener("click",function(){{mode=b.dataset.mode;render()}})}});}})();</script>')
+    modes = ''.join(f'<button type="button" class="{uid}-btn {uid}-mbtn{" on" if m == "both" else ""}" data-mode="{m}">{lbl}</button>'
+                    for m, lbl in (('dots', 'Dots Only'), ('heat', 'Heat Map'), ('both', 'Both')))
+    return (css + f'<div class="{uid}-btns">{modes}</div><div class="{uid}-btns">{btns}</div><div class="{uid}-row">'
+            + one_chart('R', 'vs Right Handed Batter', uid + 'R')
+            + one_chart('L', 'vs Left Handed Batter', uid + 'L')
+            + '</div>' + js)

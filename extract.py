@@ -476,6 +476,16 @@ _TM_VELO_COLS = ['RelSpeed', 'Velocity', 'Velo', 'PitchVelocity', 'Pitch Velocit
 _TM_THROWS_COLS = ['PitcherThrows', 'Pitcher Throws']
 _TM_TEAM_COLS = ['PitcherTeam', 'Pitcher Team']
 _TM_DATE_COLS = ['Date']
+_TM_LOC_SIDE_COLS = ['PlateLocSide', 'Plate Loc Side']
+_TM_LOC_HEIGHT_COLS = ['PlateLocHeight', 'Plate Loc Height']
+_TM_CALL_COLS = ['PitchCall', 'Pitch Call']
+_TM_BATSIDE_COLS = ['BatterSide', 'Batter Side']
+_TM_VAA_COLS = ['VertApprAngle', 'Vert Appr Angle', 'VerticalApproachAngle']
+# a pitch counts as a strike for Strike% if it was called/swinging, fouled, or put in play
+_TM_STRIKE_CALLS = {'strikecalled', 'strikeswinging', 'foulball', 'foulballnotfieldable', 'foulballfieldable', 'inplay'}
+_TM_BALL_CALLS = {'ballcalled', 'ballintheDirt'.lower(), 'ballinDirt'.lower(), 'hitbypitch', 'intentionalball'}
+_TM_BALLS_COLS = ['Balls']
+_TM_STRIKES_COLS = ['Strikes']
 
 
 def _tm_get(row, candidates):
@@ -674,7 +684,7 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
     target = _normalize_name(pitcher_name)
     movement = pitcher_trackman_movement(trackman_rows, pitcher_name, fine=True)
 
-    by_type = defaultdict(lambda: {'n': 0, 'velo': [], 'points': []})
+    by_type = defaultdict(lambda: {'n': 0, 'velo': [], 'points': [], 'loc': [], 'spin': [], 'vaa': [], 'strikes': 0, 'called': 0})
     meta = {'throws': None, 'team': None, 'date': None, 'n_pitches': 0}
     for row in trackman_rows:
         raw_name = _tm_get(row, _TM_PITCHER_COLS)
@@ -695,6 +705,17 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
         velo = _tm_num(_tm_get(row, _TM_VELO_COLS))
         if velo is not None:
             d['velo'].append(velo)
+        spin = _tm_num(_tm_get(row, _TM_SPIN_RATE_COLS))
+        if spin is not None:
+            d['spin'].append(spin)
+        vaa = _tm_num(_tm_get(row, _TM_VAA_COLS))
+        if vaa is not None:
+            d['vaa'].append(vaa)
+        call_key = (_tm_get(row, _TM_CALL_COLS) or '').strip().lower()
+        if call_key in _TM_STRIKE_CALLS:
+            d['strikes'] += 1; d['called'] += 1
+        elif call_key in _TM_BALL_CALLS:
+            d['called'] += 1
         # every individual pitch, for the movement-profile scatter
         hb = _tm_num(_tm_get(row, _TM_HB_COLS))
         ivb = _tm_num(_tm_get(row, _TM_IVB_COLS))
@@ -702,6 +723,16 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
             ivb = _tm_num(_tm_get(row, _TM_VB_COLS))
         if hb is not None and ivb is not None:
             d['points'].append((hb, ivb, velo))
+        # plate location (feet; side + = catcher's right / 1B side), for the zone heat map
+        side = _tm_num(_tm_get(row, _TM_LOC_SIDE_COLS))
+        height = _tm_num(_tm_get(row, _TM_LOC_HEIGHT_COLS))
+        if side is not None and height is not None:
+            d['loc'].append({
+                'side': side, 'height': height, 'velo': velo,
+                'call': (_tm_get(row, _TM_CALL_COLS) or '').strip(),
+                'bats': (_tm_get(row, _TM_BATSIDE_COLS) or '').strip().lower()[:1].upper(),  # 'L' / 'R' / ''
+                'count': f"{(_tm_get(row, _TM_BALLS_COLS) or '').strip()}-{(_tm_get(row, _TM_STRIKES_COLS) or '').strip()}",
+            })
 
     total = sum(d['n'] for d in by_type.values()) or 1
     pitches = []
@@ -713,7 +744,11 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
             'pct': d['n'] / total * 100,
             'velo': round(sum(d['velo']) / len(d['velo']), 1) if d['velo'] else None,
             'top_velo': round(max(d['velo']), 1) if d['velo'] else None,
-            'points': d['points'],
+            'points': d['points'], 'loc': d['loc'],
+            'strike_pct': (d['strikes'] / d['called'] * 100) if d['called'] else None,
+            'spin_avg': round(sum(d['spin']) / len(d['spin'])) if d['spin'] else None,
+            'spin_max': round(max(d['spin'])) if d['spin'] else None,
+            'vaa': round(sum(d['vaa']) / len(d['vaa']), 1) if d['vaa'] else None,
             'hb': tm.get('hb'), 'ivb': tm.get('ivb'),
             'spin_rate': tm.get('spin_rate'),
             'spin_based_clock': tm.get('spin_based_clock'),

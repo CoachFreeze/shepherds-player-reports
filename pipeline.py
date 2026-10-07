@@ -30,7 +30,7 @@ CSS = open(os.path.join(APP_DIR, 'report.css')).read().replace(
 # crash the whole app at startup.
 env = jinja2.Environment(loader=jinja2.FileSystemLoader([os.path.join(APP_DIR, 'templates'), APP_DIR]))
 tpl = env.get_template('report_template.html')
-tm_mini_tpl = env.get_template('trackman_mini_template.html')
+tm_mini_tpl = env.get_template('trackman_report_template.html')
 BRAND = brand_assets.build_brand_uris()
 
 
@@ -176,9 +176,12 @@ def render_trackman_mini(name, trackman_rows, bio=None):
     ]
     movement_html = (
         sc.movement_plot_caption_html()
-        + sc.movement_plot_svg(movement_pitches, width=270, height=282, max_range=20, all_pitches=True)
+        + sc.movement_plot_svg(movement_pitches, width=680, height=680, all_pitches=True,
+                             r24_frac=0.80, font_scale=1.3, pt_r=9)
         + sc.pitch_usage_legend_html(tm_pitches)
     ) if movement_pitches else '<div style="color:#999;font-size:11px;">No movement data</div>'
+
+    location_html = sc.location_heatmap_html(tm_pitches, width=340, uid='loc')
 
     spin_pitches = [
         {'type': t['type'], 'spin_based': t['spin_based_clock'], 'observed': t['observed_clock'],
@@ -192,10 +195,10 @@ def render_trackman_mini(name, trackman_rows, bio=None):
         'position': bio['roles'].get('pitch', {}).get('position') if bio else None,
         'school': _school_display(bio.get('school'), bio.get('grad_year')) if bio else None,
         'throws': meta.get('throws'), 'team': meta.get('team'), 'date': meta.get('date'),
-        'n_pitches': meta.get('n_pitches'), 'tracking': tm_pitches,
+        'n_pitches': sum(t['n'] for t in tm_pitches), 'tracking': tm_pitches,
         'show_spin_direction': bool(spin_pitches), 'year': '2026',
     }
-    html = tm_mini_tpl.render(p=p, css=CSS, movement_html=movement_html, spin_html=spin_html, brand=BRAND)
+    html = tm_mini_tpl.render(p=p, css=CSS, movement_html=movement_html, location_html=location_html, spin_html=spin_html, brand=BRAND)
     out_path = os.path.join(REPORTS_DIR, f'{slug}_trackman_mini.html')
     open(out_path, 'w').write(html)
     return out_path
