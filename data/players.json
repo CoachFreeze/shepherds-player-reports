@@ -404,5 +404,18 @@
       }
     },
     "school": "University of Hawaii at Hilo"
+  },
+  "tristan_ramos": {
+    "comps": {},
+    "grad_year": 2030,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/tristan_ramos_trackman_LiveBpPitching_2026-10-01T165756_verified.csv",
+    "name": "Tristan Ramos",
+    "program": "long_beach_state",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Long Beach State"
   }
 }
