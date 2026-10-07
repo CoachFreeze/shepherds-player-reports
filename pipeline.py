@@ -25,7 +25,10 @@ os.makedirs(REPORTS_DIR, exist_ok=True)
 CSS = open(os.path.join(APP_DIR, 'report.css')).read().replace(
     '{{ FONT_FACE_CSS }}', fonts_embed.build_font_face_css()
 )
-env = jinja2.Environment(loader=jinja2.FileSystemLoader(os.path.join(APP_DIR, 'templates')))
+# Looks in templates/ first, then the app root -- GitHub's web uploader makes it
+# easy to drop a template into the wrong folder, and a missing template used to
+# crash the whole app at startup.
+env = jinja2.Environment(loader=jinja2.FileSystemLoader([os.path.join(APP_DIR, 'templates'), APP_DIR]))
 tpl = env.get_template('report_template.html')
 tm_mini_tpl = env.get_template('trackman_mini_template.html')
 BRAND = brand_assets.build_brand_uris()
