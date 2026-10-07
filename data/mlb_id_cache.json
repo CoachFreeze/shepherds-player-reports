@@ -1,50 +1,164 @@
 {
+  "Andr\u00e9s Gim\u00e9nez": {
+    "name": "Andr\u00e9s Gim\u00e9nez",
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/665926/headshot/67/current",
+    "position": "SS",
+    "url": "https://baseballsavant.mlb.com/savant-player/andres-gimenez-665926"
+  },
   "Chris Sale": {
     "name": "Chris Sale",
-    "photo": null,
-    "position": null,
-    "url": null
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/519242/headshot/67/current",
+    "position": "P",
+    "url": "https://baseballsavant.mlb.com/savant-player/chris-sale-519242"
+  },
+  "Dylan Cease": {
+    "name": "Dylan Cease",
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/656302/headshot/67/current",
+    "position": "P",
+    "url": "https://baseballsavant.mlb.com/savant-player/dylan-cease-656302"
+  },
+  "Fernando Tatis Jr.": {
+    "name": "Fernando Tatis Jr.",
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/665487/headshot/67/current",
+    "position": "RF",
+    "url": "https://baseballsavant.mlb.com/savant-player/fernando-tatis-jr-665487"
   },
   "Framber Valdez": {
     "name": "Framber Valdez",
-    "photo": null,
-    "position": null,
-    "url": null
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/664285/headshot/67/current",
+    "position": "P",
+    "url": "https://baseballsavant.mlb.com/savant-player/framber-valdez-664285"
+  },
+  "Francisco Lindor": {
+    "name": "Francisco Lindor",
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/596019/headshot/67/current",
+    "position": "SS",
+    "url": "https://baseballsavant.mlb.com/savant-player/francisco-lindor-596019"
+  },
+  "Gunnar Henderson": {
+    "name": "Gunnar Henderson",
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/683002/headshot/67/current",
+    "position": "SS",
+    "url": "https://baseballsavant.mlb.com/savant-player/gunnar-henderson-683002"
   },
   "Jeff McNeil": {
     "name": "Jeff McNeil",
-    "photo": null,
-    "position": null,
-    "url": null
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/643446/headshot/67/current",
+    "position": "2B",
+    "url": "https://baseballsavant.mlb.com/savant-player/jeff-mcneil-643446"
+  },
+  "Jose Altuve": {
+    "name": "Jose Altuve",
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/514888/headshot/67/current",
+    "position": "2B",
+    "url": "https://baseballsavant.mlb.com/savant-player/jose-altuve-514888"
+  },
+  "Jose Ramirez": {
+    "name": "Jose Ramirez",
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/608070/headshot/67/current",
+    "position": "3B",
+    "url": "https://baseballsavant.mlb.com/savant-player/jose-ramirez-608070"
+  },
+  "Juan Soto": {
+    "name": "Juan Soto",
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/665742/headshot/67/current",
+    "position": "LF",
+    "url": "https://baseballsavant.mlb.com/savant-player/juan-soto-665742"
+  },
+  "Ketel Marte": {
+    "name": "Ketel Marte",
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/606466/headshot/67/current",
+    "position": "2B",
+    "url": "https://baseballsavant.mlb.com/savant-player/ketel-marte-606466"
   },
   "Kevin Kiermaier": {
     "name": "Kevin Kiermaier",
-    "photo": null,
-    "position": null,
-    "url": null
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/595281/headshot/67/current",
+    "position": "CF",
+    "url": "https://baseballsavant.mlb.com/savant-player/kevin-kiermaier-595281"
+  },
+  "Kyle Hendricks": {
+    "name": "Kyle Hendricks",
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/543294/headshot/67/current",
+    "position": "P",
+    "url": "https://baseballsavant.mlb.com/savant-player/kyle-hendricks-543294"
+  },
+  "Mookie Betts": {
+    "name": "Mookie Betts",
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/605141/headshot/67/current",
+    "position": "SS",
+    "url": "https://baseballsavant.mlb.com/savant-player/mookie-betts-605141"
+  },
+  "Nolan Arenado": {
+    "name": "Nolan Arenado",
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/571448/headshot/67/current",
+    "position": "3B",
+    "url": "https://baseballsavant.mlb.com/savant-player/nolan-arenado-571448"
+  },
+  "Ozzie Albies": {
+    "name": "Ozzie Albies",
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/645277/headshot/67/current",
+    "position": "2B",
+    "url": "https://baseballsavant.mlb.com/savant-player/ozzie-albies-645277"
+  },
+  "Pete Alonso": {
+    "name": "Pete Alonso",
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/624413/headshot/67/current",
+    "position": "1B",
+    "url": "https://baseballsavant.mlb.com/savant-player/pete-alonso-624413"
   },
   "Ranger Su\u00e1rez": {
     "name": "Ranger Su\u00e1rez",
-    "photo": null,
-    "position": null,
-    "url": null
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/624133/headshot/67/current",
+    "position": "P",
+    "url": "https://baseballsavant.mlb.com/savant-player/ranger-suarez-624133"
   },
   "Riley Greene": {
     "name": "Riley Greene",
-    "photo": null,
-    "position": null,
-    "url": null
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/682985/headshot/67/current",
+    "position": "LF",
+    "url": "https://baseballsavant.mlb.com/savant-player/riley-greene-682985"
+  },
+  "Shohei Ohtani": {
+    "name": "Shohei Ohtani",
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/660271/headshot/67/current",
+    "position": "TWP",
+    "url": "https://baseballsavant.mlb.com/savant-player/shohei-ohtani-660271"
+  },
+  "Sonny Gray": {
+    "name": "Sonny Gray",
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/543243/headshot/67/current",
+    "position": "P",
+    "url": "https://baseballsavant.mlb.com/savant-player/sonny-gray-543243"
   },
   "Steven Kwan": {
     "name": "Steven Kwan",
-    "photo": null,
-    "position": null,
-    "url": null
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/680757/headshot/67/current",
+    "position": "LF",
+    "url": "https://baseballsavant.mlb.com/savant-player/steven-kwan-680757"
+  },
+  "Tanner Houck": {
+    "name": "Tanner Houck",
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/656557/headshot/67/current",
+    "position": "P",
+    "url": "https://baseballsavant.mlb.com/savant-player/tanner-houck-656557"
   },
   "Whit Merrifield": {
     "name": "Whit Merrifield",
-    "photo": null,
-    "position": null,
-    "url": null
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/593160/headshot/67/current",
+    "position": "2B",
+    "url": "https://baseballsavant.mlb.com/savant-player/whit-merrifield-593160"
+  },
+  "Willy Adames": {
+    "name": "Willy Adames",
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/642715/headshot/67/current",
+    "position": "SS",
+    "url": "https://baseballsavant.mlb.com/savant-player/willy-adames-642715"
+  },
+  "Yordan Alvarez": {
+    "name": "Yordan Alvarez",
+    "photo": "https://img.mlbstatic.com/mlb-photos/image/upload/w_213,d_people:generic:headshot:silo:current.png,q_auto:best,f_auto/v1/people/670541/headshot/67/current",
+    "position": "DH",
+    "url": "https://baseballsavant.mlb.com/savant-player/yordan-alvarez-670541"
   }
 }
