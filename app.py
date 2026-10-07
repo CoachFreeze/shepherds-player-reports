@@ -89,29 +89,40 @@ DASHBOARD_PAGE = """
   .links a{font-family:'Barlow',sans-serif;font-weight:600;font-size:13.5px;text-decoration:none;color:#fff;background:var(--blue-strong);border-radius:999px;padding:7px 14px;margin-left:6px;}
   .coachlink{display:block;text-align:right;margin:14px 16px 0;font-size:12.5px;}
   .coachlink a{color:var(--muted);}
+  .group-title{font-family:'Oswald',sans-serif;font-weight:600;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:26px 0 10px;}
+  .group-title:first-child{margin-top:0;}
 </style>
 <div class="coachlink"><a href="{{ url_for('intake') }}">Coach login &rarr;</a></div>
 <div class="hero"><div class="hero-wrap">
   <p class="eyebrow">Shepherds Baseball &middot; Training Program</p>
   <h1>Player Reports</h1>
-  <p class="sub">Full Swing data turned into a Baseball Savant&ndash;style report card. Tap a report to open it.</p>
+  <p class="sub">Full Swing and Trackman data turned into Baseball Savant&ndash;style report cards. Tap a report to open it.</p>
 </div></div>
 <div class="wrap">
-  <div class="roster">
-  {% for slug, p in players.items() %}
-    <div class="card">
-      <div>
-        <div class="name">{{ p.name }}</div>
-        <div class="meta">{% if p.school %}{{ p.school }}{% endif %}{% if p.grad_year %} &middot; Class of {{ p.grad_year }}{% endif %}</div>
+  {% for group_label, group_players in groups %}
+    {% if group_players %}
+    <div class="group-title">{{ group_label }}</div>
+    <div class="roster">
+    {% for slug, p in group_players %}
+      <div class="card">
+        <div>
+          <div class="name">{{ p.name }}</div>
+          <div class="meta">{% if p.school %}{{ p.school }}{% endif %}{% if p.grad_year %} &middot; Class of {{ p.grad_year }}{% endif %}</div>
+        </div>
+        <div class="links">
+          {% if p.get('program') == 'long_beach_state' %}
+          <a href="{{ url_for('view_report', slug=slug, role='trackman') }}">Trackman Report</a>
+          {% else %}
+          {% if p.roles.pitch %}<a href="{{ url_for('view_report', slug=slug, role='pitching') }}">Pitching Report</a>{% endif %}
+          {% if p.roles.hit %}<a href="{{ url_for('view_report', slug=slug, role='hitting') }}">Hitting Report</a>{% endif %}
+          {% endif %}
+          {% if is_coach and p.get('program') != 'long_beach_state' %}<a href="{{ url_for('edit_comps', slug=slug) }}" style="background:#aa8b68;">Edit Comps</a>{% endif %}
+        </div>
       </div>
-      <div class="links">
-        {% if p.roles.pitch %}<a href="{{ url_for('view_report', slug=slug, role='pitching') }}">Pitching Report</a>{% endif %}
-        {% if p.roles.hit %}<a href="{{ url_for('view_report', slug=slug, role='hitting') }}">Hitting Report</a>{% endif %}
-        {% if is_coach %}<a href="{{ url_for('edit_comps', slug=slug) }}" style="background:#aa8b68;">Edit Comps</a>{% endif %}
-      </div>
+    {% endfor %}
     </div>
+    {% endif %}
   {% endfor %}
-  </div>
 </div>
 """
 
@@ -119,8 +130,14 @@ DASHBOARD_PAGE = """
 @app.route('/')
 def dashboard():
     players = store.list_players()
-    players = dict(sorted(players.items(), key=lambda kv: kv[1]['name']))
-    return render_template_string(DASHBOARD_PAGE, players=players, is_coach=bool(session.get('coach')))
+    shepherds = sorted(
+        ((slug, p) for slug, p in players.items() if p.get('program', 'shepherds') == 'shepherds'),
+        key=lambda kv: kv[1]['name'])
+    lbsu = sorted(
+        ((slug, p) for slug, p in players.items() if p.get('program') == 'long_beach_state'),
+        key=lambda kv: kv[1]['name'])
+    groups = [('Shepherds', shepherds), ('Long Beach State', lbsu)]
+    return render_template_string(DASHBOARD_PAGE, groups=groups, is_coach=bool(session.get('coach')))
 
 
 @app.route('/admin/backup/players.json')
@@ -137,9 +154,10 @@ def backup_players():
 
 @app.route('/report/<slug>/<role>')
 def view_report(slug, role):
-    if role not in ('pitching', 'hitting'):
+    if role not in ('pitching', 'hitting', 'trackman'):
         abort(404)
-    path = os.path.join(pipeline.REPORTS_DIR, f'{slug}_{role}.html')
+    filename = f'{slug}_trackman_mini.html' if role == 'trackman' else f'{slug}_{role}.html'
+    path = os.path.join(pipeline.REPORTS_DIR, filename)
     if not os.path.exists(path):
         abort(404)
     return send_file(path)
@@ -190,7 +208,8 @@ INTAKE_PAGE = """
   </fieldset>
   <button type="submit">Generate report(s)</button>
 </form>
-<p style="margin-top:28px;"><a href="{{ url_for('dashboard') }}">&larr; View the public dashboard</a></p>
+<p style="margin-top:28px;"><a href="{{ url_for('intake_lbsu') }}">Adding a Long Beach State pitcher (Trackman only, no Full Swing export)? &rarr;</a></p>
+<p style="margin-top:10px;"><a href="{{ url_for('dashboard') }}">&larr; View the public dashboard</a></p>
 <p style="margin-top:10px;font-size:12.5px;"><a href="{{ url_for('backup_players') }}">Download current roster data (players.json)</a> -- after adding players, upload this file into the GitHub repo's <code>data/</code> folder so the roster survives the next code update.</p>
 """
 
@@ -241,6 +260,80 @@ def intake():
                 message, ok = f'Something went wrong processing that file: {exc}', False
 
     return render_template_string(INTAKE_PAGE, message=message, ok=ok, coach=store.coach_display_name(session['coach']))
+
+
+# --- Long Beach State intake (coach-only) --------------------------------
+# Separate, lighter-weight form for a pitcher who only has a Trackman
+# session -- no Full Swing export required. Produces the scoped
+# movement/spin/velo-only report (pipeline.render_trackman_mini) instead of
+# the full Pitching Report, and tags the player 'long_beach_state' so he
+# shows in that group on the dashboard instead of under Shepherds.
+
+LBSU_INTAKE_PAGE = """
+<!doctype html><title>New Player Intake &mdash; Long Beach State</title>
+<style>
+  body{font-family:Barlow,Arial,sans-serif;background:#f3ebdd;color:#6f4f2f;max-width:560px;margin:0 auto;padding:28px 16px 60px;}
+  h1{font-family:Oswald,Arial,sans-serif;font-size:22px;}
+  label{display:block;font-weight:600;font-size:13px;margin:14px 0 4px;}
+  input[type=text],input[type=number]{width:100%;padding:9px 10px;border:1px solid #e1d6c2;border-radius:7px;box-sizing:border-box;}
+  .row{display:flex;gap:10px;} .row > div{flex:1;}
+  button{margin-top:20px;padding:11px 22px;border:none;border-radius:999px;background:#5c84a6;color:#fff;font-weight:600;cursor:pointer;}
+  .msg{padding:10px 14px;border-radius:8px;margin-bottom:14px;}
+  .msg.ok{background:#e3ecdf;color:#3f6b42;} .msg.err{background:#f6dede;color:#9c3a3a;}
+  .top{display:flex;justify-content:space-between;align-items:center;}
+  .top a{color:#8a7557;font-size:13px;}
+  fieldset{border:1px solid #e1d6c2;border-radius:10px;margin-top:16px;padding:12px 14px;}
+</style>
+<div class="top"><h1>New Player Intake &mdash; Long Beach State</h1><a href="{{ url_for('logout') }}">Log out ({{ coach }})</a></div>
+{% if message %}<div class="msg {{ 'ok' if ok else 'err' }}">{{ message }}</div>{% endif %}
+<form method="post" enctype="multipart/form-data">
+  <label>Full name</label><input type="text" name="name" required>
+  <p style="font-size:12.5px;color:#8a7557;margin:2px 0 0;">Must match the pitcher's name in the Trackman CSV (either "First Last" or "Last, First" works).</p>
+  <div class="row">
+    <div><label>School</label><input type="text" name="school"></div>
+    <div><label>Graduation year</label><input type="number" name="grad_year"></div>
+  </div>
+  <label>Pitching position</label><input type="text" name="position_pitch" placeholder="RHP, LHP">
+  <fieldset>
+    <label style="margin-top:0;">Trackman export (.csv)</label>
+    <input type="file" name="trackman_file" accept=".csv" required>
+    <p style="font-size:12.5px;color:#8a7557;">Builds a Pitch Movement Profile, Spin Direction, and velocity report straight from this session. No Full Swing data behind it, so season stats, percentiles, and comps aren't part of this report.</p>
+  </fieldset>
+  <button type="submit">Generate report</button>
+</form>
+<p style="margin-top:28px;"><a href="{{ url_for('intake') }}">&larr; Back to Shepherds intake</a></p>
+<p style="margin-top:10px;"><a href="{{ url_for('dashboard') }}">&larr; View the public dashboard</a></p>
+"""
+
+
+@app.route('/intake/lbsu', methods=['GET', 'POST'])
+@login_required
+def intake_lbsu():
+    message, ok = None, True
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        school = request.form.get('school', '').strip() or None
+        grad_year = request.form.get('grad_year', '').strip()
+        grad_year = int(grad_year) if grad_year.isdigit() else None
+        position_pitch = request.form.get('position_pitch', '').strip() or None
+
+        tm_f = request.files.get('trackman_file')
+        if not name or not tm_f or not tm_f.filename:
+            message, ok = 'Name and a Trackman CSV are required.', False
+        else:
+            trackman_path = os.path.join(UPLOAD_DIR, f'{store.slugify(name)}_trackman_{tm_f.filename}')
+            tm_f.save(trackman_path)
+            try:
+                slug, out = pipeline.process_trackman_only(trackman_path, name, school, grad_year, position_pitch)
+                if out:
+                    message = f'Generated a Trackman report for {name}. View it on the dashboard below.'
+                else:
+                    message, ok = (f"{name} wasn't found in that Trackman file -- check the name matches "
+                                    f"exactly (e.g. \"Last, First\" as it appears in the CSV's Pitcher column)."), False
+            except Exception as exc:
+                message, ok = f'Something went wrong processing that file: {exc}', False
+
+    return render_template_string(LBSU_INTAKE_PAGE, message=message, ok=ok, coach=store.coach_display_name(session['coach']))
 
 
 # --- comps override API (coach-only) -------------------------------------

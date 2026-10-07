@@ -27,6 +27,7 @@ CSS = open(os.path.join(APP_DIR, 'report.css')).read().replace(
 )
 env = jinja2.Environment(loader=jinja2.FileSystemLoader(os.path.join(APP_DIR, 'templates')))
 tpl = env.get_template('report_template.html')
+tm_mini_tpl = env.get_template('trackman_mini_template.html')
 BRAND = brand_assets.build_brand_uris()
 
 
@@ -111,8 +112,9 @@ def render_pitcher(name, totals_row, master_rows, bio, trackman_rows=None):
                       'Changeup': ('1:45', '2:45', -60), 'Curveball': ('7:15', '7:15', 0), 'Other': ('2:00', '1:30', 15)}
     for t in tracking:
         tm = tm_movement.get(t['type'])
-        if tm and tm.get('spin_clock'):
-            sb = ob = tm['spin_clock']
+        if tm and tm.get('spin_based_clock'):
+            sb = tm['spin_based_clock']
+            ob = tm.get('observed_clock') or sb
             dv = tm.get('spin_deviation') or 0
         else:
             sb, ob, dv = sample_clocks.get(t['type'], ('12:00', '12:00', 0))
@@ -122,7 +124,7 @@ def render_pitcher(name, totals_row, master_rows, bio, trackman_rows=None):
     # Only show the Spin Direction panel at all once there's real Trackman
     # spin data for at least one pitch type -- otherwise it's pure fiction
     # and the old build correctly just hid it (show_spin_direction=False).
-    show_spin_direction = any(tm.get('spin_clock') for tm in tm_movement.values())
+    show_spin_direction = any(tm.get('spin_based_clock') for tm in tm_movement.values())
 
     bf, so, bb = overall.get('bf'), overall.get('k'), overall.get('bb')
 
@@ -149,6 +151,72 @@ def render_pitcher(name, totals_row, master_rows, bio, trackman_rows=None):
     out_path = os.path.join(REPORTS_DIR, f'{slug}_pitching.html')
     open(out_path, 'w').write(html)
     return out_path
+
+
+def render_trackman_mini(name, trackman_rows, bio=None):
+    """A scoped report for a pitcher who has a Trackman session but no Full
+    Swing workbook yet: real pitch movement, spin direction and velocity
+    straight from the CSV, with none of the season-stat/percentile/comps
+    sections that need a Full Swing export. Swap this for the full
+    render_pitcher() output once a Full Swing workbook exists for them."""
+    slug = store.slugify(name)
+    meta, tm_pitches = e.pitcher_trackman_summary(trackman_rows, name)
+    for t in tm_pitches:
+        t['color'] = e.PITCH_COLORS.get(t['type'], '#555')
+
+    movement_pitches = [
+        {'type': t['type'], 'color': t['color'], 'hb': t['hb'], 'vb': t['ivb'], 'points': []}
+        for t in tm_pitches if t['hb'] is not None and t['ivb'] is not None
+    ]
+    movement_html = (
+        sc.movement_plot_caption_html()
+        + sc.movement_plot_svg(movement_pitches, width=270, height=282, max_range=20)
+        + sc.pitch_usage_legend_html(tm_pitches)
+    ) if movement_pitches else '<div style="color:#999;font-size:11px;">No movement data</div>'
+
+    spin_pitches = [
+        {'type': t['type'], 'spin_based': t['spin_based_clock'], 'observed': t['observed_clock'],
+         'deviation': t['spin_deviation'] or 0, 'color': t['color']}
+        for t in tm_pitches if t['spin_based_clock']
+    ]
+    spin_html = sc.spin_clock_row_svg(spin_pitches) if spin_pitches else ''
+
+    p = {
+        'name': name,
+        'position': bio['roles'].get('pitch', {}).get('position') if bio else None,
+        'school': _school_display(bio.get('school'), bio.get('grad_year')) if bio else None,
+        'throws': meta.get('throws'), 'team': meta.get('team'), 'date': meta.get('date'),
+        'n_pitches': meta.get('n_pitches'), 'tracking': tm_pitches,
+        'show_spin_direction': bool(spin_pitches), 'year': '2026',
+    }
+    html = tm_mini_tpl.render(p=p, css=CSS, movement_html=movement_html, spin_html=spin_html, brand=BRAND)
+    out_path = os.path.join(REPORTS_DIR, f'{slug}_trackman_mini.html')
+    open(out_path, 'w').write(html)
+    return out_path
+
+
+def process_trackman_only(trackman_path, name, school, grad_year, position_pitch):
+    """Entry point for the Long Beach State side of the roster: a pitcher
+    who has a Trackman session but no Full Swing export. Mirrors
+    process_upload()'s shape (bio upsert -> store the source file -> render
+    -> sync) but tags the player 'long_beach_state' instead of 'shepherds'
+    and renders the scoped Trackman-only report instead of the full one.
+    Returns (slug, out_path) -- out_path is None if this name doesn't
+    actually appear in the CSV (e.g. a typo, or wrong file attached)."""
+    slug = store.upsert_player_bio(name, school, grad_year, position_pitch=position_pitch)
+    store.set_program(slug, 'long_beach_state')
+    store.set_last_trackman(slug, trackman_path)
+    bio = store.get_player(slug)
+
+    trackman_rows = e.load_trackman_rows(trackman_path)
+    _, pitches = e.pitcher_trackman_summary(trackman_rows, name)
+    if not pitches:
+        store.sync_to_github()
+        return slug, None
+
+    out = render_trackman_mini(name, trackman_rows, bio)
+    store.sync_to_github()
+    return slug, out
 
 
 def render_hitter(name, totals_row, master_rows, bio):
@@ -194,6 +262,7 @@ def process_upload(xlsx_path, name, school, grad_year, position_pitch, position_
     """roles_needed: set/list containing 'pitch' and/or 'hit'. Returns list of
     (role, out_path) for whichever reports were generated."""
     slug = store.upsert_player_bio(name, school, grad_year, position_pitch, position_hit)
+    store.set_program(slug, 'shepherds')
     store.set_last_xlsx(slug, xlsx_path)
     if sixty_yd_time is not None:
         store.set_sixty_yd_time(slug, sixty_yd_time)

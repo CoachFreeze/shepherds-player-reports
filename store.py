@@ -118,6 +118,20 @@ def set_last_xlsx(slug, xlsx_path):
     _save(PLAYERS_PATH, players)
 
 
+def set_program(slug, program):
+    """Which roster group this player shows under on the dashboard --
+    'shepherds' (Full Swing-based, Shepherds Baseball's own training
+    program) or 'long_beach_state' (Trackman-only, no Full Swing data).
+    A player without this set (every player added before this field existed)
+    is treated as 'shepherds' by whatever reads it, since all of them are
+    Full Swing-based."""
+    players = list_players()
+    entry = players.setdefault(slug, {'comps': {}})
+    entry['program'] = program
+    players[slug] = entry
+    _save(PLAYERS_PATH, players)
+
+
 def set_last_trackman(slug, csv_path):
     """Path to this player's most recently uploaded Trackman CSV (pitching
     only -- optional, alongside the Full Swing workbook). Same pattern as
