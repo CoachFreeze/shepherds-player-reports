@@ -94,16 +94,18 @@ def render_pitcher(name, totals_row, master_rows, bio, trackman_rows=None):
     movement_is_sample = False
     for t in tracking:
         tm = tm_movement.get(t['type'])
+        pts = []
         if tm and tm.get('hb') is not None and tm.get('ivb') is not None:
             hb, vb = tm['hb'], tm['ivb']
+            pts = tm.get('points') or []
         else:
             hb, vb = sample_shape.get(t['type'], (0, 0))
             movement_is_sample = True
-        movement_pitches.append({'type': t['type'], 'color': t['color'], 'hb': hb, 'vb': vb, 'points': []})
+        movement_pitches.append({'type': t['type'], 'color': t['color'], 'hb': hb, 'vb': vb, 'points': pts})
     if movement_pitches:
         movement_html = (
             sc.movement_plot_caption_html()
-            + sc.movement_plot_svg(movement_pitches, width=270, height=282, max_range=20)
+            + sc.movement_plot_svg(movement_pitches, width=270, height=282, max_range=20, all_pitches=True)
             + sc.pitch_usage_legend_html(tracking)
         )
     else:
@@ -165,15 +167,16 @@ def render_trackman_mini(name, trackman_rows, bio=None):
     slug = store.slugify(name)
     meta, tm_pitches = e.pitcher_trackman_summary(trackman_rows, name)
     for t in tm_pitches:
-        t['color'] = e.PITCH_COLORS.get(t['type'], '#555')
+        t['color'] = e.MINI_PITCH_COLORS.get(t['type'], '#555')
 
     movement_pitches = [
-        {'type': t['type'], 'color': t['color'], 'hb': t['hb'], 'vb': t['ivb'], 'points': []}
-        for t in tm_pitches if t['hb'] is not None and t['ivb'] is not None
+        {'type': t['type'], 'color': t['color'], 'hb': t['hb'], 'vb': t['ivb'],
+         'points': [(h, v, ve) for h, v, ve in t['points']]}
+        for t in tm_pitches if t['points']
     ]
     movement_html = (
         sc.movement_plot_caption_html()
-        + sc.movement_plot_svg(movement_pitches, width=270, height=282, max_range=20)
+        + sc.movement_plot_svg(movement_pitches, width=270, height=282, max_range=20, all_pitches=True)
         + sc.pitch_usage_legend_html(tm_pitches)
     ) if movement_pitches else '<div style="color:#999;font-size:11px;">No movement data</div>'
 

@@ -16,9 +16,12 @@ PITCH_TYPE_MAP = {
     'CB': 'Curveball', 'CB 1': 'Curveball', 'CB 2': 'Curveball',
     'CT': 'Cutter', 'SP': 'Splitter',
 }
+# Same palette as MINI_PITCH_COLORS below (sampled from the client's reference
+# pitch-type legend), keyed by Full Swing's coarser labels so every pitcher
+# chart in the app -- full report and Trackman-only -- uses one color scheme.
 PITCH_COLORS = {
-    'Fastball': '#d6336c', 'Slider': '#e8c93a', 'Sinker': '#f2994a',
-    'Changeup': '#4a9e6e', 'Curveball': '#4a7de8', 'Cutter': '#a24ae8', 'Splitter': '#888888',
+    'Fastball': '#c13d4d', 'Sinker': '#f0a139', 'Slider': '#ede750', 'Sweeper': '#d6b552',
+    'Changeup': '#5abb4e', 'Curveball': '#5fcee9', 'Cutter': '#894432', 'Splitter': '#5daaab',
 }
 
 
@@ -434,6 +437,26 @@ TRACKMAN_TYPE_MAP = {
     'splitter': 'Splitter', 'splitfinger': 'Splitter',
 }
 
+# Finer labels for the Trackman-only mini report, matching Savant's own
+# pitch-type chips (4-Seam / Sinker / Slider / Sweeper / Cutter / Split /
+# Curve / Change). The main map above folds these into Full Swing's coarser
+# labels so Trackman rows can merge into Full-Swing-derived tracking rows;
+# the mini report has no Full Swing rows to line up with, so it keeps them.
+TRACKMAN_FINE_TYPE_MAP = {
+    'fourseamfastball': '4-Seam', 'fourseam': '4-Seam', 'fastball': '4-Seam', '4seam': '4-Seam',
+    'twoseamfastball': 'Sinker', 'twoseam': 'Sinker', 'sinker': 'Sinker',
+    'slider': 'Slider', 'sweeper': 'Sweeper',
+    'changeup': 'Change', 'change': 'Change',
+    'curveball': 'Curve', 'curve': 'Curve', 'knucklecurve': 'Curve',
+    'cutter': 'Cutter',
+    'splitter': 'Split', 'splitfinger': 'Split',
+}
+# Sampled from the client's reference pitch-type legend.
+MINI_PITCH_COLORS = {
+    'Sinker': '#f0a139', 'Curve': '#5fcee9', '4-Seam': '#c13d4d', 'Slider': '#ede750',
+    'Cutter': '#894432', 'Split': '#5daaab', 'Sweeper': '#d6b552', 'Change': '#5abb4e',
+}
+
 _TM_PITCHER_COLS = ['Pitcher', 'PitcherName', 'Pitcher Name']
 _TM_TYPE_COLS = ['TaggedPitchType', 'AutoPitchType', 'PitchType', 'Pitch Type']
 _TM_HB_COLS = ['HorzBreak', 'Horizontal Break', 'HBreak', 'HB']
@@ -488,11 +511,11 @@ def _normalize_name(raw):
     return ' '.join(sorted(re.findall(r"[a-z]+", raw.lower())))
 
 
-def _normalize_pitch_type(raw):
+def _normalize_pitch_type(raw, fine=False):
     if not raw:
         return None
     key = str(raw).strip().lower().replace(' ', '').replace('-', '')
-    return TRACKMAN_TYPE_MAP.get(key)
+    return (TRACKMAN_FINE_TYPE_MAP if fine else TRACKMAN_TYPE_MAP).get(key)
 
 
 def _circular_mean_minutes(minutes_list):
@@ -568,7 +591,7 @@ def load_trackman_rows(csv_path):
         return list(csv.DictReader(f))
 
 
-def pitcher_trackman_movement(trackman_rows, pitcher_name):
+def pitcher_trackman_movement(trackman_rows, pitcher_name, fine=False):
     """Groups a Trackman export's break/spin numbers by pitch type for one
     pitcher, normalized to this app's own pitch-type labels (Fastball,
     Slider, Changeup, Curveball, Cutter, Splitter, Sinker) so they line up
@@ -580,14 +603,14 @@ def pitcher_trackman_movement(trackman_rows, pitcher_name):
     target = _normalize_name(pitcher_name)
     by_type = defaultdict(lambda: {
         'hb': [], 'ivb': [], 'spin_rate': [],
-        'tilt_min': [], 'obs_tilt_min': [], 'spin_eff': [],
+        'tilt_min': [], 'obs_tilt_min': [], 'spin_eff': [], 'points': [],
     })
 
     for row in trackman_rows:
         raw_name = _tm_get(row, _TM_PITCHER_COLS)
         if _normalize_name(raw_name) != target:
             continue
-        label = _normalize_pitch_type(_tm_get(row, _TM_TYPE_COLS))
+        label = _normalize_pitch_type(_tm_get(row, _TM_TYPE_COLS), fine=fine)
         if not label:
             continue
         d = by_type[label]
@@ -605,6 +628,8 @@ def pitcher_trackman_movement(trackman_rows, pitcher_name):
             tilt_min = _spinaxis_deg_to_minutes(_tm_num(_tm_get(row, _TM_SPIN_AXIS_COLS)))
         obs_tilt_min = _clock_str_to_minutes(_tm_get(row, _TM_OBS_TILT_COLS))
 
+        if hb is not None and ivb is not None:
+            d['points'].append((hb, ivb, _tm_num(_tm_get(row, _TM_VELO_COLS))))
         if hb is not None:
             d['hb'].append(hb)
         if ivb is not None:
@@ -625,6 +650,7 @@ def pitcher_trackman_movement(trackman_rows, pitcher_name):
         # same simplification as before: show the spin-based value in both.
         observed_clock = _minutes_to_clock(_circular_mean_minutes(d['obs_tilt_min'])) if d['obs_tilt_min'] else spin_based_clock
         out[label] = {
+            'points': d['points'],
             'hb': round(sum(d['hb']) / len(d['hb']), 1) if d['hb'] else None,
             'ivb': round(sum(d['ivb']) / len(d['ivb']), 1) if d['ivb'] else None,
             'spin_rate': round(sum(d['spin_rate']) / len(d['spin_rate'])) if d['spin_rate'] else None,
@@ -646,9 +672,9 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
     if not trackman_rows:
         return {}, []
     target = _normalize_name(pitcher_name)
-    movement = pitcher_trackman_movement(trackman_rows, pitcher_name)
+    movement = pitcher_trackman_movement(trackman_rows, pitcher_name, fine=True)
 
-    by_type = defaultdict(lambda: {'n': 0, 'velo': []})
+    by_type = defaultdict(lambda: {'n': 0, 'velo': [], 'points': []})
     meta = {'throws': None, 'team': None, 'date': None, 'n_pitches': 0}
     for row in trackman_rows:
         raw_name = _tm_get(row, _TM_PITCHER_COLS)
@@ -661,7 +687,7 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
             meta['team'] = _tm_get(row, _TM_TEAM_COLS)
         if meta['date'] is None:
             meta['date'] = _tm_get(row, _TM_DATE_COLS)
-        label = _normalize_pitch_type(_tm_get(row, _TM_TYPE_COLS))
+        label = _normalize_pitch_type(_tm_get(row, _TM_TYPE_COLS), fine=True)
         if not label:
             continue
         d = by_type[label]
@@ -669,6 +695,13 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
         velo = _tm_num(_tm_get(row, _TM_VELO_COLS))
         if velo is not None:
             d['velo'].append(velo)
+        # every individual pitch, for the movement-profile scatter
+        hb = _tm_num(_tm_get(row, _TM_HB_COLS))
+        ivb = _tm_num(_tm_get(row, _TM_IVB_COLS))
+        if ivb is None:
+            ivb = _tm_num(_tm_get(row, _TM_VB_COLS))
+        if hb is not None and ivb is not None:
+            d['points'].append((hb, ivb, velo))
 
     total = sum(d['n'] for d in by_type.values()) or 1
     pitches = []
@@ -680,6 +713,7 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
             'pct': d['n'] / total * 100,
             'velo': round(sum(d['velo']) / len(d['velo']), 1) if d['velo'] else None,
             'top_velo': round(max(d['velo']), 1) if d['velo'] else None,
+            'points': d['points'],
             'hb': tm.get('hb'), 'ivb': tm.get('ivb'),
             'spin_rate': tm.get('spin_rate'),
             'spin_based_clock': tm.get('spin_based_clock'),

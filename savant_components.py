@@ -107,11 +107,15 @@ def percentile_bars_html(rows, title=None, css_classes=True, badge_size=37, comp
 # arm-side/glove-side which flips with a pitcher's handedness), and
 # "MORE RISE" / "MORE DROP" stacked labels down the left side.
 
-def movement_plot_svg(pitches, width=340, height=340, max_range=24):
+def movement_plot_svg(pitches, width=340, height=340, max_range=24, all_pitches=False):
     """
     pitches: list of {'type': str, 'color': '#hex', 'hb': float, 'vb': float,
                        'points': [(hb, vb), ...]}  # optional individual pitches
     hb/vb in inches, raw (no handedness flip): +hb = toward 1B, -hb = toward 3B.
+    all_pitches=True: plots every individual pitch in `points` as a 70%-opacity
+    dot carrying data-* attributes (and an SVG <title>) so the page can show
+    an IVB/HB tooltip on hover, and skips the bold per-type average marker.
+    In that mode points are (hb, vb) or (hb, vb, velo) tuples.
     """
     cx, cy = width / 2, height / 2
     # r24 is the true 24" ring's pixel radius, and scale (px per inch) is
@@ -193,6 +197,24 @@ def movement_plot_svg(pitches, width=340, height=340, max_range=24):
     svg.append(f'<text x="{label_x}" y="{drop_y-19:.1f}" font-size="{tri_fs}" fill="{label_col}">&#9660;</text>')
     svg.append(f'<text x="{label_x}" y="{drop_y-4:.1f}" font-size="{label_fs}" font-weight="700" fill="{label_col}">MORE</text>')
     svg.append(f'<text x="{label_x}" y="{drop_y+13:.1f}" font-size="{label_fs}" font-weight="700" fill="{label_col}">DROP</text>')
+
+    if all_pitches:
+        for p in pitches:
+            color = p['color']
+            if not p.get('points'):
+                # no individual pitches for this type (e.g. placeholder data) -> keep the bold average marker
+                x, y = to_xy(p['hb'], p['vb'])
+                svg.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="7.8" fill="{color}" fill-opacity="0.7" stroke="#fff" stroke-width="1.7"/>')
+            for pt in p.get('points', []):
+                hb, vb = pt[0], pt[1]
+                velo = pt[2] if len(pt) > 2 else None
+                x, y = to_xy(hb, vb)
+                tip = f'{p["type"]}  IVB {vb:.1f}\u2033 \u00b7 HB {hb:.1f}\u2033' + (f' \u00b7 {velo:.1f} mph' if velo else '')
+                svg.append(
+                    f'<circle class="mv-pt" cx="{x:.1f}" cy="{y:.1f}" r="7" fill="{color}" fill-opacity="0.7" '
+                    f'stroke="{color}" stroke-width="1" data-tip="{tip}"><title>{tip}</title></circle>')
+        svg.append('</svg>')
+        return ''.join(svg)
 
     # individual pitch cloud (light) then bold average marker per type
     for p in pitches:
