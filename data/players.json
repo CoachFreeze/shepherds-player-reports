@@ -228,6 +228,19 @@
     },
     "school": "La Mirada HS"
   },
+  "landon_sloan": {
+    "comps": {},
+    "grad_year": 2028,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/landon_sloan_trackman_LiveBpPitching_2026-10-01T165756_verified.csv",
+    "name": "Landon Sloan",
+    "program": "long_beach_state",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Long Beach State"
+  },
   "reagan_samples": {
     "comps": {
       "hit": [
