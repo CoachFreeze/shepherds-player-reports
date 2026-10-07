@@ -394,27 +394,34 @@ def build_hitter_percentiles(totals_row, derived):
 # players also get a Trackman report from their school -- this section reads
 # that CSV and fills those two charts with real numbers when one's attached.
 #
-# ASSUMPTIONS, not yet verified against a real export (no sample file was
-# available when this was written -- re-check against one as soon as you
-# have it, especially the column names and the SpinAxis clock-face mapping):
-#   - Column names follow Trackman's standard per-pitch CSV export, but
-#     spelling/spacing varies by export settings, so each field is looked up
-#     against a short list of likely header spellings (case/space/dash
-#     insensitive) rather than one exact name.
-#   - Pitcher name may be "First Last" or "Last, First" -- normalized by
-#     lowercasing and comparing the sorted set of name words, not exact match.
-#   - SpinAxis is in degrees, 0 = 12:00, increasing clockwise (standard
-#     clock-face convention) -- this is the one most likely to need fixing
-#     once a real file shows up.
-#   - A standard Trackman export has only ONE measured spin axis (no
-#     Hawk-Eye-style dual measurement), so "spin-based" and "observed" clock
-#     are both filled from that same SpinAxis value; SpinEfficiency (when
-#     present) is converted to a gyro-angle "deviation" in degrees via
-#     acos(efficiency) as an approximation, not an exact match for what
-#     Baseball Savant's own spin-based-vs-observed chart measures.
+# VERIFIED against a real export (LiveBpPitching, Oct 2026 -- a single
+# live-BP bullpen session, "Last, First" name format):
+#   - Column names: 'Pitcher', 'TaggedPitchType', 'HorzBreak',
+#     'InducedVertBreak', 'SpinRate', 'SpinAxis' all matched exactly as
+#     assumed. TaggedPitchType values like "ChangeUp" fold fine through the
+#     existing lowercase/strip normalization.
+#   - Pitcher name is "Last, First" in this export; the comma-swap in
+#     _normalize_name() already handles it correctly.
+#   - Trackman ALSO exports a ready-made clock-face string in a 'Tilt'
+#     column (e.g. "1:45") -- no degree math needed when it's present, and
+#     it's what's actually used below in preference to deriving one.
+#   - Cross-checking this file's 'Tilt' against its own raw 'SpinAxis'
+#     degrees disproved the original guess (0 deg = 12:00): the real mapping
+#     is 180 deg = 12:00, increasing clockwise -- i.e.
+#     clock_minutes = ((SpinAxis_deg - 180) % 360) * 2. Fixed below; this is
+#     now only a fallback for a file that has SpinAxis but no Tilt column.
+#   - This export also carries a Hawk-Eye-style 3D measurement block
+#     (SpinAxis3dTransverseAngle/LongitudinalAngle/ActiveSpinRate/
+#     SpinEfficiency/Tilt) -- a genuine second, *observed* axis distinct from
+#     the inferred spin-based one, matching what Baseball Savant's own
+#     spin-based-vs-observed chart actually compares. It was empty in every
+#     row of this particular session (not every Trackman setup measures it),
+#     so the code below reads it when populated and falls back to the
+#     spin-based value (same as before) when it isn't.
 #   - Induced Vertical Break is preferred over raw Vertical Break when both
 #     are present, since IVB (gravity removed) is what the movement-profile
-#     chart is meant to show.
+#     chart is meant to show -- unchanged, confirmed both columns coexist in
+#     this export.
 
 TRACKMAN_TYPE_MAP = {
     'fourseamfastball': 'Fastball', 'fourseam': 'Fastball', 'fastball': 'Fastball',
@@ -434,7 +441,18 @@ _TM_IVB_COLS = ['InducedVertBreak', 'Induced Vertical Break', 'IVB']
 _TM_VB_COLS = ['VertBreak', 'Vertical Break', 'VB']
 _TM_SPIN_RATE_COLS = ['SpinRate', 'Spin Rate']
 _TM_SPIN_AXIS_COLS = ['SpinAxis', 'Spin Axis']
-_TM_SPIN_EFF_COLS = ['SpinEfficiency', 'Spin Efficiency', 'Spin Efficiency (release)']
+# Ready-made clock-face string Trackman supplies directly (preferred -- no
+# degree math, and it's quantized/rounded the same way Trackman's own
+# reports show it).
+_TM_TILT_COLS = ['Tilt']
+# The true measured ("observed") axis, when this export's Trackman/Hawk-Eye
+# setup actually captures it -- also a ready clock-face string.
+_TM_OBS_TILT_COLS = ['SpinAxis3dTilt', 'Spin Axis 3d Tilt']
+_TM_SPIN_EFF_COLS = ['SpinAxis3dSpinEfficiency', 'SpinEfficiency', 'Spin Efficiency', 'Spin Efficiency (release)']
+_TM_VELO_COLS = ['RelSpeed', 'Velocity', 'Velo', 'PitchVelocity', 'Pitch Velocity']
+_TM_THROWS_COLS = ['PitcherThrows', 'Pitcher Throws']
+_TM_TEAM_COLS = ['PitcherTeam', 'Pitcher Team']
+_TM_DATE_COLS = ['Date']
 
 
 def _tm_get(row, candidates):
@@ -477,21 +495,57 @@ def _normalize_pitch_type(raw):
     return TRACKMAN_TYPE_MAP.get(key)
 
 
-def _circular_mean_deg(degrees):
-    if not degrees:
+def _circular_mean_minutes(minutes_list):
+    """Circular mean over clock-face positions expressed as minutes past
+    12:00 on a 12-hour face (0-720), so averaging across the 12:00/0:00
+    wrap-around (e.g. 11:45 and 12:15) comes out right instead of landing on
+    the wrong side of the clock."""
+    if not minutes_list:
         return None
-    sin_sum = sum(math.sin(math.radians(d)) for d in degrees)
-    cos_sum = sum(math.cos(math.radians(d)) for d in degrees)
-    return math.degrees(math.atan2(sin_sum, cos_sum)) % 360
+    angles = [m / 720 * 2 * math.pi for m in minutes_list]
+    sin_sum = sum(math.sin(a) for a in angles)
+    cos_sum = sum(math.cos(a) for a in angles)
+    mean_angle = math.atan2(sin_sum, cos_sum) % (2 * math.pi)
+    return mean_angle / (2 * math.pi) * 720
 
 
-def _deg_to_clock(deg):
-    if deg is None:
+def _minutes_to_clock(total_minutes, quantize_to=15):
+    """Minutes-past-12:00 -> 'H:MM' string. Rounds to the nearest 15-minute
+    mark by default, matching how Trackman's own Tilt column is quantized
+    (pitch-to-pitch spin-axis wobble makes finer precision look falsely
+    exact)."""
+    if total_minutes is None:
         return None
-    total_minutes = (deg % 360) / 360 * 720  # 720 "minutes" = 12 hours around the clock face
+    if quantize_to:
+        total_minutes = round(total_minutes / quantize_to) * quantize_to
+    total_minutes = total_minutes % 720
     hour = int(total_minutes // 60) % 12
     minute = int(round(total_minutes % 60)) % 60
     return f'{hour or 12}:{minute:02d}'
+
+
+def _spinaxis_deg_to_minutes(deg):
+    """Converts TrackMan's raw SpinAxis degree value to the same clock-face
+    'minutes past 12:00' convention as its own Tilt column -- verified
+    against a real export (SpinAxis=231.78 -> Tilt=1:45, 239.79 -> 2:00,
+    213.36 -> 1:00, etc.): 12:00 sits at SpinAxis=180 degrees, increasing
+    clockwise from there. Only used as a fallback when a file has SpinAxis
+    but no ready-made Tilt column."""
+    if deg is None:
+        return None
+    return ((deg - 180) % 360) * 2  # 360 degrees <-> 720 clock-minutes
+
+
+def _clock_str_to_minutes(s):
+    """Parses a 'H:MM' clock-face string (as Trackman's Tilt/SpinAxis3dTilt
+    columns give it) into minutes past 12:00 on a 12-hour face."""
+    if not s:
+        return None
+    m = re.match(r'^\s*(\d{1,2}):(\d{2})\s*$', str(s))
+    if not m:
+        return None
+    hour, minute = int(m.group(1)), int(m.group(2))
+    return (hour % 12) * 60 + minute
 
 
 def _gyro_deg_from_efficiency(eff):
@@ -519,11 +573,15 @@ def pitcher_trackman_movement(trackman_rows, pitcher_name):
     pitcher, normalized to this app's own pitch-type labels (Fastball,
     Slider, Changeup, Curveball, Cutter, Splitter, Sinker) so they line up
     with the Full-Swing-derived `tracking` rows they're merged into.
-    Returns {type: {'hb', 'ivb', 'spin_rate', 'spin_clock', 'spin_deviation'}}."""
+    Returns {type: {'hb', 'ivb', 'spin_rate', 'spin_based_clock',
+    'observed_clock', 'spin_deviation'}}."""
     if not trackman_rows:
         return {}
     target = _normalize_name(pitcher_name)
-    by_type = defaultdict(lambda: {'hb': [], 'ivb': [], 'spin_rate': [], 'spin_axis': [], 'spin_eff': []})
+    by_type = defaultdict(lambda: {
+        'hb': [], 'ivb': [], 'spin_rate': [],
+        'tilt_min': [], 'obs_tilt_min': [], 'spin_eff': [],
+    })
 
     for row in trackman_rows:
         raw_name = _tm_get(row, _TM_PITCHER_COLS)
@@ -538,30 +596,98 @@ def pitcher_trackman_movement(trackman_rows, pitcher_name):
         if ivb is None:
             ivb = _tm_num(_tm_get(row, _TM_VB_COLS))  # raw break as a fallback, not induced
         spin_rate = _tm_num(_tm_get(row, _TM_SPIN_RATE_COLS))
-        spin_axis = _tm_num(_tm_get(row, _TM_SPIN_AXIS_COLS))
         spin_eff = _tm_num(_tm_get(row, _TM_SPIN_EFF_COLS))
+
+        # Prefer Trackman's own ready-made clock string; fall back to
+        # deriving one from the raw SpinAxis degrees only if Tilt is absent.
+        tilt_min = _clock_str_to_minutes(_tm_get(row, _TM_TILT_COLS))
+        if tilt_min is None:
+            tilt_min = _spinaxis_deg_to_minutes(_tm_num(_tm_get(row, _TM_SPIN_AXIS_COLS)))
+        obs_tilt_min = _clock_str_to_minutes(_tm_get(row, _TM_OBS_TILT_COLS))
+
         if hb is not None:
             d['hb'].append(hb)
         if ivb is not None:
             d['ivb'].append(ivb)
         if spin_rate is not None:
             d['spin_rate'].append(spin_rate)
-        if spin_axis is not None:
-            d['spin_axis'].append(spin_axis)
+        if tilt_min is not None:
+            d['tilt_min'].append(tilt_min)
+        if obs_tilt_min is not None:
+            d['obs_tilt_min'].append(obs_tilt_min)
         if spin_eff is not None:
             d['spin_eff'].append(spin_eff)
 
     out = {}
     for label, d in by_type.items():
-        clock = _deg_to_clock(_circular_mean_deg(d['spin_axis'])) if d['spin_axis'] else None
+        spin_based_clock = _minutes_to_clock(_circular_mean_minutes(d['tilt_min']))
+        # No real "observed" (Hawk-Eye 3D) measurement for this pitch type ->
+        # same simplification as before: show the spin-based value in both.
+        observed_clock = _minutes_to_clock(_circular_mean_minutes(d['obs_tilt_min'])) if d['obs_tilt_min'] else spin_based_clock
         out[label] = {
             'hb': round(sum(d['hb']) / len(d['hb']), 1) if d['hb'] else None,
             'ivb': round(sum(d['ivb']) / len(d['ivb']), 1) if d['ivb'] else None,
             'spin_rate': round(sum(d['spin_rate']) / len(d['spin_rate'])) if d['spin_rate'] else None,
-            'spin_clock': clock,
+            'spin_based_clock': spin_based_clock,
+            'observed_clock': observed_clock,
             'spin_deviation': _gyro_deg_from_efficiency(sum(d['spin_eff']) / len(d['spin_eff'])) if d['spin_eff'] else None,
         }
     return out
+
+
+def pitcher_trackman_summary(trackman_rows, pitcher_name):
+    """Builds a Trackman-only pitch-by-pitch summary for a pitcher who has
+    no Full Swing workbook yet -- usage%, velo (avg/top) and the
+    movement/spin numbers from pitcher_trackman_movement(), all computed
+    straight from this one CSV. Deliberately has no season line, percentiles
+    or comps -- those need a Full Swing export this player doesn't have.
+    Returns (meta, pitches): meta = {'throws','team','date','n_pitches'},
+    pitches = per-type dicts sorted by usage desc."""
+    if not trackman_rows:
+        return {}, []
+    target = _normalize_name(pitcher_name)
+    movement = pitcher_trackman_movement(trackman_rows, pitcher_name)
+
+    by_type = defaultdict(lambda: {'n': 0, 'velo': []})
+    meta = {'throws': None, 'team': None, 'date': None, 'n_pitches': 0}
+    for row in trackman_rows:
+        raw_name = _tm_get(row, _TM_PITCHER_COLS)
+        if _normalize_name(raw_name) != target:
+            continue
+        meta['n_pitches'] += 1
+        if meta['throws'] is None:
+            meta['throws'] = _tm_get(row, _TM_THROWS_COLS)
+        if meta['team'] is None:
+            meta['team'] = _tm_get(row, _TM_TEAM_COLS)
+        if meta['date'] is None:
+            meta['date'] = _tm_get(row, _TM_DATE_COLS)
+        label = _normalize_pitch_type(_tm_get(row, _TM_TYPE_COLS))
+        if not label:
+            continue
+        d = by_type[label]
+        d['n'] += 1
+        velo = _tm_num(_tm_get(row, _TM_VELO_COLS))
+        if velo is not None:
+            d['velo'].append(velo)
+
+    total = sum(d['n'] for d in by_type.values()) or 1
+    pitches = []
+    for label, d in by_type.items():
+        tm = movement.get(label, {})
+        pitches.append({
+            'type': label,
+            'n': d['n'],
+            'pct': d['n'] / total * 100,
+            'velo': round(sum(d['velo']) / len(d['velo']), 1) if d['velo'] else None,
+            'top_velo': round(max(d['velo']), 1) if d['velo'] else None,
+            'hb': tm.get('hb'), 'ivb': tm.get('ivb'),
+            'spin_rate': tm.get('spin_rate'),
+            'spin_based_clock': tm.get('spin_based_clock'),
+            'observed_clock': tm.get('observed_clock'),
+            'spin_deviation': tm.get('spin_deviation'),
+        })
+    pitches.sort(key=lambda p: p['pct'], reverse=True)
+    return meta, pitches
 
 
 def build_running_metrics(sixty_yd_time):
