@@ -8,8 +8,12 @@
 
 .tm-mini .chart-title{ font-size:15.6px; }  /* 13px x 1.2 */
 .pmp-panel{ padding:14px 4px 14px; }
-.pmp-panel svg{ width:100%; height:auto; max-width:686px; }
-.pmp-panel .movement-legend{ margin-left:12px; margin-right:12px; }
+.pmp-panel svg{ width:90%; height:auto; max-width:617px; display:block; margin:0 auto; }
+.pmp-panel .movement-legend{ margin-left:12px; margin-right:12px; margin-top:16px; }
+.pmp-panel .ml-label{ font-size:12px; flex-basis:68px; width:68px; }
+.pmp-panel .ml-cell{ font-size:15.6px; }
+.pmp-panel .ml-header .ml-cell{ font-size:14.4px; }
+.pmp-panel .ml-row{ padding:4px 0; }
 .loc-panel svg{ max-width:100%; height:auto; }
 .mv-pt{ cursor:pointer; transition:stroke-width .08s; }
 .mv-pt:hover{ stroke:#fff; stroke-width:2.2; }
@@ -23,6 +27,9 @@
 .school-badge{ width:112px; height:112px; border-radius:50%; margin:46px auto 0; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.18); }
 .school-badge img{ height:70%; width:auto; display:block; }
 .school-badge + .identity{ padding-top:16px; }
+.pitch-log{ font-size:11px; } .pitch-log th{ font-size:10px; padding:5px 3px; } .pitch-log td{ padding:5px 3px; white-space:nowrap; }
+.log-row{ cursor:pointer; } .log-row:hover{ background:#eef4f7; } .log-row.pin{ background:#dbe9f0; box-shadow:inset 3px 0 0 var(--accent-teal); }
+.pl-ring{ pointer-events:none; }
 </style></head>
 <body>
 <div class="sheet sheet-pitcher tm-mini">
@@ -71,10 +78,61 @@
       </div>
     </div>
 
+    {% if arm_html %}
+    <div class="panel">
+      <div class="chart-title chart-title-center">Arm Slot</div>
+      {{ arm_html|safe }}
+    </div>
+    {% endif %}
+
     {% if location_html %}
     <div class="panel loc-panel" style="padding:14px 10px;">
       <div class="chart-title chart-title-center">Pitch Location</div>
       {{ location_html|safe }}
+    </div>
+    {% endif %}
+
+    {% if p.log %}
+    <div class="panel">
+      <div class="chart-title chart-title-center">Pitch Log</div>
+      <div style="overflow-x:auto;">
+      <table class="tracking-table pitch-log">
+        <tr><th>#</th><th style="text-align:left;">Batter</th><th>Bats</th><th style="text-align:left;">Pitch Type</th><th>Velo</th><th>IVB</th><th>HB</th><th>Spin Rate</th><th>Spin Dir.</th><th>Ext.</th><th>VAA</th><th style="text-align:left;">Result</th></tr>
+        {% for r in p.log %}
+        <tr class="log-row" data-pn="{{ r.n }}" title="Hover or click to find this pitch in Pitch Location">
+          <td>{{ r.n }}</td>
+          <td style="text-align:left;">{{ r.batter or '—' }}</td>
+          <td>{{ r.bats or '—' }}</td>
+          <td class="type-cell" style="color:{{ r.color }};">{{ r.type }}</td>
+          <td>{{ '%.1f'|format(r.velo) if r.velo is not none else '—' }}</td>
+          <td>{{ ('%.1f'|format(r.ivb) ~ '″') if r.ivb is not none else '—' }}</td>
+          <td>{{ ('%.1f'|format(r.hb) ~ '″') if r.hb is not none else '—' }}</td>
+          <td>{{ '{:,.0f}'.format(r.spin) if r.spin is not none else '—' }}</td>
+          <td>{{ r.spin_dir or '—' }}</td>
+          <td>{{ ('%.1f'|format(r.ext) ~ ' ft') if r.ext is not none else '—' }}</td>
+          <td>{{ ('%.1f'|format(r.vaa) ~ '°') if r.vaa is not none else '—' }}</td>
+          <td style="text-align:left;">{{ r.result }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+      </div>
+      <div style="font:400 10.5px/1.4 var(--f-heading);color:var(--muted);margin-top:8px;">
+        Every tracked pitch of the outing, in order. Hover or click a row to see where that pitch landed in Pitch Location (click again to release). IVB/HB in inches; Ext. = release extension (feet); Spin Dir. = clock-face spin axis; VAA = vertical approach angle. Bats = batter handedness.
+      </div>
+    </div>
+    {% endif %}
+
+    {% if comps_html %}
+    <div class="panel">
+      <div class="chart-title chart-title-center">Closest MLB Arsenals</div>
+      {{ comps_html|safe }}
+    </div>
+    {% endif %}
+
+    {% if ideas_html %}
+    <div class="panel">
+      <div class="chart-title chart-title-center">Pitches to Consider Adding</div>
+      {{ ideas_html|safe }}
     </div>
     {% endif %}
 
@@ -103,6 +161,49 @@
       tip.style.left=(ev.clientX+14)+'px'; tip.style.top=(ev.clientY+14)+'px';
     });
     el.addEventListener('mouseleave',function(){ tip.style.display='none'; });
+  });
+})();
+</script>
+<script>
+(function(){
+  var rows=document.querySelectorAll('.log-row'), pinned=null;
+  function dotFor(pn){ return document.querySelector('.mv-pt[data-pn="'+pn+'"]'); }
+  function clearRing(pn){ document.querySelectorAll('.pl-ring[data-pn="'+pn+'"]').forEach(function(r){r.remove();}); }
+  function ring(pn){
+    var d=dotFor(pn); if(!d||d.style.display==='none') return;
+    var svg=d.ownerSVGElement, b=d.getBBox(); clearRing(pn);
+    var c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('class','pl-ring'); c.setAttribute('data-pn',pn);
+    c.setAttribute('cx',b.x+b.width/2); c.setAttribute('cy',b.y+b.height/2); c.setAttribute('r',Math.max(b.width,b.height)/2+7);
+    c.setAttribute('fill','none'); c.setAttribute('stroke','#111'); c.setAttribute('stroke-width','2.6');
+    var a=document.createElementNS('http://www.w3.org/2000/svg','animate');
+    a.setAttribute('attributeName','r'); a.setAttribute('values',(Math.max(b.width,b.height)/2+11)+';'+(Math.max(b.width,b.height)/2+6)); a.setAttribute('dur','.5s'); a.setAttribute('fill','freeze');
+    c.appendChild(a); svg.appendChild(c);
+  }
+  function release(){ if(pinned){ clearRing(pinned); rows.forEach(function(r){r.classList.remove('pin');}); pinned=null; } }
+  function reveal(pn){            // make sure the dot is showing (view = All, dots on)
+    var d=dotFor(pn); if(!d) return;
+    if(d.style.display==='none'){
+      var m=document.querySelector('.loc-mbtn[data-mode="both"]'), a=document.querySelector('.loc-btn[data-view="All"]:not(.loc-mbtn)');
+      if(a) a.click(); if(m) m.click();
+    }
+  }
+  rows.forEach(function(r){
+    var pn=r.getAttribute('data-pn');
+    r.addEventListener('mouseenter',function(){ if(pinned!==pn) ring(pn); });
+    r.addEventListener('mouseleave',function(){ if(pinned!==pn) clearRing(pn); });
+    r.addEventListener('click',function(){
+      if(pinned===pn){ release(); return; }
+      release(); reveal(pn); pinned=pn; r.classList.add('pin'); ring(pn);
+      var d=dotFor(pn); if(d&&d.scrollIntoView) d.scrollIntoView({block:'center',behavior:'smooth'});
+    });
+  });
+  // dot -> log row (hover highlights the row; click jumps to it)
+  document.querySelectorAll('.mv-pt[data-pn]').forEach(function(d){
+    var row=document.querySelector('.log-row[data-pn="'+d.getAttribute('data-pn')+'"]'); if(!row) return;
+    d.addEventListener('mouseenter',function(){ row.style.background='#eef4f7'; });
+    d.addEventListener('mouseleave',function(){ row.style.background=''; });
+    d.addEventListener('click',function(){ row.scrollIntoView({block:'center',behavior:'smooth'}); row.style.background='#dbe9f0'; setTimeout(function(){row.style.background='';},1400); });
   });
 })();
 </script>
