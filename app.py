@@ -294,6 +294,12 @@ LBSU_INTAKE_PAGE = """
     <div><label>Graduation year</label><input type="number" name="grad_year"></div>
   </div>
   <label>Pitching position</label><input type="text" name="position_pitch" placeholder="RHP, LHP">
+  <label>Height <span style="font-weight:400;color:#8a7557;">(used for the arm-slot graphic)</span></label>
+  <div class="row">
+    <div><input type="number" name="height_ft" min="4" max="7" placeholder="feet"></div>
+    <div><input type="number" name="height_in" min="0" max="11" step="0.5" placeholder="inches"></div>
+    <div><input type="number" name="weight_lbs" min="80" max="400" placeholder="weight (lbs)"></div>
+  </div>
   <fieldset>
     <label style="margin-top:0;">Trackman export (.csv)</label>
     <input type="file" name="trackman_file" accept=".csv" required>
@@ -306,6 +312,13 @@ LBSU_INTAKE_PAGE = """
 """
 
 
+def _num_or_none(v):
+    try:
+        return float(v) if v not in (None, '') else None
+    except ValueError:
+        return None
+
+
 @app.route('/intake/lbsu', methods=['GET', 'POST'])
 @login_required
 def intake_lbsu():
@@ -316,6 +329,13 @@ def intake_lbsu():
         grad_year = request.form.get('grad_year', '').strip()
         grad_year = int(grad_year) if grad_year.isdigit() else None
         position_pitch = request.form.get('position_pitch', '').strip() or None
+        try:
+            ft = float(request.form.get('height_ft', '') or 0)
+            inch = float(request.form.get('height_in', '') or 0)
+            height_in = ft * 12 + inch if ft else None
+        except ValueError:
+            height_in = None
+        weight_lbs = _num_or_none(request.form.get('weight_lbs'))
 
         tm_f = request.files.get('trackman_file')
         if not name or not tm_f or not tm_f.filename:
@@ -324,7 +344,7 @@ def intake_lbsu():
             trackman_path = os.path.join(UPLOAD_DIR, f'{store.slugify(name)}_trackman_{tm_f.filename}')
             tm_f.save(trackman_path)
             try:
-                slug, out = pipeline.process_trackman_only(trackman_path, name, school, grad_year, position_pitch)
+                slug, out = pipeline.process_trackman_only(trackman_path, name, school, grad_year, position_pitch, height_in, weight_lbs)
                 if out:
                     message = f'Generated a Trackman report for {name}. View it on the dashboard below.'
                 else:

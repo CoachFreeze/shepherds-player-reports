@@ -685,7 +685,7 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
     movement = pitcher_trackman_movement(trackman_rows, pitcher_name, fine=True)
 
     by_type = defaultdict(lambda: {'n': 0, 'velo': [], 'points': [], 'loc': [], 'spin': [], 'vaa': [], 'strikes': 0, 'called': 0})
-    meta = {'throws': None, 'team': None, 'date': None, 'n_pitches': 0}
+    meta = {'throws': None, 'team': None, 'date': None, 'n_pitches': 0, 'log': [], 'release': []}
     for row in trackman_rows:
         raw_name = _tm_get(row, _TM_PITCHER_COLS)
         if _normalize_name(raw_name) != target:
@@ -703,6 +703,36 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
         d = by_type[label]
         d['n'] += 1
         velo = _tm_num(_tm_get(row, _TM_VELO_COLS))
+        _rh = _tm_num(_tm_get(row, ['RelHeight', 'Release Height']))
+        _rs = _tm_num(_tm_get(row, ['RelSide', 'Release Side']))
+        if _rh is not None and _rs is not None:
+            meta['release'].append({'type': label, 'h': _rh, 's': _rs,
+                                    'ext': _tm_num(_tm_get(row, ['Extension', 'Release Extension']))})
+        # --- pitch log row (one per tagged pitch, in outing order)
+        _call = (_tm_get(row, _TM_CALL_COLS) or '').strip()
+        _batter = (_tm_get(row, ['Batter', 'BatterName', 'Batter Name']) or '').strip()
+        if ',' in _batter:
+            _last, _first = [x.strip() for x in _batter.split(',', 1)]
+            _batter = f'{_first} {_last}'.strip()
+        _tilt = _tm_get(row, _TM_TILT_COLS)
+        _tmin = _clock_str_to_minutes(_tilt)
+        if _tmin is None:
+            _ax = _tm_num(_tm_get(row, _TM_SPIN_AXIS_COLS))
+            _tmin = _spinaxis_deg_to_minutes(_ax) if _ax is not None else None
+        _ivb_l = _tm_num(_tm_get(row, _TM_IVB_COLS))
+        if _ivb_l is None:
+            _ivb_l = _tm_num(_tm_get(row, _TM_VB_COLS))
+        meta['log'].append({
+            'n': len(meta['log']) + 1, 'batter': _batter,
+            'bats': (_tm_get(row, _TM_BATSIDE_COLS) or '').strip()[:1].upper(),
+            'type': label, 'velo': _tm_num(_tm_get(row, _TM_VELO_COLS)),
+            'ivb': _ivb_l, 'hb': _tm_num(_tm_get(row, _TM_HB_COLS)),
+            'spin': _tm_num(_tm_get(row, _TM_SPIN_RATE_COLS)),
+            'spin_dir': _minutes_to_clock(_tmin) if _tmin is not None else None,
+            'ext': _tm_num(_tm_get(row, ['Extension', 'Release Extension'])),
+            'vaa': _tm_num(_tm_get(row, _TM_VAA_COLS)),
+            'call': _call,
+        })
         if velo is not None:
             d['velo'].append(velo)
         spin = _tm_num(_tm_get(row, _TM_SPIN_RATE_COLS))
@@ -728,7 +758,7 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
         height = _tm_num(_tm_get(row, _TM_LOC_HEIGHT_COLS))
         if side is not None and height is not None:
             d['loc'].append({
-                'side': side, 'height': height, 'velo': velo,
+                'side': side, 'height': height, 'velo': velo, 'n': len(meta['log']),
                 'call': (_tm_get(row, _TM_CALL_COLS) or '').strip(),
                 'bats': (_tm_get(row, _TM_BATSIDE_COLS) or '').strip().lower()[:1].upper(),  # 'L' / 'R' / ''
                 'count': f"{(_tm_get(row, _TM_BALLS_COLS) or '').strip()}-{(_tm_get(row, _TM_STRIKES_COLS) or '').strip()}",
@@ -757,6 +787,58 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
         })
     pitches.sort(key=lambda p: p['pct'], reverse=True)
     return meta, pitches
+
+
+# Arm-slot model (frontal plane, as seen from behind the plate):
+#   shoulder height  = 0.81 x standing height  (acromion height, standard anthropometric ratio)
+#   shoulder offset  = 0.13 x standing height out from the torso midline toward the throwing arm
+#                      (half of shoulder breadth), torso midline taken as the centre of the rubber
+#   arm angle        = angle of the line shoulder -> release point above horizontal
+#                      (0 = sidearm, 90 = straight over the top)
+SHOULDER_HEIGHT_FRAC = 0.81
+SHOULDER_OFFSET_FRAC = 0.13
+
+
+def arm_slot_label(angle):
+    if angle is None:
+        return None
+    if angle >= 70:
+        return 'Over the Top'
+    if angle >= 50:
+        return 'High 3/4'
+    if angle >= 35:
+        return '3/4'
+    if angle >= 20:
+        return 'Low 3/4'
+    if angle >= 5:
+        return 'Sidearm'
+    return 'Submarine'
+
+
+def arm_slot_stats(release, height_in):
+    """release: [{'type','h','s','ext'}] (feet, from the CSV); height_in: pitcher's standing
+    height in inches. Returns None without both. Angles are computed per pitch, then averaged."""
+    if not release or not height_in:
+        return None
+    H = height_in / 12.0
+    mean_side = sum(r['s'] for r in release) / len(release)
+    sgn = 1 if mean_side >= 0 else -1            # +1: arm-side release is on the positive RelSide
+    sh_y = SHOULDER_HEIGHT_FRAC * H
+    sh_x = SHOULDER_OFFSET_FRAC * H                 # distance out from midline (always positive)
+    angles = []
+    for r in release:
+        reach = r['s'] * sgn - sh_x                 # horizontal distance shoulder -> hand
+        a = math.degrees(math.atan2(r['h'] - sh_y, reach)) if reach > 0.05 else 90.0
+        angles.append(max(-30.0, min(100.0, a)))
+    avg_h = sum(r['h'] for r in release) / len(release)
+    avg_s = sum(abs(r['s']) for r in release) / len(release)
+    exts = [r['ext'] for r in release if r.get('ext') is not None]
+    ang = sum(angles) / len(angles)
+    return {'angle': ang, 'label': arm_slot_label(ang), 'rel_height': avg_h, 'rel_side': avg_s,
+            'extension': (sum(exts) / len(exts)) if exts else None, 'n': len(angles),
+            'sd': (sum((a - ang) ** 2 for a in angles) / len(angles)) ** 0.5,
+            'height_in': height_in, 'shoulder_y': sh_y, 'shoulder_x': sh_x, 'sgn': sgn,
+            'points': [{'type': r['type'], 'h': r['h'], 's': r['s']} for r in release]}
 
 
 def build_running_metrics(sixty_yd_time):

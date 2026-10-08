@@ -11,6 +11,7 @@ import extract as e
 import savant_components as sc
 import brand_assets
 import comps_engine as ce
+import arsenal_comps as ac
 import mlb_lookup
 import store
 import fonts_embed
@@ -179,6 +180,24 @@ def render_pitcher(name, totals_row, master_rows, bio, trackman_rows=None):
     return out_path
 
 
+_RESULT_LABELS = {'strikecalled': 'Called Strike', 'ballcalled': 'Ball', 'inplay': 'In Play',
+                  'strikeswinging': 'Swinging Strike', 'foulball': 'Foul', 'foulballnotfieldable': 'Foul',
+                  'foulballfieldable': 'Foul', 'hitbypitch': 'Hit By Pitch', 'ballintheDirt'.lower(): 'Ball',
+                  'intentionalball': 'Intentional Ball'}
+
+
+def _pitch_log_rows(log):
+    """Pitch-by-pitch rows for the Pitch Log table: adds the pitch-type colour
+    and a readable result label to what extract.pitcher_trackman_summary collected."""
+    rows = []
+    for r in log:
+        r = dict(r)
+        r['color'] = e.MINI_PITCH_COLORS.get(r['type'], '#555')
+        r['result'] = _RESULT_LABELS.get((r.get('call') or '').replace('_', '').lower(), '\u2014')
+        rows.append(r)
+    return rows
+
+
 def render_trackman_mini(name, trackman_rows, bio=None):
     """A scoped report for a pitcher who has a Trackman session but no Full
     Swing workbook yet: real pitch movement, spin direction and velocity
@@ -190,6 +209,9 @@ def render_trackman_mini(name, trackman_rows, bio=None):
     for t in tm_pitches:
         t['color'] = e.MINI_PITCH_COLORS.get(t['type'], '#555')
 
+    slot = e.arm_slot_stats(meta.get('release'), (bio or {}).get('height_in'))
+    arm_badge = {'angle': slot['angle'], 'throws': meta.get('throws') or 'R'} if slot else None
+
     movement_pitches = [
         {'type': t['type'], 'color': t['color'], 'hb': t['hb'], 'vb': t['ivb'],
          'points': [(h, v, ve) for h, v, ve in t['points']]}
@@ -198,7 +220,7 @@ def render_trackman_mini(name, trackman_rows, bio=None):
     movement_html = (
         sc.movement_plot_caption_html()
         + sc.movement_plot_svg(movement_pitches, width=680, height=680, all_pitches=True,
-                             r24_frac=0.80, font_scale=1.3, pt_r=9)
+                             r24_frac=0.80, font_scale=1.3, pt_r=9, arm_badge=arm_badge)
         + sc.pitch_usage_legend_html(tm_pitches)
     ) if movement_pitches else '<div style="color:#999;font-size:11px;">No movement data</div>'
 
@@ -211,6 +233,16 @@ def render_trackman_mini(name, trackman_rows, bio=None):
     ]
     spin_html = sc.spin_clock_row_svg(spin_pitches) if spin_pitches else ''
 
+    arm_html = ''   # superseded by the arm-angle badge drawn inside the Pitch Movement Profile
+
+    ars = [{'type': t['type'], 'pct': t['pct'], 'velo': t['velo'], 'spin': t['spin_avg'], 'hb': t['hb'], 'ivb': t['ivb']}
+           for t in tm_pitches if t.get('hb') is not None and t.get('ivb') is not None]
+    ang = slot['angle'] if slot else None
+    cols = {t['type']: t['color'] for t in tm_pitches}
+    mlb_comps = ac.find_arsenal_comps(ars, meta.get('throws') or 'R', ang, n=3) if ars else []
+    comps_html = sc.arsenal_comps_html(mlb_comps, ars, meta.get('throws') or 'R', cols)
+    ideas_html = sc.arsenal_ideas_html(ac.suggest_pitches(ars, meta.get('throws') or 'R', ang, n=3), cols) if ars else ''
+
     p = {
         'name': name,
         'position': bio['roles'].get('pitch', {}).get('position') if bio else None,
@@ -218,15 +250,16 @@ def render_trackman_mini(name, trackman_rows, bio=None):
         'school_badge': school_badge((bio or {}).get('school'), (bio or {}).get('program')),
         'throws': meta.get('throws'), 'team': meta.get('team'), 'date': meta.get('date'),
         'n_pitches': sum(t['n'] for t in tm_pitches), 'tracking': tm_pitches,
+        'log': _pitch_log_rows(meta.get('log') or []),
         'show_spin_direction': bool(spin_pitches), 'year': '2026',
     }
-    html = tm_mini_tpl.render(p=p, css=CSS, movement_html=movement_html, location_html=location_html, spin_html=spin_html, brand=BRAND)
+    html = tm_mini_tpl.render(p=p, css=CSS, movement_html=movement_html, location_html=location_html, arm_html=arm_html, comps_html=comps_html, ideas_html=ideas_html, spin_html=spin_html, brand=BRAND)
     out_path = os.path.join(REPORTS_DIR, f'{slug}_trackman_mini.html')
     open(out_path, 'w').write(html)
     return out_path
 
 
-def process_trackman_only(trackman_path, name, school, grad_year, position_pitch):
+def process_trackman_only(trackman_path, name, school, grad_year, position_pitch, height_in=None, weight_lbs=None):
     """Entry point for the Long Beach State side of the roster: a pitcher
     who has a Trackman session but no Full Swing export. Mirrors
     process_upload()'s shape (bio upsert -> store the source file -> render
@@ -234,7 +267,7 @@ def process_trackman_only(trackman_path, name, school, grad_year, position_pitch
     and renders the scoped Trackman-only report instead of the full one.
     Returns (slug, out_path) -- out_path is None if this name doesn't
     actually appear in the CSV (e.g. a typo, or wrong file attached)."""
-    slug = store.upsert_player_bio(name, school, grad_year, position_pitch=position_pitch)
+    slug = store.upsert_player_bio(name, school, grad_year, position_pitch=position_pitch, height_in=height_in, weight_lbs=weight_lbs)
     store.set_program(slug, 'long_beach_state')
     store.set_last_trackman(slug, trackman_path)
     bio = store.get_player(slug)

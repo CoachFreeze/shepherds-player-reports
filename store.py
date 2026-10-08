@@ -76,8 +76,19 @@ def coach_display_name(username):
 #   }
 # }
 
+OVERRIDES_PATH = os.path.join(DATA_DIR, 'bio_overrides.json')
+
+
 def list_players():
-    return _load(PLAYERS_PATH, {})
+    """players.json plus data/bio_overrides.json -- a small hand-editable file of extra bio
+    fields (height_in, weight_lbs, ...) per player slug. Overrides only fill fields the
+    player's own record doesn't already have, so an intake-form value always wins."""
+    players = _load(PLAYERS_PATH, {})
+    for slug, extra in _load(OVERRIDES_PATH, {}).items():
+        if slug in players and isinstance(extra, dict):
+            for k, v in extra.items():
+                players[slug].setdefault(k, v)
+    return players
 
 
 def sync_to_github():
@@ -93,13 +104,17 @@ def get_player(slug):
     return list_players().get(slug)
 
 
-def upsert_player_bio(name, school, grad_year, position_pitch=None, position_hit=None):
+def upsert_player_bio(name, school, grad_year, position_pitch=None, position_hit=None, height_in=None, weight_lbs=None):
     players = list_players()
     slug = slugify(name)
     entry = players.get(slug, {'comps': {}})
     entry['name'] = name
     entry['school'] = school
     entry['grad_year'] = grad_year
+    if height_in:                       # total inches; only overwritten when a new value is given
+        entry['height_in'] = height_in
+    if weight_lbs:
+        entry['weight_lbs'] = weight_lbs
     roles = entry.setdefault('roles', {})
     if position_pitch:
         roles['pitch'] = {'position': position_pitch}

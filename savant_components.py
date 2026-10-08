@@ -108,8 +108,10 @@ def percentile_bars_html(rows, title=None, css_classes=True, badge_size=37, comp
 # "MORE RISE" / "MORE DROP" stacked labels down the left side.
 
 def movement_plot_svg(pitches, width=340, height=340, max_range=24, all_pitches=False,
-                      r24_frac=None, font_scale=1.0, pt_r=7):
+                      r24_frac=None, font_scale=1.0, pt_r=7, arm_badge=None):
     """
+    arm_badge: {'angle': deg, 'throws': 'R'|'L'} -> Savant-style arm-angle badge in the bottom
+    corner (right for a righty, left for a lefty).
     pitches: list of {'type': str, 'color': '#hex', 'hb': float, 'vb': float,
                        'points': [(hb, vb), ...]}  # optional individual pitches
     hb/vb in inches, raw (no handedness flip): +hb = toward 1B, -hb = toward 3B.
@@ -233,6 +235,7 @@ def movement_plot_svg(pitches, width=340, height=340, max_range=24, all_pitches=
                     f'<circle class="mv-pt" cx="{x:.1f}" cy="{y:.1f}" r="{pt_r}" fill="{color}" fill-opacity="0.7" '
                     f'stroke="{color}" stroke-width="1" data-tip="{tip}" data-ptype="{p["type"]}" data-pcolor="{color}" '
                     f'data-pivb="{vb:.1f}" data-phb="{hb:.1f}"/>')
+        svg.append(_arm_badge_svg(arm_badge, width, height))
         svg.append('</svg>')
         return ''.join(svg)
 
@@ -246,6 +249,7 @@ def movement_plot_svg(pitches, width=340, height=340, max_range=24, all_pitches=
         x, y = to_xy(p['hb'], p['vb'])
         svg.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="7.8" fill="{p["color"]}" stroke="#fff" stroke-width="1.7"/>')
 
+    svg.append(_arm_badge_svg(arm_badge, width, height))
     svg.append('</svg>')
     return ''.join(svg)
 
@@ -579,6 +583,38 @@ def _batter_outline_svg(cx_px, base_y_px, px_per_ft, mirror):
     return img
 
 
+def _call_kind(call):
+    c = (call or '').strip().lower()
+    if c == 'strikeswinging':
+        return 'swing'
+    if c == 'inplay':
+        return 'inplay'
+    if c == 'strikecalled':
+        return 'called'
+    return 'other'
+
+
+def _ink_on(hex_color):
+    """Black or white, whichever reads on this fill colour."""
+    n = int(hex_color.lstrip('#'), 16)
+    lum = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255
+    return '#1a1a1a' if lum > 0.62 else '#fff'
+
+
+def _marker_legend(uid):
+    g = '#5c7585'
+    def icon(inner):
+        return f'<svg width="16" height="16" viewBox="-8 -8 16 16" style="vertical-align:-3px;margin-right:4px">{inner}</svg>'
+    items = [
+        (icon(f'<circle r="5" fill="{g}"/>'), 'Ball / other'),
+        (icon(f'<circle r="7" fill="{g}"/><text transform="translate(0,.3) scale(-1,1)" text-anchor="middle" dominant-baseline="central" font-family="Arial" font-size="11" font-weight="800" fill="#fff">K</text>'), 'Called strike'),
+        (icon(f'<rect x="-6" y="-6" width="12" height="12" fill="{g}"/>'), 'Swing &amp; miss'),
+        (icon(f'<circle r="7" fill="{g}"/><path d="M-3.2 -3.2L3.2 3.2M3.2 -3.2L-3.2 3.2" stroke="#fff" stroke-width="1.9" stroke-linecap="round"/>'), 'Ball in play'),
+    ]
+    return (f'<div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin:2px 0 8px;font:600 11.5px/1 var(--f-heading);color:#26343b;">'
+            + ''.join(f'<span>{i}{t}</span>' for i, t in items) + '</div>')
+
+
 def location_heatmap_html(pitches, width=340, uid='loc'):
     """Outing-style location view: TWO catcher's-view charts side by side --
     vs left-handed batters (left) and vs right-handed batters (right), each a
@@ -642,11 +678,24 @@ def location_heatmap_html(pitches, width=340, uid='loc'):
             call = _CALL_LABELS.get(l['call'], l['call'] or 'No result')
             tip = (f'{p["type"]} \u00b7 {call} \u00b7 {l["count"]} \u00b7 side {l["side"]:+.2f} ft, height {l["height"]:.2f} ft'
                    + (f' \u00b7 {l["velo"]:.1f} mph' if l.get('velo') else ''))
-            svg.append(f'<circle class="mv-pt {uid}-dot" data-type="{p["type"]}" cx="{X(l["side"]):.1f}" cy="{Y(l["height"]):.1f}" r="5.5" '
-                       f'fill="{p["color"]}" fill-opacity="0.85" stroke="#fff" stroke-width="1.2" data-tip="{tip}" '
-                       f'data-ptype="{p["type"]}" data-pcolor="{p["color"]}"'
-                       + (f' data-pvelo="{l["velo"]:.1f}"' if l.get('velo') else '')
-                       + f' data-psub="{call} \u00b7 {l["count"]}"/>')
+            cx_, cy_, col = X(l["side"]), Y(l["height"]), p["color"]
+            ink = _ink_on(col)
+            kind = _call_kind(l['call'])
+            attrs = (f'class="mv-pt {uid}-dot" data-type="{p["type"]}" data-tip="{tip}" data-ptype="{p["type"]}" data-pcolor="{col}"'
+                     + (f' data-pvelo="{l["velo"]:.1f}"' if l.get('velo') else '')
+                     + f' data-pn="{l.get("n", "")}" data-psub="{call} \u00b7 {l["count"]}" fill="{col}" fill-opacity="0.9" stroke="#fff" stroke-width="1.2"')
+            if kind == 'swing':       # swing & miss: square
+                svg.append(f'<rect {attrs} x="{cx_ - 6:.1f}" y="{cy_ - 6:.1f}" width="12" height="12"/>')
+            elif kind == 'inplay':    # ball in play: dot with an X
+                svg.append(f'<g {attrs.replace(" fill=", " data-f=")}><circle cx="{cx_:.1f}" cy="{cy_:.1f}" r="7" fill="{col}" fill-opacity="0.9" stroke="#fff" stroke-width="1.2"/>'
+                           f'<path d="M{cx_ - 3.2:.1f} {cy_ - 3.2:.1f}L{cx_ + 3.2:.1f} {cy_ + 3.2:.1f}M{cx_ + 3.2:.1f} {cy_ - 3.2:.1f}L{cx_ - 3.2:.1f} {cy_ + 3.2:.1f}" '
+                           f'stroke="{ink}" stroke-width="1.9" stroke-linecap="round" fill="none"/></g>')
+            elif kind == 'called':    # called strike: backwards K
+                svg.append(f'<g {attrs.replace(" fill=", " data-f=")}><circle cx="{cx_:.1f}" cy="{cy_:.1f}" r="7.5" fill="{col}" fill-opacity="0.9" stroke="#fff" stroke-width="1.2"/>'
+                           f'<text transform="translate({cx_:.1f},{cy_ + 0.3:.1f}) scale(-1,1)" text-anchor="middle" dominant-baseline="central" '
+                           f'font-family="Arial,Helvetica,sans-serif" font-size="11" font-weight="800" fill="{ink}" stroke="none">K</text></g>')
+            else:
+                svg.append(f'<circle {attrs} cx="{cx_:.1f}" cy="{cy_:.1f}" r="5.5"/>')
         svg.append('</svg>')
 
         def stat(name):
@@ -681,7 +730,251 @@ def location_heatmap_html(pitches, width=340, uid='loc'):
           f'mb.forEach(function(b){{b.addEventListener("click",function(){{mode=b.dataset.mode;render()}})}});}})();</script>')
     modes = ''.join(f'<button type="button" class="{uid}-btn {uid}-mbtn{" on" if m == "both" else ""}" data-mode="{m}">{lbl}</button>'
                     for m, lbl in (('dots', 'Dots Only'), ('heat', 'Heat Map'), ('both', 'Both')))
-    return (css + f'<div class="{uid}-btns">{modes}</div><div class="{uid}-btns">{btns}</div><div class="{uid}-row">'
+    return (css + f'<div class="{uid}-btns">{modes}</div><div class="{uid}-btns">{btns}</div>' + _marker_legend(uid) + f'<div class="{uid}-row">'
             + one_chart('R', 'vs Right Handed Batter', uid + 'R')
             + one_chart('L', 'vs Left Handed Batter', uid + 'L')
             + '</div>' + js)
+
+
+def arm_slot_html(slot, throws='R', type_colors=None, width=560):
+    """Arm-slot graphic, seen face-on from behind home plate: a simple pitcher figure drawn to the
+    pitcher's own height, the throwing arm running from his shoulder to his average release point,
+    every pitch's release point as a dot, and the arm angle marked against horizontal.
+    slot = extract.arm_slot_stats(...)."""
+    if not slot:
+        return ''
+    type_colors = type_colors or {}
+    H = slot['height_in'] / 12.0
+    x0, x1, y0, y1 = -3.7, 3.7, -0.35, max(6.4, H + 0.55)
+    k = width / (x1 - x0)
+    hpx = round((y1 - y0) * k)
+    X = lambda v: (v - x0) * k
+    Y = lambda v: (y1 - v) * k
+    d = -1 if (throws or 'R').upper().startswith('R') else 1      # which side of the page the throwing arm is on
+    ink, fill, accent = '#7c96a5', '#dfe7ed', '#26343b'
+    sh_y, sh_x = slot['shoulder_y'], slot['shoulder_x']
+    ang = slot['angle']
+    rel_x, rel_y = slot['rel_side'], slot['rel_height']
+    sx, sy = X(d * sh_x), Y(sh_y)
+    rx, ry = X(d * rel_x), Y(rel_y)
+    svg = [f'<svg viewBox="0 0 {width} {hpx}" xmlns="http://www.w3.org/2000/svg" font-family="ProximaNova,Helvetica Neue,Arial,sans-serif" '
+           f'style="display:block;width:100%;max-width:{width}px;height:auto;margin:0 auto;">',
+           f'<rect width="{width}" height="{hpx}" fill="#f4f8fa"/>']
+    # ground, rubber
+    svg.append(f'<line x1="0" x2="{width}" y1="{Y(0):.1f}" y2="{Y(0):.1f}" stroke="{ink}" stroke-width="2"/>')
+    svg.append(f'<rect x="{X(-1):.1f}" y="{Y(0.17):.1f}" width="{X(1) - X(-1):.1f}" height="{0.17 * k:.1f}" fill="#fff" stroke="{ink}" stroke-width="1.5"/>')
+    # height ruler
+    for ft in range(1, int(y1)):
+        svg.append(f'<line x1="{X(x0) + 2:.1f}" x2="{X(x0) + 10:.1f}" y1="{Y(ft):.1f}" y2="{Y(ft):.1f}" stroke="{ink}" stroke-width="1"/>')
+        svg.append(f'<text x="{X(x0) + 14:.1f}" y="{Y(ft) + 4:.1f}" font-size="11" fill="#8aa0ad">{ft} ft</text>')
+    # body (centred on the rubber)
+    sw = SH = sh_x
+    hip_y, hip_w = 0.52 * H, 0.085 * H
+    torso = (f'M{X(-sw):.1f},{Y(sh_y):.1f} L{X(sw):.1f},{Y(sh_y):.1f} L{X(hip_w):.1f},{Y(hip_y):.1f} L{X(-hip_w):.1f},{Y(hip_y):.1f} Z')
+    svg.append(f'<path d="{torso}" fill="{fill}" stroke="{ink}" stroke-width="2.4" stroke-linejoin="round"/>')
+    for sgn_leg in (-1, 1):
+        svg.append(f'<path d="M{X(sgn_leg * hip_w * 0.55):.1f},{Y(hip_y):.1f} L{X(sgn_leg * (hip_w + 0.12)):.1f},{Y(0.2):.1f}" stroke="{ink}" stroke-width="{0.16 * k:.1f}" stroke-linecap="round" fill="none"/>')
+        svg.append(f'<path d="M{X(sgn_leg * hip_w * 0.55):.1f},{Y(hip_y):.1f} L{X(sgn_leg * (hip_w + 0.12)):.1f},{Y(0.2):.1f}" stroke="{fill}" stroke-width="{0.115 * k:.1f}" stroke-linecap="round" fill="none"/>')
+    nk = 0.06 * H
+    svg.append(f'<circle cx="{X(0):.1f}" cy="{Y(sh_y + 0.09 * H + 0.03):.1f}" r="{0.075 * H * k:.1f}" fill="{fill}" stroke="{ink}" stroke-width="2.4"/>')
+    # glove arm (hangs from the other shoulder)
+    gx, gy = X(-d * sh_x), Y(sh_y)
+    svg.append(f'<path d="M{gx:.1f},{gy:.1f} L{X(-d * (sh_x + 0.35)):.1f},{Y(sh_y - 0.30 * H):.1f}" stroke="{ink}" stroke-width="{0.13 * k:.1f}" stroke-linecap="round" fill="none"/>')
+    svg.append(f'<path d="M{gx:.1f},{gy:.1f} L{X(-d * (sh_x + 0.35)):.1f},{Y(sh_y - 0.30 * H):.1f}" stroke="{fill}" stroke-width="{0.09 * k:.1f}" stroke-linecap="round" fill="none"/>')
+    # horizontal reference + angle arc
+    far = X(d * (rel_x + 1.0))
+    svg.append(f'<line x1="{sx:.1f}" y1="{sy:.1f}" x2="{far:.1f}" y2="{sy:.1f}" stroke="{accent}" stroke-width="1.4" stroke-dasharray="5,4"/>')
+    # throwing arm (shoulder -> average release point)
+    svg.append(f'<line x1="{sx:.1f}" y1="{sy:.1f}" x2="{rx:.1f}" y2="{ry:.1f}" stroke="{ink}" stroke-width="{0.13 * k:.1f}" stroke-linecap="round"/>')
+    svg.append(f'<line x1="{sx:.1f}" y1="{sy:.1f}" x2="{rx:.1f}" y2="{ry:.1f}" stroke="#c13d4d" stroke-width="{0.05 * k:.1f}" stroke-linecap="round"/>')
+    svg.append(f'<circle cx="{sx:.1f}" cy="{sy:.1f}" r="5" fill="{accent}"/>')
+    R = 62
+    a_rad = math.radians(ang)
+    ex, ey = sx + d * R * math.cos(a_rad), sy - R * math.sin(a_rad)
+    sweep = 0 if d == 1 else 1
+    svg.append(f'<path d="M{sx + d * R:.1f},{sy:.1f} A{R},{R} 0 0 {sweep if ang >= 0 else 1 - sweep} {ex:.1f},{ey:.1f}" fill="none" stroke="{accent}" stroke-width="2"/>')
+    lx = sx + d * (R + 26) * math.cos(a_rad / 2)
+    ly = sy - (R + 26) * math.sin(a_rad / 2) + 5
+    svg.append(f'<text x="{lx:.1f}" y="{ly:.1f}" font-size="19" font-weight="800" fill="{accent}" text-anchor="middle">{ang:.1f}°</text>')
+    # every pitch's release point
+    for pt in slot['points']:
+        col = type_colors.get(pt['type'], '#555')
+        svg.append(f'<circle cx="{X(d * abs(pt["s"])):.1f}" cy="{Y(pt["h"]):.1f}" r="5.5" fill="{col}" fill-opacity="0.85" stroke="#fff" stroke-width="1.2"/>')
+    svg.append(f'<circle cx="{rx:.1f}" cy="{ry:.1f}" r="10" fill="none" stroke="{accent}" stroke-width="2.4"/>')
+    svg.append(f'<text x="{X(0):.1f}" y="{Y(-0.05) + 15:.1f}" font-size="10.5" fill="#8aa0ad" text-anchor="middle">CATCHER’S VIEW · {slot["height_in"] // 12:.0f}′{slot["height_in"] % 12:.0f}″ pitcher</text>')
+    svg.append('</svg>')
+
+    def chip(label, val):
+        return (f'<div style="text-align:center;min-width:92px;"><div style="font:800 22px/1.1 var(--f-heading);color:#26343b;">{val}</div>'
+                f'<div style="font:600 10.5px/1.3 var(--f-heading);color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;">{label}</div></div>')
+    chips = ''.join([
+        chip('Arm angle', f'{ang:.1f}°'), chip('Arm slot', slot['label']),
+        chip('Release height', f'{slot["rel_height"]:.1f} ft'), chip('Release side', f'{slot["rel_side"]:.1f} ft'),
+    ] + ([chip('Extension', f'{slot["extension"]:.1f} ft')] if slot.get('extension') else []))
+    note = (f'<div style="font:400 10.5px/1.4 var(--f-heading);color:var(--muted);margin-top:8px;">'
+            f'Arm angle = angle of the line from the shoulder to the release point, measured from horizontal (0° sidearm, 90° straight over the top), '
+            f'computed per pitch and averaged over {slot["n"]} pitches (±{slot["sd"]:.1f}° pitch to pitch). Shoulder position is estimated from standing height '
+            f'(shoulder at 81% of height, half a shoulder-width off the rubber centre), so treat it as an estimate. Dots = each pitch’s release point.</div>')
+    return (''.join(svg)
+            + f'<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:10px;">{chips}</div>' + note)
+
+
+# ---------------------------------------------------------------- MLB arsenal comps / pitch ideas
+def _hb_txt(v):
+    return f'{abs(v):.1f}\u2033 {"arm" if v >= 0 else "glove"}-side'
+
+
+def _mlb_head(pid, w=64):
+    return (f'https://img.mlbstatic.com/mlb-photos/image/upload/w_{w * 2},d_people:generic:headshot:silo:current.png,'
+            f'q_auto:best,f_auto/v1/people/{pid}/headshot/67/current')
+
+
+def arsenal_comps_html(comps, ours, throws, colors):
+    """comps: arsenal_comps.find_arsenal_comps(); ours: [{'type','velo','ivb','hb'(Trackman sign),...}]."""
+    if not comps:
+        return ''
+    sgn = 1 if (throws or 'R').upper().startswith('R') else -1
+    mine = {o['type']: o for o in ours}
+    cards = []
+    for c in comps:
+        rows = ''
+        for m in c['matches']:
+            o, t = mine.get(m['ours']), m['mlb']
+            col = colors.get(m['ours'], '#555')
+            if not o:
+                continue
+            rows += (f'<tr><td style="color:{col};font-weight:700;text-align:left;">{m["ours"]}</td>'
+                     f'<td>{o["velo"]:.1f}</td><td>{o["ivb"]:.1f}\u2033</td><td>{_hb_txt(sgn * o["hb"])}</td></tr>'
+                     f'<tr style="color:#5c7585;"><td style="text-align:left;">&nbsp;&nbsp;{c["name"].split()[-1]}\u2019s {m["theirs"]}</td>'
+                     f'<td>{(t["velo"] or 0):.1f}</td><td>{t["ivb"]:.1f}\u2033</td><td>{_hb_txt(t["hb"])}</td></tr>')
+        ang = f' &middot; {c["arm_angle"]:.0f}\u00b0 arm angle' if c.get('arm_angle') is not None else ''
+        cards.append(
+            f'<a class="ac-card" href="https://baseballsavant.mlb.com/savant-player/{c["id"]}" target="_blank" rel="noopener">'
+            f'<div class="ac-head"><img src="{_mlb_head(c["id"])}" alt="" onerror="this.style.visibility=\'hidden\'">'
+            f'<div><div class="ac-name">{c["name"]}</div><div class="ac-sub">Match score {c["match"]}{ang}</div></div></div>'
+            f'<table class="ac-tbl"><tr><th style="text-align:left;">Pitch</th><th>Velo</th><th>IVB</th><th>HB</th></tr>{rows}</table></a>')
+    css = ('<style>.ac-row{display:flex;gap:10px;flex-wrap:wrap;} .ac-card{flex:1 1 200px;min-width:200px;border:1px solid #d3dee6;border-radius:8px;padding:10px;text-decoration:none;color:#26343b;background:#fff;}'
+           '.ac-head{display:flex;gap:10px;align-items:center;margin-bottom:6px;} .ac-head img{width:52px;height:52px;border-radius:50%;object-fit:cover;background:#e8eef2;}'
+           '.ac-name{font:700 14px/1.15 var(--f-heading);} .ac-sub{font:500 11px/1.3 var(--f-heading);color:var(--muted);margin-top:2px;}'
+           '.ac-tbl{width:100%;border-collapse:collapse;font:600 11px/1.5 var(--f-heading);} .ac-tbl th{font-size:10px;color:var(--muted);text-align:center;font-weight:700;}'
+           '.ac-tbl td{text-align:center;padding:1px 2px;white-space:nowrap;}</style>')
+    return (css + '<div class="ac-row">' + ''.join(cards) + '</div>'
+            '<div style="font:400 10.5px/1.4 var(--f-heading);color:var(--muted);margin-top:8px;">Matched on pitch shape (induced vertical break and horizontal break, with spin and velocity counting less) '
+            'against 2026 MLB pitch-arsenal data, weighted by how often each pitch is thrown. HB is shown arm-side / glove-side so lefties and righties compare directly.</div>')
+
+
+def arsenal_ideas_html(ideas, colors, fb_velo=None):
+    if not ideas:
+        return ''
+    cards = []
+    for s in ideas:
+        t = s['target']
+        col = colors.get(s['type'], '#5c7585')
+        bits = [f'~{t["velo"]:.0f} mph ({t["velo_gap"]:.0f} off the fastball)' if t.get('velo') else f'{t["velo_gap"]:.0f} mph off the fastball',
+                f'{t["ivb"]:.0f}\u2033 IVB', _hb_txt(t['hb']), f'~{t["spin"]:,.0f} rpm']
+        ex = ', '.join(e['name'] for e in s['examples'])
+        why = (f'{s["n_users"]} of the {s["n_neighbours"]} MLB pitchers with the most similar fastball and arm slot throw it. '
+               f'It would move about {s["contrast"]:.0f}\u2033 differently from your closest current pitch.')
+        cards.append(
+            f'<div class="ai-card"><div class="ai-h" style="background:{col};color:{_ink_on(col)};">{s["type"]}</div>'
+            f'<div class="ai-b"><div class="ai-why">{s["blurb"].capitalize()}.</div>'
+            f'<div class="ai-t">Target shape</div><div class="ai-v">{" &middot; ".join(bits)}</div>'
+            f'<div class="ai-why" style="margin-top:6px;">{why}</div>'
+            f'<div class="ai-ex"><b>Look at:</b> {ex}</div></div></div>')
+    css = ('<style>.ai-row{display:flex;gap:10px;flex-wrap:wrap;} .ai-card{flex:1 1 200px;min-width:200px;border:1px solid #d3dee6;border-radius:8px;overflow:hidden;background:#fff;}'
+           '.ai-h{font:700 15px/1 var(--f-heading);text-align:center;padding:9px 6px;} .ai-b{padding:9px 11px 11px;font:500 11.5px/1.4 var(--f-heading);color:#26343b;}'
+           '.ai-t{font:700 10px/1 var(--f-heading);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:8px;} .ai-v{font:700 12px/1.45 var(--f-heading);margin-top:3px;}'
+           '.ai-why{color:#4a5d68;} .ai-ex{margin-top:6px;color:#4a5d68;}</style>')
+    return (css + '<div class="ai-row">' + ''.join(cards) + '</div>'
+            '<div style="font:400 10.5px/1.4 var(--f-heading);color:var(--muted);margin-top:8px;">Ranked by how common the pitch is among MLB pitchers with a similar fastball shape and arm slot, '
+            'how differently it would move from the current arsenal, how well his spin suits it, and whether the arsenal is missing a breaking ball or offspeed pitch. Target shapes are the MLB averages for that group, so college versions will sit lower in velocity.</div>')
+
+
+# ---------------------------------------------------------------- arm-angle badge (Savant style)
+# Bar geometry, in the supplied master-bar art's pixels with the SHOULDER end of the bar at the
+# origin and the bar running along +x to the ring: length to ring centre, half-width at the shoulder
+# end and where it meets the ring, ring radii.
+_BAR_L, _BAR_HW0, _BAR_HW1, _BAR_R_OUT, _BAR_R_IN = 835.35, 75.0, 33.6, 70.0, 31.7
+
+
+def _bar_svg(px, py, k, angle):
+    r = 18.0                                              # corner rounding: inset polygon + round-join stroke
+    pts = f'{r},{-(_BAR_HW0 - r)} {_BAR_L},{-(_BAR_HW1 - r)} {_BAR_L},{_BAR_HW1 - r} {r},{_BAR_HW0 - r}'
+    return (f'<g transform="translate({px:.1f},{py:.1f}) rotate({-angle:.2f}) scale({k})">'
+            f'<polygon points="{pts}" fill="#050505" stroke="#050505" stroke-width="{2 * r}" stroke-linejoin="round"/>'
+            f'<circle cx="{_BAR_L}" cy="0" r="{_BAR_R_OUT}" fill="#050505"/>'
+            f'<circle cx="{_BAR_L}" cy="0" r="{_BAR_R_IN}" fill="#e8f1f4"/></g>')
+
+
+def arm_angle_badge(angle, throws='R'):
+    """-> (svg_inner, w, h): the arm-angle graphic in its own canvas units. Static body art (one of two
+    poses: 0-40 degrees and 40.5-90 degrees), a live bar rotated to `angle`, and live label/number.
+    A lefty gets the figure and bar mirrored and the label on the other side, text unmirrored."""
+    try:
+        import arm_art
+    except ImportError:
+        return '', 0, 0
+    a = max(-40.0, min(90.0, float(angle)))
+    b = arm_art.BODIES['A' if a <= 40 else 'B']
+    H = b['h']
+    # one common canvas width for both poses (wide enough for a horizontal bar and its ring), so the
+    # figure doesn't shift when the pose changes
+    W = max(max(d['w'], d['pivot'][0] + d['k'] * (_BAR_L + _BAR_R_OUT) + 6) for d in arm_art.BODIES.values())
+    px, py = b['pivot']
+    lefty = (throws or 'R').upper().startswith('L')
+    # reference fan: a sector from the horizontal (0 deg) up to the arm angle, drawn live so it always
+    # reaches the bar, plus the horizontal reference line, both anchored at the shoulder apex
+    ax_, ay_ = b['apex']
+    R_ = b['wedge_r']
+    ar = math.radians(a)
+    ex_, ey_ = ax_ + R_ * math.cos(ar), ay_ - R_ * math.sin(ar)
+    fan = (f'<path d="M{ax_:.1f},{ay_:.1f} L{ax_ + R_:.1f},{ay_:.1f} A{R_},{R_} 0 0 {0 if a >= 0 else 1} {ex_:.1f},{ey_:.1f} Z" fill="#d3dedd"/>'
+           f'<line x1="{ax_:.1f}" y1="{ay_:.1f}" x2="{ax_ + b["line_len"]:.1f}" y2="{ay_:.1f}" stroke="#859ba7" stroke-width="6"/>')
+    fig = (fan + f'<image href="{b["uri"]}" x="0" y="0" width="{b["w"]}" height="{H}"/>' + _bar_svg(px, py, b['k'], a))
+    if lefty:
+        fig = f'<g transform="translate({W},0) scale(-1,1)">{fig}</g>'
+    ax0, ax1, ay0, ay1 = b['arm']
+    gx0, gx1, gy0, gy1 = b['angle']
+    nx0, nx1, ny0, ny1 = b['num']
+    # label block: lefty -> mirrored to the right-hand side, left-aligned; lefty text starts at the mirrored block edge
+    left = (W - gx1) if lefty else gx0
+    teal = '#6b98a8'
+    fs_a = (ay1 - ay0) / 0.70
+    lab = (f'<text x="{left:.1f}" y="{ay1}" font-family="NeuePlakCond,Oswald,sans-serif" font-weight="400" font-size="{fs_a:.0f}" fill="{teal}" '
+           f'textLength="{ax1 - ax0}" lengthAdjust="spacingAndGlyphs">ARM</text>'
+           f'<text x="{left:.1f}" y="{gy1}" font-family="NeuePlakCond,Oswald,sans-serif" font-weight="400" font-size="{fs_a:.0f}" fill="{teal}" '
+           f'textLength="{gx1 - gx0}" lengthAdjust="spacingAndGlyphs">ANGLE</text>')
+    # number: heavy digits, one per slot, then a drawn degree ring
+    cap = ny1 - ny0
+    adv = 0.62 * cap
+    txt = f'{round(a):d}'
+    n = len(txt)
+    ring_r = cap * 0.17
+    total = n * adv + ring_r * 2 + 0.06 * cap
+    cx_num = (left + (nx0 + nx1) / 2 - gx0) if lefty else (nx0 + nx1) / 2
+    if lefty:
+        cx_num = left + ((nx0 + nx1) / 2 - gx0)
+    start = cx_num - total / 2
+    xs = ' '.join(f'{start + adv * (i + 0.5):.1f}' for i in range(n))
+    num = (f'<text x="{xs}" y="{ny1}" text-anchor="middle" font-family="AspiraXXXNar,Oswald,Arial Narrow,sans-serif" font-weight="900" '
+           f'font-size="{cap / 0.72:.0f}" fill="#050505">{" ".join(txt)}</text>'.replace(' </text>', '</text>'))
+    # (digits are spaced by the x list, so join with no real spaces)
+    num = (f'<text x="{xs}" y="{ny1}" text-anchor="middle" font-family="AspiraXXXNar,Oswald,Arial Narrow,sans-serif" font-weight="900" '
+           f'font-size="{cap / 0.72:.0f}" fill="#050505">' + ''.join(f'<tspan>{ch}</tspan>' for ch in txt) + '</text>')
+    ring = (f'<circle cx="{start + n * adv + 0.06 * cap + ring_r:.1f}" cy="{ny0 + ring_r + cap * 0.04:.1f}" r="{ring_r * 0.78:.1f}" '
+            f'fill="none" stroke="#050505" stroke-width="{cap * 0.075:.1f}"/>')
+    return fig + lab + num + ring, W, H
+
+
+def _arm_badge_svg(arm_badge, width, height, frac=0.205, pad=(6, 2)):
+    if not arm_badge or arm_badge.get('angle') is None:
+        return ''
+    inner, W, H = arm_angle_badge(arm_badge['angle'], arm_badge.get('throws', 'R'))
+    if not inner:
+        return ''
+    bw = width * frac
+    bh = bw * H / W
+    lefty = (arm_badge.get('throws') or 'R').upper().startswith('L')
+    x = pad[0] if lefty else width - bw - pad[0]
+    y = height - bh - pad[1]
+    return f'<g transform="translate({x:.1f},{y:.1f}) scale({bw / W:.5f})">{inner}</g>'
