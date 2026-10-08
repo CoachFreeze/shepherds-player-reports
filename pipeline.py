@@ -194,6 +194,9 @@ def _pitch_log_rows(log):
         r = dict(r)
         r['color'] = e.MINI_PITCH_COLORS.get(r['type'], '#555')
         r['result'] = _RESULT_LABELS.get((r.get('call') or '').replace('_', '').lower(), '\u2014')
+        # A ball thrown with 3 balls already in the count is ball four: a walk.
+        if r['result'] == 'Ball' and r.get('balls') is not None and r['balls'] >= 3:
+            r['result'] = 'BB'
         rows.append(r)
     return rows
 

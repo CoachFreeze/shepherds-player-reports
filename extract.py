@@ -480,6 +480,7 @@ _TM_LOC_SIDE_COLS = ['PlateLocSide', 'Plate Loc Side']
 _TM_LOC_HEIGHT_COLS = ['PlateLocHeight', 'Plate Loc Height']
 _TM_CALL_COLS = ['PitchCall', 'Pitch Call']
 _TM_BATSIDE_COLS = ['BatterSide', 'Batter Side']
+_TM_EV_COLS = ['ExitSpeed', 'Exit Speed', 'ExitVelocity']
 _TM_VAA_COLS = ['VertApprAngle', 'Vert Appr Angle', 'VerticalApproachAngle']
 # a pitch counts as a strike for Strike% if it was called/swinging, fouled, or put in play
 _TM_STRIKE_CALLS = {'strikecalled', 'strikeswinging', 'foulball', 'foulballnotfieldable', 'foulballfieldable', 'inplay'}
@@ -731,6 +732,8 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
             'spin_dir': _minutes_to_clock(_tmin) if _tmin is not None else None,
             'ext': _tm_num(_tm_get(row, ['Extension', 'Release Extension'])),
             'vaa': _tm_num(_tm_get(row, _TM_VAA_COLS)),
+            'ev': _tm_num(_tm_get(row, _TM_EV_COLS)),
+            'balls': _tm_num(_tm_get(row, _TM_BALLS_COLS)),
             'call': _call,
         })
         if velo is not None:
