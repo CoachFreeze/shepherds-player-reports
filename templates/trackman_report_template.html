@@ -42,7 +42,7 @@
       <div class="role">{{ p.position or (p.throws and (p.throws[0] ~ 'HP')) or 'Pitcher' }}{% if p.school %} | {{ p.school }}{% endif %}</div>
       <div class="bio">
         {% if p.throws %}<b>Throws:</b> {{ p.throws }}{% endif %}
-        {% if p.team %} | <b>Team:</b> {{ p.team }}{% endif %}
+        {% if p.team and '_' not in p.team %} | <b>Team:</b> {{ p.team }}{% endif %}
         {% if p.date %} | <b>Session:</b> {{ p.date }}{% endif %}
       </div>
       <span class="tm-badge">Trackman Session</span>
@@ -97,7 +97,7 @@
       <div class="chart-title chart-title-center">Pitch Log</div>
       <div style="overflow-x:auto;">
       <table class="tracking-table pitch-log">
-        <tr><th>#</th><th style="text-align:left;">Batter</th><th>Bats</th><th style="text-align:left;">Pitch Type</th><th>Velo</th><th>IVB</th><th>HB</th><th>Spin Rate</th><th>Spin Dir.</th><th>Ext.</th><th>VAA</th><th style="text-align:left;">Result</th></tr>
+        <tr><th>#</th><th style="text-align:left;">Batter</th><th>Bats</th><th style="text-align:left;">Pitch Type</th><th>Velo</th><th>IVB</th><th>HB</th><th>Spin Rate</th><th>Spin Dir.</th><th>Ext.</th><th>VAA</th><th>Exit Velo</th><th style="text-align:left;">Result</th></tr>
         {% for r in p.log %}
         <tr class="log-row" data-pn="{{ r.n }}" title="Hover or click to find this pitch in Pitch Location">
           <td>{{ r.n }}</td>
@@ -111,13 +111,14 @@
           <td>{{ r.spin_dir or '—' }}</td>
           <td>{{ ('%.1f'|format(r.ext) ~ ' ft') if r.ext is not none else '—' }}</td>
           <td>{{ ('%.1f'|format(r.vaa) ~ '°') if r.vaa is not none else '—' }}</td>
+          <td>{% if r.ev is not none %}{{ '%.1f'|format(r.ev) }}{% if r.ev >= 95 %} 🔥{% elif r.ev <= 75 %} ❄️{% endif %}{% else %}—{% endif %}</td>
           <td style="text-align:left;">{{ r.result }}</td>
         </tr>
         {% endfor %}
       </table>
       </div>
       <div style="font:400 10.5px/1.4 var(--f-heading);color:var(--muted);margin-top:8px;">
-        Every tracked pitch of the outing, in order. Hover or click a row to see where that pitch landed in Pitch Location (click again to release). IVB/HB in inches; Ext. = release extension (feet); Spin Dir. = clock-face spin axis; VAA = vertical approach angle. Bats = batter handedness.
+        Every tracked pitch of the outing, in order. Hover or click a row to see where that pitch landed in Pitch Location (click again to release). IVB/HB in inches; Ext. = release extension (feet); Spin Dir. = clock-face spin axis; VAA = vertical approach angle. Bats = batter handedness. Exit Velo in mph: 🔥 = 95+, ❄️ = 75 or less.
       </div>
     </div>
     {% endif %}
