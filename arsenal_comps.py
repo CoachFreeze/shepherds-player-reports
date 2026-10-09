@@ -337,15 +337,6 @@ def why_it_helps(s, throws='R'):
     bullets.append(f'Gives hitters a new picture: it moves {sep}.')
     if t.get('velo_gap') and t['velo_gap'] >= 5:
         bullets.append(f'The ~{t["velo_gap"]:.0f} mph gap off the fastball adds a timing change.')
-    # spin fit
-    pct, fbs = c.get('fb_spin_pct'), c.get('fb_spin')
-    if pct is not None and fbs:
-        if code in SPIN_NEED and pct >= 60:
-            bullets.append(f'His spin ({fbs:,.0f} rpm on the fastball, above-average for MLB) is the kind that helps this pitch hold its shape.')
-        elif code in SPIN_NEED and pct <= 35:
-            bullets.append(f'Spin is the watch-out: his fastball spin ({fbs:,.0f} rpm) is below MLB average, so the shape may come with less bite; grip and feel will matter.')
-        elif code in SPIN_IS_LOW_OK and pct <= 45:
-            bullets.append(f'It doesn\'t need big spin, so his fastball spin ({fbs:,.0f} rpm) is not a limiter.')
     what, who = _MECH.get(code, ('', ''))
     if who:
         bullets.append(f'Best used against {who}.')
