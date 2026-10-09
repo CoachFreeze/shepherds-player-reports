@@ -1,0 +1,50 @@
+{
+  "caiden_christianson": {
+    "comps": {},
+    "grad_year": null,
+    "name": "Caiden Christianson",
+    "program": "long_beach_state",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Long Beach State"
+  },
+  "ryan_dimaggio": {
+    "comps": {},
+    "grad_year": null,
+    "name": "Ryan DiMaggio",
+    "program": "long_beach_state",
+    "roles": {
+      "pitch": {
+        "position": "LHP"
+      }
+    },
+    "school": "Long Beach State"
+  },
+  "jason_gerfers": {
+    "comps": {},
+    "grad_year": null,
+    "name": "Jason Gerfers",
+    "program": "long_beach_state",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Long Beach State"
+  },
+  "derek_valdez": {
+    "comps": {},
+    "grad_year": null,
+    "name": "Derek Valdez",
+    "program": "long_beach_state",
+    "roles": {
+      "pitch": {
+        "position": "LHP"
+      }
+    },
+    "school": "Long Beach State"
+  }
+}

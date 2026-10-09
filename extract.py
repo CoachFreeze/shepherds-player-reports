@@ -599,7 +599,17 @@ def load_trackman_rows(csv_path):
     if not csv_path or not os.path.exists(csv_path):
         return []
     with open(csv_path, newline='', encoding='utf-8-sig') as f:
-        return list(csv.DictReader(f))
+        lines = f.read().splitlines()
+    # Exports passed through Numbers/Excel sometimes get a title line (the sheet name) above the real header
+    # row; skip to the first line that actually looks like the header.
+    start = 0
+    for i, ln in enumerate(lines[:10]):
+        if ln.count(',') >= 5 and 'Pitcher' in ln:
+            start = i
+            break
+    rows = list(csv.DictReader(lines[start:]))
+    # Warm-up pitches (Trackman's PitchSession column) aren't part of the outing, so they stay out of every report
+    return [r for r in rows if (r.get('PitchSession') or '').strip().lower() != 'warmup']
 
 
 def pitcher_trackman_movement(trackman_rows, pitcher_name, fine=False):
