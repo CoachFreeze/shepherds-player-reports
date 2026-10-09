@@ -848,22 +848,68 @@ def arsenal_comps_html(comps, ours, throws, colors):
                      f'<tr style="color:#5c7585;"><td style="text-align:left;">&nbsp;&nbsp;{c["name"].split()[-1]}\u2019s {m["theirs"]}</td>'
                      f'<td>{(t["velo"] or 0):.1f}</td><td>{t["ivb"]:.1f}\u2033</td><td>{_hb_txt(t["hb"])}</td></tr>')
         ang = f' &middot; {c["arm_angle"]:.0f}\u00b0 arm angle' if c.get('arm_angle') is not None else ''
+        vc = c.get('velo_ctx')
+        if vc:
+            d = vc['diff']
+            vline = ('Similar fastball velocity' if abs(d) < 2.5 else
+                     f'His fastball is {abs(d):.0f} mph {"faster" if d > 0 else "slower"} than yours')
+            vline = f'<div class="ac-vc">{vline} ({vc["theirs"]:.1f} vs {vc["ours"]:.1f})</div>'
+        else:
+            vline = ''
         cards.append(
             f'<a class="ac-card" href="https://baseballsavant.mlb.com/savant-player/{c["id"]}" target="_blank" rel="noopener">'
             f'<div class="ac-head"><img src="{_mlb_head(c["id"])}" alt="" onerror="this.style.visibility=\'hidden\'">'
-            f'<div><div class="ac-name">{c["name"]}</div><div class="ac-sub">Match score {c["match"]}{ang}</div></div></div>'
+            f'<div><div class="ac-name">{c["name"]}</div><div class="ac-sub">{c.get("quality", "Match")} ({c["match"]}){ang}</div></div></div>{vline}'
             f'<table class="ac-tbl"><tr><th style="text-align:left;">Pitch</th><th>Velo</th><th>IVB</th><th>HB</th></tr>{rows}</table></a>')
     css = ('<style>.ac-row{display:flex;gap:10px;flex-wrap:wrap;} .ac-card{flex:1 1 200px;min-width:200px;border:1px solid #d3dee6;border-radius:8px;padding:10px;text-decoration:none;color:#26343b;background:#fff;}'
            '.ac-head{display:flex;gap:10px;align-items:center;margin-bottom:6px;} .ac-head img{width:52px;height:52px;border-radius:50%;object-fit:cover;background:#e8eef2;}'
-           '.ac-name{font:700 14px/1.15 var(--f-heading);} .ac-sub{font:500 11px/1.3 var(--f-heading);color:var(--muted);margin-top:2px;}'
+           '.ac-vc{font:600 10.5px/1.3 var(--f-heading);color:var(--accent-teal);margin:0 0 5px;} .ac-name{font:700 14px/1.15 var(--f-heading);} .ac-sub{font:500 11px/1.3 var(--f-heading);color:var(--muted);margin-top:2px;}'
            '.ac-tbl{width:100%;border-collapse:collapse;font:600 11px/1.5 var(--f-heading);} .ac-tbl th{font-size:10px;color:var(--muted);text-align:center;font-weight:700;}'
            '.ac-tbl td{text-align:center;padding:1px 2px;white-space:nowrap;}</style>')
     return (css + '<div class="ac-row">' + ''.join(cards) + '</div>'
-            '<div style="font:400 10.5px/1.4 var(--f-heading);color:var(--muted);margin-top:8px;">Matched on pitch shape (induced vertical break and horizontal break, with spin and velocity counting less) '
-            'against 2026 MLB pitch-arsenal data, weighted by how often each pitch is thrown. HB is shown arm-side / glove-side so lefties and righties compare directly.</div>')
+            '<div style="font:400 10.5px/1.4 var(--f-heading);color:var(--muted);margin-top:8px;">Matched on pitch shape (induced vertical break and horizontal break, with spin counting less) '
+            'against 2026 MLB pitch-arsenal data, weighted by how often each pitch is thrown. Absolute velocity is not part of the match: it compares shape and how far each pitch sits off the fastball, so a comp can throw harder and still be the right model for the movement. HB is shown arm-side / glove-side so lefties and righties compare directly.'
+            + ('<br><b>Heads up:</b> none of these are a close match, so read them as the nearest shape family, not a true comp.' if comps and comps[0].get('match', 100) < 40 else '') + '</div>')
 
 
-def arsenal_ideas_html(ideas, colors, fb_velo=None):
+def _savant_video_url(pid, code, year=2026):
+    """Baseball Savant Statcast Search filtered to one pitcher's pitches of one type (individual pitches there have video)."""
+    return ('https://baseballsavant.mlb.com/statcast_search?hfPT=' + code.upper() + '%7C&hfSea=' + str(year) +
+            '%7C&player_type=pitcher&pitchers_lookup%5B%5D=' + str(pid) + '&type=details&sort_col=pitch_number_thisgame&sort_order=desc')
+
+
+_VIDEO_CACHE = None
+
+
+def _pitch_videos():
+    """data/pitch_videos.json: {"<savant pitcher id>|<pitch code>": [clip, ...]}, best-matching clips pulled from Baseball Savant."""
+    global _VIDEO_CACHE
+    if _VIDEO_CACHE is None:
+        import json, os
+        try:
+            with open(os.path.join(os.path.dirname(__file__), 'data', 'pitch_videos.json'), encoding='utf-8') as f:
+                _VIDEO_CACHE = json.load(f)
+        except (OSError, ValueError):
+            _VIDEO_CACHE = {}
+    return _VIDEO_CACHE
+
+
+def _clip_line(c):
+    last = c['pitcher'].split()[-1] if c.get('pitcher') else ''
+    swing = 'swinging' in (c.get('call') or '')
+    if c.get('event') == 'strikeout':
+        what = f'{last} strikes out {c["batter"]} ' + ('swinging' if swing else 'looking')
+    else:
+        what = f'{last} gets a {"swing and miss" if swing else "called strike"} from {c["batter"]}'
+    mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    y, m, d = c['date'].split('-')
+    sub = (f'{c["velo"]:.1f} mph &middot; {abs(c["hb"]):.0f}\u2033 {"glove" if c["hb"] < 0 else "arm"}-side &middot; '
+           f'{c["ivb"]:.0f}\u2033 IVB &middot; {mo[int(m) - 1]} {int(d)}')
+    return (f'<a class="ai-clip" href="https://baseballsavant.mlb.com/sporty-videos?playId={c["playId"]}" target="_blank" rel="noopener">'
+            f'<span class="ai-play">&#9654;</span><span><b>{what}</b><br><span class="ai-cs">{sub}</span></span></a>')
+
+
+def arsenal_ideas_html(ideas, colors, fb_velo=None, throws='R'):
     if not ideas:
         return ''
     cards = []
@@ -872,22 +918,46 @@ def arsenal_ideas_html(ideas, colors, fb_velo=None):
         col = colors.get(s['type'], '#5c7585')
         bits = [f'~{t["velo"]:.0f} mph ({t["velo_gap"]:.0f} off the fastball)' if t.get('velo') else f'{t["velo_gap"]:.0f} mph off the fastball',
                 f'{t["ivb"]:.0f}\u2033 IVB', _hb_txt(t['hb']), f'~{t["spin"]:,.0f} rpm']
-        ex = ', '.join(e['name'] for e in s['examples'])
+        vids = _pitch_videos()
+        clips = []
+        for e in s['examples']:
+            cl = vids.get(f'{e["id"]}|{s["code"]}') or []
+            if cl:
+                clips.append(_clip_line(cl[0]))
+        if len(clips) < 3:                                   # second clip from the best-matching pitcher if fewer than 3 pitchers have video
+            for e in s['examples']:
+                cl = vids.get(f'{e["id"]}|{s["code"]}') or []
+                if len(cl) > 1 and len(clips) < 3:
+                    clips.append(_clip_line(cl[1]))
+        if clips:
+            ex = '<div class="ai-clips">' + ''.join(clips) + '</div>'
+        else:
+            ex = ', '.join(f'<a href="{_savant_video_url(e["id"], s["code"])}" target="_blank" rel="noopener">{e["name"]} &#9654;</a>' for e in s['examples'] if e.get('id'))
         why = (f'{s["n_users"]} of the {s["n_neighbours"]} MLB pitchers with the most similar fastball and arm slot throw it. '
                f'It would move about {s["contrast"]:.0f}\u2033 differently from your closest current pitch.')
+        try:
+            import arsenal_comps as _ac
+            wl = ''.join(f'<li>{x}</li>' for x in _ac.why_it_helps(s, throws)) if s.get('ctx') else ''
+        except ImportError:
+            wl = ''
+        whyblock = f'<div class="ai-wh"><div class="ai-t" style="margin-top:0;">Why it helps</div><ul>{wl}</ul></div>' if wl else ''
         cards.append(
             f'<div class="ai-card"><div class="ai-h" style="background:{col};color:{_ink_on(col)};">{s["type"]}</div>'
             f'<div class="ai-b"><div class="ai-why">{s["blurb"].capitalize()}.</div>'
             f'<div class="ai-t">Target shape</div><div class="ai-v">{" &middot; ".join(bits)}</div>'
             f'<div class="ai-why" style="margin-top:6px;">{why}</div>'
-            f'<div class="ai-ex"><b>Look at:</b> {ex}</div></div></div>')
+            f'{whyblock}'
+            f'<div class="ai-ex"><b>Watch it:</b> {ex}</div></div></div>')
     css = ('<style>.ai-row{display:flex;gap:10px;flex-wrap:wrap;} .ai-card{flex:1 1 200px;min-width:200px;border:1px solid #d3dee6;border-radius:8px;overflow:hidden;background:#fff;}'
            '.ai-h{font:700 15px/1 var(--f-heading);text-align:center;padding:9px 6px;} .ai-b{padding:9px 11px 11px;font:500 11.5px/1.4 var(--f-heading);color:#26343b;}'
            '.ai-t{font:700 10px/1 var(--f-heading);text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:8px;} .ai-v{font:700 12px/1.45 var(--f-heading);margin-top:3px;}'
-           '.ai-why{color:#4a5d68;} .ai-ex{margin-top:6px;color:#4a5d68;}</style>')
+           '.ai-why{color:#4a5d68;} .ai-ex{margin-top:6px;color:#4a5d68;line-height:1.7;} .ai-ex a{color:var(--accent-teal);font-weight:700;text-decoration:none;white-space:nowrap;} .ai-ex a:hover{text-decoration:underline;}'
+           '.ai-wh{margin-top:8px;background:#f1f6f8;border-left:3px solid var(--accent-teal);border-radius:0 6px 6px 0;padding:7px 9px;} .ai-wh ul{margin:4px 0 0;padding-left:15px;} .ai-wh li{margin:0 0 3px;color:#26343b;line-height:1.35;}'
+           '.ai-clips{margin-top:4px;} .ai-ex a.ai-clip{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-top:1px solid #e6eef2;white-space:normal;color:#26343b!important;font-weight:500!important;line-height:1.3;} .ai-clip:first-child{border-top:0;} .ai-clip b{font-weight:700;color:var(--accent-teal);} .ai-clip>span:last-child{min-width:0;} .ai-play{flex:0 0 18px;height:18px;border-radius:50%;background:var(--accent-teal);color:#fff;font-size:8px;line-height:18px;text-align:center;margin-top:1px;} .ai-cs{font-size:10px;color:var(--muted);}</style>')
     return (css + '<div class="ai-row">' + ''.join(cards) + '</div>'
             '<div style="font:400 10.5px/1.4 var(--f-heading);color:var(--muted);margin-top:8px;">Ranked by how common the pitch is among MLB pitchers with a similar fastball shape and arm slot, '
-            'how differently it would move from the current arsenal, how well his spin suits it, and whether the arsenal is missing a breaking ball or offspeed pitch. Target shapes are the MLB averages for that group, so college versions will sit lower in velocity.</div>')
+            'how differently it would move from the current arsenal, how well his spin suits it, and whether the arsenal is missing a breaking ball or offspeed pitch. Target shapes are the MLB averages for that group; the speed gap off the fastball is scaled to his own fastball, and the clips show the shape to copy, not the velocity. '
+            'Video clips are real 2026 MLB pitches of this type from Baseball Savant, picked for the closest shape to the target and a swing-and-miss or strikeout result; each opens the clip on Savant.</div>')
 
 
 # ---------------------------------------------------------------- arm-angle badge (Savant style)

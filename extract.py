@@ -792,14 +792,18 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
     return meta, pitches
 
 
-# Arm-slot model (frontal plane, as seen from behind the plate):
-#   shoulder height  = 0.81 x standing height  (acromion height, standard anthropometric ratio)
-#   shoulder offset  = 0.13 x standing height out from the torso midline toward the throwing arm
-#                      (half of shoulder breadth), torso midline taken as the centre of the rubber
+# Arm-slot model (frontal plane, as seen from behind the plate), calibrated against Baseball Savant's
+# measured arm angles (pose-tracked shoulder and ball positions for ~765 MLB pitchers, 2026):
+#   shoulder height  = 0.70 x standing height. Savant's measured shoulder height averages 4.32 ft (sd 0.27),
+#                      i.e. ~0.70 of a 6'2" pitcher. (An earlier 0.81 'acromion' ratio put the shoulder
+#                      ~0.7 ft too high and read arm angles ~10 degrees too low.)
+#   shoulder offset  = 0: Savant's measured shoulder sits within ~0.1 ft of the line the ball release is measured from.
 #   arm angle        = angle of the line shoulder -> release point above horizontal
 #                      (0 = sidearm, 90 = straight over the top)
-SHOULDER_HEIGHT_FRAC = 0.81
-SHOULDER_OFFSET_FRAC = 0.13
+# Check: with Savant's own average shoulder this predicts their measured angles to ~6 degrees RMSE
+# (the previous constants: ~16 degrees). Individual pitchers still vary with posture, so treat as +/- 5.
+SHOULDER_HEIGHT_FRAC = 0.70
+SHOULDER_OFFSET_FRAC = 0.0
 
 
 def arm_slot_label(angle):

@@ -244,7 +244,7 @@ def render_trackman_mini(name, trackman_rows, bio=None):
     cols = {t['type']: t['color'] for t in tm_pitches}
     mlb_comps = ac.find_arsenal_comps(ars, meta.get('throws') or 'R', ang, n=3) if ars else []
     comps_html = sc.arsenal_comps_html(mlb_comps, ars, meta.get('throws') or 'R', cols)
-    ideas_html = sc.arsenal_ideas_html(ac.suggest_pitches(ars, meta.get('throws') or 'R', ang, n=3), cols) if ars else ''
+    ideas_html = sc.arsenal_ideas_html(ac.suggest_pitches(ars, meta.get('throws') or 'R', ang, n=3), {**e.MINI_PITCH_COLORS, **cols}, throws=meta.get('throws') or 'R') if ars else ''
 
     p = {
         'name': name,

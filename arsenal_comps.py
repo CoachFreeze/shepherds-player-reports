@@ -66,6 +66,9 @@ def load_reference(path=DATA_PATH):
                         continue
                     pitches[c] = {'pct': n, 'velo': _f(r.get(f'{c}_avg_speed')), 'spin': _f(r.get(f'{c}_avg_spin')),
                                   'hb': sgn * bx, 'ivb': bz}                  # hb: arm-side positive
+                fbv = (pitches.get('ff') or pitches.get('si') or {}).get('velo')
+                for p_ in pitches.values():
+                    p_['gap'] = (fbv - p_['velo']) if (fbv and p_.get('velo')) else None
                 name = r.get('last_name, first_name') or ''
                 if ',' in name:
                     last, first = [x.strip() for x in name.split(',', 1)]
@@ -77,7 +80,7 @@ def load_reference(path=DATA_PATH):
     for c in CODES:
         vals = [p['pitches'][c] for p in rows if c in p['pitches']]
         stats[c] = {}
-        for k in ('velo', 'spin', 'hb', 'ivb'):
+        for k in ('velo', 'spin', 'hb', 'ivb', 'gap'):
             v = [x[k] for x in vals if x.get(k) is not None]
             if len(v) > 5:
                 m = sum(v) / len(v)
@@ -96,12 +99,16 @@ def _normalise(arsenal, throws):
             continue
         out[code] = {'pct': p.get('pct') or 0, 'velo': p.get('velo'), 'spin': p.get('spin'),
                      'hb': sgn * p['hb'], 'ivb': p['ivb'], 'label': p['type']}
+    fb = out.get('ff') or out.get('si')
+    for p in out.values():
+        p['gap'] = (fb['velo'] - p['velo']) if (fb and fb.get('velo') and p.get('velo')) else None
     return out
 
 
-# how much each feature counts (movement matters most; raw velo least, since college arms sit
-# several mph under MLB and we want "same shape", not "same stuff")
-W = {'hb': 1.0, 'ivb': 1.0, 'spin': 0.45, 'velo': 0.3}
+# how much each feature counts. Absolute velocity does NOT count (a high-school or college arm sits well under
+# MLB and we want "same shape", not "same stuff"); what does count is how far each pitch sits off his own
+# fastball ('gap'), which is about pitch separation and scales with the pitcher, not the level.
+W = {'hb': 1.0, 'ivb': 1.0, 'spin': 0.45, 'gap': 0.3}
 
 
 def _pitch_distance(ours, theirs, code, stats):
@@ -161,12 +168,23 @@ def find_arsenal_comps(arsenal, throws='R', arm_angle=None, n=3, same_hand=True,
         scored.append((sc, r, matches))
     scored.sort(key=lambda t: t[0])
     out = []
+    fb_o = ours.get('ff') or ours.get('si') or max(ours.values(), key=lambda p: p['pct'])
     for sc, r, matches in scored[:n]:
-        out.append({'name': r['name'], 'id': r['id'], 'hand': r['hand'], 'arm_angle': r['arm_angle'],
+        fb_m = r['pitches'].get('ff') or r['pitches'].get('si')
+        vctx = None
+        if fb_o.get('velo') and fb_m and fb_m.get('velo'):
+            vctx = {'ours': fb_o['velo'], 'theirs': fb_m['velo'], 'diff': fb_m['velo'] - fb_o['velo']}
+        out.append({'velo_ctx': vctx, 'quality': match_quality(max(0, round(100 * math.exp(-sc / 2.2)))),
+                    'name': r['name'], 'id': r['id'], 'hand': r['hand'], 'arm_angle': r['arm_angle'],
                     'score': sc, 'match': max(0, round(100 * math.exp(-sc / 2.2))),
                     'matches': matches,
                     'arsenal': {CODE_TO_LABEL[c]: p for c, p in r['pitches'].items() if p['pct'] >= 5}})
     return out
+
+
+def match_quality(score):
+    """Plain-language label for the 0-100 shape-match score."""
+    return 'Very close shape' if score >= 70 else ('Good shape match' if score >= 55 else ('Loose match' if score >= 40 else 'Weak match'))
 
 
 # ---------------------------------------------------------------- pitch suggestions
@@ -241,6 +259,13 @@ def suggest_pitches(arsenal, throws='R', arm_angle=None, k_neighbors=40, n=3):
         mean = lambda key: sum(p[key] for _, p, _ in users if p.get(key) is not None) / max(1, sum(1 for _, p, _ in users if p.get(key) is not None))
         t_hb, t_ivb, t_spin = mean('hb'), mean('ivb'), mean('spin')
         t_gap = sum((rf['velo'] - p['velo']) for _, p, rf in users if p.get('velo') and rf.get('velo')) / max(1, sum(1 for _, p, rf in users if p.get('velo') and rf.get('velo')))
+        # scale the speed gap to HIS fastball (an 80 mph arm shouldn't be told to throw a change 12 mph slower)
+        ref_fb_v = [rf['velo'] for _, p, rf in users if rf.get('velo')]
+        vscale = 1.0
+        if fb.get('velo') and ref_fb_v:
+            vscale = max(0.6, min(1.0, fb['velo'] / (sum(ref_fb_v) / len(ref_fb_v))))
+        t_gap_mlb = t_gap
+        t_gap = t_gap * vscale
         # 3) contrast with what he already throws (inches in HB/IVB space)
         contrast = min((math.hypot(t_hb - p['hb'], t_ivb - p['ivb']) for p in ours.values()), default=20.0)
         contrast_s = min(contrast / 18.0, 1.0)
@@ -259,10 +284,15 @@ def suggest_pitches(arsenal, throws='R', arm_angle=None, k_neighbors=40, n=3):
             need = 0.25
         score = 0.40 * min(prevalence / 0.6, 1.0) + 0.30 * contrast_s + 0.15 * spin_s + need
         examples = sorted(users, key=lambda u: -u[1]['pct'])[:3]
+        closest = min(ours.values(), key=lambda p: math.hypot(t_hb - p['hb'], t_ivb - p['ivb']))
+        ctx = {'closest': closest['label'], 'have_off': have_off, 'have_brk': have_brk, 'fb_label': fb.get('label'),
+               'fb_hb': fb['hb'], 'fb_ivb': fb['ivb'], 'fb_spin': fb.get('spin'), 'fb_spin_pct': fb_spin_pct,
+               'n_have': len(ours), 'have': [p['label'] for p in ours.values()]}
         out.append({
+            'ctx': ctx,
             'code': code, 'type': CODE_TO_LABEL[code], 'score': score,
             'prevalence': prevalence, 'contrast': contrast, 'spin_fit': spin_s,
-            'target': {'velo_gap': t_gap, 'hb': t_hb, 'ivb': t_ivb, 'spin': t_spin,
+            'target': {'velo_gap': t_gap, 'velo_gap_mlb': t_gap_mlb, 'hb': t_hb, 'ivb': t_ivb, 'spin': t_spin,
                        'velo': (fb['velo'] - t_gap) if fb.get('velo') else None},
             'blurb': BLURB.get(code, ''),
             'examples': [{'name': r['name'], 'id': r['id'], 'arm_angle': r['arm_angle']} for r, _, _ in examples],
@@ -270,3 +300,53 @@ def suggest_pitches(arsenal, throws='R', arm_angle=None, k_neighbors=40, n=3):
         })
     out.sort(key=lambda d: -d['score'])
     return out[:n]
+
+
+
+_MECH = {  # (what it is for, who it is best against)
+    'st': ('big horizontal sweep', 'same-handed hitters'),
+    'sl': ('tight, hard glove-side break', 'same-handed hitters'),
+    'sv': ('hybrid curve/sweep', 'same-handed hitters'),
+    'cu': ('true downward break', 'both sides, and especially as an eye-level change off a ride fastball'),
+    'fc': ('late glove-side cut', 'hitters on both sides, to jam them inside'),
+    'ch': ('speed and arm-side fade', 'opposite-handed hitters'),
+    'fs': ('late drop with little spin', 'opposite-handed hitters, and with two strikes against both sides'),
+    'si': ('arm-side run and weight', 'same-handed hitters, for weak contact'),
+}
+
+
+def why_it_helps(s, throws='R'):
+    """2-4 short, data-driven reasons this pitch would help his arsenal (list of strings, plain text)."""
+    c, t, code = s['ctx'], s['target'], s['code']
+    bullets = []
+    brk, off = code in ('sl', 'st', 'cu', 'sv'), code in ('ch', 'fs')
+    if brk and not c['have_brk']:
+        bullets.append('Fills a hole: right now there is no breaking ball in the arsenal, so hitters can sit on fastball-speed pitches.')
+    elif off and not c['have_off']:
+        bullets.append('Fills a hole: there is no offspeed pitch yet, so hitters never have to adjust their timing.')
+    elif c['n_have'] <= 2:
+        bullets.append('Adds a third look to a small arsenal, which makes every pitch he already throws harder to anticipate.')
+    # separation from the fastball (inches) and from his closest current pitch
+    dh, dv = t['hb'] - c['fb_hb'], t['ivb'] - c['fb_ivb']
+    parts = []
+    if abs(dh) >= 6:
+        parts.append(f'{abs(dh):.0f}\u2033 more {"glove" if dh < 0 else "arm"}-side')
+    if abs(dv) >= 6:
+        parts.append(f'{abs(dv):.0f}\u2033 {"less rise" if dv < 0 else "more rise"}')
+    sep = (' and '.join(parts) + f' than his {c["fb_label"]}') if parts else f'a different shape from his {c["fb_label"]}'
+    bullets.append(f'Gives hitters a new picture: it moves {sep}.')
+    if t.get('velo_gap') and t['velo_gap'] >= 5:
+        bullets.append(f'The ~{t["velo_gap"]:.0f} mph gap off the fastball adds a timing change.')
+    # spin fit
+    pct, fbs = c.get('fb_spin_pct'), c.get('fb_spin')
+    if pct is not None and fbs:
+        if code in SPIN_NEED and pct >= 60:
+            bullets.append(f'His spin ({fbs:,.0f} rpm on the fastball, above-average for MLB) is the kind that helps this pitch hold its shape.')
+        elif code in SPIN_NEED and pct <= 35:
+            bullets.append(f'Spin is the watch-out: his fastball spin ({fbs:,.0f} rpm) is below MLB average, so the shape may come with less bite; grip and feel will matter.')
+        elif code in SPIN_IS_LOW_OK and pct <= 45:
+            bullets.append(f'It doesn\'t need big spin, so his fastball spin ({fbs:,.0f} rpm) is not a limiter.')
+    what, who = _MECH.get(code, ('', ''))
+    if who:
+        bullets.append(f'Best used against {who}.')
+    return bullets[:5]
