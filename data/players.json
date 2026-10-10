@@ -365,6 +365,21 @@
     "school": "Biola University",
     "sixty_yd_time": 7.9
   },
+  "ryan_dimaggio": {
+    "comps": {},
+    "grad_year": 2028,
+    "height_in": 75.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/ryan_dimaggio_trackman_10.9.26 INTRASQUAD.csv",
+    "name": "Ryan DiMaggio",
+    "program": "long_beach_state",
+    "roles": {
+      "pitch": {
+        "position": "LHP"
+      }
+    },
+    "school": "Long Beach State",
+    "weight_lbs": 212.0
+  },
   "ryan_han": {
     "comps": {
       "hit": [
