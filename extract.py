@@ -929,3 +929,83 @@ def detect_anomalies(rows, pitcher_name):
                             'batter': r.get('Batter') or '', 'reasons': reasons})
     # a lone single-metric blip is usually just a rough pitch; require a clear signal
     return [f for f in flagged if len(f['reasons']) >= 2 or 'opposite side' in f['reasons'][0] or 'release side' in f['reasons'][0]]
+
+
+# --- outing summary (Live AB / game sessions only) -----------------------------
+
+_HIT_TAGS = {'PR_Single', 'PR_Double', 'PR_Triple', 'PR_HomeRun'}
+
+
+def _tags(r):
+    return set((r.get('CustomTags') or '').split('|'))
+
+
+def _outcome(r):
+    """Operator tags (PC_/HC_) are the source of truth; Trackman's automatic PitchCall
+    disagrees on ~1 in 4 pitches, so it is only a fallback."""
+    t = _tags(r)
+    pcall = r.get('PitchCall')
+    if pcall == 'HitByPitch':
+        return 'hbp'
+    if pcall == 'FoulBall' or 'HC_FOUL' in t:
+        return 'foul'
+    if 'PC_InPlay' in t or pcall == 'InPlay':
+        return 'inplay'
+    if 'PC_StSw' in t:
+        return 'whiff'
+    if 'PC_STRIKE' in t:
+        return 'cs'
+    if 'PC_BALL' in t:
+        return 'ball'
+    return {'BallCalled': 'ball', 'StrikeCalled': 'cs'}.get(pcall, 'unk')
+
+
+def outing_summary(rows):
+    """Box-score style summary for one pitcher's rows. Inferred where the export has no
+    explicit result: strikeouts/walks come from the count, outs from PR_Out tags + strikeouts,
+    batters faced from 0-0 pitches. Returns None if there is nothing to summarise."""
+    if not rows:
+        return None
+    n = len(rows)
+    outs_ = [_outcome(r) for r in rows]
+    swings = sum(1 for o in outs_ if o in ('whiff', 'foul', 'inplay'))
+    whiffs = sum(1 for o in outs_ if o == 'whiff')
+    strikes = sum(1 for o in outs_ if o not in ('ball', 'hbp', 'unk'))
+    known = sum(1 for o in outs_ if o != 'unk')
+    bf = sum(1 for r in rows if (r.get('Balls'), r.get('Strikes')) == ('0', '0'))
+    fp = [o for r, o in zip(rows, outs_) if (r.get('Balls'), r.get('Strikes')) == ('0', '0')]
+    fps = sum(1 for o in fp if o not in ('ball', 'hbp', 'unk'))
+    inzone = outside = chases = loc_n = 0
+    for r, o in zip(rows, outs_):
+        x, z = _fnum(r.get('PlateLocSide')), _fnum(r.get('PlateLocHeight'))
+        if x is None or z is None:
+            continue
+        loc_n += 1
+        if abs(x) <= 0.83 and 1.4 <= z <= 3.6:
+            inzone += 1
+        else:
+            outside += 1
+            if o in ('whiff', 'foul', 'inplay'):
+                chases += 1
+    hits = sum(1 for r in rows if _tags(r) & _HIT_TAGS)
+    walks = sum(1 for r, o in zip(rows, outs_) if r.get('Balls') == '3' and o == 'ball')
+    hbp = sum(1 for o in outs_ if o == 'hbp')
+    ks = sum(1 for r, o in zip(rows, outs_) if r.get('Strikes') == '2' and o in ('whiff', 'cs'))
+    outs = sum(1 for r in rows if 'PR_Out' in _tags(r)) + ks
+    evs = [_fnum(r.get('ExitSpeed')) for r, o in zip(rows, outs_) if o == 'inplay']
+    evs = [v for v in evs if v]
+    def pct(a, b):
+        return f'{100 * a / b:.0f}%' if b else '-'
+    return {
+        'ip': f'{outs // 3}.{outs % 3}', 'bf': bf, 'pitches': n, 'hits': hits, 'walks': walks, 'hbp': hbp,
+        'strike_pct': pct(strikes, known), 'fps_pct': pct(fps, len(fp)), 'zone_pct': pct(inzone, loc_n),
+        'whiff_pct': pct(whiffs, swings), 'chase_pct': pct(chases, outside),
+        'avg_ev': f'{sum(evs) / len(evs):.1f}' if evs else '-',
+        'detail': {'strikes': f'{strikes}/{known}', 'fps': f'{fps}/{len(fp)}', 'zone': f'{inzone}/{loc_n}',
+                   'whiff': f'{whiffs}/{swings} swings', 'chase': f'{chases}/{outside}', 'ev': f'{len(evs)} balls in play'},
+    }
+
+
+def _pitcher_match(r, name):
+    tok = lambda n: sorted(t for t in re.split(r'[^a-z]+', (n or '').lower()) if t)
+    return tok(r.get('Pitcher')) == tok(name)

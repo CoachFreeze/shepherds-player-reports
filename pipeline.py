@@ -218,7 +218,7 @@ def _pitch_log_rows(log):
     return rows
 
 
-def render_trackman_mini(name, trackman_rows, bio=None):
+def render_trackman_mini(name, trackman_rows, bio=None, summary_rows=None):
     """A scoped report for a pitcher who has a Trackman session but no Full
     Swing workbook yet: real pitch movement, spin direction and velocity
     straight from the CSV, with none of the season-stat/percentile/comps
@@ -273,6 +273,7 @@ def render_trackman_mini(name, trackman_rows, bio=None):
         'n_pitches': sum(t['n'] for t in tm_pitches), 'tracking': tm_pitches,
         'log': _pitch_log_rows(meta.get('log') or []),
         'show_spin_direction': bool(spin_pitches), 'year': '2026',
+        'outing': e.outing_summary([r for r in summary_rows if e._pitcher_match(r, name)]) if summary_rows else None,
     }
     html = tm_mini_tpl.render(p=p, css=CSS, movement_html=movement_html, location_html=location_html, arm_html=arm_html, comps_html=comps_html, ideas_html=ideas_html, spin_html=spin_html, brand=BRAND)
     out_path = os.path.join(REPORTS_DIR, f'{slug}_trackman_mini.html')
@@ -280,7 +281,7 @@ def render_trackman_mini(name, trackman_rows, bio=None):
     return out_path
 
 
-def process_trackman_only(trackman_path, name, school, grad_year, position_pitch, height_in=None, weight_lbs=None, exclude_uids=()):
+def process_trackman_only(trackman_path, name, school, grad_year, position_pitch, height_in=None, weight_lbs=None, exclude_uids=(), live_ab=False):
     """Entry point for the Long Beach State side of the roster: a pitcher
     who has a Trackman session but no Full Swing export. Mirrors
     process_upload()'s shape (bio upsert -> store the source file -> render
@@ -302,7 +303,7 @@ def process_trackman_only(trackman_path, name, school, grad_year, position_pitch
         store.sync_to_github()
         return slug, None
 
-    out = render_trackman_mini(name, trackman_rows, bio)
+    out = render_trackman_mini(name, trackman_rows, bio, summary_rows=trackman_rows if live_ab else None)
     store.sync_to_github()
     return slug, out
 

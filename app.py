@@ -327,6 +327,7 @@ LBSU_INTAKE_PAGE = """
   <fieldset>
     <label style="margin-top:0;">Trackman export (.csv)</label>
     <input type="file" name="trackman_file" accept=".csv" required>
+    <label style="font-weight:600;font-size:13px;display:block;margin-top:12px;"><input type="checkbox" name="live_ab" value="1"> Game / Live AB session (adds the Outing Summary; leave unchecked for bullpens)</label>
     <p style="font-size:12.5px;color:#8a7557;">Builds a Pitch Movement Profile, Spin Direction, and velocity report straight from this session. No Full Swing data behind it, so season stats, percentiles, and comps aren't part of this report.</p>
   </fieldset>
   <button type="submit">Generate report</button>
@@ -352,7 +353,7 @@ button{margin:8px 8px 0 0;padding:11px 22px;border:none;border-radius:999px;back
 <h1>Some pitches under {{ name }} look off</h1>
 <p>These may belong to a different pitcher (a mis-tagged name in the export). Checked pitches will be left out of the report.</p>
 <form method="post" action="{{ url_for('intake_lbsu_confirm') }}">
-  {% for k in ['name','school','grad_year','position_pitch','height_in','weight_lbs','path'] %}<input type="hidden" name="{{ k }}" value="{{ {'name':name,'school':school,'grad_year':grad_year,'position_pitch':position_pitch,'height_in':height_in,'weight_lbs':weight_lbs,'path':path}[k] }}">{% endfor %}
+  {% for k in ['name','school','grad_year','position_pitch','height_in','weight_lbs','path','live_ab'] %}<input type="hidden" name="{{ k }}" value="{{ {'name':name,'school':school,'grad_year':grad_year,'position_pitch':position_pitch,'height_in':height_in,'weight_lbs':weight_lbs,'path':path,'live_ab':live_ab}[k] }}">{% endfor %}
   {% for f in flagged %}<div class="p"><label><input type="checkbox" name="exclude" value="{{ f.uid }}" checked> Pitch #{{ f.pitch_no }} &middot; {{ f.type }}{% if f.velo %} &middot; {{ '%.1f'|format(f.velo) }} mph{% endif %}{% if f.batter %} &middot; vs {{ f.batter }}{% endif %}</label>
     {% for r in f.reasons %}<small>{{ r }}</small>{% endfor %}</div>{% endfor %}
   <button type="submit">Generate report</button>
@@ -370,7 +371,7 @@ def intake_lbsu_confirm():
     gy = f.get('grad_year', '').strip()
     slug, out = pipeline.process_trackman_only(
         path, f['name'], f.get('school') or None, int(gy) if gy.isdigit() else None, f.get('position_pitch') or None,
-        _num_or_none(f.get('height_in')), _num_or_none(f.get('weight_lbs')), exclude_uids=f.getlist('exclude'))
+        _num_or_none(f.get('height_in')), _num_or_none(f.get('weight_lbs')), exclude_uids=f.getlist('exclude'), live_ab=bool(f.get('live_ab')))
     if not out:
         return "That name wasn't found in the file.", 400
     return redirect(url_for('dashboard'))
@@ -405,8 +406,8 @@ def intake_lbsu():
                 if flagged:
                     return render_template_string(REVIEW_PAGE, flagged=flagged, name=name, school=school or '', grad_year=grad_year or '',
                                                   position_pitch=position_pitch or '', height_in=height_in or '', weight_lbs=weight_lbs or '',
-                                                  path=os.path.basename(trackman_path))
-                slug, out = pipeline.process_trackman_only(trackman_path, name, school, grad_year, position_pitch, height_in, weight_lbs)
+                                                  path=os.path.basename(trackman_path), live_ab=request.form.get('live_ab', ''))
+                slug, out = pipeline.process_trackman_only(trackman_path, name, school, grad_year, position_pitch, height_in, weight_lbs, live_ab=bool(request.form.get('live_ab')))
                 if out:
                     message = f'Generated a Trackman report for {name}. View it on the dashboard below.'
                 else:
