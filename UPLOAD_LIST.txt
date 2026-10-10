@@ -1,0 +1,11 @@
+Merge players_new_entries.json into data/players.json (now includes grad year, height, weight for the 4 new pitchers; replaces the earlier version).
+Upload to GitHub (same paths):
+  data/reports/landon_sloan_trackman_mini.html   (now Oct 1 + Oct 9 combined)
+  data/reports/tristan_ramos_trackman_mini.html  (now Oct 1 + Oct 9 combined)
+  data/reports/caiden_christianson_trackman_mini.html  (new)
+  data/reports/ryan_dimaggio_trackman_mini.html        (new)
+  data/reports/jason_gerfers_trackman_mini.html        (new)
+  data/reports/derek_valdez_trackman_mini.html         (new)
+  data/pitch_videos.json  (42 new clip sets)
+  extract.py, pipeline.py, savant_components.py, arsenal_comps.py, templates/trackman_report_template.html
+If you haven't yet added the 4 new pitchers to data/players.json, use players_new_entries.json from the earlier intrasquad zip.

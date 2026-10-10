@@ -708,6 +708,9 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
             meta['team'] = _tm_get(row, _TM_TEAM_COLS)
         if meta['date'] is None:
             meta['date'] = _tm_get(row, _TM_DATE_COLS)
+        _d = _tm_get(row, _TM_DATE_COLS)
+        if _d and _d not in meta.setdefault('dates', []):
+            meta['dates'].append(_d)
         label = _normalize_pitch_type(_tm_get(row, _TM_TYPE_COLS), fine=True)
         if not label:
             continue
@@ -743,6 +746,7 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
             'ext': _tm_num(_tm_get(row, ['Extension', 'Release Extension'])),
             'vaa': _tm_num(_tm_get(row, _TM_VAA_COLS)),
             'ev': _tm_num(_tm_get(row, _TM_EV_COLS)),
+            'date': _tm_get(row, _TM_DATE_COLS),
             'balls': _tm_num(_tm_get(row, _TM_BALLS_COLS)),
             'call': _call,
         })

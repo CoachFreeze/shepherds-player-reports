@@ -186,12 +186,29 @@ _RESULT_LABELS = {'strikecalled': 'Called Strike', 'ballcalled': 'Ball', 'inplay
                   'intentionalball': 'Intentional Ball'}
 
 
+def _short_date(d):
+    mo = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    try:
+        y, m, dd = str(d).split('-')
+        return f'{mo[int(m) - 1]} {int(dd)}'
+    except (ValueError, IndexError):
+        return str(d or '')
+
+
 def _pitch_log_rows(log):
     """Pitch-by-pitch rows for the Pitch Log table: adds the pitch-type colour
     and a readable result label to what extract.pitcher_trackman_summary collected."""
     rows = []
+    prev_date, pno = None, 0
+    multi = len({r.get('date') for r in log if r.get('date')}) > 1
     for r in log:
         r = dict(r)
+        if r.get('date') != prev_date:
+            pno = 0
+            r['new_day'] = _short_date(r.get('date')) if multi else None
+            prev_date = r.get('date')
+        pno += 1
+        r['pno'] = pno if multi else r['n']
         r['color'] = e.MINI_PITCH_COLORS.get(r['type'], '#555')
         r['result'] = _RESULT_LABELS.get((r.get('call') or '').replace('_', '').lower(), '\u2014')
         # A ball thrown with 3 balls already in the count is ball four: a walk.
@@ -252,6 +269,7 @@ def render_trackman_mini(name, trackman_rows, bio=None):
         'school': _school_display(bio.get('school'), bio.get('grad_year')) if bio else None,
         'school_badge': school_badge((bio or {}).get('school'), (bio or {}).get('program')),
         'throws': meta.get('throws'), 'team': meta.get('team'), 'date': meta.get('date'),
+        'dates': [_short_date(d) for d in (meta.get('dates') or [])],
         'n_pitches': sum(t['n'] for t in tm_pitches), 'tracking': tm_pitches,
         'log': _pitch_log_rows(meta.get('log') or []),
         'show_spin_direction': bool(spin_pitches), 'year': '2026',
