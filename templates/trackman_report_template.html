@@ -29,7 +29,7 @@
 .school-badge + .identity{ padding-top:16px; }
 .pitch-log{ font-size:11px; } .pitch-log th{ font-size:10px; padding:5px 3px; } .pitch-log td{ padding:5px 3px; white-space:nowrap; }
 .log-row{ cursor:pointer; } .log-row:hover{ background:#eef4f7; } .log-row.pin{ background:#dbe9f0; box-shadow:inset 3px 0 0 var(--accent-teal); }
-.pl-ring{ pointer-events:none; }
+.pl-ring{ pointer-events:none; } .log-day td{ background:#e8f1f4; color:var(--accent-teal); font:700 10px/1 var(--f-heading); text-transform:uppercase; letter-spacing:.06em; text-align:left!important; padding:6px!important; }
 </style></head>
 <body>
 <div class="sheet sheet-pitcher tm-mini">
@@ -43,10 +43,10 @@
       <div class="bio">
         {% if p.throws %}<b>Throws:</b> {{ p.throws }}{% endif %}
         {% if p.team and '_' not in p.team %} | <b>Team:</b> {{ p.team }}{% endif %}
-        {% if p.date %} | <b>Session:</b> {{ p.date }}{% endif %}
+        {% if p.dates and p.dates|length > 1 %} | <b>Sessions:</b> {{ p.dates|join(' &amp; ')|safe }}{% elif p.date %} | <b>Session:</b> {{ p.date }}{% endif %}
       </div>
       <span class="tm-badge">Trackman Session</span>
-      <div class="tm-source-note">Pitch movement, spin and velocity are real Trackman numbers from this session ({{ p.n_pitches }} pitches tracked).</div>
+      <div class="tm-source-note">Pitch movement, spin and velocity are real Trackman numbers from {% if p.dates and p.dates|length > 1 %}{{ p.dates|length }} sessions{% else %}this session{% endif %} ({{ p.n_pitches }} pitches tracked).</div>
     </div>
 
     <div class="panel pmp-panel">
@@ -99,8 +99,9 @@
       <table class="tracking-table pitch-log">
         <tr><th>#</th><th style="text-align:left;">Batter</th><th>Bats</th><th style="text-align:left;">Pitch Type</th><th>Velo</th><th>IVB</th><th>HB</th><th>Spin Rate</th><th>Spin Dir.</th><th>Ext.</th><th>VAA</th><th>Exit Velo</th><th style="text-align:left;">Result</th></tr>
         {% for r in p.log %}
+        {% if r.new_day %}<tr class="log-day"><td colspan="13">{{ r.new_day }}</td></tr>{% endif %}
         <tr class="log-row" data-pn="{{ r.n }}" title="Hover or click to find this pitch in Pitch Location">
-          <td>{{ r.n }}</td>
+          <td>{{ r.pno }}</td>
           <td style="text-align:left;">{{ r.batter or '—' }}</td>
           <td>{{ r.bats or '—' }}</td>
           <td class="type-cell" style="color:{{ r.color }};">{{ r.type }}</td>
