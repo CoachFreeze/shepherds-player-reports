@@ -50,21 +50,6 @@
     "school": "West Texas A&M",
     "sixty_yd_time": 7.53
   },
-  "caidan_christianson": {
-    "comps": {},
-    "grad_year": 2028,
-    "height_in": 76.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/caidan_christianson_trackman_10.9.26 INTRASQUAD.csv",
-    "name": "Caidan Christianson",
-    "program": "long_beach_state",
-    "roles": {
-      "pitch": {
-        "position": "RHP"
-      }
-    },
-    "school": "Long Beach State",
-    "weight_lbs": 215.0
-  },
   "caiden_christianson": {
     "comps": {},
     "grad_year": 2028,
