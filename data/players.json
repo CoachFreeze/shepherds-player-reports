@@ -65,21 +65,6 @@
     "school": "Long Beach State",
     "weight_lbs": 215.0
   },
-  "caiden_christianson": {
-    "comps": {},
-    "grad_year": 2028,
-    "height_in": 76.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/caiden_christianson_trackman_10.9.26 INTRASQUAD.csv",
-    "name": "Caiden Christianson",
-    "program": "long_beach_state",
-    "roles": {
-      "pitch": {
-        "position": "RHP"
-      }
-    },
-    "school": "Long Beach State",
-    "weight_lbs": 215.0
-  },
   "caleb_koontz": {
     "comps": {
       "hit": [
@@ -181,6 +166,21 @@
     },
     "school": "Northwest Nazarene University",
     "sixty_yd_time": 6.65
+  },
+  "derek_valdez": {
+    "comps": {},
+    "grad_year": 2027,
+    "height_in": 77.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/derek_valdez_trackman_10.9.26 INTRASQUAD.csv",
+    "name": "Derek Valdez",
+    "program": "long_beach_state",
+    "roles": {
+      "pitch": {
+        "position": "LHP"
+      }
+    },
+    "school": "Long Beach State",
+    "weight_lbs": 225.0
   },
   "jackson_orr": {
     "comps": {
