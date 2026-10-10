@@ -4,6 +4,7 @@ from flask import Flask, request, session, redirect, url_for, render_template_st
 
 import store
 import pipeline
+import extract as e_mod
 import mlb_lookup
 
 app = Flask(__name__)
@@ -342,6 +343,39 @@ def _num_or_none(v):
         return None
 
 
+REVIEW_PAGE = """
+<!doctype html><title>Check these pitches</title>
+<style>body{font-family:Barlow,Arial,sans-serif;background:#f3ebdd;color:#6f4f2f;max-width:640px;margin:0 auto;padding:28px 16px 60px;}
+h1{font-family:Oswald,Arial,sans-serif;} .p{background:#fff;border:1px solid #e1d6c2;border-radius:10px;padding:10px 14px;margin:10px 0;}
+.p label{display:block;font-weight:600;} .p small{display:block;color:#9c3a3a;margin:3px 0 0 24px;}
+button{margin:8px 8px 0 0;padding:11px 22px;border:none;border-radius:999px;background:#5c84a6;color:#fff;font-weight:600;cursor:pointer;} button.alt{background:#aa8b68;}</style>
+<h1>Some pitches under {{ name }} look off</h1>
+<p>These may belong to a different pitcher (a mis-tagged name in the export). Checked pitches will be left out of the report.</p>
+<form method="post" action="{{ url_for('intake_lbsu_confirm') }}">
+  {% for k in ['name','school','grad_year','position_pitch','height_in','weight_lbs','path'] %}<input type="hidden" name="{{ k }}" value="{{ {'name':name,'school':school,'grad_year':grad_year,'position_pitch':position_pitch,'height_in':height_in,'weight_lbs':weight_lbs,'path':path}[k] }}">{% endfor %}
+  {% for f in flagged %}<div class="p"><label><input type="checkbox" name="exclude" value="{{ f.uid }}" checked> Pitch #{{ f.pitch_no }} &middot; {{ f.type }}{% if f.velo %} &middot; {{ '%.1f'|format(f.velo) }} mph{% endif %}{% if f.batter %} &middot; vs {{ f.batter }}{% endif %}</label>
+    {% for r in f.reasons %}<small>{{ r }}</small>{% endfor %}</div>{% endfor %}
+  <button type="submit">Generate report</button>
+</form>
+"""
+
+
+@app.route('/intake/lbsu/confirm', methods=['POST'])
+@login_required
+def intake_lbsu_confirm():
+    f = request.form
+    path = os.path.join(UPLOAD_DIR, os.path.basename(f.get('path', '')))
+    if not os.path.exists(path):
+        abort(400)
+    gy = f.get('grad_year', '').strip()
+    slug, out = pipeline.process_trackman_only(
+        path, f['name'], f.get('school') or None, int(gy) if gy.isdigit() else None, f.get('position_pitch') or None,
+        _num_or_none(f.get('height_in')), _num_or_none(f.get('weight_lbs')), exclude_uids=f.getlist('exclude'))
+    if not out:
+        return "That name wasn't found in the file.", 400
+    return redirect(url_for('dashboard'))
+
+
 @app.route('/intake/lbsu', methods=['GET', 'POST'])
 @login_required
 def intake_lbsu():
@@ -367,6 +401,11 @@ def intake_lbsu():
             trackman_path = os.path.join(UPLOAD_DIR, f'{store.slugify(name)}_trackman_{tm_f.filename}')
             tm_f.save(trackman_path)
             try:
+                flagged = e_mod.detect_anomalies(e_mod.load_trackman_rows(trackman_path), name)
+                if flagged:
+                    return render_template_string(REVIEW_PAGE, flagged=flagged, name=name, school=school or '', grad_year=grad_year or '',
+                                                  position_pitch=position_pitch or '', height_in=height_in or '', weight_lbs=weight_lbs or '',
+                                                  path=os.path.basename(trackman_path))
                 slug, out = pipeline.process_trackman_only(trackman_path, name, school, grad_year, position_pitch, height_in, weight_lbs)
                 if out:
                     message = f'Generated a Trackman report for {name}. View it on the dashboard below.'

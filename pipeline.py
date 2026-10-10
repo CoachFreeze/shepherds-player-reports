@@ -280,7 +280,7 @@ def render_trackman_mini(name, trackman_rows, bio=None):
     return out_path
 
 
-def process_trackman_only(trackman_path, name, school, grad_year, position_pitch, height_in=None, weight_lbs=None):
+def process_trackman_only(trackman_path, name, school, grad_year, position_pitch, height_in=None, weight_lbs=None, exclude_uids=()):
     """Entry point for the Long Beach State side of the roster: a pitcher
     who has a Trackman session but no Full Swing export. Mirrors
     process_upload()'s shape (bio upsert -> store the source file -> render
@@ -294,6 +294,9 @@ def process_trackman_only(trackman_path, name, school, grad_year, position_pitch
     bio = store.get_player(slug)
 
     trackman_rows = e.load_trackman_rows(trackman_path)
+    if exclude_uids:
+        ex = set(exclude_uids)
+        trackman_rows = [r for r in trackman_rows if (r.get('PitchUID') or r.get('PitchNo')) not in ex]
     _, pitches = e.pitcher_trackman_summary(trackman_rows, name)
     if not pitches:
         store.sync_to_github()

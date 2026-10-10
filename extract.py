@@ -879,3 +879,53 @@ def build_running_metrics(sixty_yd_time):
          'pctl': bm.interpolate(sprint_speed, bm.HITTER['sprint_speed']), 'unit': ' ft/s'},
     ]
     return rows
+
+
+# --- data-quality screen ------------------------------------------------------
+
+def _fnum(v):
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def detect_anomalies(rows, pitcher_name):
+    """Flags pitches under one pitcher's name that look like they belong to someone else
+    (e.g. a mis-tagged batter/pitcher in the export). Returns a list of
+    {'uid','pitch_no','type','velo','reasons'}; empty when everything is consistent.
+    Checks: (1) release side is on the wrong side of the body for the listed handedness,
+    (2) release point (side/height/extension) sits far from the pitcher's own median.
+    Needs >= 8 pitches to judge; it only flags, the coach decides."""
+    def _tok(n):
+        return sorted(t for t in re.split(r'[^a-z]+', (n or '').lower()) if t)
+    want = _tok(pitcher_name)
+    mine = [r for r in rows if _tok(r.get('Pitcher')) == want]
+    if len(mine) < 8:
+        return []
+    import statistics as st
+    def col(k):
+        return [x for x in (_fnum(r.get(k)) for r in mine) if x is not None]
+    sides, hts, exts = col('RelSide'), col('RelHeight'), col('Extension')
+    if len(sides) < 8:
+        return []
+    med_side, med_ht = st.median(sides), st.median(hts) if hts else None
+    med_ext = st.median(exts) if exts else None
+    flagged = []
+    for r in mine:
+        side, ht, ext = _fnum(r.get('RelSide')), _fnum(r.get('RelHeight')), _fnum(r.get('Extension'))
+        reasons = []
+        if side is not None and abs(side) > 1.0 and abs(med_side) > 1.0 and (side > 0) != (med_side > 0):
+            reasons.append(f'released from the opposite side of the body ({side:+.1f} ft vs his usual {med_side:+.1f} ft) - looks like a different-handed pitcher')
+        elif side is not None and abs(side - med_side) > 1.2:
+            reasons.append(f'release side {side:+.1f} ft is far from his usual {med_side:+.1f} ft')
+        if ht is not None and med_ht is not None and abs(ht - med_ht) > 1.0:
+            reasons.append(f'release height {ht:.1f} ft vs usual {med_ht:.1f} ft')
+        if ext is not None and med_ext is not None and abs(ext - med_ext) > 1.0:
+            reasons.append(f'extension {ext:.1f} ft vs usual {med_ext:.1f} ft')
+        if reasons:
+            flagged.append({'uid': r.get('PitchUID') or r.get('PitchNo'), 'pitch_no': r.get('PitchNo'),
+                            'type': r.get('TaggedPitchType') or '?', 'velo': _fnum(r.get('RelSpeed')),
+                            'batter': r.get('Batter') or '', 'reasons': reasons})
+    # a lone single-metric blip is usually just a rough pitch; require a clear signal
+    return [f for f in flagged if len(f['reasons']) >= 2 or 'opposite side' in f['reasons'][0] or 'release side' in f['reasons'][0]]
