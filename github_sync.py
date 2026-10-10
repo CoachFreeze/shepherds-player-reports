@@ -76,3 +76,43 @@ def sync_players_json(players_dict):
                   f'{put_resp.status_code} {put_resp.text[:300]}')
     except Exception as exc:
         print(f'WARNING: GitHub auto-backup of players.json raised: {exc}')
+
+
+def _headers():
+    return {'Authorization': f'Bearer {GITHUB_TOKEN}', 'Accept': 'application/vnd.github+json'}
+
+
+def delete_file(repo_path):
+    """Best-effort delete of one file in the repo (e.g. data/reports/x.html). Silent no-op
+    without credentials or if the file isn't in the repo."""
+    if not enabled():
+        return
+    try:
+        url = f'{API_BASE}/repos/{GITHUB_REPO}/contents/{repo_path}'
+        g = requests.get(url, headers=_headers(), params={'ref': GITHUB_BRANCH}, timeout=10)
+        if g.status_code != 200:
+            return
+        r = requests.delete(url, headers=_headers(), timeout=10, json={
+            'message': f'Remove {repo_path}', 'sha': g.json()['sha'], 'branch': GITHUB_BRANCH})
+        if r.status_code not in (200, 201):
+            print(f'WARNING: GitHub delete of {repo_path} failed: {r.status_code} {r.text[:200]}')
+    except Exception as exc:
+        print(f'WARNING: GitHub delete of {repo_path} raised: {exc}')
+
+
+def put_file(repo_path, content_bytes):
+    """Best-effort create/update of one file in the repo."""
+    if not enabled():
+        return
+    try:
+        url = f'{API_BASE}/repos/{GITHUB_REPO}/contents/{repo_path}'
+        g = requests.get(url, headers=_headers(), params={'ref': GITHUB_BRANCH}, timeout=10)
+        payload = {'message': f'Update {repo_path}', 'branch': GITHUB_BRANCH,
+                   'content': base64.b64encode(content_bytes).decode()}
+        if g.status_code == 200:
+            payload['sha'] = g.json()['sha']
+        r = requests.put(url, headers=_headers(), json=payload, timeout=30)
+        if r.status_code not in (200, 201):
+            print(f'WARNING: GitHub put of {repo_path} failed: {r.status_code} {r.text[:200]}')
+    except Exception as exc:
+        print(f'WARNING: GitHub put of {repo_path} raised: {exc}')

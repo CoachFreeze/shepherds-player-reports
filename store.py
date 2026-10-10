@@ -219,3 +219,68 @@ def unlock_comp(slug, role, index):
     if index < len(comps_for_role):
         comps_for_role[index]['source'] = 'auto'
     _save(PLAYERS_PATH, players)
+
+
+# --- Delete / rename (coach-only, from the dashboard) -------------------------
+
+REPORT_SUFFIXES = ('_pitching.html', '_hitting.html', '_trackman_mini.html')
+
+
+def _report_files(slug):
+    d = os.path.join(DATA_DIR, 'reports')
+    return [(s, os.path.join(d, slug + s)) for s in REPORT_SUFFIXES if os.path.exists(os.path.join(d, slug + s))]
+
+
+def delete_player(slug):
+    """Removes the player's record, bio override and report files (locally and, when
+    GitHub sync is configured, in the repo). Returns False if the slug doesn't exist."""
+    players = _load(PLAYERS_PATH, {})
+    if slug not in players:
+        return False
+    del players[slug]
+    _save(PLAYERS_PATH, players)
+    ov = _load(OVERRIDES_PATH, {})
+    if slug in ov:
+        del ov[slug]
+        _save(OVERRIDES_PATH, ov)
+    for suffix, path in _report_files(slug):
+        os.remove(path)
+        github_sync.delete_file(f'data/reports/{slug}{suffix}')
+    sync_to_github()
+    return True
+
+
+def rename_player(slug, new_name):
+    """Fixes a misspelled name: re-keys the record under the new slug, renames the report
+    files and swaps the old name for the new one inside them. Returns (new_slug, error)."""
+    new_name = ' '.join(new_name.split())
+    players = _load(PLAYERS_PATH, {})
+    if slug not in players:
+        return None, 'Player not found.'
+    new_slug = slugify(new_name)
+    if not new_slug:
+        return None, 'Enter a name.'
+    if new_slug != slug and new_slug in players:
+        return None, f'A player named "{players[new_slug]["name"]}" already exists.'
+    old_name = players[slug]['name']
+    entry = players.pop(slug)
+    entry['name'] = new_name
+    players[new_slug] = entry
+    _save(PLAYERS_PATH, players)
+    ov = _load(OVERRIDES_PATH, {})
+    if slug in ov and new_slug != slug:
+        ov[new_slug] = ov.pop(slug)
+        _save(OVERRIDES_PATH, ov)
+    for suffix, path in _report_files(slug):
+        with open(path, encoding='utf-8') as f:
+            html = f.read()
+        html = html.replace(old_name, new_name).replace(old_name.upper(), new_name.upper())
+        new_path = os.path.join(DATA_DIR, 'reports', new_slug + suffix)
+        with open(new_path, 'w', encoding='utf-8') as f:
+            f.write(html)
+        if new_slug != slug:
+            os.remove(path)
+            github_sync.delete_file(f'data/reports/{slug}{suffix}')
+        github_sync.put_file(f'data/reports/{new_slug}{suffix}', html.encode('utf-8'))
+    sync_to_github()
+    return new_slug, None

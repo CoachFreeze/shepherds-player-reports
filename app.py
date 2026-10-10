@@ -89,6 +89,8 @@ DASHBOARD_PAGE = """
   .links a{font-family:'Barlow',sans-serif;font-weight:600;font-size:13.5px;text-decoration:none;color:#fff;background:var(--blue-strong);border-radius:999px;padding:7px 14px;margin-left:6px;}
   .coachlink{display:block;text-align:right;margin:14px 16px 0;font-size:12.5px;}
   .coachlink a{color:var(--muted);}
+  .mgmt{display:inline;margin-left:6px;} .mgmt button{font:600 12.5px 'Barlow',sans-serif;border:1px solid var(--border);background:#fff;color:var(--muted);border-radius:999px;padding:6px 11px;cursor:pointer;}
+  .mgmt button.del{color:#9c3a3a;}
   .group-title{font-family:'Oswald',sans-serif;font-weight:600;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:26px 0 10px;}
   .group-title:first-child{margin-top:0;}
 </style>
@@ -117,6 +119,10 @@ DASHBOARD_PAGE = """
           {% if p.roles.hit %}<a href="{{ url_for('view_report', slug=slug, role='hitting') }}">Hitting Report</a>{% endif %}
           {% endif %}
           {% if is_coach and p.get('program') != 'long_beach_state' %}<a href="{{ url_for('edit_comps', slug=slug) }}" style="background:#aa8b68;">Edit Comps</a>{% endif %}
+          {% if is_coach %}
+          <form class="mgmt" method="post" action="{{ url_for('rename_player_route', slug=slug) }}" onsubmit="var n=prompt('Correct spelling of the name:', {{ p.name|tojson }}); if(!n||n===this.querySelector('[name=name]').defaultValue){return false;} this.querySelector('[name=name]').value=n; return true;"><input type="hidden" name="name" value="{{ p.name }}"><button type="submit">Rename</button></form>
+          <form class="mgmt" method="post" action="{{ url_for('delete_player_route', slug=slug) }}" onsubmit="return confirm('Delete {{ p.name|e }} and their report(s)? This cannot be undone.');"><button type="submit" class="del">Delete</button></form>
+          {% endif %}
         </div>
       </div>
     {% endfor %}
@@ -138,6 +144,23 @@ def dashboard():
         key=lambda kv: kv[1]['name'])
     groups = [('Shepherds', shepherds), ('Long Beach State', lbsu)]
     return render_template_string(DASHBOARD_PAGE, groups=groups, is_coach=bool(session.get('coach')))
+
+
+@app.route('/player/<slug>/delete', methods=['POST'])
+@login_required
+def delete_player_route(slug):
+    if not store.delete_player(slug):
+        abort(404)
+    return redirect(url_for('dashboard'))
+
+
+@app.route('/player/<slug>/rename', methods=['POST'])
+@login_required
+def rename_player_route(slug):
+    new_slug, err = store.rename_player(slug, request.form.get('name', ''))
+    if err:
+        return err, 400
+    return redirect(url_for('dashboard'))
 
 
 @app.route('/admin/backup/players.json')
