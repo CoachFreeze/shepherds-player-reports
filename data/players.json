@@ -213,7 +213,9 @@
   },
   "hayden_vanderhoof": {
     "comps": {},
-    "grad_year": null,
+    "grad_year": 2030,
+    "height_in": 73.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10.10.26 IS.csv",
     "name": "Hayden Vanderhoof",
     "program": "long_beach_state",
     "roles": {
@@ -221,7 +223,8 @@
         "position": "RHP"
       }
     },
-    "school": "Long Beach State"
+    "school": "Long Beach State",
+    "weight_lbs": 170.0
   },
   "jackson_orr": {
     "comps": {
