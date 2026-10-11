@@ -23,7 +23,10 @@ def login_required(view):
     @functools.wraps(view)
     def wrapped(*args, **kwargs):
         if not session.get('coach'):
-            return redirect(url_for('login', next=request.path))
+            # Only GET pages can be returned to after logging in; a POST (e.g. a form submit from a
+            # session that expired) would land on a GET and show "Method not allowed".
+            nxt = request.path if request.method == 'GET' else (request.referrer or url_for('intake'))
+            return redirect(url_for('login', next=nxt))
         return view(*args, **kwargs)
     return wrapped
 
@@ -403,9 +406,11 @@ def intake_bulk():
     return render_template_string(BULK_REVIEW_PAGE, pitchers=pitchers, path=fname)
 
 
-@app.route('/intake/bulk/run', methods=['POST'])
+@app.route('/intake/bulk/run', methods=['GET', 'POST'])
 @login_required
 def intake_bulk_run():
+    if request.method == 'GET':
+        return redirect(url_for('intake_bulk'))
     f = request.form
     path = os.path.join(UPLOAD_DIR, os.path.basename(f.get('path', '')))
     if not os.path.exists(path):
@@ -449,9 +454,11 @@ button{margin:8px 8px 0 0;padding:11px 22px;border:none;border-radius:999px;back
 """
 
 
-@app.route('/intake/lbsu/confirm', methods=['POST'])
+@app.route('/intake/lbsu/confirm', methods=['GET', 'POST'])
 @login_required
 def intake_lbsu_confirm():
+    if request.method == 'GET':
+        return redirect(url_for('intake_lbsu'))
     f = request.form
     path = os.path.join(UPLOAD_DIR, os.path.basename(f.get('path', '')))
     if not os.path.exists(path):
