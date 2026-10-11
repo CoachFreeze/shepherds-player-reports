@@ -27,9 +27,11 @@ import os
 
 import requests
 
-GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN')
-GITHUB_REPO = os.environ.get('GITHUB_REPO')
-GITHUB_BRANCH = os.environ.get('GITHUB_BRANCH', 'main')
+# SHEPSAVANT_* names win, so this app can have its own token/repo even when the same Render account
+# already uses GITHUB_TOKEN / GITHUB_REPO for something else (e.g. another project).
+GITHUB_TOKEN = os.environ.get('SHEPSAVANT_GITHUB_TOKEN') or os.environ.get('GITHUB_TOKEN')
+GITHUB_REPO = os.environ.get('SHEPSAVANT_GITHUB_REPO') or os.environ.get('GITHUB_REPO')
+GITHUB_BRANCH = os.environ.get('SHEPSAVANT_GITHUB_BRANCH') or os.environ.get('GITHUB_BRANCH', 'main')
 GITHUB_DATA_PATH = 'data/players.json'  # the one file this module ever touches
 
 API_BASE = 'https://api.github.com'
