@@ -374,7 +374,11 @@ BULK_REVIEW_PAGE = BULK_STYLE + """
     <div><label>(in)</label><input type="number" name="in_{{ i }}" value="{{ ((p.bio.get('height_in') or 0)%12)|int if p.bio.get('height_in') else '' }}" style="width:70px;"></div>
     <div><label>Weight (lb)</label><input type="number" name="wt_{{ i }}" value="{{ p.bio.get('weight_lbs') or '' }}" style="width:80px;"></div>
   </div>
-  {% for f in p.flagged %}<div class="flag"><label><input type="checkbox" name="ex_{{ i }}" value="{{ f.uid }}" checked> Leave out pitch #{{ f.pitch_no }} ({{ f.type }}{% if f.velo %}, {{ '%.0f'|format(f.velo) }} mph{% endif %}) &mdash; {{ f.reasons[0] }}</label></div>{% endfor %}
+  {% for f in p.flagged %}<div class="flag">Pitch #{{ f.pitch_no }} ({{ f.type }}{% if f.velo %}, {{ '%.0f'|format(f.velo) }} mph{% endif %}) &mdash; {{ f.reasons[0] }}<br>
+    <select name="fl_{{ f.uid }}" style="margin-left:0;">
+      <option value="out" selected>Leave this pitch out</option><option value="keep">Keep it with {{ p.name }}</option>
+      {% for q in pitchers if q.csv_name != p.csv_name %}<option value="move:{{ q.csv_name }}">Move to {{ q.name }}</option>{% endfor %}
+    </select></div>{% endfor %}
 </div>{% endfor %}
 <button type="submit">Generate all reports</button></form>"""
 
@@ -406,6 +410,14 @@ def intake_bulk_run():
     path = os.path.join(UPLOAD_DIR, os.path.basename(f.get('path', '')))
     if not os.path.exists(path):
         abort(400)
+    reassign, drop = {}, set()
+    for k, v in f.items():
+        if k.startswith('fl_'):
+            uid = k[3:]
+            if v == 'out':
+                drop.add(uid)
+            elif v.startswith('move:'):
+                reassign[uid] = v[5:]
     specs, i = [], 0
     while f'csv_{i}' in f:
         if f.get(f'inc_{i}'):
@@ -414,9 +426,9 @@ def intake_bulk_run():
             specs.append({'name': f.get(f'name_{i}', '').strip(), 'school': f.get('school') or None,
                           'grad_year': int(gy) if gy.isdigit() else None, 'throws': f.get(f'throws_{i}'),
                           'height_in': (ft * 12 + (inch or 0)) if ft else None,
-                          'weight_lbs': _num_or_none(f.get(f'wt_{i}')), 'exclude_uids': f.getlist(f'ex_{i}')})
+                          'weight_lbs': _num_or_none(f.get(f'wt_{i}')), 'exclude_uids': list(drop)})
         i += 1
-    pipeline.process_trackman_bulk(path, specs, live_ab=bool(f.get('live_ab')))
+    pipeline.process_trackman_bulk(path, specs, live_ab=bool(f.get('live_ab')), reassign=reassign)
     return redirect(url_for('dashboard'))
 
 

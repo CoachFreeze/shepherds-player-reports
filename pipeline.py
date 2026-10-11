@@ -282,7 +282,7 @@ def render_trackman_mini(name, trackman_rows, bio=None, summary_rows=None):
     return out_path
 
 
-def process_trackman_only(trackman_path, name, school, grad_year, position_pitch, height_in=None, weight_lbs=None, exclude_uids=(), live_ab=False):
+def process_trackman_only(trackman_path, name, school, grad_year, position_pitch, height_in=None, weight_lbs=None, exclude_uids=(), live_ab=False, reassign=None):
     """Entry point for the Long Beach State side of the roster: a pitcher
     who has a Trackman session but no Full Swing export. Mirrors
     process_upload()'s shape (bio upsert -> store the source file -> render
@@ -296,6 +296,11 @@ def process_trackman_only(trackman_path, name, school, grad_year, position_pitch
     bio = store.get_player(slug)
 
     trackman_rows = e.load_trackman_rows(trackman_path)
+    if reassign:                      # {pitch uid: 'Last, First'} -- pitches the coach says belong to someone else
+        for r in trackman_rows:
+            new = reassign.get(r.get('PitchUID') or r.get('PitchNo'))
+            if new:
+                r['Pitcher'] = new
     if exclude_uids:
         ex = set(exclude_uids)
         trackman_rows = [r for r in trackman_rows if (r.get('PitchUID') or r.get('PitchNo')) not in ex]
@@ -421,7 +426,7 @@ def pitchers_in_trackman(trackman_path):
     return sorted(out, key=lambda x: x['name'])
 
 
-def process_trackman_bulk(trackman_path, specs, live_ab=False):
+def process_trackman_bulk(trackman_path, specs, live_ab=False, reassign=None):
     """specs: [{'name','school','grad_year','height_in','weight_lbs','exclude_uids'}].
     Creates/updates each player as a Long Beach State Trackman player, renders the reports and
     (when GitHub sync is configured) pushes each report file to the repo so it survives a
@@ -431,7 +436,7 @@ def process_trackman_bulk(trackman_path, specs, live_ab=False):
         slug, out = process_trackman_only(
             trackman_path, s['name'], s.get('school'), s.get('grad_year'),
             ('RHP' if s.get('throws') == 'R' else 'LHP' if s.get('throws') == 'L' else None),
-            s.get('height_in'), s.get('weight_lbs'), exclude_uids=s.get('exclude_uids') or (), live_ab=live_ab)
+            s.get('height_in'), s.get('weight_lbs'), exclude_uids=s.get('exclude_uids') or (), live_ab=live_ab, reassign=reassign)
         if out:
             try:
                 with open(out, 'rb') as f:

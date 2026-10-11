@@ -325,9 +325,8 @@
   },
   "mason_tymick": {
     "comps": {},
-    "grad_year": 2029,
-    "height_in": 75.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/mason_tymick_trackman_10.10.26 IS.csv",
+    "grad_year": null,
+    "height_in": 75,
     "name": "Mason Tymick",
     "program": "long_beach_state",
     "roles": {
@@ -336,7 +335,7 @@
       }
     },
     "school": "Long Beach State",
-    "weight_lbs": 185.0
+    "weight_lbs": 185
   },
   "reagan_samples": {
     "comps": {
