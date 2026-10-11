@@ -36,19 +36,65 @@ def _save(path, data):
         json.dump(data, f, indent=2, sort_keys=True)
 
 
+# --- Programs ---------------------------------------------------------------
+PUBLIC_PROGRAMS = {'shepherds'}          # visible to anyone; every other program is private to its coaches (and admins)
+_KNOWN_LABELS = {'shepherds': 'Shepherds', 'long_beach_state': 'Long Beach State'}
+
+
+def program_slug(label):
+    return re.sub(r'[^a-z0-9]+', '_', (label or '').lower()).strip('_')
+
+
+def program_label(slug):
+    for c in _load(COACHES_PATH, {}).values():
+        if c.get('program') == slug and c.get('program_label'):
+            return c['program_label']
+    return _KNOWN_LABELS.get(slug) or (slug or '').replace('_', ' ').title()
+
+
+def list_programs():
+    """Private programs known to the app: [(slug, label)]."""
+    slugs = {p.get('program') for p in list_players().values() if p.get('program')} | {c.get('program') for c in list_coaches().values() if c.get('program')}
+    return sorted(((x, program_label(x)) for x in slugs if x and x not in PUBLIC_PROGRAMS), key=lambda t: t[1])
+
+
 # --- Coaches ----------------------------------------------------------------
 
 def list_coaches():
     return _load(COACHES_PATH, {})
 
 
-def add_coach(username, display_name, password):
+def _push_coaches():
+    try:
+        with open(COACHES_PATH, 'rb') as f:
+            github_sync.put_file('data/coaches.json', f.read())
+    except Exception as exc:
+        print(f'WARNING: could not push coaches.json: {exc}')
+
+
+def add_coach(username, display_name, password, role='admin', program=None, push=False, program_label=None):
+    """role: 'admin' (everything) or 'program' (only the players of one program, e.g. long_beach_state)."""
     coaches = list_coaches()
     coaches[username] = {
         'display_name': display_name,
         'password_hash': generate_password_hash(password),
+        'role': role,
     }
+    if program:
+        coaches[username]['program'] = program
+        if program_label:
+            coaches[username]['program_label'] = program_label
     _save(COACHES_PATH, coaches)
+    if push:
+        _push_coaches()
+
+
+def delete_coach(username):
+    coaches = list_coaches()
+    if username in coaches:
+        del coaches[username]
+        _save(COACHES_PATH, coaches)
+        _push_coaches()
 
 
 def verify_coach(username, password):

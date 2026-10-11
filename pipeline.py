@@ -285,7 +285,7 @@ def render_trackman_mini(name, trackman_rows, bio=None, summary_rows=None, write
     return out_path
 
 
-def process_trackman_only(trackman_path, name, school, grad_year, position_pitch, height_in=None, weight_lbs=None, exclude_uids=(), live_ab=False, reassign=None):
+def process_trackman_only(trackman_path, name, school, grad_year, position_pitch, height_in=None, weight_lbs=None, exclude_uids=(), live_ab=False, reassign=None, program='long_beach_state'):
     """Entry point for the Long Beach State side of the roster: a pitcher
     who has a Trackman session but no Full Swing export. Mirrors
     process_upload()'s shape (bio upsert -> store the source file -> render
@@ -294,7 +294,7 @@ def process_trackman_only(trackman_path, name, school, grad_year, position_pitch
     Returns (slug, out_path) -- out_path is None if this name doesn't
     actually appear in the CSV (e.g. a typo, or wrong file attached)."""
     slug = store.upsert_player_bio(name, school, grad_year, position_pitch=position_pitch, height_in=height_in, weight_lbs=weight_lbs)
-    store.set_program(slug, 'long_beach_state')
+    store.set_program(slug, program)
     store.set_last_trackman(slug, trackman_path)
     bio = store.get_player(slug)
 
@@ -410,7 +410,7 @@ def regenerate_role(slug, role):
     return out
 
 
-def pitchers_in_trackman(trackman_path):
+def pitchers_in_trackman(trackman_path, program=None):
     """Everyone in a Trackman export, ready for the bulk intake screen:
     [{'csv_name','name','throws','n','known','flagged':[...]}]. Names are flipped from
     'Last, First' to 'First Last'."""
@@ -424,13 +424,13 @@ def pitchers_in_trackman(trackman_path):
         disp = f'{first} {last}'.strip() if first else csv_name
         throws = (rs[0].get('PitcherThrows') or '')[:1].upper()
         out.append({'csv_name': csv_name, 'name': disp, 'throws': throws, 'n': len(rs),
-                    'known': store.slugify(disp) in existing,
-                    'bio': existing.get(store.slugify(disp), {}),
+                    'known': store.slugify(disp) in existing and (program is None or existing[store.slugify(disp)].get('program') == program),
+                    'bio': (existing.get(store.slugify(disp), {}) if program is None or existing.get(store.slugify(disp), {}).get('program') == program else {}),
                     'flagged': e.detect_anomalies(rows, csv_name)})
     return sorted(out, key=lambda x: x['name'])
 
 
-def process_trackman_bulk(trackman_path, specs, live_ab=False, reassign=None):
+def process_trackman_bulk(trackman_path, specs, live_ab=False, reassign=None, program='long_beach_state'):
     """specs: [{'name','school','grad_year','height_in','weight_lbs','exclude_uids'}].
     Creates/updates each player as a Long Beach State Trackman player, renders the reports and
     (when GitHub sync is configured) pushes each report file to the repo so it survives a
@@ -440,6 +440,6 @@ def process_trackman_bulk(trackman_path, specs, live_ab=False, reassign=None):
         slug, out = process_trackman_only(
             trackman_path, s['name'], s.get('school'), s.get('grad_year'),
             ('RHP' if s.get('throws') == 'R' else 'LHP' if s.get('throws') == 'L' else None),
-            s.get('height_in'), s.get('weight_lbs'), exclude_uids=s.get('exclude_uids') or (), live_ab=live_ab, reassign=reassign)
+            s.get('height_in'), s.get('weight_lbs'), exclude_uids=s.get('exclude_uids') or (), live_ab=live_ab, reassign=reassign, program=program)
         results.append((s['name'], slug, out))
     return results

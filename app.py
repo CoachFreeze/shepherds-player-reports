@@ -28,8 +28,57 @@ def login_required(view):
         if not session.get('coach'):
             # Only GET pages can be returned to after logging in; a POST (e.g. a form submit from a
             # session that expired) would land on a GET and show "Method not allowed".
-            nxt = request.path if request.method == 'GET' else (request.referrer or url_for('intake'))
+            nxt = request.path if request.method == 'GET' else (request.referrer or url_for('dashboard'))
             return redirect(url_for('login', next=nxt))
+        return view(*args, **kwargs)
+    return wrapped
+
+
+def current_coach():
+    return store.list_coaches().get(session.get('coach') or '')
+
+
+def is_admin():
+    c = current_coach()
+    return bool(c) and c.get('role', 'admin') == 'admin'
+
+
+def can_manage(slug):
+    """Admins manage everyone; a program coach manages only players of his own program."""
+    c = current_coach()
+    if not c:
+        return False
+    if c.get('role', 'admin') == 'admin':
+        return True
+    p = store.get_player(slug)
+    return bool(p) and p.get('program', 'shepherds') == c.get('program')
+
+
+def can_view(slug):
+    """Public programs (Shepherds) are open to everyone; every other program is private to its own coaches and admins."""
+    p = store.get_player(slug)
+    if not p:
+        return False
+    c = current_coach()
+    if c and c.get('role', 'admin') != 'admin':          # a signed-in program coach sees only his own program
+        return can_manage(slug)
+    if p.get('program', 'shepherds') in store.PUBLIC_PROGRAMS:
+        return True
+    return can_manage(slug)
+
+
+def my_program():
+    c = current_coach() or {}
+    return c.get('program')
+
+
+def admin_required(view):
+    @functools.wraps(view)
+    def wrapped(*args, **kwargs):
+        if not session.get('coach'):
+            return redirect(url_for('login', next=request.path if request.method == 'GET' else url_for('dashboard')))
+        if not is_admin():
+            abort(403)
         return view(*args, **kwargs)
     return wrapped
 
@@ -95,15 +144,18 @@ def _player_pos(p):
 @app.route('/')
 def dashboard():
     players = store.list_players()
-    shep, lbsu = [], []
+    shep, priv = [], {}
     for slug, p in players.items():
+        if not can_view(slug):
+            continue
         p = dict(p)
+        p['can_edit'] = can_manage(slug)
         p['has_photo'] = headshots.exists(slug)
         p['photo_v'] = int(os.path.getmtime(headshots.path(slug))) if p['has_photo'] else 0
         last, first = _split_name(p['name'])
         pos = _player_pos(p)
-        if p.get('program') == 'long_beach_state':
-            lbsu.append((slug, p, url_for('player_overview', slug=slug), last, first, pos))
+        if p.get('program', 'shepherds') not in store.PUBLIC_PROGRAMS:
+            priv.setdefault(p['program'], []).append((slug, p, url_for('player_overview', slug=slug), last, first, pos))
         else:
             links = []
             if (p.get('roles') or {}).get('pitch'):
@@ -113,14 +165,15 @@ def dashboard():
             p['shep_links'] = links
             shep.append((slug, p, links[0][1] if links else '#', last, first, pos))
     key = lambda t: (t[3].lower(), t[4].lower())
-    groups = [('Long Beach State', sorted(lbsu, key=key)), ('Shepherds', sorted(shep, key=key))]
-    return render_template('dashboard.html', groups=groups, is_coach=bool(session.get('coach')))
+    groups = [(store.program_label(k), sorted(v, key=key)) for k, v in sorted(priv.items(), key=lambda kv: store.program_label(kv[0]))]
+    groups.append(('Shepherds', sorted(shep, key=key)))
+    return render_template('dashboard.html', groups=groups, is_coach=bool(session.get('coach')), is_admin=is_admin())
 
 
 @app.route('/player/<slug>')
 def player_overview(slug):
     bio = store.get_player(slug)
-    if not bio:
+    if not bio or not can_view(slug):
         abort(404)
     b = overview.build(slug, bio)
     if not b:
@@ -130,13 +183,13 @@ def player_overview(slug):
     css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
     return render_template('player_overview.html', b=b, bio=bio, slug=slug, css=css, has_photo=has_photo,
                            photo_v=int(os.path.getmtime(headshots.path(slug))) if has_photo else 0,
-                           initials=(first[:1] + last[:1]).upper(), pos=_player_pos(bio), is_coach=bool(session.get('coach')))
+                           initials=(first[:1] + last[:1]).upper(), pos=_player_pos(bio), is_coach=bool(session.get('coach')), can_edit=can_manage(slug))
 
 
 @app.route('/report/<slug>/outing/<date>')
 def view_outing(slug, date):
     bio = store.get_player(slug)
-    html = overview.outing_report_html(slug, date, bio) if bio else None
+    html = overview.outing_report_html(slug, date, bio) if bio and can_view(slug) else None
     if not html:
         abort(404)
     return html
@@ -144,10 +197,10 @@ def view_outing(slug, date):
 
 @app.route('/headshot/<slug>')
 def headshot(slug):
-    if not headshots.exists(slug):
+    if not headshots.exists(slug) or not can_view(slug):
         abort(404)
     resp = send_file(headshots.path(slug), mimetype='image/jpeg')
-    resp.headers['Cache-Control'] = 'public, max-age=86400'
+    resp.headers['Cache-Control'] = 'private, max-age=3600' if (store.get_player(slug) or {}).get('program', 'shepherds') not in store.PUBLIC_PROGRAMS else 'public, max-age=86400'
     return resp
 
 
@@ -171,6 +224,8 @@ a{color:#8a7557;font-size:13px;} .ph{width:96px;height:96px;border-radius:50%;ob
 @app.route('/player/<slug>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_profile(slug):
+    if not can_manage(slug):
+        abort(403)
     p = store.get_player(slug)
     if not p:
         abort(404)
@@ -200,9 +255,59 @@ def edit_profile(slug):
                                   v=int(os.path.getmtime(headshots.path(slug))) if has else 0)
 
 
+COACHES_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Coach Logins</title>
+<style>body{font-family:Barlow,Arial,sans-serif;background:#f3ebdd;color:#6f4f2f;max-width:640px;margin:0 auto;padding:24px 16px 60px;} h1{font-family:Oswald,Arial,sans-serif;margin:6px 0 10px;}
+.card{background:#fff;border:1px solid #e1d6c2;border-radius:10px;padding:12px 14px;margin:10px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;} small{color:#8a7557;}
+label{display:block;font-weight:600;font-size:13px;margin:12px 0 4px;} input,select{width:100%;padding:9px 10px;border:1px solid #e1d6c2;border-radius:7px;box-sizing:border-box;font:inherit;}
+button{padding:10px 22px;border:none;border-radius:999px;background:#5c84a6;color:#fff;font-weight:600;cursor:pointer;margin-top:16px;} button.del{background:#fff;color:#9c3a3a;border:1px solid #e1d6c2;margin:0;padding:6px 14px;font-size:12.5px;} a{color:#8a7557;font-size:13px;}
+.msg{background:#e3ecdf;color:#3f6b42;padding:10px 14px;border-radius:8px;margin:10px 0;} .err{background:#f6dede;color:#9c3a3a;}</style></head><body>
+<a href="{{ url_for('dashboard') }}">&larr; Dashboard</a><h1>Coach Logins</h1>
+{% if msg %}<div class="msg {{ 'err' if err }}">{{ msg }}</div>{% endif %}
+{% for u, c in coaches.items() %}<div class="card"><div><b>{{ c.display_name }}</b> <small>({{ u }})</small><br><small>{{ 'Admin -- full access' if c.get('role','admin') == 'admin' else (c.get('program_label') or c.get('program')) ~ ' coach -- only sees and edits their own program' }}</small></div>
+{% if u != me %}<form method="post" action="{{ url_for('admin_coach_delete', username=u) }}" onsubmit="return confirm('Remove this login?');" style="margin:0;"><button class="del">Remove</button></form>{% endif %}</div>{% endfor %}
+<h2 style="font-family:Oswald,Arial,sans-serif;margin-top:28px;">Add a login <small>(or reset a password: reuse the username)</small></h2>
+<form method="post"><label>Username</label><input name="username" required autocomplete="off"><label>Display name</label><input name="display_name" required>
+<label>Password</label><input name="password" type="text" required autocomplete="off" minlength="8">
+<label>Access</label><select name="role"><option value="program">Program coach (sees only their own program)</option><option value="admin">Admin (everything)</option></select>
+<label>Program / school <small>(program coaches only -- coaches with the same name share players)</small></label><input name="program_label" list="progs" placeholder="e.g. Long Beach State"><datalist id="progs">{% for s, l in programs %}<option value="{{ l }}">{% endfor %}</datalist>
+<button type="submit">Save login</button></form></body></html>"""
+
+
+@app.route('/admin/coaches', methods=['GET', 'POST'])
+@admin_required
+def admin_coaches():
+    msg, err = None, False
+    if request.method == 'POST':
+        f = request.form
+        u = re.sub(r'[^A-Za-z0-9_.-]', '', f.get('username', '').strip())
+        if not u or len(f.get('password', '')) < 8 or not f.get('display_name', '').strip():
+            msg, err = 'Username, name and a password of at least 8 characters are required.', True
+        else:
+            role = 'admin' if f.get('role') == 'admin' else 'program'
+            label = ' '.join(f.get('program_label', '').split())
+            pslug = store.program_slug(label)
+            if role == 'program' and (not pslug or pslug in store.PUBLIC_PROGRAMS):
+                msg, err = 'Enter the coach\'s program or school name (e.g. Long Beach State).', True
+            else:
+                store.add_coach(u, f['display_name'].strip(), f['password'], role=role,
+                                program=pslug if role == 'program' else None, program_label=label if role == 'program' else None, push=True)
+                msg = f'Saved login "{u}". Share the username and password with them.'
+    return render_template_string(COACHES_PAGE, coaches=store.list_coaches(), me=session.get('coach'), msg=msg, err=err, programs=store.list_programs())
+
+
+@app.route('/admin/coaches/<username>/delete', methods=['POST'])
+@admin_required
+def admin_coach_delete(username):
+    if username != session.get('coach'):
+        store.delete_coach(username)
+    return redirect(url_for('admin_coaches'))
+
+
 @app.route('/player/<slug>/headshot', methods=['POST'])
 @login_required
 def upload_headshot(slug):
+    if not can_manage(slug):
+        abort(403)
     if not store.get_player(slug):
         abort(404)
     f = request.files.get('photo')
@@ -217,6 +322,8 @@ def upload_headshot(slug):
 @app.route('/player/<slug>/delete', methods=['POST'])
 @login_required
 def delete_player_route(slug):
+    if not can_manage(slug):
+        abort(403)
     if not store.delete_player(slug):
         abort(404)
     return redirect(url_for('dashboard'))
@@ -225,6 +332,8 @@ def delete_player_route(slug):
 @app.route('/player/<slug>/rename', methods=['POST'])
 @login_required
 def rename_player_route(slug):
+    if not can_manage(slug):
+        abort(403)
     new_slug, err = store.rename_player(slug, request.form.get('name', ''))
     if err:
         return err, 400
@@ -232,7 +341,7 @@ def rename_player_route(slug):
 
 
 @app.route('/admin/backup/players.json')
-@login_required
+@admin_required
 def backup_players():
     """Downloads the live roster data (bios, comps, 60 times) as a plain
     JSON file. Render's free tier resets this file to whatever's committed
@@ -245,6 +354,8 @@ def backup_players():
 
 @app.route('/report/<slug>/<role>')
 def view_report(slug, role):
+    if not can_view(slug):
+        abort(404)
     if role not in ('pitching', 'hitting', 'trackman'):
         abort(404)
     if role == 'trackman':
@@ -308,7 +419,7 @@ INTAKE_PAGE = """
 
 
 @app.route('/intake', methods=['GET', 'POST'])
-@login_required
+@admin_required
 def intake():
     message, ok = None, True
     if request.method == 'POST':
@@ -421,18 +532,18 @@ button{margin-top:14px;padding:11px 22px;border:none;border-radius:999px;backgro
 
 BULK_UPLOAD_PAGE = BULK_STYLE + """
 <title>Bulk Trackman Intake</title><h1>Bulk Trackman Intake</h1>
-<p>Upload one Trackman CSV with any number of Long Beach State pitchers. Everyone in the file is picked up automatically.</p>
+<p>Upload one Trackman CSV with any number of pitchers{% if prog_label %} for {{ prog_label }}{% endif %}. Everyone in the file is picked up automatically.</p>
 {% if message %}<div class="card" style="color:#9c3a3a;">{{ message }}</div>{% endif %}
-<form method="post" enctype="multipart/form-data"><input type="file" name="trackman_file" accept=".csv" required><br><button type="submit">Read file</button></form>
+<form method="post" enctype="multipart/form-data">{% if programs %}<p><label style="font-weight:600;">Program: <select name="program">{% for s, l in programs %}<option value="{{ s }}" {{ 'selected' if s == prog }}>{{ l }}</option>{% endfor %}</select></label></p>{% endif %}<input type="file" name="trackman_file" accept=".csv" required><br><button type="submit">Read file</button></form>
 <p><a href="{{ url_for('dashboard') }}">&larr; Dashboard</a></p>"""
 
 BULK_REVIEW_PAGE = BULK_STYLE + """
 <title>Review Pitchers</title><h1>Review pitchers</h1>
 <p>{{ pitchers|length }} pitchers found. Fill in height/weight for the arm-angle badge (optional), uncheck anyone to skip, and review any flagged pitches.</p>
 <form method="post" enctype="multipart/form-data" action="{{ url_for('intake_bulk_run') }}">
-<input type="hidden" name="path" value="{{ path }}">
+<input type="hidden" name="path" value="{{ path }}"><input type="hidden" name="program" value="{{ prog }}">
 <label style="font-weight:600;"><input type="checkbox" name="live_ab" value="1"> Game / Live AB session (adds the Outing Summary; leave unchecked for bullpens)</label>
-<div class="row" style="margin-top:10px;"><div><label>School</label><input type="text" name="school" value="Long Beach State"></div></div>
+<div class="row" style="margin-top:10px;"><div><label>School</label><input type="text" name="school" value="{{ prog_label }}"></div></div>
 {% for p in pitchers %}{% set i = loop.index0 %}
 <div class="card">
   <label style="font-weight:700;font-size:16px;"><input type="checkbox" name="inc_{{ i }}" value="1" checked> <input type="text" name="name_{{ i }}" value="{{ p.name }}" style="font-weight:600;"> {{ p.throws }}HP &middot; {{ p.n }} pitches{% if p.known %}<span class="tag">already on roster</span>{% endif %}</label>
@@ -453,24 +564,36 @@ BULK_REVIEW_PAGE = BULK_STYLE + """
 <button type="submit">Generate all reports</button></form>"""
 
 
+def _target_program():
+    """A program coach always uploads to his own program; an admin picks one (default Long Beach State)."""
+    if is_admin():
+        return request.form.get('program') or 'long_beach_state'
+    return my_program()
+
+
+def _bulk_ctx(prog):
+    return {'programs': store.list_programs() if is_admin() else None, 'prog': prog, 'prog_label': store.program_label(prog)}
+
+
 @app.route('/intake/bulk', methods=['GET', 'POST'])
 @login_required
 def intake_bulk():
     if request.method == 'GET':
-        return render_template_string(BULK_UPLOAD_PAGE, message=None)
+        return render_template_string(BULK_UPLOAD_PAGE, message=None, **_bulk_ctx(my_program() or 'long_beach_state'))
     f = request.files.get('trackman_file')
     if not f or not f.filename:
-        return render_template_string(BULK_UPLOAD_PAGE, message='Choose a Trackman CSV.')
+        return render_template_string(BULK_UPLOAD_PAGE, message='Choose a Trackman CSV.', **_bulk_ctx(_target_program()))
     fname = 'bulk_' + os.path.basename(f.filename)
     path = os.path.join(UPLOAD_DIR, fname)
     f.save(path)
     try:
-        pitchers = pipeline.pitchers_in_trackman(path)
+        prog = _target_program()
+        pitchers = pipeline.pitchers_in_trackman(path, program=prog)
     except Exception as exc:
-        return render_template_string(BULK_UPLOAD_PAGE, message=f"Couldn't read that file: {exc}")
+        return render_template_string(BULK_UPLOAD_PAGE, message=f"Couldn't read that file: {exc}", **_bulk_ctx(_target_program()))
     if not pitchers:
-        return render_template_string(BULK_UPLOAD_PAGE, message='No pitchers found in that file.')
-    return render_template_string(BULK_REVIEW_PAGE, pitchers=pitchers, path=fname)
+        return render_template_string(BULK_UPLOAD_PAGE, message='No pitchers found in that file.', **_bulk_ctx(_target_program()))
+    return render_template_string(BULK_REVIEW_PAGE, pitchers=pitchers, path=fname, **_bulk_ctx(prog))
 
 
 @app.route('/intake/bulk/run', methods=['GET', 'POST'])
@@ -490,9 +613,16 @@ def intake_bulk_run():
                 drop.add(uid)
             elif v.startswith('move:'):
                 reassign[uid] = v[5:]
-    specs, i, photos = [], 0, {}
+    prog = _target_program()
+    if not prog:
+        abort(403)
+    specs, i, photos, skipped = [], 0, {}, []
     while f'csv_{i}' in f:
-        if f.get(f'inc_{i}'):
+        _ex = store.get_player(store.slugify(f.get(f'name_{i}', '').strip()))
+        _blocked = bool(_ex) and _ex.get('program', 'shepherds') != prog
+        if f.get(f'inc_{i}') and _blocked:
+            skipped.append(f.get(f'name_{i}', '').strip())
+        if f.get(f'inc_{i}') and not _blocked:
             ft, inch = _num_or_none(f.get(f'ft_{i}')), _num_or_none(f.get(f'in_{i}'))
             gy = f.get(f'grad_{i}', '').strip()
             specs.append({'name': f.get(f'name_{i}', '').strip(), 'school': f.get('school') or None,
@@ -503,13 +633,16 @@ def intake_bulk_run():
             if ph and ph.filename:
                 photos[specs[-1]['name']] = ph
         i += 1
-    results = pipeline.process_trackman_bulk(path, specs, live_ab=bool(f.get('live_ab')), reassign=reassign)
+    results = pipeline.process_trackman_bulk(path, specs, live_ab=bool(f.get('live_ab')), reassign=reassign, program=prog)
     for name, slug, out in results:
         if out and name in photos:
             try:
                 headshots.save(slug, photos[name])
             except Exception as exc:
                 print(f'WARNING: headshot for {name} not saved: {exc}')
+    if skipped:
+        return (BULK_STYLE + '<h1>Done</h1><div class="card">Skipped (a player with that name already belongs to another program): <b>' + ', '.join(skipped).replace('<', '') +
+                '</b>. Everyone else was added.</div><p><a href="' + url_for('dashboard') + '">Go to the dashboard</a></p>')
     return redirect(url_for('dashboard'))
 
 
@@ -597,7 +730,7 @@ def _intake_lbsu_legacy():
 # --- comps override API (coach-only) -------------------------------------
 
 @app.route('/api/comps/search')
-@login_required
+@admin_required
 def api_comps_search():
     q = request.args.get('q', '')
     if len(q) < 2:
@@ -606,7 +739,7 @@ def api_comps_search():
 
 
 @app.route('/api/comps/<slug>/<role>/<int:index>', methods=['POST'])
-@login_required
+@admin_required
 def api_comps_override(slug, role, index):
     data = request.get_json(force=True)
     name = data.get('name')
@@ -619,7 +752,7 @@ def api_comps_override(slug, role, index):
 
 
 @app.route('/api/comps/<slug>/<role>/<int:index>/unlock', methods=['POST'])
-@login_required
+@admin_required
 def api_comps_unlock(slug, role, index):
     store.unlock_comp(slug, role, index)
     pipeline.regenerate_role(slug, role)
@@ -684,7 +817,7 @@ EDIT_COMPS_PAGE = """
 
 
 @app.route('/edit/<slug>')
-@login_required
+@admin_required
 def edit_comps(slug):
     player = store.get_player(slug)
     if not player:
@@ -693,7 +826,7 @@ def edit_comps(slug):
 
 
 @app.route('/edit/<slug>/<role>/<int:index>/override', methods=['POST'])
-@login_required
+@admin_required
 def edit_comps_override(slug, role, index):
     name = request.form.get('name', '').strip()
     if name:
@@ -703,7 +836,7 @@ def edit_comps_override(slug, role, index):
 
 
 @app.route('/edit/<slug>/<role>/<int:index>/unlock', methods=['POST'])
-@login_required
+@admin_required
 def edit_comps_unlock(slug, role, index):
     store.unlock_comp(slug, role, index)
     pipeline.regenerate_role(slug, role)
@@ -711,7 +844,7 @@ def edit_comps_unlock(slug, role, index):
 
 
 @app.route('/edit/<slug>/sixty', methods=['POST'])
-@login_required
+@admin_required
 def edit_sixty(slug):
     raw = request.form.get('sixty_yd_time', '').strip()
     try:
