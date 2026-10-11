@@ -1,7 +1,9 @@
 {
   "adrian_pineda": {
     "comps": {},
-    "grad_year": null,
+    "grad_year": 2029,
+    "height_in": 75.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10.10.26 IS.csv",
     "name": "Adrian Pineda",
     "program": "long_beach_state",
     "roles": {
@@ -9,7 +11,8 @@
         "position": "RHP"
       }
     },
-    "school": "Long Beach State"
+    "school": "Long Beach State",
+    "weight_lbs": 180.0
   },
   "aidan_young": {
     "comps": {
