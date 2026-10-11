@@ -15,6 +15,7 @@ import arsenal_comps as ac
 import mlb_lookup
 import store
 import github_sync
+import outings as outings_mod
 import fonts_embed
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -219,7 +220,7 @@ def _pitch_log_rows(log):
     return rows
 
 
-def render_trackman_mini(name, trackman_rows, bio=None, summary_rows=None):
+def render_trackman_mini(name, trackman_rows, bio=None, summary_rows=None, write=True):
     """A scoped report for a pitcher who has a Trackman session but no Full
     Swing workbook yet: real pitch movement, spin direction and velocity
     straight from the CSV, with none of the season-stat/percentile/comps
@@ -277,6 +278,8 @@ def render_trackman_mini(name, trackman_rows, bio=None, summary_rows=None):
         'outing': e.outing_summary([r for r in summary_rows if e._pitcher_match(r, name)]) if summary_rows else None,
     }
     html = tm_mini_tpl.render(p=p, css=CSS, movement_html=movement_html, location_html=location_html, arm_html=arm_html, comps_html=comps_html, ideas_html=ideas_html, spin_html=spin_html, brand=BRAND)
+    if not write:
+        return html
     out_path = os.path.join(REPORTS_DIR, f'{slug}_trackman_mini.html')
     open(out_path, 'w').write(html)
     return out_path
@@ -304,14 +307,15 @@ def process_trackman_only(trackman_path, name, school, grad_year, position_pitch
     if exclude_uids:
         ex = set(exclude_uids)
         trackman_rows = [r for r in trackman_rows if (r.get('PitchUID') or r.get('PitchNo')) not in ex]
-    _, pitches = e.pitcher_trackman_summary(trackman_rows, name)
+    mine = [r for r in trackman_rows if e._pitcher_match(r, name)]
+    _, pitches = e.pitcher_trackman_summary(mine, name)
     if not pitches:
         store.sync_to_github()
         return slug, None
 
-    out = render_trackman_mini(name, trackman_rows, bio, summary_rows=trackman_rows if live_ab else None)
+    outings_mod.add_rows(slug, mine, live_ab=live_ab)
     store.sync_to_github()
-    return slug, out
+    return slug, slug
 
 
 def render_hitter(name, totals_row, master_rows, bio):
@@ -437,11 +441,5 @@ def process_trackman_bulk(trackman_path, specs, live_ab=False, reassign=None):
             trackman_path, s['name'], s.get('school'), s.get('grad_year'),
             ('RHP' if s.get('throws') == 'R' else 'LHP' if s.get('throws') == 'L' else None),
             s.get('height_in'), s.get('weight_lbs'), exclude_uids=s.get('exclude_uids') or (), live_ab=live_ab, reassign=reassign)
-        if out:
-            try:
-                with open(out, 'rb') as f:
-                    github_sync.put_file(f'data/reports/{os.path.basename(out)}', f.read())
-            except Exception as exc:
-                print(f'WARNING: could not push {out}: {exc}')
         results.append((s['name'], slug, out))
     return results

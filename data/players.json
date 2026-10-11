@@ -1,9 +1,8 @@
 {
   "adrian_pineda": {
     "comps": {},
-    "grad_year": 2029,
-    "height_in": 75.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10.10.26 IS.csv",
+    "grad_year": null,
+    "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/45f27f88-10.10.26_IS.csv",
     "name": "Adrian Pineda",
     "program": "long_beach_state",
     "roles": {
@@ -11,8 +10,7 @@
         "position": "RHP"
       }
     },
-    "school": "Long Beach State",
-    "weight_lbs": 180.0
+    "school": "Long Beach State"
   },
   "aidan_young": {
     "comps": {
@@ -69,7 +67,7 @@
     "comps": {},
     "grad_year": 2028,
     "height_in": 76.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/caiden_christianson_trackman_10.9.26 INTRASQUAD.csv",
+    "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/65aa1506-10.9.26_INTRASQUAD.csv",
     "name": "Caiden Christianson",
     "program": "long_beach_state",
     "roles": {
@@ -185,6 +183,7 @@
   "chance_jasso": {
     "comps": {},
     "grad_year": null,
+    "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/45f27f88-10.10.26_IS.csv",
     "name": "Chance Jasso",
     "program": "long_beach_state",
     "roles": {
@@ -198,6 +197,7 @@
     "comps": {},
     "grad_year": 2027,
     "height_in": 77,
+    "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/65aa1506-10.9.26_INTRASQUAD.csv",
     "name": "Derek Valdez",
     "program": "long_beach_state",
     "roles": {
@@ -211,6 +211,7 @@
   "hayden_vanderhoof": {
     "comps": {},
     "grad_year": null,
+    "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/45f27f88-10.10.26_IS.csv",
     "name": "Hayden Vanderhoof",
     "program": "long_beach_state",
     "roles": {
@@ -300,7 +301,7 @@
     "comps": {},
     "grad_year": 2029,
     "height_in": 74.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/jason_gerfers_trackman_10.9.26 INTRASQUAD.csv",
+    "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/65aa1506-10.9.26_INTRASQUAD.csv",
     "name": "Jason Gerfers",
     "program": "long_beach_state",
     "roles": {
@@ -315,7 +316,7 @@
     "comps": {},
     "grad_year": 2028,
     "height_in": 74,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/landon_sloan_trackman_LiveBpPitching_2026-10-01T165756_verified.csv",
+    "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/65aa1506-10.9.26_INTRASQUAD.csv",
     "name": "Landon Sloan",
     "program": "long_beach_state",
     "roles": {
@@ -330,6 +331,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 75,
+    "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/45f27f88-10.10.26_IS.csv",
     "name": "Mason Tymick",
     "program": "long_beach_state",
     "roles": {
@@ -421,7 +423,7 @@
     "comps": {},
     "grad_year": 2028,
     "height_in": 75.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/ryan_dimaggio_trackman_10.9.26 INTRASQUAD.csv",
+    "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/65aa1506-10.9.26_INTRASQUAD.csv",
     "name": "Ryan DiMaggio",
     "program": "long_beach_state",
     "roles": {
@@ -435,6 +437,7 @@
   "ryan_halamicek": {
     "comps": {},
     "grad_year": null,
+    "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/45f27f88-10.10.26_IS.csv",
     "name": "Ryan Halamicek",
     "program": "long_beach_state",
     "roles": {
@@ -535,7 +538,7 @@
     "comps": {},
     "grad_year": 2030,
     "height_in": 73,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/tristan_ramos_trackman_LiveBpPitching_2026-10-01T165756_verified.csv",
+    "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/65aa1506-10.9.26_INTRASQUAD.csv",
     "name": "Tristan Ramos",
     "program": "long_beach_state",
     "roles": {

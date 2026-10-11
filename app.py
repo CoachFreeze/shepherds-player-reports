@@ -1,11 +1,14 @@
 import functools
 import os
-from flask import Flask, request, session, redirect, url_for, render_template_string, send_file, jsonify, abort
+import re
+from flask import Flask, render_template, request, session, redirect, url_for, render_template_string, send_file, jsonify, abort
 
 import store
 import pipeline
 import extract as e_mod
 import mlb_lookup
+import headshots
+import overview
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-only-change-me')
@@ -60,7 +63,7 @@ def login():
         password = request.form.get('password', '')
         if store.verify_coach(username, password):
             session['coach'] = username
-            return redirect(request.args.get('next') or url_for('intake'))
+            return redirect(request.args.get('next') or url_for('intake_bulk'))
         error = 'Incorrect username or password.'
     return render_template_string(LOGIN_PAGE, error=error)
 
@@ -73,81 +76,93 @@ def logout():
 
 # --- dashboard (public -- players view this, no login needed) -----------
 
-DASHBOARD_PAGE = """
-<!doctype html><title>Player Reports</title>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-  :root{ --cream:#f3ebdd; --tan:#aa8b68; --brown:#6f4f2f; --blue-strong:#5c84a6; --border:#e1d6c2; --muted:#8a7557; }
-  *{box-sizing:border-box;}
-  body{background:var(--cream);color:var(--brown);font-family:'Barlow',sans-serif;margin:0;padding-bottom:40px;}
-  .hero{background:var(--tan);padding:30px 16px 26px;}
-  .hero-wrap,.wrap{max-width:720px;margin:0 auto;}
-  .eyebrow{font-family:'Oswald',sans-serif;font-weight:600;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--cream);opacity:.85;margin:0 0 6px;}
-  h1{font-family:'Oswald',sans-serif;font-weight:700;font-size:32px;margin:0 0 8px;color:var(--cream);}
-  .sub{color:var(--cream);opacity:.9;font-size:14.5px;margin:0;}
-  .wrap{padding:24px 16px 0;}
-  .roster{display:flex;flex-direction:column;gap:10px;}
-  .card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-  .name{font-family:'Oswald',sans-serif;font-weight:600;font-size:17px;}
-  .meta{font-size:12.5px;color:var(--muted);margin-top:2px;}
-  .links a{font-family:'Barlow',sans-serif;font-weight:600;font-size:13.5px;text-decoration:none;color:#fff;background:var(--blue-strong);border-radius:999px;padding:7px 14px;margin-left:6px;}
-  .coachlink{display:block;text-align:right;margin:14px 16px 0;font-size:12.5px;}
-  .coachlink a{color:var(--muted);}
-  .mgmt{display:inline;margin-left:6px;} .mgmt button{font:600 12.5px 'Barlow',sans-serif;border:1px solid var(--border);background:#fff;color:var(--muted);border-radius:999px;padding:6px 11px;cursor:pointer;}
-  .mgmt button.del{color:#9c3a3a;}
-  .group-title{font-family:'Oswald',sans-serif;font-weight:600;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:26px 0 10px;}
-  .group-title:first-child{margin-top:0;}
-</style>
-<div class="coachlink"><a href="{{ url_for('intake') }}">Coach login &rarr;</a></div>
-<div class="hero"><div class="hero-wrap">
-  <p class="eyebrow">Shepherds Baseball &middot; Training Program</p>
-  <h1>Player Reports</h1>
-  <p class="sub">Full Swing and Trackman data turned into Baseball Savant&ndash;style report cards. Tap a report to open it.</p>
-</div></div>
-<div class="wrap">
-  {% for group_label, group_players in groups %}
-    {% if group_players %}
-    <div class="group-title">{{ group_label }}</div>
-    <div class="roster">
-    {% for slug, p in group_players %}
-      <div class="card">
-        <div>
-          <div class="name">{{ p.name }}</div>
-          <div class="meta">{% if p.school %}{{ p.school }}{% endif %}{% if p.grad_year %} &middot; Class of {{ p.grad_year }}{% endif %}</div>
-        </div>
-        <div class="links">
-          {% if p.get('program') == 'long_beach_state' %}
-          <a href="{{ url_for('view_report', slug=slug, role='trackman') }}">Trackman Report</a>
-          {% else %}
-          {% if p.roles.pitch %}<a href="{{ url_for('view_report', slug=slug, role='pitching') }}">Pitching Report</a>{% endif %}
-          {% if p.roles.hit %}<a href="{{ url_for('view_report', slug=slug, role='hitting') }}">Hitting Report</a>{% endif %}
-          {% endif %}
-          {% if is_coach and p.get('program') != 'long_beach_state' %}<a href="{{ url_for('edit_comps', slug=slug) }}" style="background:#aa8b68;">Edit Comps</a>{% endif %}
-          {% if is_coach %}
-          <form class="mgmt" method="post" action="{{ url_for('rename_player_route', slug=slug) }}" onsubmit="var n=prompt('Correct spelling of the name:', {{ p.name|tojson }}); if(!n||n===this.querySelector('[name=name]').defaultValue){return false;} this.querySelector('[name=name]').value=n; return true;"><input type="hidden" name="name" value="{{ p.name }}"><button type="submit">Rename</button></form>
-          <form class="mgmt" method="post" action="{{ url_for('delete_player_route', slug=slug) }}" onsubmit="return confirm('Delete {{ p.name|e }} and their report(s)? This cannot be undone.');"><button type="submit" class="del">Delete</button></form>
-          {% endif %}
-        </div>
-      </div>
-    {% endfor %}
-    </div>
-    {% endif %}
-  {% endfor %}
-</div>
-"""
+_SUFFIXES = {'jr', 'jr.', 'sr', 'sr.', 'ii', 'iii', 'iv'}
+
+
+def _split_name(name):
+    parts = name.split()
+    if len(parts) < 2:
+        return name, ''
+    k = 2 if parts[-1].lower() in _SUFFIXES and len(parts) > 2 else 1
+    return ' '.join(parts[-k:]), ' '.join(parts[:-k])
+
+
+def _player_pos(p):
+    r = p.get('roles') or {}
+    return (r.get('pitch') or {}).get('position') or (r.get('hit') or {}).get('position')
 
 
 @app.route('/')
 def dashboard():
     players = store.list_players()
-    shepherds = sorted(
-        ((slug, p) for slug, p in players.items() if p.get('program', 'shepherds') == 'shepherds'),
-        key=lambda kv: kv[1]['name'])
-    lbsu = sorted(
-        ((slug, p) for slug, p in players.items() if p.get('program') == 'long_beach_state'),
-        key=lambda kv: kv[1]['name'])
-    groups = [('Shepherds', shepherds), ('Long Beach State', lbsu)]
-    return render_template_string(DASHBOARD_PAGE, groups=groups, is_coach=bool(session.get('coach')))
+    shep, lbsu = [], []
+    for slug, p in players.items():
+        p = dict(p)
+        p['has_photo'] = headshots.exists(slug)
+        p['photo_v'] = int(os.path.getmtime(headshots.path(slug))) if p['has_photo'] else 0
+        last, first = _split_name(p['name'])
+        pos = _player_pos(p)
+        if p.get('program') == 'long_beach_state':
+            lbsu.append((slug, p, url_for('player_overview', slug=slug), last, first, pos))
+        else:
+            links = []
+            if (p.get('roles') or {}).get('pitch'):
+                links.append(('Pitching', url_for('view_report', slug=slug, role='pitching')))
+            if (p.get('roles') or {}).get('hit'):
+                links.append(('Hitting', url_for('view_report', slug=slug, role='hitting')))
+            p['shep_links'] = links
+            shep.append((slug, p, links[0][1] if links else '#', last, first, pos))
+    key = lambda t: (t[3].lower(), t[4].lower())
+    groups = [('Long Beach State', sorted(lbsu, key=key)), ('Shepherds', sorted(shep, key=key))]
+    return render_template('dashboard.html', groups=groups, is_coach=bool(session.get('coach')))
+
+
+@app.route('/player/<slug>')
+def player_overview(slug):
+    bio = store.get_player(slug)
+    if not bio:
+        abort(404)
+    b = overview.build(slug, bio)
+    if not b:
+        abort(404)
+    last, first = _split_name(bio['name'])
+    has_photo = headshots.exists(slug)
+    css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
+    return render_template('player_overview.html', b=b, bio=bio, slug=slug, css=css, has_photo=has_photo,
+                           photo_v=int(os.path.getmtime(headshots.path(slug))) if has_photo else 0,
+                           initials=(first[:1] + last[:1]).upper(), pos=_player_pos(bio), is_coach=bool(session.get('coach')))
+
+
+@app.route('/report/<slug>/outing/<date>')
+def view_outing(slug, date):
+    bio = store.get_player(slug)
+    html = overview.outing_report_html(slug, date, bio) if bio else None
+    if not html:
+        abort(404)
+    return html
+
+
+@app.route('/headshot/<slug>')
+def headshot(slug):
+    if not headshots.exists(slug):
+        abort(404)
+    resp = send_file(headshots.path(slug), mimetype='image/jpeg')
+    resp.headers['Cache-Control'] = 'public, max-age=86400'
+    return resp
+
+
+@app.route('/player/<slug>/headshot', methods=['POST'])
+@login_required
+def upload_headshot(slug):
+    if not store.get_player(slug):
+        abort(404)
+    f = request.files.get('photo')
+    if f and f.filename:
+        try:
+            headshots.save(slug, f)
+        except Exception as exc:
+            return f"Couldn't read that image: {exc}", 400
+    return redirect(url_for('player_overview', slug=slug))
 
 
 @app.route('/player/<slug>/delete', methods=['POST'])
@@ -183,6 +198,8 @@ def backup_players():
 def view_report(slug, role):
     if role not in ('pitching', 'hitting', 'trackman'):
         abort(404)
+    if role == 'trackman':
+        return redirect(url_for('player_overview', slug=slug))
     filename = f'{slug}_trackman_mini.html' if role == 'trackman' else f'{slug}_{role}.html'
     path = os.path.join(pipeline.REPORTS_DIR, filename)
     if not os.path.exists(path):
@@ -235,7 +252,7 @@ INTAKE_PAGE = """
   </fieldset>
   <button type="submit">Generate report(s)</button>
 </form>
-<p style="margin-top:28px;"><a href="{{ url_for('intake_lbsu') }}">Adding a Long Beach State pitcher (Trackman only, no Full Swing export)? &rarr;</a></p>
+<p style="margin-top:28px;"><a href="{{ url_for('intake_bulk') }}">Adding Trackman pitchers? Use the bulk intake &rarr;</a></p>
 <p style="margin-top:10px;"><a href="{{ url_for('dashboard') }}">&larr; View the public dashboard</a></p>
 <p style="margin-top:10px;font-size:12.5px;"><a href="{{ url_for('backup_players') }}">Download current roster data (players.json)</a> -- after adding players, upload this file into the GitHub repo's <code>data/</code> folder so the roster survives the next code update.</p>
 """
@@ -363,7 +380,7 @@ BULK_UPLOAD_PAGE = BULK_STYLE + """
 BULK_REVIEW_PAGE = BULK_STYLE + """
 <title>Review Pitchers</title><h1>Review pitchers</h1>
 <p>{{ pitchers|length }} pitchers found. Fill in height/weight for the arm-angle badge (optional), uncheck anyone to skip, and review any flagged pitches.</p>
-<form method="post" action="{{ url_for('intake_bulk_run') }}">
+<form method="post" enctype="multipart/form-data" action="{{ url_for('intake_bulk_run') }}">
 <input type="hidden" name="path" value="{{ path }}">
 <label style="font-weight:600;"><input type="checkbox" name="live_ab" value="1"> Game / Live AB session (adds the Outing Summary; leave unchecked for bullpens)</label>
 <div class="row" style="margin-top:10px;"><div><label>School</label><input type="text" name="school" value="Long Beach State"></div></div>
@@ -376,6 +393,7 @@ BULK_REVIEW_PAGE = BULK_STYLE + """
     <div><label>Height (ft)</label><input type="number" name="ft_{{ i }}" value="{{ ((p.bio.get('height_in') or 0)//12)|int or '' }}" style="width:70px;"></div>
     <div><label>(in)</label><input type="number" name="in_{{ i }}" value="{{ ((p.bio.get('height_in') or 0)%12)|int if p.bio.get('height_in') else '' }}" style="width:70px;"></div>
     <div><label>Weight (lb)</label><input type="number" name="wt_{{ i }}" value="{{ p.bio.get('weight_lbs') or '' }}" style="width:80px;"></div>
+    <div><label>Headshot (optional)</label><input type="file" name="photo_{{ i }}" accept="image/*" style="max-width:210px;font-size:12px;"></div>
   </div>
   {% for f in p.flagged %}<div class="flag">Pitch #{{ f.pitch_no }} ({{ f.type }}{% if f.velo %}, {{ '%.0f'|format(f.velo) }} mph{% endif %}) &mdash; {{ f.reasons[0] }}<br>
     <select name="fl_{{ f.uid }}" style="margin-left:0;">
@@ -423,7 +441,7 @@ def intake_bulk_run():
                 drop.add(uid)
             elif v.startswith('move:'):
                 reassign[uid] = v[5:]
-    specs, i = [], 0
+    specs, i, photos = [], 0, {}
     while f'csv_{i}' in f:
         if f.get(f'inc_{i}'):
             ft, inch = _num_or_none(f.get(f'ft_{i}')), _num_or_none(f.get(f'in_{i}'))
@@ -432,8 +450,17 @@ def intake_bulk_run():
                           'grad_year': int(gy) if gy.isdigit() else None, 'throws': f.get(f'throws_{i}'),
                           'height_in': (ft * 12 + (inch or 0)) if ft else None,
                           'weight_lbs': _num_or_none(f.get(f'wt_{i}')), 'exclude_uids': list(drop)})
+            ph = request.files.get(f'photo_{i}')
+            if ph and ph.filename:
+                photos[specs[-1]['name']] = ph
         i += 1
-    pipeline.process_trackman_bulk(path, specs, live_ab=bool(f.get('live_ab')), reassign=reassign)
+    results = pipeline.process_trackman_bulk(path, specs, live_ab=bool(f.get('live_ab')), reassign=reassign)
+    for name, slug, out in results:
+        if out and name in photos:
+            try:
+                headshots.save(slug, photos[name])
+            except Exception as exc:
+                print(f'WARNING: headshot for {name} not saved: {exc}')
     return redirect(url_for('dashboard'))
 
 
@@ -475,6 +502,10 @@ def intake_lbsu_confirm():
 @app.route('/intake/lbsu', methods=['GET', 'POST'])
 @login_required
 def intake_lbsu():
+    return redirect(url_for('intake_bulk'))
+
+
+def _intake_lbsu_legacy():
     message, ok = None, True
     if request.method == 'POST':
         name = request.form.get('name', '').strip()

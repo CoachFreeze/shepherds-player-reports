@@ -1,0 +1,52 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Player Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --cream:#f3ebdd; --tan:#aa8b68; --brown:#6f4f2f; --blue:#5c84a6; --border:#e1d6c2; --muted:#8a7557; }
+  *{box-sizing:border-box;} body{background:var(--cream);color:var(--brown);font-family:'Barlow',sans-serif;margin:0;padding-bottom:40px;}
+  .hero{background:var(--tan);padding:26px 16px 22px;} .hero-wrap,.wrap{max-width:1040px;margin:0 auto;}
+  .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--cream);opacity:.85;margin:0 0 6px;}
+  h1{font:700 32px 'Oswald',sans-serif;margin:0 0 6px;color:var(--cream);} .sub{color:var(--cream);opacity:.9;font-size:14.5px;margin:0;}
+  .wrap{padding:22px 16px 0;}
+  .bar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:6px;}
+  .bar input{flex:1;min-width:200px;max-width:340px;padding:10px 14px;border:1px solid var(--border);border-radius:999px;font:500 14px 'Barlow',sans-serif;}
+  .bar a{font-size:13px;color:var(--muted);margin-left:12px;text-decoration:none;font-weight:600;}
+  .group-title{font:600 13px 'Oswald',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:26px 0 12px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;}
+  .sq{position:relative;background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:inherit;transition:transform .12s,box-shadow .12s;}
+  .sq:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(111,79,47,.16);}
+  .ph{aspect-ratio:1/1;background:linear-gradient(135deg,#d9c9ac,#c2ad89);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .ph img{width:100%;height:100%;object-fit:cover;display:block;} .ph span{font:700 54px 'Oswald',sans-serif;color:#fff;opacity:.85;}
+  .info{padding:10px 12px 12px;} .nm{font:600 17px/1.15 'Oswald',sans-serif;} .nm small{display:block;font:500 13.5px 'Barlow',sans-serif;color:var(--muted);margin-top:2px;}
+  .row2{font-size:12.5px;color:var(--muted);margin-top:6px;display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;}
+  .pos{font-weight:700;color:var(--blue);} .links{padding:0 12px 12px;display:flex;gap:6px;flex-wrap:wrap;}
+  .links a{font:600 12.5px 'Barlow',sans-serif;text-decoration:none;color:#fff;background:var(--blue);border-radius:999px;padding:6px 12px;}
+  .mg{position:absolute;top:8px;right:8px;display:none;gap:4px;} .sq:hover .mg{display:flex;}
+  .mg form{margin:0;} .mg button{font:600 11px 'Barlow',sans-serif;border:none;background:rgba(255,255,255,.92);color:var(--muted);border-radius:999px;padding:4px 9px;cursor:pointer;} .mg button.del{color:#9c3a3a;}
+  @media (hover:none){.mg{display:flex;}} @media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr);gap:10px;} .nm{font-size:15px;} .ph span{font-size:42px;}}
+</style></head><body>
+<div class="hero"><div class="hero-wrap"><p class="eyebrow">Shepherds Baseball &middot; Training Program</p><h1>Player Dashboard</h1>
+<p class="sub">Tap a player to see their current profile and recent outings.</p></div></div>
+<div class="wrap">
+  <div class="bar"><input id="q" type="search" placeholder="Search players, schools, positions…" autocomplete="off">
+    <span>{% if is_coach %}<a href="{{ url_for('intake_bulk') }}">+ Bulk intake</a><a href="{{ url_for('logout') }}">Log out</a>{% else %}<a href="{{ url_for('intake') }}">Coach login</a>{% endif %}</span></div>
+  {% for label, plist in groups %}{% if plist %}
+  <div class="group-title">{{ label }}</div>
+  <div class="grid">
+  {% for slug, p, href, last, first, pos in plist %}
+    <div class="sq" data-s="{{ (p.name ~ ' ' ~ (p.school or '') ~ ' ' ~ (pos or '') ~ ' ' ~ (p.grad_year or ''))|lower }}">
+      <a href="{{ href }}" style="text-decoration:none;color:inherit;display:block;">
+        <div class="ph">{% if p.has_photo %}<img src="{{ url_for('headshot', slug=slug) }}?v={{ p.photo_v }}" alt="" loading="lazy">{% else %}<span>{{ (first[:1] ~ last[:1])|upper }}</span>{% endif %}</div>
+        <div class="info"><div class="nm">{{ last }}<small>{{ first }}</small></div>
+          <div class="row2"><span>{{ p.school or '' }}</span></div>
+          <div class="row2"><span>{% if p.grad_year %}Class of {{ p.grad_year }}{% endif %}</span><span class="pos">{{ pos or '' }}</span></div></div>
+      </a>
+      {% if p.shep_links %}<div class="links">{% for t, u in p.shep_links %}<a href="{{ u }}">{{ t }}</a>{% endfor %}</div>{% endif %}
+      {% if is_coach %}<div class="mg">
+        <form method="post" action="{{ url_for('rename_player_route', slug=slug) }}" onsubmit="var n=prompt('Correct spelling of the name:', {{ p.name|tojson }}); if(!n||n===this.querySelector('[name=name]').defaultValue){return false;} this.querySelector('[name=name]').value=n; return true;"><input type="hidden" name="name" value="{{ p.name }}"><button type="submit">Rename</button></form>
+        <form method="post" action="{{ url_for('delete_player_route', slug=slug) }}" onsubmit="return confirm('Delete {{ p.name|e }} and all their data? This cannot be undone.');"><button type="submit" class="del">Delete</button></form></div>{% endif %}
+    </div>
+  {% endfor %}</div>{% endif %}{% endfor %}
+</div>
+<script>document.getElementById('q').addEventListener('input',function(){var v=this.value.toLowerCase().trim();document.querySelectorAll('.sq').forEach(function(c){c.style.display=(!v||c.dataset.s.indexOf(v)>-1)?'':'none';});});</script>
+</body></html>

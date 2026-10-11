@@ -246,6 +246,9 @@ def delete_player(slug):
     for suffix, path in _report_files(slug):
         os.remove(path)
         github_sync.delete_file(f'data/reports/{slug}{suffix}')
+    import outings, headshots
+    outings.delete(slug)
+    headshots.delete(slug)
     sync_to_github()
     return True
 
@@ -282,5 +285,9 @@ def rename_player(slug, new_name):
             os.remove(path)
             github_sync.delete_file(f'data/reports/{slug}{suffix}')
         github_sync.put_file(f'data/reports/{new_slug}{suffix}', html.encode('utf-8'))
+    if new_slug != slug:
+        import outings, headshots
+        outings.move(slug, new_slug)
+        headshots.move(slug, new_slug)
     sync_to_github()
     return new_slug, None
