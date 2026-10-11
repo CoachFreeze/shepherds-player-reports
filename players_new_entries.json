@@ -1,62 +1,69 @@
 {
- "jason_gerfers": {
+ "ryan_halamicek": {
   "comps": {},
-  "grad_year": 2029,
-  "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/65aa1506-10.9.26_INTRASQUAD.csv",
-  "name": "Jason Gerfers",
+  "grad_year": null,
+  "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/45f27f88-10.10.26_IS.csv",
+  "name": "Ryan Halamicek",
   "program": "long_beach_state",
   "roles": {
    "pitch": {
     "position": "RHP"
    }
   },
-  "school": "Long Beach State",
-  "height_in": 74,
-  "weight_lbs": 170
+  "school": "Long Beach State"
  },
- "caiden_christianson": {
+ "adrian_pineda": {
   "comps": {},
-  "grad_year": 2029,
-  "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/65aa1506-10.9.26_INTRASQUAD.csv",
-  "name": "Caiden Christianson",
+  "grad_year": null,
+  "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/45f27f88-10.10.26_IS.csv",
+  "name": "Adrian Pineda",
   "program": "long_beach_state",
   "roles": {
    "pitch": {
     "position": "RHP"
    }
   },
-  "school": "Long Beach State",
-  "height_in": 76,
-  "weight_lbs": 215
+  "school": "Long Beach State"
  },
- "derek_valdez": {
+ "hayden_vanderhoof": {
   "comps": {},
-  "grad_year": 2027,
-  "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/65aa1506-10.9.26_INTRASQUAD.csv",
-  "name": "Derek Valdez",
+  "grad_year": null,
+  "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/45f27f88-10.10.26_IS.csv",
+  "name": "Hayden Vanderhoof",
   "program": "long_beach_state",
   "roles": {
    "pitch": {
-    "position": "LHP"
+    "position": "RHP"
    }
   },
-  "school": "Long Beach State",
-  "height_in": 77,
-  "weight_lbs": 225
+  "school": "Long Beach State"
  },
- "ryan_dimaggio": {
+ "chance_jasso": {
   "comps": {},
-  "grad_year": 2028,
-  "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/65aa1506-10.9.26_INTRASQUAD.csv",
-  "name": "Ryan DiMaggio",
+  "grad_year": null,
+  "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/45f27f88-10.10.26_IS.csv",
+  "name": "Chance Jasso",
   "program": "long_beach_state",
   "roles": {
    "pitch": {
-    "position": "LHP"
+    "position": "RHP"
    }
   },
-  "school": "Long Beach State",
+  "school": "Long Beach State"
+ },
+ "mason_tymick": {
+  "comps": {},
+  "grad_year": null,
   "height_in": 75,
-  "weight_lbs": 212
+  "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/45f27f88-10.10.26_IS.csv",
+  "name": "Mason Tymick",
+  "program": "long_beach_state",
+  "roles": {
+   "pitch": {
+    "position": "RHP"
+   }
+  },
+  "school": "Long Beach State",
+  "weight_lbs": 185
  }
 }

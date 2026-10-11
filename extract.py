@@ -807,17 +807,31 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
 
 
 # Arm-slot model (frontal plane, as seen from behind the plate), calibrated against Baseball Savant's
-# measured arm angles (pose-tracked shoulder and ball positions for ~765 MLB pitchers, 2026):
-#   shoulder height  = 0.70 x standing height. Savant's measured shoulder height averages 4.32 ft (sd 0.27),
-#                      i.e. ~0.70 of a 6'2" pitcher. (An earlier 0.81 'acromion' ratio put the shoulder
-#                      ~0.7 ft too high and read arm angles ~10 degrees too low.)
-#   shoulder offset  = 0: Savant's measured shoulder sits within ~0.1 ft of the line the ball release is measured from.
-#   arm angle        = angle of the line shoulder -> release point above horizontal
-#                      (0 = sidearm, 90 = straight over the top)
-# Check: with Savant's own average shoulder this predicts their measured angles to ~6 degrees RMSE
-# (the previous constants: ~16 degrees). Individual pitchers still vary with posture, so treat as +/- 5.
-SHOULDER_HEIGHT_FRAC = 0.70
+# measured arm angles (pose-tracked shoulder and ball positions for ~765 MLB pitchers, 2026).
+# Savant's angle is exactly atan2(release_z - shoulder_z, |release_x - shoulder_x|). The shoulder is not
+# fixed: as the release gets lower the pitcher leans and the shoulder drops and moves out toward the arm
+# side. Tyler Rogers (-61 deg): shoulder 0.53 x height, 0.27 x height out. Tim Hill (-22 deg): 0.64 / 0.15.
+# Typical over-the-top pitcher: 0.70 / ~0.0. So the shoulder height and offset (as fractions of standing
+# height) are interpolated from how low the release is (release height / standing height).
+#   arm angle = angle of the line shoulder -> release point above horizontal
+#                (0 = sidearm, 90 = straight over the top, negative = below the shoulder)
+# Individual pitchers still vary with posture, so treat as +/- 5 (low slots: +/- 8; only a few such pitchers exist).
+_SHOULDER_CURVE = [(0.20, 0.535, 0.27), (0.49, 0.62, 0.14), (0.55, 0.622, 0.133), (0.616, 0.622, 0.112),
+                   (0.689, 0.65, 0.105), (0.77, 0.669, 0.068), (0.851, 0.684, 0.042), (0.932, 0.70, 0.011),
+                   (1.05, 0.734, -0.013)]
+SHOULDER_HEIGHT_FRAC = 0.70   # kept for reference / backwards compatibility
 SHOULDER_OFFSET_FRAC = 0.0
+
+
+def _shoulder_fracs(release_frac):
+    pts = _SHOULDER_CURVE
+    if release_frac <= pts[0][0]:
+        return pts[0][1], pts[0][2]
+    for (x0, y0, o0), (x1, y1, o1) in zip(pts, pts[1:]):
+        if release_frac <= x1:
+            t = (release_frac - x0) / (x1 - x0)
+            return y0 + t * (y1 - y0), o0 + t * (o1 - o0)
+    return pts[-1][1], pts[-1][2]
 
 
 def arm_slot_label(angle):
@@ -844,13 +858,20 @@ def arm_slot_stats(release, height_in):
     H = height_in / 12.0
     mean_side = sum(r['s'] for r in release) / len(release)
     sgn = 1 if mean_side >= 0 else -1            # +1: arm-side release is on the positive RelSide
-    sh_y = SHOULDER_HEIGHT_FRAC * H
-    sh_x = SHOULDER_OFFSET_FRAC * H                 # distance out from midline (always positive)
-    angles = []
+    per = []
     for r in release:
+        sf, of = _shoulder_fracs(r['h'] / H)
+        sh_y, sh_x = sf * H, of * H
         reach = r['s'] * sgn - sh_x                 # horizontal distance shoulder -> hand
         a = math.degrees(math.atan2(r['h'] - sh_y, reach)) if reach > 0.05 else 90.0
-        angles.append(max(-30.0, min(100.0, a)))
+        per.append(max(-80.0, min(100.0, a)))
+    # A pitcher who throws from two slots: describe the one he uses most (angles within 20 deg of the median)
+    med = sorted(per)[len(per) // 2]
+    keep = [i for i, a in enumerate(per) if abs(a - med) <= 20.0]
+    other_n = len(per) - len(keep)
+    release = [release[i] for i in keep]
+    angles = [per[i] for i in keep]
+    sh_y, sh_x = _shoulder_fracs(sum(r['h'] for r in release) / len(release) / H)[0] * H, 0.0
     avg_h = sum(r['h'] for r in release) / len(release)
     avg_s = sum(abs(r['s']) for r in release) / len(release)
     exts = [r['ext'] for r in release if r.get('ext') is not None]
@@ -858,7 +879,7 @@ def arm_slot_stats(release, height_in):
     return {'angle': ang, 'label': arm_slot_label(ang), 'rel_height': avg_h, 'rel_side': avg_s,
             'extension': (sum(exts) / len(exts)) if exts else None, 'n': len(angles),
             'sd': (sum((a - ang) ** 2 for a in angles) / len(angles)) ** 0.5,
-            'height_in': height_in, 'shoulder_y': sh_y, 'shoulder_x': sh_x, 'sgn': sgn,
+            'height_in': height_in, 'shoulder_y': sh_y, 'shoulder_x': sh_x, 'sgn': sgn, 'other_slot_n': other_n,
             'points': [{'type': r['type'], 'h': r['h'], 's': r['s']} for r in release]}
 
 

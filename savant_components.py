@@ -984,7 +984,7 @@ def arm_angle_badge(angle, throws='R'):
         import arm_art
     except ImportError:
         return '', 0, 0
-    a = max(-40.0, min(90.0, float(angle)))
+    a = max(-80.0, min(90.0, float(angle)))
     b = arm_art.BODIES['A' if a <= 40 else 'B']
     H = b['h']
     # one common canvas width for both poses (wide enough for a horizontal bar and its ring), so the
