@@ -10,7 +10,7 @@
   .hs img{width:100%;height:100%;object-fit:cover;} .hs span{font:700 46px 'Oswald',sans-serif;color:#fff;}
   .head h1{font:700 34px/1.05 'Oswald',sans-serif;margin:0;color:var(--ink);} .head .sub{font:500 15px 'Barlow',sans-serif;color:#6b7680;margin-top:6px;}
   .head .sub b{color:var(--ink);} .rng{font-size:12.5px;color:#6b7680;margin-top:8px;}
-  .photo-form{margin-top:10px;font-size:12px;} .photo-form button{border:1px solid #b5c6cb;background:#fff;border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;}
+  .editbtn{display:inline-block;border:1px solid #5c97a8;color:#5c97a8;background:#fff;border-radius:999px;padding:6px 16px;font:600 13px 'Barlow',sans-serif;text-decoration:none;} .editbtn:hover{background:#5c97a8;color:#fff;} .photo-form{margin-top:10px;font-size:12px;} .photo-form button{border:1px solid #b5c6cb;background:#fff;border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;}
   .pn{background:#fff;border:2px solid var(--accent-teal);border-radius:10px;margin-top:14px;padding:14px 10px;}
   .pn-t{font:700 17px 'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;text-align:center;color:var(--ink);} .pn-s{font-size:12px;text-align:center;color:#6b7680;margin:2px 0 8px;}
   .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px;}
@@ -35,7 +35,7 @@
     <div class="sub">{% if pos %}<b>{{ pos }}</b>{% endif %}{% if bio.school %} &middot; {{ bio.school }}{% endif %}{% if bio.grad_year %} &middot; Class of {{ bio.grad_year }}{% endif %}</div>
     <div class="sub">{% if b.meta.throws %}<b>Throws:</b> {{ b.meta.throws }}{% endif %}{% if bio.height_in %} &middot; {{ (bio.height_in//12)|int }}'{{ (bio.height_in%12)|int }}"{% endif %}{% if bio.weight_lbs %} &middot; {{ bio.weight_lbs|int }} lb{% endif %}</div>
     <div class="rng">Profile built from the last {{ b.n_outings }} outing{{ 's' if b.n_outings != 1 }} &middot; {{ b.n_pitches }} pitches &middot; {{ b.range }}</div>
-    {% if is_coach %}<form class="photo-form" method="post" enctype="multipart/form-data" action="{{ url_for('upload_headshot', slug=slug) }}"><input type="file" name="photo" accept="image/*" required> <button>{{ 'Replace' if has_photo else 'Add' }} headshot</button></form>{% endif %}
+    {% if is_coach %}<div class="photo-form"><a class="editbtn" href="{{ url_for('edit_profile', slug=slug) }}">Edit Profile</a></div>{% endif %}
   </div>
 </div>
 
