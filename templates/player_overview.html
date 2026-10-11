@@ -35,7 +35,7 @@
     <div class="sub">{% if pos %}<b>{{ pos }}</b>{% endif %}{% if bio.school %} &middot; {{ bio.school }}{% endif %}{% if bio.grad_year %} &middot; Class of {{ bio.grad_year }}{% endif %}</div>
     <div class="sub">{% if b.meta.throws %}<b>Throws:</b> {{ b.meta.throws }}{% endif %}{% if bio.height_in %} &middot; {{ (bio.height_in//12)|int }}'{{ (bio.height_in%12)|int }}"{% endif %}{% if bio.weight_lbs %} &middot; {{ bio.weight_lbs|int }} lb{% endif %}</div>
     <div class="rng">Profile built from the last {{ b.n_outings }} outing{{ 's' if b.n_outings != 1 }} &middot; {{ b.n_pitches }} pitches &middot; {{ b.range }}</div>
-    {% if is_coach %}<div class="photo-form"><a class="editbtn" href="{{ url_for('edit_profile', slug=slug) }}">Edit Profile</a></div>{% endif %}
+    {% if can_edit %}<div class="photo-form"><a class="editbtn" href="{{ url_for('edit_profile', slug=slug) }}">Edit Profile</a></div>{% endif %}
   </div>
 </div>
 

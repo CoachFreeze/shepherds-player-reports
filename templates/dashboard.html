@@ -29,7 +29,7 @@
 <p class="sub">Tap a player to see their current profile and recent outings.</p></div></div>
 <div class="wrap">
   <div class="bar"><input id="q" type="search" placeholder="Search players, schools, positions…" autocomplete="off">
-    <span>{% if is_coach %}<a href="{{ url_for('intake_bulk') }}">+ Bulk intake</a><a href="{{ url_for('logout') }}">Log out</a>{% else %}<a href="{{ url_for('intake') }}">Coach login</a>{% endif %}</span></div>
+    <span>{% if is_coach %}<a href="{{ url_for('intake_bulk') }}">+ Bulk intake</a>{% if is_admin %}<a href="{{ url_for('admin_coaches') }}">Coach logins</a>{% endif %}<a href="{{ url_for('logout') }}">Log out</a>{% else %}<a href="{{ url_for('login') }}">Coach login</a>{% endif %}</span></div>
   {% for label, plist in groups %}{% if plist %}
   <div class="group-title">{{ label }}</div>
   <div class="grid">
@@ -42,7 +42,7 @@
           <div class="row2"><span>{% if p.grad_year %}Class of {{ p.grad_year }}{% endif %}</span><span class="pos">{{ pos or '' }}</span></div></div>
       </a>
       {% if p.shep_links %}<div class="links">{% for t, u in p.shep_links %}<a href="{{ u }}">{{ t }}</a>{% endfor %}</div>{% endif %}
-      {% if is_coach %}<div class="mg">
+      {% if p.can_edit %}<div class="mg">
         <form method="post" action="{{ url_for('rename_player_route', slug=slug) }}" onsubmit="var n=prompt('Correct spelling of the name:', {{ p.name|tojson }}); if(!n||n===this.querySelector('[name=name]').defaultValue){return false;} this.querySelector('[name=name]').value=n; return true;"><input type="hidden" name="name" value="{{ p.name }}"><button type="submit">Rename</button></form>
         <form method="post" action="{{ url_for('delete_player_route', slug=slug) }}" onsubmit="return confirm('Delete {{ p.name|e }} and all their data? This cannot be undone.');"><button type="submit" class="del">Delete</button></form></div>{% endif %}
     </div>
