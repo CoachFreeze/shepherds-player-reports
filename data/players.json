@@ -184,9 +184,7 @@
   },
   "chance_jasso": {
     "comps": {},
-    "grad_year": 2029,
-    "height_in": 74.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10.10.26 IS.csv",
+    "grad_year": null,
     "name": "Chance Jasso",
     "program": "long_beach_state",
     "roles": {
@@ -194,8 +192,7 @@
         "position": "RHP"
       }
     },
-    "school": "Long Beach State",
-    "weight_lbs": 180.0
+    "school": "Long Beach State"
   },
   "derek_valdez": {
     "comps": {},
@@ -213,9 +210,7 @@
   },
   "hayden_vanderhoof": {
     "comps": {},
-    "grad_year": 2030,
-    "height_in": 73.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10.10.26 IS.csv",
+    "grad_year": null,
     "name": "Hayden Vanderhoof",
     "program": "long_beach_state",
     "roles": {
@@ -223,8 +218,7 @@
         "position": "RHP"
       }
     },
-    "school": "Long Beach State",
-    "weight_lbs": 170.0
+    "school": "Long Beach State"
   },
   "jackson_orr": {
     "comps": {
@@ -334,9 +328,8 @@
   },
   "mason_tymick": {
     "comps": {},
-    "grad_year": 2029,
-    "height_in": 75.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10.10.26 IS.csv",
+    "grad_year": null,
+    "height_in": 75,
     "name": "Mason Tymick",
     "program": "long_beach_state",
     "roles": {
@@ -345,7 +338,7 @@
       }
     },
     "school": "Long Beach State",
-    "weight_lbs": 185.0
+    "weight_lbs": 185
   },
   "reagan_samples": {
     "comps": {
@@ -441,9 +434,7 @@
   },
   "ryan_halamicek": {
     "comps": {},
-    "grad_year": 2027,
-    "height_in": 77.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10.10.26 IS.csv",
+    "grad_year": null,
     "name": "Ryan Halamicek",
     "program": "long_beach_state",
     "roles": {
@@ -451,8 +442,7 @@
         "position": "RHP"
       }
     },
-    "school": "Long Beach State",
-    "weight_lbs": 220.0
+    "school": "Long Beach State"
   },
   "ryan_han": {
     "comps": {
