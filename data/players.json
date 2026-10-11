@@ -1,4 +1,16 @@
 {
+  "adrian_pineda": {
+    "comps": {},
+    "grad_year": null,
+    "name": "Adrian Pineda",
+    "program": "long_beach_state",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Long Beach State"
+  },
   "aidan_young": {
     "comps": {
       "hit": [
@@ -167,6 +179,44 @@
     "school": "Northwest Nazarene University",
     "sixty_yd_time": 6.65
   },
+  "chance_jasso": {
+    "comps": {},
+    "grad_year": null,
+    "name": "Chance Jasso",
+    "program": "long_beach_state",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Long Beach State"
+  },
+  "derek_valdez": {
+    "comps": {},
+    "grad_year": 2027,
+    "height_in": 77,
+    "name": "Derek Valdez",
+    "program": "long_beach_state",
+    "roles": {
+      "pitch": {
+        "position": "LHP"
+      }
+    },
+    "school": "Long Beach State",
+    "weight_lbs": 225
+  },
+  "hayden_vanderhoof": {
+    "comps": {},
+    "grad_year": null,
+    "name": "Hayden Vanderhoof",
+    "program": "long_beach_state",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Long Beach State"
+  },
   "jackson_orr": {
     "comps": {
       "hit": [
@@ -273,6 +323,20 @@
     "school": "Long Beach State",
     "weight_lbs": 205
   },
+  "mason_tymick": {
+    "comps": {},
+    "grad_year": null,
+    "height_in": 75,
+    "name": "Mason Tymick",
+    "program": "long_beach_state",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Long Beach State",
+    "weight_lbs": 185
+  },
   "reagan_samples": {
     "comps": {
       "hit": [
@@ -364,6 +428,18 @@
     },
     "school": "Long Beach State",
     "weight_lbs": 210.0
+  },
+  "ryan_halamicek": {
+    "comps": {},
+    "grad_year": null,
+    "name": "Ryan Halamicek",
+    "program": "long_beach_state",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Long Beach State"
   },
   "ryan_han": {
     "comps": {
