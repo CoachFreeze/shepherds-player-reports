@@ -1,4 +1,64 @@
 {
+ "caiden_christianson": {
+  "comps": {},
+  "grad_year": 2029,
+  "height_in": 76,
+  "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/65aa1506-10.9.26_INTRASQUAD.csv",
+  "name": "Caiden Christianson",
+  "program": "long_beach_state",
+  "roles": {
+   "pitch": {
+    "position": "RHP"
+   }
+  },
+  "school": "Long Beach State",
+  "weight_lbs": 215
+ },
+ "ryan_dimaggio": {
+  "comps": {},
+  "grad_year": 2028,
+  "height_in": 75,
+  "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/65aa1506-10.9.26_INTRASQUAD.csv",
+  "name": "Ryan DiMaggio",
+  "program": "long_beach_state",
+  "roles": {
+   "pitch": {
+    "position": "LHP"
+   }
+  },
+  "school": "Long Beach State",
+  "weight_lbs": 212
+ },
+ "jason_gerfers": {
+  "comps": {},
+  "grad_year": null,
+  "height_in": 74,
+  "last_trackman_path": "/tmp/gen3/data/uploads/jason_gerfers_trackman_x.csv",
+  "name": "Jason Gerfers",
+  "program": "long_beach_state",
+  "roles": {
+   "pitch": {
+    "position": "RHP"
+   }
+  },
+  "school": "Long Beach State",
+  "weight_lbs": 170
+ },
+ "derek_valdez": {
+  "comps": {},
+  "grad_year": 2027,
+  "height_in": 77,
+  "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/65aa1506-10.9.26_INTRASQUAD.csv",
+  "name": "Derek Valdez",
+  "program": "long_beach_state",
+  "roles": {
+   "pitch": {
+    "position": "LHP"
+   }
+  },
+  "school": "Long Beach State",
+  "weight_lbs": 225
+ },
  "ryan_halamicek": {
   "comps": {},
   "grad_year": null,

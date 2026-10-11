@@ -344,6 +344,82 @@ def _num_or_none(v):
         return None
 
 
+BULK_STYLE = """<style>body{font-family:Barlow,Arial,sans-serif;background:#f3ebdd;color:#6f4f2f;max-width:820px;margin:0 auto;padding:28px 16px 60px;}
+h1{font-family:Oswald,Arial,sans-serif;} .card{background:#fff;border:1px solid #e1d6c2;border-radius:10px;padding:12px 14px;margin:12px 0;}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:end;} .row label{font-size:12px;font-weight:600;display:block;} .row input[type=text],.row input[type=number]{padding:7px 8px;border:1px solid #e1d6c2;border-radius:6px;}
+.flag{color:#9c3a3a;font-size:12.5px;margin:4px 0 0 22px;} .tag{font-size:11px;background:#e3ecdf;color:#3f6b42;border-radius:999px;padding:2px 8px;margin-left:6px;}
+button{margin-top:14px;padding:11px 22px;border:none;border-radius:999px;background:#5c84a6;color:#fff;font-weight:600;cursor:pointer;}</style>"""
+
+BULK_UPLOAD_PAGE = BULK_STYLE + """
+<title>Bulk Trackman Intake</title><h1>Bulk Trackman Intake</h1>
+<p>Upload one Trackman CSV with any number of Long Beach State pitchers. Everyone in the file is picked up automatically.</p>
+{% if message %}<div class="card" style="color:#9c3a3a;">{{ message }}</div>{% endif %}
+<form method="post" enctype="multipart/form-data"><input type="file" name="trackman_file" accept=".csv" required><br><button type="submit">Read file</button></form>
+<p><a href="{{ url_for('dashboard') }}">&larr; Dashboard</a></p>"""
+
+BULK_REVIEW_PAGE = BULK_STYLE + """
+<title>Review Pitchers</title><h1>Review pitchers</h1>
+<p>{{ pitchers|length }} pitchers found. Fill in height/weight for the arm-angle badge (optional), uncheck anyone to skip, and review any flagged pitches.</p>
+<form method="post" action="{{ url_for('intake_bulk_run') }}">
+<input type="hidden" name="path" value="{{ path }}">
+<label style="font-weight:600;"><input type="checkbox" name="live_ab" value="1"> Game / Live AB session (adds the Outing Summary; leave unchecked for bullpens)</label>
+<div class="row" style="margin-top:10px;"><div><label>School</label><input type="text" name="school" value="Long Beach State"></div></div>
+{% for p in pitchers %}{% set i = loop.index0 %}
+<div class="card">
+  <label style="font-weight:700;font-size:16px;"><input type="checkbox" name="inc_{{ i }}" value="1" checked> <input type="text" name="name_{{ i }}" value="{{ p.name }}" style="font-weight:600;"> {{ p.throws }}HP &middot; {{ p.n }} pitches{% if p.known %}<span class="tag">already on roster</span>{% endif %}</label>
+  <input type="hidden" name="csv_{{ i }}" value="{{ p.csv_name }}"><input type="hidden" name="throws_{{ i }}" value="{{ p.throws }}">
+  <div class="row" style="margin-top:8px;">
+    <div><label>Class of</label><input type="number" name="grad_{{ i }}" value="{{ p.bio.get('grad_year') or '' }}" style="width:80px;"></div>
+    <div><label>Height (ft)</label><input type="number" name="ft_{{ i }}" value="{{ ((p.bio.get('height_in') or 0)//12)|int or '' }}" style="width:70px;"></div>
+    <div><label>(in)</label><input type="number" name="in_{{ i }}" value="{{ ((p.bio.get('height_in') or 0)%12)|int if p.bio.get('height_in') else '' }}" style="width:70px;"></div>
+    <div><label>Weight (lb)</label><input type="number" name="wt_{{ i }}" value="{{ p.bio.get('weight_lbs') or '' }}" style="width:80px;"></div>
+  </div>
+  {% for f in p.flagged %}<div class="flag"><label><input type="checkbox" name="ex_{{ i }}" value="{{ f.uid }}" checked> Leave out pitch #{{ f.pitch_no }} ({{ f.type }}{% if f.velo %}, {{ '%.0f'|format(f.velo) }} mph{% endif %}) &mdash; {{ f.reasons[0] }}</label></div>{% endfor %}
+</div>{% endfor %}
+<button type="submit">Generate all reports</button></form>"""
+
+
+@app.route('/intake/bulk', methods=['GET', 'POST'])
+@login_required
+def intake_bulk():
+    if request.method == 'GET':
+        return render_template_string(BULK_UPLOAD_PAGE, message=None)
+    f = request.files.get('trackman_file')
+    if not f or not f.filename:
+        return render_template_string(BULK_UPLOAD_PAGE, message='Choose a Trackman CSV.')
+    fname = 'bulk_' + os.path.basename(f.filename)
+    path = os.path.join(UPLOAD_DIR, fname)
+    f.save(path)
+    try:
+        pitchers = pipeline.pitchers_in_trackman(path)
+    except Exception as exc:
+        return render_template_string(BULK_UPLOAD_PAGE, message=f"Couldn't read that file: {exc}")
+    if not pitchers:
+        return render_template_string(BULK_UPLOAD_PAGE, message='No pitchers found in that file.')
+    return render_template_string(BULK_REVIEW_PAGE, pitchers=pitchers, path=fname)
+
+
+@app.route('/intake/bulk/run', methods=['POST'])
+@login_required
+def intake_bulk_run():
+    f = request.form
+    path = os.path.join(UPLOAD_DIR, os.path.basename(f.get('path', '')))
+    if not os.path.exists(path):
+        abort(400)
+    specs, i = [], 0
+    while f'csv_{i}' in f:
+        if f.get(f'inc_{i}'):
+            ft, inch = _num_or_none(f.get(f'ft_{i}')), _num_or_none(f.get(f'in_{i}'))
+            gy = f.get(f'grad_{i}', '').strip()
+            specs.append({'name': f.get(f'name_{i}', '').strip(), 'school': f.get('school') or None,
+                          'grad_year': int(gy) if gy.isdigit() else None, 'throws': f.get(f'throws_{i}'),
+                          'height_in': (ft * 12 + (inch or 0)) if ft else None,
+                          'weight_lbs': _num_or_none(f.get(f'wt_{i}')), 'exclude_uids': f.getlist(f'ex_{i}')})
+        i += 1
+    pipeline.process_trackman_bulk(path, specs, live_ab=bool(f.get('live_ab')))
+    return redirect(url_for('dashboard'))
+
+
 REVIEW_PAGE = """
 <!doctype html><title>Check these pitches</title>
 <style>body{font-family:Barlow,Arial,sans-serif;background:#f3ebdd;color:#6f4f2f;max-width:640px;margin:0 auto;padding:28px 16px 60px;}

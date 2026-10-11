@@ -14,6 +14,7 @@ import comps_engine as ce
 import arsenal_comps as ac
 import mlb_lookup
 import store
+import github_sync
 import fonts_embed
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -398,3 +399,44 @@ def regenerate_role(slug, role):
         out = render_hitter(name, row, master, bio) if row else None
     store.sync_to_github()
     return out
+
+
+def pitchers_in_trackman(trackman_path):
+    """Everyone in a Trackman export, ready for the bulk intake screen:
+    [{'csv_name','name','throws','n','known','flagged':[...]}]. Names are flipped from
+    'Last, First' to 'First Last'."""
+    rows = e.load_trackman_rows(trackman_path)
+    seen, out = {}, []
+    for r in rows:
+        seen.setdefault(r['Pitcher'], []).append(r)
+    existing = store.list_players()
+    for csv_name, rs in seen.items():
+        last, _, first = csv_name.partition(', ')
+        disp = f'{first} {last}'.strip() if first else csv_name
+        throws = (rs[0].get('PitcherThrows') or '')[:1].upper()
+        out.append({'csv_name': csv_name, 'name': disp, 'throws': throws, 'n': len(rs),
+                    'known': store.slugify(disp) in existing,
+                    'bio': existing.get(store.slugify(disp), {}),
+                    'flagged': e.detect_anomalies(rows, csv_name)})
+    return sorted(out, key=lambda x: x['name'])
+
+
+def process_trackman_bulk(trackman_path, specs, live_ab=False):
+    """specs: [{'name','school','grad_year','height_in','weight_lbs','exclude_uids'}].
+    Creates/updates each player as a Long Beach State Trackman player, renders the reports and
+    (when GitHub sync is configured) pushes each report file to the repo so it survives a
+    redeploy. Returns [(name, slug, out_path_or_None)]."""
+    results = []
+    for s in specs:
+        slug, out = process_trackman_only(
+            trackman_path, s['name'], s.get('school'), s.get('grad_year'),
+            ('RHP' if s.get('throws') == 'R' else 'LHP' if s.get('throws') == 'L' else None),
+            s.get('height_in'), s.get('weight_lbs'), exclude_uids=s.get('exclude_uids') or (), live_ab=live_ab)
+        if out:
+            try:
+                with open(out, 'rb') as f:
+                    github_sync.put_file(f'data/reports/{os.path.basename(out)}', f.read())
+            except Exception as exc:
+                print(f'WARNING: could not push {out}: {exc}')
+        results.append((s['name'], slug, out))
+    return results
