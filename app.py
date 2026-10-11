@@ -151,6 +151,55 @@ def headshot(slug):
     return resp
 
 
+EDIT_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Edit Profile</title>
+<style>body{font-family:Barlow,Arial,sans-serif;background:#f3ebdd;color:#6f4f2f;max-width:560px;margin:0 auto;padding:24px 16px 60px;} h1{font-family:Oswald,Arial,sans-serif;margin:6px 0 2px;}
+label{display:block;font-weight:600;font-size:13px;margin:14px 0 4px;} input[type=text],input[type=number],select{width:100%;padding:9px 10px;border:1px solid #e1d6c2;border-radius:7px;box-sizing:border-box;font:inherit;}
+.row{display:flex;gap:10px;} .row>div{flex:1;} .btns{margin-top:22px;display:flex;gap:10px;align-items:center;} button{padding:11px 24px;border:none;border-radius:999px;background:#5c84a6;color:#fff;font-weight:600;cursor:pointer;font-size:14px;}
+a{color:#8a7557;font-size:13px;} .ph{width:96px;height:96px;border-radius:50%;object-fit:cover;background:#d9c9ac;display:block;} .msg{background:#f6dede;color:#9c3a3a;padding:10px 14px;border-radius:8px;margin:12px 0;}</style></head><body>
+<a href="{{ url_for('player_overview', slug=slug) }}">&larr; Back to {{ p.name }}</a><h1>Edit Profile</h1>
+{% if err %}<div class="msg">{{ err }}</div>{% endif %}
+<form method="post" enctype="multipart/form-data">
+<label>Headshot</label>{% if has_photo %}<img class="ph" src="{{ url_for('headshot', slug=slug) }}?v={{ v }}" alt="">{% endif %}
+<input type="file" name="photo" accept="image/*">{% if has_photo %}<label style="font-weight:400;"><input type="checkbox" name="remove_photo" value="1"> Remove current headshot</label>{% endif %}
+<label>Full name</label><input type="text" name="name" value="{{ p.name }}" required>
+<div class="row"><div><label>School</label><input type="text" name="school" value="{{ p.school or '' }}"></div><div><label>Class of</label><input type="number" name="grad_year" value="{{ p.grad_year or '' }}"></div></div>
+<div class="row"><div><label>Position</label><select name="position">{% for o in ['RHP','LHP','INF','OF','C','TWP'] %}<option value="{{ o }}" {{ 'selected' if pos == o }}>{{ o }}</option>{% endfor %}</select></div></div>
+<div class="row"><div><label>Height (ft)</label><input type="number" name="ft" value="{{ ((p.height_in or 0)//12)|int or '' }}"></div><div><label>(in)</label><input type="number" name="inch" value="{{ ((p.height_in or 0)%12)|int if p.height_in else '' }}"></div><div><label>Weight (lb)</label><input type="number" name="wt" value="{{ p.weight_lbs|int if p.weight_lbs else '' }}"></div></div>
+<div class="btns"><button type="submit">Save changes</button><a href="{{ url_for('player_overview', slug=slug) }}">Cancel</a></div></form></body></html>"""
+
+
+@app.route('/player/<slug>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_profile(slug):
+    p = store.get_player(slug)
+    if not p:
+        abort(404)
+    err = None
+    if request.method == 'POST':
+        f = request.form
+        gy = f.get('grad_year', '').strip()
+        ft, inch = _num_or_none(f.get('ft')), _num_or_none(f.get('inch'))
+        new_slug, err = store.update_profile(
+            slug, name=f.get('name', '').strip(), school=f.get('school', '').strip() or None,
+            grad_year=int(gy) if gy.isdigit() else None, position=f.get('position') or None,
+            height_in=(ft * 12 + (inch or 0)) if ft else None, weight_lbs=_num_or_none(f.get('wt')))
+        if not err:
+            if f.get('remove_photo'):
+                headshots.delete(new_slug)
+            ph = request.files.get('photo')
+            if ph and ph.filename:
+                try:
+                    headshots.save(new_slug, ph)
+                except Exception as exc:
+                    err = f"Saved, but couldn't read that image: {exc}"
+            if not err:
+                return redirect(url_for('player_overview', slug=new_slug))
+        p = store.get_player(slug) or p
+    has = headshots.exists(slug)
+    return render_template_string(EDIT_PAGE, p=p, slug=slug, err=err, pos=_player_pos(p), has_photo=has,
+                                  v=int(os.path.getmtime(headshots.path(slug))) if has else 0)
+
+
 @app.route('/player/<slug>/headshot', methods=['POST'])
 @login_required
 def upload_headshot(slug):

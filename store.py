@@ -291,3 +291,35 @@ def rename_player(slug, new_name):
         headshots.move(slug, new_slug)
     sync_to_github()
     return new_slug, None
+
+
+def update_profile(slug, name=None, school=None, grad_year=None, position=None, height_in=None, weight_lbs=None):
+    """Edit Profile: overwrites the bio fields (blank clears height/weight/year), renames if the name changed.
+    Returns (slug, error)."""
+    players = _load(PLAYERS_PATH, {})
+    if slug not in players:
+        return None, 'Player not found.'
+    e = players[slug]
+    e['school'] = school or None
+    e['grad_year'] = grad_year
+    for k, v in (('height_in', height_in), ('weight_lbs', weight_lbs)):
+        if v:
+            e[k] = v
+        else:
+            e.pop(k, None)
+    ov = _load(OVERRIDES_PATH, {})
+    if slug in ov:                      # an override would otherwise refill a field the coach just cleared
+        for k in ('height_in', 'weight_lbs'):
+            ov[slug].pop(k, None)
+        _save(OVERRIDES_PATH, ov)
+    if position:
+        e.setdefault('roles', {}).setdefault('pitch', {})['position'] = position
+    _save(PLAYERS_PATH, players)
+    new_slug = slug
+    if name and ' '.join(name.split()) != e['name']:
+        new_slug, err = rename_player(slug, name)
+        if err:
+            return slug, err
+    else:
+        sync_to_github()
+    return new_slug, None
