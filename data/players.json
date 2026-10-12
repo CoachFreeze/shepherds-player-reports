@@ -438,7 +438,8 @@
   },
   "ryan_halamicek": {
     "comps": {},
-    "grad_year": null,
+    "grad_year": 2028,
+    "height_in": 75.0,
     "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/45f27f88-10.10.26_IS.csv",
     "name": "Ryan Halamicek",
     "program": "long_beach_state",
@@ -447,7 +448,8 @@
         "position": "RHP"
       }
     },
-    "school": "Long Beach State"
+    "school": "Long Beach State",
+    "weight_lbs": 205.0
   },
   "ryan_han": {
     "comps": {
