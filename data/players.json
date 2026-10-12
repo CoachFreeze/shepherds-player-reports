@@ -332,7 +332,7 @@
   "mason_tymick": {
     "comps": {},
     "grad_year": null,
-    "height_in": 75,
+    "height_in": 75.0,
     "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/45f27f88-10.10.26_IS.csv",
     "name": "Mason Tymick",
     "program": "long_beach_state",
@@ -342,7 +342,7 @@
       }
     },
     "school": "Long Beach State",
-    "weight_lbs": 185
+    "weight_lbs": 185.0
   },
   "reagan_samples": {
     "comps": {
