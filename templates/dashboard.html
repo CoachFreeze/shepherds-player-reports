@@ -44,7 +44,6 @@
       </a>
       {% if p.shep_links %}<div class="links">{% for t, u in p.shep_links %}<a href="{{ u }}">{{ t }}</a>{% endfor %}</div>{% endif %}
       {% if p.can_edit %}<div class="mg">
-        <form method="post" action="{{ url_for('rename_player_route', slug=slug) }}" onsubmit="var n=prompt('Correct spelling of the name:', {{ p.name|tojson }}); if(!n||n===this.querySelector('[name=name]').defaultValue){return false;} this.querySelector('[name=name]').value=n; return true;"><input type="hidden" name="name" value="{{ p.name }}"><button type="submit">Rename</button></form>
         <form method="post" action="{{ url_for('delete_player_route', slug=slug) }}" onsubmit="return confirm('Delete {{ p.name|e }} and all their data? This cannot be undone.');"><button type="submit" class="del">Delete</button></form></div>{% endif %}
     </div>
   {% endfor %}</div>{% endif %}{% endfor %}
