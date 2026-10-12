@@ -86,16 +86,16 @@ def admin_required(view):
 LOGIN_PAGE = """
 <!doctype html><title>Coach Login</title>
 <style>
-  body{font-family:Barlow,Arial,sans-serif;background:#f3ebdd;color:#6f4f2f;display:flex;
+  body{font-family:Barlow,Arial,sans-serif;background:#f7f6f2;color:#22303a;display:flex;
        align-items:center;justify-content:center;height:100vh;margin:0;}
-  form{background:#fff;border:1px solid #e1d6c2;border-radius:12px;padding:28px 26px;width:280px;}
+  form{background:#fff;border:1px solid #dcdfdc;border-radius:12px;padding:28px 26px;width:280px;}
   h1{font-size:18px;margin:0 0 16px;}
-  input{width:100%;padding:9px 10px;margin-bottom:10px;border:1px solid #e1d6c2;border-radius:7px;box-sizing:border-box;}
-  button{width:100%;padding:10px;border:none;border-radius:999px;background:#5c84a6;color:#fff;font-weight:600;cursor:pointer;}
+  input{width:100%;padding:9px 10px;margin-bottom:10px;border:1px solid #dcdfdc;border-radius:7px;box-sizing:border-box;}
+  button{width:100%;padding:10px;border:none;border-radius:999px;background:#5c97a8;color:#fff;font-weight:600;cursor:pointer;}
   .error{color:#b33;font-size:13px;margin-bottom:10px;}
 </style>
 <form method="post">
-  <h1>Shepherds Player Reports &mdash; Coach Login</h1>
+  <h1>Player Reports &mdash; Coach Login</h1>
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
   <input name="username" placeholder="Username" autofocus>
   <input name="password" type="password" placeholder="Password">
@@ -151,6 +151,8 @@ def dashboard():
         if not can_view(slug):
             continue
         p = dict(p)
+        _b = pipeline.school_badge_file(p.get('school'), p.get('program'))
+        p['badge'] = {'file': _b[0], 'bg': _b[1]} if _b else None
         p['can_edit'] = can_manage(slug)
         p['has_photo'] = headshots.exists(slug)
         p['photo_v'] = int(os.path.getmtime(headshots.path(slug))) if p['has_photo'] else 0
@@ -184,8 +186,10 @@ def player_overview(slug):
         abort(404)
     last, first = _split_name(bio['name'])
     has_photo = headshots.exists(slug)
+    _b = pipeline.school_badge_file(bio.get('school'), bio.get('program'))
+    badge = {'file': _b[0], 'bg': _b[1]} if _b else None
     css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
-    return render_template('player_overview.html', b=b, bio=bio, slug=slug, css=css, has_photo=has_photo,
+    return render_template('player_overview.html', b=b, bio=bio, slug=slug, css=css, has_photo=has_photo, badge=badge,
                            photo_v=int(os.path.getmtime(headshots.path(slug))) if has_photo else 0,
                            initials=(first[:1] + last[:1]).upper(), pos=_player_pos(bio), is_coach=bool(session.get('coach')), can_edit=can_manage(slug))
 
@@ -201,6 +205,16 @@ def view_outing(slug, date):
     return html
 
 
+@app.route('/school-logo/<fname>')
+def school_logo(fname):
+    path = os.path.join(pipeline.APP_DIR, 'assets', 'schools', os.path.basename(fname))
+    if not os.path.exists(path):
+        abort(404)
+    resp = send_file(path)
+    resp.headers['Cache-Control'] = 'public, max-age=86400'
+    return resp
+
+
 @app.route('/headshot/<slug>')
 def headshot(slug):
     if not headshots.exists(slug) or not can_view(slug):
@@ -211,10 +225,10 @@ def headshot(slug):
 
 
 EDIT_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Edit Profile</title>
-<style>body{font-family:Barlow,Arial,sans-serif;background:#f3ebdd;color:#6f4f2f;max-width:560px;margin:0 auto;padding:24px 16px 60px;} h1{font-family:Oswald,Arial,sans-serif;margin:6px 0 2px;}
-label{display:block;font-weight:600;font-size:13px;margin:14px 0 4px;} input[type=text],input[type=number],select{width:100%;padding:9px 10px;border:1px solid #e1d6c2;border-radius:7px;box-sizing:border-box;font:inherit;}
-.row{display:flex;gap:10px;} .row>div{flex:1;} .btns{margin-top:22px;display:flex;gap:10px;align-items:center;} button{padding:11px 24px;border:none;border-radius:999px;background:#5c84a6;color:#fff;font-weight:600;cursor:pointer;font-size:14px;}
-a{color:#8a7557;font-size:13px;} .ph{width:96px;height:96px;border-radius:50%;object-fit:cover;background:#d9c9ac;display:block;} .msg{background:#f6dede;color:#9c3a3a;padding:10px 14px;border-radius:8px;margin:12px 0;}</style></head><body>
+<style>body{font-family:Barlow,Arial,sans-serif;background:#f7f6f2;color:#22303a;max-width:560px;margin:0 auto;padding:24px 16px 60px;} h1{font-family:Oswald,Arial,sans-serif;margin:6px 0 2px;}
+label{display:block;font-weight:600;font-size:13px;margin:14px 0 4px;} input[type=text],input[type=number],select{width:100%;padding:9px 10px;border:1px solid #dcdfdc;border-radius:7px;box-sizing:border-box;font:inherit;}
+.row{display:flex;gap:10px;} .row>div{flex:1;} .btns{margin-top:22px;display:flex;gap:10px;align-items:center;} button{padding:11px 24px;border:none;border-radius:999px;background:#5c97a8;color:#fff;font-weight:600;cursor:pointer;font-size:14px;}
+a{color:#6b7680;font-size:13px;} .ph{width:96px;height:96px;border-radius:50%;object-fit:cover;background:#cfd8dc;display:block;} .msg{background:#f6dede;color:#9c3a3a;padding:10px 14px;border-radius:8px;margin:12px 0;}</style></head><body>
 <a href="{{ url_for('player_overview', slug=slug) }}">&larr; Back to {{ p.name }}</a><h1>Edit Profile</h1>
 {% if err %}<div class="msg">{{ err }}</div>{% endif %}
 <form method="post" enctype="multipart/form-data">
@@ -262,10 +276,10 @@ def edit_profile(slug):
 
 
 COACHES_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Coach Logins</title>
-<style>body{font-family:Barlow,Arial,sans-serif;background:#f3ebdd;color:#6f4f2f;max-width:640px;margin:0 auto;padding:24px 16px 60px;} h1{font-family:Oswald,Arial,sans-serif;margin:6px 0 10px;}
-.card{background:#fff;border:1px solid #e1d6c2;border-radius:10px;padding:12px 14px;margin:10px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;} small{color:#8a7557;}
-label{display:block;font-weight:600;font-size:13px;margin:12px 0 4px;} input,select{width:100%;padding:9px 10px;border:1px solid #e1d6c2;border-radius:7px;box-sizing:border-box;font:inherit;}
-button{padding:10px 22px;border:none;border-radius:999px;background:#5c84a6;color:#fff;font-weight:600;cursor:pointer;margin-top:16px;} button.del{background:#fff;color:#9c3a3a;border:1px solid #e1d6c2;margin:0;padding:6px 14px;font-size:12.5px;} a{color:#8a7557;font-size:13px;}
+<style>body{font-family:Barlow,Arial,sans-serif;background:#f7f6f2;color:#22303a;max-width:640px;margin:0 auto;padding:24px 16px 60px;} h1{font-family:Oswald,Arial,sans-serif;margin:6px 0 10px;}
+.card{background:#fff;border:1px solid #dcdfdc;border-radius:10px;padding:12px 14px;margin:10px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;} small{color:#6b7680;}
+label{display:block;font-weight:600;font-size:13px;margin:12px 0 4px;} input,select{width:100%;padding:9px 10px;border:1px solid #dcdfdc;border-radius:7px;box-sizing:border-box;font:inherit;}
+button{padding:10px 22px;border:none;border-radius:999px;background:#5c97a8;color:#fff;font-weight:600;cursor:pointer;margin-top:16px;} button.del{background:#fff;color:#9c3a3a;border:1px solid #dcdfdc;margin:0;padding:6px 14px;font-size:12.5px;} a{color:#6b7680;font-size:13px;}
 .msg{background:#e3ecdf;color:#3f6b42;padding:10px 14px;border-radius:8px;margin:10px 0;} .err{background:#f6dede;color:#9c3a3a;}</style></head><body>
 <a href="{{ url_for('dashboard') }}">&larr; Dashboard</a><h1>Coach Logins</h1>
 {% if msg %}<div class="msg {{ 'err' if err }}">{{ msg }}</div>{% endif %}
@@ -380,17 +394,17 @@ def view_report(slug, role):
 INTAKE_PAGE = """
 <!doctype html><title>New Player Intake</title>
 <style>
-  body{font-family:Barlow,Arial,sans-serif;background:#f3ebdd;color:#6f4f2f;max-width:560px;margin:0 auto;padding:28px 16px 60px;}
+  body{font-family:Barlow,Arial,sans-serif;background:#f7f6f2;color:#22303a;max-width:560px;margin:0 auto;padding:28px 16px 60px;}
   h1{font-family:Oswald,Arial,sans-serif;}
   label{display:block;font-weight:600;font-size:13px;margin:14px 0 4px;}
-  input[type=text],input[type=number]{width:100%;padding:9px 10px;border:1px solid #e1d6c2;border-radius:7px;box-sizing:border-box;}
+  input[type=text],input[type=number]{width:100%;padding:9px 10px;border:1px solid #dcdfdc;border-radius:7px;box-sizing:border-box;}
   .row{display:flex;gap:10px;} .row > div{flex:1;}
-  button{margin-top:20px;padding:11px 22px;border:none;border-radius:999px;background:#5c84a6;color:#fff;font-weight:600;cursor:pointer;}
+  button{margin-top:20px;padding:11px 22px;border:none;border-radius:999px;background:#5c97a8;color:#fff;font-weight:600;cursor:pointer;}
   .msg{padding:10px 14px;border-radius:8px;margin-bottom:14px;}
   .msg.ok{background:#e3ecdf;color:#3f6b42;} .msg.err{background:#f6dede;color:#9c3a3a;}
   .top{display:flex;justify-content:space-between;align-items:center;}
-  .top a{color:#8a7557;font-size:13px;}
-  fieldset{border:1px solid #e1d6c2;border-radius:10px;margin-top:16px;}
+  .top a{color:#6b7680;font-size:13px;}
+  fieldset{border:1px solid #dcdfdc;border-radius:10px;margin-top:16px;}
 </style>
 <div class="top"><h1>New Player Intake</h1><a href="{{ url_for('logout') }}">Log out ({{ coach }})</a></div>
 {% if message %}<div class="msg {{ 'ok' if ok else 'err' }}">{{ message }}</div>{% endif %}
@@ -406,17 +420,17 @@ INTAKE_PAGE = """
   </div>
   <div><label>60 time (seconds, hitters only -- leave blank if N/A)</label>
     <input type="number" step="0.01" min="0" name="sixty_yd_time" placeholder="e.g. 6.85">
-    <p style="font-size:12.5px;color:#8a7557;margin:4px 0 0;">Used to fill in the 60 Yard Dash and Sprint Speed lines on the Running panel. Can be added or changed later from the Edit Comps page without re-uploading.</p>
+    <p style="font-size:12.5px;color:#6b7680;margin:4px 0 0;">Used to fill in the 60 Yard Dash and Sprint Speed lines on the Running panel. Can be added or changed later from the Edit Comps page without re-uploading.</p>
   </div>
   <fieldset style="padding:12px 14px;">
     <label style="margin-top:0;">Full Swing export (.xlsx)</label>
     <input type="file" name="xlsx_file" accept=".xlsx" required>
-    <p style="font-size:12.5px;color:#8a7557;">The workbook must include this player's rows on the Master and Totals tabs.</p>
+    <p style="font-size:12.5px;color:#6b7680;">The workbook must include this player's rows on the Master and Totals tabs.</p>
   </fieldset>
   <fieldset style="padding:12px 14px;">
     <label style="margin-top:0;">Trackman export (.csv, pitchers only -- optional)</label>
     <input type="file" name="trackman_file" accept=".csv">
-    <p style="font-size:12.5px;color:#8a7557;">If this player's school gives him a Trackman report, attach its CSV here to fill in real Pitch Movement Profile and Spin Direction numbers instead of the sample placeholder values. Leave blank if he doesn't have one -- everything else still works the same.</p>
+    <p style="font-size:12.5px;color:#6b7680;">If this player's school gives him a Trackman report, attach its CSV here to fill in real Pitch Movement Profile and Spin Direction numbers instead of the sample placeholder values. Leave blank if he doesn't have one -- everything else still works the same.</p>
   </fieldset>
   <button type="submit">Generate report(s)</button>
 </form>
@@ -484,29 +498,29 @@ def intake():
 LBSU_INTAKE_PAGE = """
 <!doctype html><title>New Player Intake &mdash; Long Beach State</title>
 <style>
-  body{font-family:Barlow,Arial,sans-serif;background:#f3ebdd;color:#6f4f2f;max-width:560px;margin:0 auto;padding:28px 16px 60px;}
+  body{font-family:Barlow,Arial,sans-serif;background:#f7f6f2;color:#22303a;max-width:560px;margin:0 auto;padding:28px 16px 60px;}
   h1{font-family:Oswald,Arial,sans-serif;font-size:22px;}
   label{display:block;font-weight:600;font-size:13px;margin:14px 0 4px;}
-  input[type=text],input[type=number]{width:100%;padding:9px 10px;border:1px solid #e1d6c2;border-radius:7px;box-sizing:border-box;}
+  input[type=text],input[type=number]{width:100%;padding:9px 10px;border:1px solid #dcdfdc;border-radius:7px;box-sizing:border-box;}
   .row{display:flex;gap:10px;} .row > div{flex:1;}
-  button{margin-top:20px;padding:11px 22px;border:none;border-radius:999px;background:#5c84a6;color:#fff;font-weight:600;cursor:pointer;}
+  button{margin-top:20px;padding:11px 22px;border:none;border-radius:999px;background:#5c97a8;color:#fff;font-weight:600;cursor:pointer;}
   .msg{padding:10px 14px;border-radius:8px;margin-bottom:14px;}
   .msg.ok{background:#e3ecdf;color:#3f6b42;} .msg.err{background:#f6dede;color:#9c3a3a;}
   .top{display:flex;justify-content:space-between;align-items:center;}
-  .top a{color:#8a7557;font-size:13px;}
-  fieldset{border:1px solid #e1d6c2;border-radius:10px;margin-top:16px;padding:12px 14px;}
+  .top a{color:#6b7680;font-size:13px;}
+  fieldset{border:1px solid #dcdfdc;border-radius:10px;margin-top:16px;padding:12px 14px;}
 </style>
 <div class="top"><h1>New Player Intake &mdash; Long Beach State</h1><a href="{{ url_for('logout') }}">Log out ({{ coach }})</a></div>
 {% if message %}<div class="msg {{ 'ok' if ok else 'err' }}">{{ message }}</div>{% endif %}
 <form method="post" enctype="multipart/form-data">
   <label>Full name</label><input type="text" name="name" required>
-  <p style="font-size:12.5px;color:#8a7557;margin:2px 0 0;">Must match the pitcher's name in the Trackman CSV (either "First Last" or "Last, First" works).</p>
+  <p style="font-size:12.5px;color:#6b7680;margin:2px 0 0;">Must match the pitcher's name in the Trackman CSV (either "First Last" or "Last, First" works).</p>
   <div class="row">
     <div><label>School</label><input type="text" name="school"></div>
     <div><label>Graduation year</label><input type="number" name="grad_year"></div>
   </div>
   <label>Pitching position</label><input type="text" name="position_pitch" placeholder="RHP, LHP">
-  <label>Height <span style="font-weight:400;color:#8a7557;">(used for the arm-slot graphic)</span></label>
+  <label>Height <span style="font-weight:400;color:#6b7680;">(used for the arm-slot graphic)</span></label>
   <div class="row">
     <div><input type="number" name="height_ft" min="4" max="7" placeholder="feet"></div>
     <div><input type="number" name="height_in" min="0" max="11" step="0.5" placeholder="inches"></div>
@@ -516,7 +530,7 @@ LBSU_INTAKE_PAGE = """
     <label style="margin-top:0;">Trackman export (.csv)</label>
     <input type="file" name="trackman_file" accept=".csv" required>
     <label style="font-weight:600;font-size:13px;display:block;margin-top:12px;"><input type="checkbox" name="live_ab" value="1"> Game / Live AB session (adds the Outing Summary; leave unchecked for bullpens)</label>
-    <p style="font-size:12.5px;color:#8a7557;">Builds a Pitch Movement Profile, Spin Direction, and velocity report straight from this session. No Full Swing data behind it, so season stats, percentiles, and comps aren't part of this report.</p>
+    <p style="font-size:12.5px;color:#6b7680;">Builds a Pitch Movement Profile, Spin Direction, and velocity report straight from this session. No Full Swing data behind it, so season stats, percentiles, and comps aren't part of this report.</p>
   </fieldset>
   <button type="submit">Generate report</button>
 </form>
@@ -532,11 +546,11 @@ def _num_or_none(v):
         return None
 
 
-BULK_STYLE = """<style>body{font-family:Barlow,Arial,sans-serif;background:#f3ebdd;color:#6f4f2f;max-width:820px;margin:0 auto;padding:28px 16px 60px;}
-h1{font-family:Oswald,Arial,sans-serif;} .card{background:#fff;border:1px solid #e1d6c2;border-radius:10px;padding:12px 14px;margin:12px 0;}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:end;} .row label{font-size:12px;font-weight:600;display:block;} .row input[type=text],.row input[type=number]{padding:7px 8px;border:1px solid #e1d6c2;border-radius:6px;}
+BULK_STYLE = """<style>body{font-family:Barlow,Arial,sans-serif;background:#f7f6f2;color:#22303a;max-width:820px;margin:0 auto;padding:28px 16px 60px;}
+h1{font-family:Oswald,Arial,sans-serif;} .card{background:#fff;border:1px solid #dcdfdc;border-radius:10px;padding:12px 14px;margin:12px 0;}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:end;} .row label{font-size:12px;font-weight:600;display:block;} .row input[type=text],.row input[type=number]{padding:7px 8px;border:1px solid #dcdfdc;border-radius:6px;}
 .flag{color:#9c3a3a;font-size:12.5px;margin:4px 0 0 22px;} .tag{font-size:11px;background:#e3ecdf;color:#3f6b42;border-radius:999px;padding:2px 8px;margin-left:6px;}
-button{margin-top:14px;padding:11px 22px;border:none;border-radius:999px;background:#5c84a6;color:#fff;font-weight:600;cursor:pointer;}</style>"""
+button{margin-top:14px;padding:11px 22px;border:none;border-radius:999px;background:#5c97a8;color:#fff;font-weight:600;cursor:pointer;}</style>"""
 
 BULK_UPLOAD_PAGE = BULK_STYLE + """
 <title>Upload a .CSV</title><h1>Upload a .CSV</h1>
@@ -656,10 +670,10 @@ def intake_bulk_run():
 
 REVIEW_PAGE = """
 <!doctype html><title>Check these pitches</title>
-<style>body{font-family:Barlow,Arial,sans-serif;background:#f3ebdd;color:#6f4f2f;max-width:640px;margin:0 auto;padding:28px 16px 60px;}
-h1{font-family:Oswald,Arial,sans-serif;} .p{background:#fff;border:1px solid #e1d6c2;border-radius:10px;padding:10px 14px;margin:10px 0;}
+<style>body{font-family:Barlow,Arial,sans-serif;background:#f7f6f2;color:#22303a;max-width:640px;margin:0 auto;padding:28px 16px 60px;}
+h1{font-family:Oswald,Arial,sans-serif;} .p{background:#fff;border:1px solid #dcdfdc;border-radius:10px;padding:10px 14px;margin:10px 0;}
 .p label{display:block;font-weight:600;} .p small{display:block;color:#9c3a3a;margin:3px 0 0 24px;}
-button{margin:8px 8px 0 0;padding:11px 22px;border:none;border-radius:999px;background:#5c84a6;color:#fff;font-weight:600;cursor:pointer;} button.alt{background:#aa8b68;}</style>
+button{margin:8px 8px 0 0;padding:11px 22px;border:none;border-radius:999px;background:#5c97a8;color:#fff;font-weight:600;cursor:pointer;} button.alt{background:#5c97a8;}</style>
 <h1>Some pitches under {{ name }} look off</h1>
 <p>These may belong to a different pitcher (a mis-tagged name in the export). Checked pitches will be left out of the report.</p>
 <form method="post" action="{{ url_for('intake_lbsu_confirm') }}">
@@ -773,20 +787,20 @@ def api_comps_unlock(slug, role, index):
 EDIT_COMPS_PAGE = """
 <!doctype html><title>Edit Comps &mdash; {{ player.name }}</title>
 <style>
-  body{font-family:Barlow,Arial,sans-serif;background:#f3ebdd;color:#6f4f2f;max-width:560px;margin:0 auto;padding:28px 16px 60px;}
+  body{font-family:Barlow,Arial,sans-serif;background:#f7f6f2;color:#22303a;max-width:560px;margin:0 auto;padding:28px 16px 60px;}
   h1{font-family:Oswald,Arial,sans-serif;font-size:22px;}
-  h2{font-family:Oswald,Arial,sans-serif;font-size:15px;color:#8a7557;text-transform:uppercase;letter-spacing:.06em;margin-top:28px;}
-  .slot{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e1d6c2;border-radius:8px;padding:10px 12px;margin-bottom:8px;}
+  h2{font-family:Oswald,Arial,sans-serif;font-size:15px;color:#6b7680;text-transform:uppercase;letter-spacing:.06em;margin-top:28px;}
+  .slot{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #dcdfdc;border-radius:8px;padding:10px 12px;margin-bottom:8px;}
   .slot .info{flex:1;}
   .slot .nm{font-weight:600;}
   .slot .tag{font-size:11px;padding:2px 7px;border-radius:999px;margin-left:6px;}
-  .tag.auto{background:#e6dac5;color:#6f4f2f;}
+  .tag.auto{background:#e3e8ea;color:#22303a;}
   .tag.locked{background:#dce8f0;color:#355;}
   form.inline{display:flex;gap:6px;}
-  input[type=text]{padding:6px 8px;border:1px solid #e1d6c2;border-radius:6px;width:150px;}
-  button{padding:6px 12px;border:none;border-radius:999px;background:#5c84a6;color:#fff;font-weight:600;cursor:pointer;font-size:12.5px;}
-  button.unlock{background:#aa8b68;}
-  .top a{color:#8a7557;font-size:13px;}
+  input[type=text]{padding:6px 8px;border:1px solid #dcdfdc;border-radius:6px;width:150px;}
+  button{padding:6px 12px;border:none;border-radius:999px;background:#5c97a8;color:#fff;font-weight:600;cursor:pointer;font-size:12.5px;}
+  button.unlock{background:#5c97a8;}
+  .top a{color:#6b7680;font-size:13px;}
 </style>
 <p class="top"><a href="{{ url_for('intake') }}">&larr; Back to intake</a></p>
 <h1>{{ player.name }} &mdash; Players to Watch</h1>
@@ -796,7 +810,7 @@ EDIT_COMPS_PAGE = """
   <input type="number" step="0.01" min="0" name="sixty_yd_time" placeholder="e.g. 6.85" value="{{ player.sixty_yd_time or '' }}">
   <button type="submit">Save</button>
 </form>
-<p style="font-size:12px;color:#8a7557;margin:6px 0 0;">Saving updates the Running panel on the hitting report immediately -- Sprint Speed (ft/s) and both percentiles are recalculated from this time.</p>
+<p style="font-size:12px;color:#6b7680;margin:6px 0 0;">Saving updates the Running panel on the hitting report immediately -- Sprint Speed (ft/s) and both percentiles are recalculated from this time.</p>
 {% endif %}
 {% for role, label in [('pitch','Pitching'), ('hit','Hitting')] %}
   {% if player.roles.get(role) %}
@@ -806,7 +820,7 @@ EDIT_COMPS_PAGE = """
       <div class="info">
         <span class="nm">{{ c.name or '(empty)' }}</span>
         <span class="tag {{ c.source }}">{{ c.source }}</span>
-        {% if c.position %}<div style="font-size:12px;color:#8a7557;">{{ c.position }}</div>{% endif %}
+        {% if c.position %}<div style="font-size:12px;color:#6b7680;">{{ c.position }}</div>{% endif %}
       </div>
       <form class="inline" method="post" action="{{ url_for('edit_comps_override', slug=slug, role=role, index=loop.index0) }}">
         <input type="text" name="name" placeholder="Replace with...">

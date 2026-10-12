@@ -48,6 +48,16 @@ SCHOOL_BADGES = [
 ]
 
 
+def school_badge_file(school, program=None):
+    """-> (logo file name in assets/schools/, circle background colour) or None."""
+    s = (school or '').lower()
+    for keys, fname, bg in SCHOOL_BADGES:
+        if (any(k in s for k in keys) or (program == 'long_beach_state' and fname == 'long_beach_state.png')) \
+                and os.path.exists(os.path.join(APP_DIR, 'assets', 'schools', fname)):
+            return fname, bg
+    return None
+
+
 def school_badge(school, program=None):
     """-> {'logo': data-uri, 'bg': colour} or None. Long Beach State players
     (program 'long_beach_state') get the LB badge even if the school box was left blank."""
