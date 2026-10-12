@@ -112,7 +112,7 @@ def login():
         password = request.form.get('password', '')
         if store.verify_coach(username, password):
             session['coach'] = username
-            return redirect(request.args.get('next') or url_for('intake_bulk'))
+            return redirect(request.args.get('next') or url_for('dashboard'))
         error = 'Incorrect username or password.'
     return render_template_string(LOGIN_PAGE, error=error)
 
@@ -420,7 +420,7 @@ INTAKE_PAGE = """
   </fieldset>
   <button type="submit">Generate report(s)</button>
 </form>
-<p style="margin-top:28px;"><a href="{{ url_for('intake_bulk') }}">Adding Trackman pitchers? Use the bulk intake &rarr;</a></p>
+<p style="margin-top:28px;"><a href="{{ url_for('intake_bulk') }}">Adding Trackman pitchers? Upload a .CSV &rarr;</a></p>
 <p style="margin-top:10px;"><a href="{{ url_for('dashboard') }}">&larr; View the public dashboard</a></p>
 <p style="margin-top:10px;font-size:12.5px;"><a href="{{ url_for('backup_players') }}">Download current roster data (players.json)</a> -- after adding players, upload this file into the GitHub repo's <code>data/</code> folder so the roster survives the next code update.</p>
 """
@@ -539,7 +539,7 @@ h1{font-family:Oswald,Arial,sans-serif;} .card{background:#fff;border:1px solid 
 button{margin-top:14px;padding:11px 22px;border:none;border-radius:999px;background:#5c84a6;color:#fff;font-weight:600;cursor:pointer;}</style>"""
 
 BULK_UPLOAD_PAGE = BULK_STYLE + """
-<title>Bulk Trackman Intake</title><h1>Bulk Trackman Intake</h1>
+<title>Upload a .CSV</title><h1>Upload a .CSV</h1>
 <p>Upload one Trackman CSV with any number of pitchers{% if prog_label %} for {{ prog_label }}{% endif %}. Everyone in the file is picked up automatically.</p>
 {% if message %}<div class="card" style="color:#9c3a3a;">{{ message }}</div>{% endif %}
 <form method="post" enctype="multipart/form-data">{% if programs %}<p><label style="font-weight:600;">Program: <select name="program">{% for s, l in programs %}<option value="{{ s }}" {{ 'selected' if s == prog }}>{{ l }}</option>{% endfor %}</select></label></p>{% endif %}<input type="file" name="trackman_file" accept=".csv" required><br><button type="submit">Read file</button></form>
