@@ -37,7 +37,8 @@ def _save(path, data):
 
 
 # --- Programs ---------------------------------------------------------------
-PUBLIC_PROGRAMS = {'shepherds'}          # visible to anyone; every other program is private to its coaches (and admins)
+PUBLIC_PROGRAMS = set()                  # nothing is public: every program is private to its own coaches (and admins)
+ADMIN_ONLY_PROGRAMS = {'shepherds'}      # Shepherds reports: only admins can see or be assigned to them
 _KNOWN_LABELS = {'shepherds': 'Shepherds', 'long_beach_state': 'Long Beach State'}
 
 
@@ -55,7 +56,7 @@ def program_label(slug):
 def list_programs():
     """Private programs known to the app: [(slug, label)]."""
     slugs = {p.get('program') for p in list_players().values() if p.get('program')} | {c.get('program') for c in list_coaches().values() if c.get('program')}
-    return sorted(((x, program_label(x)) for x in slugs if x and x not in PUBLIC_PROGRAMS), key=lambda t: t[1])
+    return sorted(((x, program_label(x)) for x in slugs if x and x not in ADMIN_ONLY_PROGRAMS), key=lambda t: t[1])
 
 
 # --- Coaches ----------------------------------------------------------------

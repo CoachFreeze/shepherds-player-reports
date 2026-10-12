@@ -143,6 +143,8 @@ def _player_pos(p):
 
 @app.route('/')
 def dashboard():
+    if not session.get('coach'):
+        return redirect(url_for('login'))
     players = store.list_players()
     shep, priv = [], {}
     for slug, p in players.items():
@@ -154,7 +156,7 @@ def dashboard():
         p['photo_v'] = int(os.path.getmtime(headshots.path(slug))) if p['has_photo'] else 0
         last, first = _split_name(p['name'])
         pos = _player_pos(p)
-        if p.get('program', 'shepherds') not in store.PUBLIC_PROGRAMS:
+        if p.get('program', 'shepherds') not in store.ADMIN_ONLY_PROGRAMS:
             priv.setdefault(p['program'], []).append((slug, p, url_for('player_overview', slug=slug), last, first, pos))
         else:
             links = []
@@ -172,6 +174,8 @@ def dashboard():
 
 @app.route('/player/<slug>')
 def player_overview(slug):
+    if not session.get('coach'):
+        return redirect(url_for('login', next=request.path))
     bio = store.get_player(slug)
     if not bio or not can_view(slug):
         abort(404)
@@ -188,6 +192,8 @@ def player_overview(slug):
 
 @app.route('/report/<slug>/outing/<date>')
 def view_outing(slug, date):
+    if not session.get('coach'):
+        return redirect(url_for('login', next=request.path))
     bio = store.get_player(slug)
     html = overview.outing_report_html(slug, date, bio) if bio and can_view(slug) else None
     if not html:
@@ -286,7 +292,7 @@ def admin_coaches():
             role = 'admin' if f.get('role') == 'admin' else 'program'
             label = ' '.join(f.get('program_label', '').split())
             pslug = store.program_slug(label)
-            if role == 'program' and (not pslug or pslug in store.PUBLIC_PROGRAMS):
+            if role == 'program' and (not pslug or pslug in store.ADMIN_ONLY_PROGRAMS):
                 msg, err = 'Enter the coach\'s program or school name (e.g. Long Beach State).', True
             else:
                 store.add_coach(u, f['display_name'].strip(), f['password'], role=role,
@@ -354,6 +360,8 @@ def backup_players():
 
 @app.route('/report/<slug>/<role>')
 def view_report(slug, role):
+    if not session.get('coach'):
+        return redirect(url_for('login', next=request.path))
     if not can_view(slug):
         abort(404)
     if role not in ('pitching', 'hitting', 'trackman'):
