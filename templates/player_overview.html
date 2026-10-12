@@ -27,7 +27,7 @@
   #mv-tip.card{padding:0;background:#000;border-radius:10px;overflow:hidden;text-align:center;min-width:104px;} #mv-tip .tt-h{font:700 14px/1 'Barlow';padding:7px 12px;} #mv-tip .tt-b{padding:5px 12px 8px;color:#fff;} #mv-tip .tt-v{font:700 26px/1.05 'Oswald';} #mv-tip .tt-m{font:700 13px/1.2 'Barlow';margin-top:2px;}
   .mv-pt{cursor:pointer;} @media (max-width:560px){.tiles{grid-template-columns:repeat(2,1fr);} .olog .st{width:100%;justify-content:space-between;}}
 </style></head><body><div class="ov">
-<div class="top"><a href="{{ url_for('dashboard') }}">&larr; All players</a>{% if is_coach %}<a href="{{ url_for('intake_bulk') }}">Bulk intake</a>{% endif %}</div>
+<div class="top"><a href="{{ url_for('dashboard') }}">&larr; All players</a>{% if is_coach %}<a href="{{ url_for('intake_bulk') }}">Upload a .CSV</a>{% endif %}</div>
 <div class="head">
   <div class="hs">{% if has_photo %}<img src="{{ url_for('headshot', slug=slug) }}?v={{ photo_v }}" alt="">{% else %}<span>{{ initials }}</span>{% endif %}</div>
   <div style="flex:1;min-width:220px;">
