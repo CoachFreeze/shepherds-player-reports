@@ -30,7 +30,7 @@
 <p class="sub">Tap a player to see their current profile and recent outings.</p></div></div>
 <div class="wrap">
   <div class="bar"><input id="q" type="search" placeholder="Search players, schools, positions…" autocomplete="off">
-    <span>{% if is_coach %}<a href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a>{% if is_admin %}<a href="{{ url_for('admin_coaches') }}">Coach logins</a>{% endif %}<a href="{{ url_for('logout') }}">Log out</a>{% else %}<a href="{{ url_for('login') }}">Coach login</a>{% endif %}</span></div>
+    <span>{% if is_coach %}<a href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a>{% if is_admin %}<a href="{{ url_for('admin_coaches') }}">Coach logins</a><a href="{{ url_for('admin_status') }}">Save status</a>{% endif %}<a href="{{ url_for('logout') }}">Log out</a>{% else %}<a href="{{ url_for('login') }}">Coach login</a>{% endif %}</span></div>
   {% for label, plist in groups %}{% if plist %}
   <div class="group-title">{{ label }}</div>
   <div class="grid">

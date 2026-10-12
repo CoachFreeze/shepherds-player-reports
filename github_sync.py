@@ -36,6 +36,15 @@ GITHUB_DATA_PATH = 'data/players.json'  # the one file this module ever touches
 
 API_BASE = 'https://api.github.com'
 
+import time
+LOG = []          # recent results, newest last: {'when','what','ok','detail'} -- shown on the admin status page
+
+
+def _log(what, ok, detail=''):
+    LOG.append({'when': time.strftime('%H:%M:%S UTC', time.gmtime()), 'what': what, 'ok': ok, 'detail': detail[:200]})
+    del LOG[:-15]
+
+
 
 def enabled():
     return bool(GITHUB_TOKEN and GITHUB_REPO)
@@ -48,6 +57,7 @@ def sync_players_json(players_dict):
     triggered it. Prints a warning to the server log on failure so it's
     at least visible in Render's logs if it starts failing persistently."""
     if not enabled():
+        _log('players.json', False, 'GitHub sync is not configured (token/repo env vars missing)')
         return
     try:
         headers = {
@@ -76,8 +86,12 @@ def sync_players_json(players_dict):
         if put_resp.status_code not in (200, 201):
             print(f'WARNING: GitHub auto-backup of players.json failed: '
                   f'{put_resp.status_code} {put_resp.text[:300]}')
+            _log('players.json', False, f'{put_resp.status_code} {put_resp.text[:150]}')
+        else:
+            _log('players.json', True, 'saved to GitHub')
     except Exception as exc:
         print(f'WARNING: GitHub auto-backup of players.json raised: {exc}')
+        _log('players.json', False, str(exc))
 
 
 def _headers():
@@ -116,5 +130,9 @@ def put_file(repo_path, content_bytes):
         r = requests.put(url, headers=_headers(), json=payload, timeout=30)
         if r.status_code not in (200, 201):
             print(f'WARNING: GitHub put of {repo_path} failed: {r.status_code} {r.text[:200]}')
+            _log(repo_path, False, f'{r.status_code} {r.text[:150]}')
+        else:
+            _log(repo_path, True, 'saved to GitHub')
     except Exception as exc:
         print(f'WARNING: GitHub put of {repo_path} raised: {exc}')
+        _log(repo_path, False, str(exc))

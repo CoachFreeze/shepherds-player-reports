@@ -293,6 +293,31 @@ button{padding:10px 22px;border:none;border-radius:999px;background:#5c97a8;colo
 <button type="submit">Save login</button></form></body></html>"""
 
 
+STATUS_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Save Status</title>
+<style>body{font-family:Barlow,Arial,sans-serif;background:#f7f6f2;color:#22303a;max-width:680px;margin:0 auto;padding:24px 16px 60px;} h1{font-family:Oswald,Arial,sans-serif;} .card{background:#fff;border-radius:12px;padding:14px 16px;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.ok{color:#2f7a4a;font-weight:700;} .bad{color:#b03a3a;font-weight:700;} small{color:#6b7680;} button{padding:10px 20px;border:none;border-radius:999px;background:#5c97a8;color:#fff;font-weight:600;cursor:pointer;} a{color:#5c97a8;font-size:13px;} code{background:#eef1f1;padding:1px 5px;border-radius:4px;}</style></head><body>
+<a href="{{ url_for('dashboard') }}">&larr; Dashboard</a><h1>Save Status</h1>
+<div class="card">Automatic GitHub saving: {% if on %}<span class="ok">ON</span> <small>repo <code>{{ repo }}</code>, branch <code>{{ branch }}</code></small>{% else %}<span class="bad">OFF</span><br><small>The Render environment variables <code>SHEPSAVANT_GITHUB_TOKEN</code> and <code>SHEPSAVANT_GITHUB_REPO</code> are missing, so edits only last until the next deploy.</small>{% endif %}</div>
+<form method="post" action="{{ url_for('admin_status_test') }}"><button>Test save now</button></form>
+<div class="card"><b>Recent saves (since the last restart)</b>{% if not log %}<br><small>None yet. Edit a profile or upload a CSV, then reload this page.</small>{% endif %}
+{% for l in log|reverse %}<div style="margin-top:8px;">{{ l.when }} &middot; <code>{{ l.what }}</code> &middot; {% if l.ok %}<span class="ok">saved</span>{% else %}<span class="bad">FAILED</span>{% endif %}<br><small>{{ l.detail }}</small></div>{% endfor %}</div>
+<p><small>If a save shows FAILED, the change only exists on the running server and will be lost at the next deploy. Send me the message shown.</small></p></body></html>"""
+
+
+@app.route('/admin/status')
+@admin_required
+def admin_status():
+    import github_sync
+    return render_template_string(STATUS_PAGE, on=github_sync.enabled(), repo=github_sync.GITHUB_REPO, branch=github_sync.GITHUB_BRANCH, log=github_sync.LOG)
+
+
+@app.route('/admin/status/test', methods=['POST'])
+@admin_required
+def admin_status_test():
+    store.sync_to_github()
+    return redirect(url_for('admin_status'))
+
+
 @app.route('/admin/coaches', methods=['GET', 'POST'])
 @admin_required
 def admin_coaches():
