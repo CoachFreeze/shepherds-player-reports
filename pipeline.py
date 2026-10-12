@@ -45,31 +45,45 @@ def safe_round(v, n):
 # circle background colour). Add a line + drop the PNG in assets/schools/ to support another school.
 SCHOOL_BADGES = [
     (('long beach state', 'lbsu', 'csulb'), 'long_beach_state.png', '#FFB81C'),
+    (('pepperdine',), 'pepperdine.png', '#FFFFFF'),
+    (('hawaii pacific', 'hawai\'i pacific', 'hpu'), 'hawaii_pacific.png', '#FFFFFF'),
+    (('hawaii', 'hawai\'i'), 'hawaii.png', '#FFFFFF', ('hilo', 'pacific')),
+    (('uc irvine', 'uci', 'irvine'), 'uc_irvine.png', '#FFFFFF'),
+    (('usc', 'southern california'), 'usc.png', '#FFFFFF'),
+    (('ucla',), 'ucla.png', '#FFFFFF'),
+    (('loyola marymount', 'lmu'), 'loyola_marymount.png', '#FFFFFF'),
+    (('biola',), 'biola.png', '#FFFFFF'),
+    (('vanguard',), 'vanguard.png', '#FFFFFF'),
 ]
+
+
+def _badge_entry(school, program=None):
+    """Matches on the school name first, then falls back to the program (so a blank School box still works)."""
+    s = (school or '').lower()
+    for keys, fname, bg, *excl in SCHOOL_BADGES:
+        if any(k in s for k in keys) and not any(x in s for x in (excl[0] if excl else ())):
+            if os.path.exists(os.path.join(APP_DIR, 'assets', 'schools', fname)):
+                return fname, bg
+    if not s.strip():
+        for keys, fname, bg, *excl in SCHOOL_BADGES:
+            if program == fname[:-4] and os.path.exists(os.path.join(APP_DIR, 'assets', 'schools', fname)):
+                return fname, bg
+    return None
 
 
 def school_badge_file(school, program=None):
     """-> (logo file name in assets/schools/, circle background colour) or None."""
-    s = (school or '').lower()
-    for keys, fname, bg in SCHOOL_BADGES:
-        if (any(k in s for k in keys) or (program == 'long_beach_state' and fname == 'long_beach_state.png')) \
-                and os.path.exists(os.path.join(APP_DIR, 'assets', 'schools', fname)):
-            return fname, bg
-    return None
+    return _badge_entry(school, program)
 
 
 def school_badge(school, program=None):
-    """-> {'logo': data-uri, 'bg': colour} or None. Long Beach State players
-    (program 'long_beach_state') get the LB badge even if the school box was left blank."""
+    """-> {'logo': data-uri, 'bg': colour} or None."""
     import base64
-    s = (school or '').lower()
-    for keys, fname, bg in SCHOOL_BADGES:
-        if any(k in s for k in keys) or (program == 'long_beach_state' and fname == 'long_beach_state.png'):
-            path = os.path.join(APP_DIR, 'assets', 'schools', fname)
-            if os.path.exists(path):
-                with open(path, 'rb') as f:
-                    return {'logo': 'data:image/png;base64,' + base64.b64encode(f.read()).decode('ascii'), 'bg': bg}
-    return None
+    m = _badge_entry(school, program)
+    if not m:
+        return None
+    with open(os.path.join(APP_DIR, 'assets', 'schools', m[0]), 'rb') as f:
+        return {'logo': 'data:image/png;base64,' + base64.b64encode(f.read()).decode('ascii'), 'bg': m[1]}
 
 
 def _school_display(school, grad_year):
