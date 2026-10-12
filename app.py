@@ -1,7 +1,7 @@
 import functools
 import os
 import re
-from flask import Flask, render_template, request, session, redirect, url_for, render_template_string, send_file, jsonify, abort
+from flask import Flask, Response, render_template, request, session, redirect, url_for, render_template_string, send_file, jsonify, abort
 
 import store
 import pipeline
@@ -171,7 +171,7 @@ def dashboard():
     key = lambda t: (t[3].lower(), t[4].lower())
     groups = [(store.program_label(k), sorted(v, key=key)) for k, v in sorted(priv.items(), key=lambda kv: store.program_label(kv[0]))]
     groups.append(('Shepherds', sorted(shep, key=key)))
-    return render_template('dashboard.html', groups=groups, is_coach=bool(session.get('coach')), is_admin=is_admin())
+    return render_template('dashboard.html', groups=groups, is_coach=bool(session.get('coach')), is_admin=is_admin(), coach_key=session.get('coach') or '')
 
 
 @app.route('/player/<slug>')
@@ -202,6 +202,9 @@ def view_outing(slug, date):
     html = overview.outing_report_html(slug, date, bio) if bio and can_view(slug) else None
     if not html:
         abort(404)
+    if request.args.get('download'):
+        fname = re.sub(r'[^A-Za-z0-9]+', '_', bio['name']).strip('_') + f'_{date}_outing_report.html'
+        return Response(html, mimetype='text/html', headers={'Content-Disposition': f'attachment; filename="{fname}"'})
     return html
 
 

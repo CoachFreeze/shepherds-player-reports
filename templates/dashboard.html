@@ -30,7 +30,7 @@
 <p class="sub">Tap a player to see their current profile and recent outings.</p></div></div>
 <div class="wrap">
   <div class="bar"><input id="q" type="search" placeholder="Search players, schools, positions…" autocomplete="off">
-    <span>{% if is_coach %}<a href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a>{% if is_admin %}<a href="{{ url_for('admin_coaches') }}">Coach logins</a><a href="{{ url_for('admin_status') }}">Save status</a>{% endif %}<a href="{{ url_for('logout') }}">Log out</a>{% else %}<a href="{{ url_for('login') }}">Coach login</a>{% endif %}</span></div>
+    <span>{% if is_coach %}<a href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a><a href="#" onclick="openTour();return false;">Take the tour</a>{% if is_admin %}<a href="{{ url_for('admin_coaches') }}">Coach logins</a><a href="{{ url_for('admin_status') }}">Save status</a>{% endif %}<a href="{{ url_for('logout') }}">Log out</a>{% else %}<a href="{{ url_for('login') }}">Coach login</a>{% endif %}</span></div>
   {% for label, plist in groups %}{% if plist %}
   <div class="group-title">{{ label }}</div>
   <div class="grid">
@@ -49,4 +49,5 @@
   {% endfor %}</div>{% endif %}{% endfor %}
 </div>
 <script>document.getElementById('q').addEventListener('input',function(){var v=this.value.toLowerCase().trim();document.querySelectorAll('.sq').forEach(function(c){c.style.display=(!v||c.dataset.s.indexOf(v)>-1)?'':'none';});});</script>
+{% if is_coach %}{% include '_tour.html' %}{% endif %}
 </body></html>
