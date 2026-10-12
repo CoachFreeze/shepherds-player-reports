@@ -47,13 +47,16 @@ SCHOOL_BADGES = [
     (('long beach state', 'lbsu', 'csulb'), 'long_beach_state.png', '#FFB81C'),
     (('pepperdine',), 'pepperdine.png', '#FFFFFF'),
     (('hawaii pacific', 'hawai\'i pacific', 'hpu'), 'hawaii_pacific.png', '#FFFFFF'),
+    (('hilo',), 'hawaii_hilo.png', '#FFFFFF'),
     (('hawaii', 'hawai\'i'), 'hawaii.png', '#FFFFFF', ('hilo', 'pacific')),
     (('uc irvine', 'uci', 'irvine'), 'uc_irvine.png', '#FFFFFF'),
     (('usc', 'southern california'), 'usc.png', '#FFFFFF'),
     (('ucla',), 'ucla.png', '#FFFFFF'),
     (('loyola marymount', 'lmu'), 'loyola_marymount.png', '#FFFFFF'),
     (('biola',), 'biola.png', '#FFFFFF'),
-    (('vanguard',), 'vanguard.png', '#FFFFFF'),
+    (('west texas', 'wtamu'), 'west_texas_am.png', '#FFFFFF'),
+    (('northwest nazarene', 'nnu'), 'northwest_nazarene.png', '#FFFFFF'),
+    (('ventura college', 'ventura'), 'ventura_college.png', '#FFFFFF'),
 ]
 
 
