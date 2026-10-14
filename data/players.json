@@ -10,7 +10,14 @@
         "position": "RHP"
       }
     },
-    "school": "Long Beach State"
+    "school": "Long Beach State",
+    "stat_ids": [
+      "strike_pct",
+      "whiff_pct",
+      "zone_pct",
+      "chase_pct",
+      "avg_ev"
+    ]
   },
   "aidan_young": {
     "comps": {
