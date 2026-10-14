@@ -1,8 +1,7 @@
 {
   "adrian_pineda": {
     "comps": {},
-    "grad_year": 2028,
-    "height_in": 75.0,
+    "grad_year": null,
     "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/45f27f88-10.10.26_IS.csv",
     "name": "Adrian Pineda",
     "program": "long_beach_state",
@@ -18,8 +17,7 @@
       "zone_pct",
       "chase_pct",
       "avg_ev"
-    ],
-    "weight_lbs": 190.0
+    ]
   },
   "aidan_young": {
     "comps": {
@@ -342,7 +340,7 @@
   },
   "mason_tymick": {
     "comps": {},
-    "grad_year": null,
+    "grad_year": 2029,
     "height_in": 75.0,
     "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/45f27f88-10.10.26_IS.csv",
     "name": "Mason Tymick",
