@@ -261,10 +261,7 @@ def _player_pos(p):
     return (r.get('pitch') or {}).get('position') or (r.get('hit') or {}).get('position')
 
 
-@app.route('/')
-def dashboard():
-    if not session.get('coach'):
-        return redirect(url_for('login'))
+def _build_groups():
     players = store.list_players_view() if is_admin() else store.list_players()
     shep, priv = [], {}
     for slug, p in players.items():
@@ -289,9 +286,57 @@ def dashboard():
             p['shep_links'] = links
             shep.append((slug, p, links[0][1] if links else '#', last, first, pos))
     key = lambda t: (t[3].lower(), t[4].lower())
-    groups = [(store.program_label(k), sorted(v, key=key)) for k, v in sorted(priv.items(), key=lambda kv: store.program_label(kv[0]))]
-    groups.append(('Shepherds', sorted(shep, key=key)))
-    return render_template('dashboard.html', groups=groups, is_coach=bool(session.get('coach')), is_admin=is_admin(), coach_key=session.get('coach') or '')
+    groups = [(k, store.program_label(k), sorted(v, key=key)) for k, v in sorted(priv.items(), key=lambda kv: store.program_label(kv[0]))]
+    groups.append(('shepherds', 'Shepherds', sorted(shep, key=key)))
+    return groups
+
+
+def _team_tiles(groups):
+    """Admin home: one tile per team/program, with its logo, player count and coach count."""
+    coaches = store.list_coaches().values()
+    tiles = []
+    for pk, label, plist in groups:
+        if not plist and pk == 'shepherds':
+            continue
+        _b = pipeline.school_badge_file(label, pk)
+        tiles.append({'key': pk, 'label': label, 'players': len(plist),
+                      'coaches': sum(1 for c in coaches if c.get('program') == pk),
+                      'badge': {'file': _b[0], 'bg': _b[1]} if _b else None,
+                      'brand': pk == 'shepherds', 'demo': pk in store.DEMO_PROGRAMS,
+                      'search': label.lower()})
+    # real programs first (A-Z), then Shepherds, then the sample program
+    tiles.sort(key=lambda t: (t['demo'], t['brand'], t['label'].lower()))
+    return tiles
+
+
+@app.route('/')
+def dashboard():
+    if not session.get('coach'):
+        return redirect(url_for('login'))
+    groups = _build_groups()
+    if is_admin():
+        return render_template('dashboard.html', mode='teams', tiles=_team_tiles(groups), groups=[], team_label=None,
+                               is_coach=True, is_admin=True, coach_key=session.get('coach') or '')
+    return render_template('dashboard.html', mode='players', groups=[(l, p) for _, l, p in groups], team_label=None, tiles=[],
+                           is_coach=True, is_admin=False, coach_key=session.get('coach') or '')
+
+
+@app.route('/team/<program>')
+@admin_required
+def team_view(program):
+    groups = [g for g in _build_groups() if g[0] == program]
+    if not groups:
+        abort(404)
+    return render_template('dashboard.html', mode='players', groups=[(l, p) for _, l, p in groups], team_label=groups[0][1], tiles=[],
+                           is_coach=True, is_admin=True, coach_key=session.get('coach') or '')
+
+
+@app.route('/brand-logo/<fname>')
+def brand_logo(fname):
+    path = os.path.join(pipeline.APP_DIR, 'assets', 'brand', os.path.basename(fname))
+    if os.path.basename(fname) != 'shepsavant_logo.png' or not os.path.exists(path):
+        abort(404)
+    return send_file(path, mimetype='image/png', max_age=86400)
 
 
 @app.route('/player/<slug>')
