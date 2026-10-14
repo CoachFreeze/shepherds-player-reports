@@ -117,6 +117,43 @@ def login():
     return render_template_string(LOGIN_PAGE, error=error)
 
 
+PASSWORD_PAGE = """
+<!doctype html><title>Change Password</title>
+<style>
+  body{font-family:Barlow,Arial,sans-serif;background:#f7f6f2;color:#22303a;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}
+  form{background:#fff;border:1px solid #dcdfdc;border-radius:12px;padding:28px 26px;width:300px;}
+  h1{font-size:18px;margin:0 0 16px;} label{font-size:13px;font-weight:600;}
+  input{width:100%;padding:9px 10px;margin:4px 0 12px;border:1px solid #dcdfdc;border-radius:7px;box-sizing:border-box;}
+  button{width:100%;padding:10px;border:none;border-radius:999px;background:#5c97a8;color:#fff;font-weight:600;cursor:pointer;}
+  .error{color:#b33;font-size:13px;margin-bottom:10px;} .ok{color:#2a7a4b;font-size:13px;margin-bottom:10px;}
+  a{color:#5c97a8;font-size:13px;display:block;text-align:center;margin-top:12px;}
+</style>
+<form method="post">
+  <h1>Change Password</h1>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}{% if ok %}<div class="ok">Password updated.</div>{% endif %}
+  <label>Current password</label><input type="password" name="current" required autofocus>
+  <label>New password (8+ characters)</label><input type="password" name="new" required minlength="8">
+  <label>Confirm new password</label><input type="password" name="confirm" required minlength="8">
+  <button type="submit">Update password</button>
+  <a href="{{ url_for('dashboard') }}">&larr; Back to dashboard</a>
+</form>
+"""
+
+
+@app.route('/account/password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    error = ok = None
+    if request.method == 'POST':
+        new = request.form.get('new', '')
+        if new != request.form.get('confirm', ''):
+            error = 'New passwords do not match.'
+        else:
+            error = store.change_password(session['coach'], request.form.get('current', ''), new)
+            ok = not error
+    return render_template_string(PASSWORD_PAGE, error=error, ok=ok)
+
+
 @app.route('/logout')
 def logout():
     session.pop('coach', None)

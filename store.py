@@ -384,3 +384,16 @@ def set_stat_ids(slug, ids):
     _save(PLAYERS_PATH, players)
     sync_to_github()
     return True
+
+
+def change_password(username, current, new):
+    """Returns an error string, or None on success. Saved to coaches.json and committed to GitHub."""
+    if not verify_coach(username, current):
+        return 'Current password is incorrect.'
+    if len(new) < 8:
+        return 'New password must be at least 8 characters.'
+    coaches = list_coaches()
+    coaches[username]['password_hash'] = generate_password_hash(new)
+    _save(COACHES_PATH, coaches)
+    _push_coaches()
+    return None
