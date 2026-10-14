@@ -13,5 +13,12 @@
   "coach": {
     "display_name": "Head Coach",
     "password_hash": "scrypt:32768:8:1$HLLMUrziv4RGYXOF$611e1c7dd0027803708b44636cf967138bc20f45319fdc308655ba1d264fa29beb56e270cd84e62215aa197c212cd9ad16d6c57af8af7ee71579d6ae7a7fc9ae"
+  },
+  "tyler.latorre": {
+    "display_name": "Tyler LaTorre",
+    "password_hash": "scrypt:32768:8:1$jBkwllO6vOJttchS$ab7fbd37725349002b4b884d44c22467570558eeb95bff8f9bcd9f24c45dfbb6b613cdf004adaf26cec4a9b2005abfb5db62a12a83e2c4cbe5efc309255d4103",
+    "program": "pepperdine_university",
+    "program_label": "Pepperdine University",
+    "role": "program"
   }
 }
