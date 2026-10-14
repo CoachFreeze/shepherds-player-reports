@@ -4,6 +4,7 @@ import re
 from flask import Flask, Response, render_template, request, session, redirect, url_for, render_template_string, send_file, jsonify, abort
 
 import github_sync
+import plans
 import store
 import pipeline
 import extract as e_mod
@@ -70,6 +71,18 @@ def can_view(slug):
     return can_manage(slug)
 
 
+def _upgrade(feature, detail=''):
+    """Shown when a plan doesn't include something (only possible once plan enforcement is switched on)."""
+    name = plans.FEATURE_NAMES.get(feature, feature)
+    return (BULK_STYLE + f'<h1>{name}</h1><div class="card">{detail or "This is not included in your current plan."} '
+            'Contact the ShepSavant admin to upgrade.</div><p><a href="' + url_for('dashboard') + '">Back to the dashboard</a></p>'), 402
+
+
+def _track(event, **meta):
+    c = current_coach() or {}
+    plans.track(event, session.get('coach') or '', c.get('program'), **meta)
+
+
 def my_program():
     c = current_coach() or {}
     return c.get('program')
@@ -115,6 +128,7 @@ def login():
         password = request.form.get('password', '')
         if store.verify_coach(username, password):
             session['coach'] = username
+            plans.track('login', username, (store.list_coaches().get(username) or {}).get('program'))
             return redirect(request.args.get('next') or url_for('dashboard'))
         error = 'Incorrect username or password.'
     return render_template_string(LOGIN_PAGE, error=error)
@@ -141,7 +155,7 @@ ACCOUNT_PAGE = """
 <div class="wrap"><h1>Account Settings</h1>
   <div class="card"><div class="id">{% if me.badge %}<span class="um-av big" style="background:{{ me.badge.bg }}"><img src="{{ url_for('school_logo', fname=me.badge.file) }}" alt=""></span>{% else %}<span class="um-av big"><b>{{ me.initials }}</b></span>{% endif %}
     <div class="meta"><b>{{ me.name }}</b><span>{{ me.label or ('Administrator' if me.is_admin else '') }}{% if me.is_admin and me.label %} &middot; Administrator{% endif %}</span></div></div>
-    <div class="ro">Your logo comes from your program. Username: <b>{{ me.key }}</b></div></div>
+    <div class="ro">Your logo comes from your program. Username: <b>{{ me.key }}</b></div>{% if plan_line %}<div class="ro">Plan: <b>{{ plan_line }}</b></div>{% endif %}</div>
   <div class="card"><h2>Profile</h2>
     {% if name_msg %}<div class="msg {{ 'ok' if name_ok else 'err' }}">{{ name_msg }}</div>{% endif %}
     <form method="post"><input type="hidden" name="form" value="name">
@@ -212,6 +226,8 @@ def account():
             else:
                 err = store.change_password(session['coach'], request.form.get('current', ''), new)
             ctx.update(pw_msg=err or 'Password updated.', pw_ok=not err)
+    _c = current_coach() or {}
+    ctx['plan_line'] = plans.trial_note(_c['program']) if _c.get('program') else ''
     return render_template_string(ACCOUNT_PAGE, **ctx, **inject_me())
 
 
@@ -288,6 +304,8 @@ def player_overview(slug):
     b = overview.build(slug, bio)
     if not b:
         abort(404)
+    if not store.is_demo(slug):
+        _track('view', slug=slug)
     last, first = _split_name(bio['name'])
     has_photo = headshots.exists(slug)
     _b = pipeline.school_badge_file(bio.get('school'), bio.get('program'))
@@ -307,6 +325,9 @@ def view_outing(slug, date):
     if not html:
         abort(404)
     if request.args.get('download'):
+        if not plans.allowed(bio.get('program'), 'download'):
+            return _upgrade('download')
+        _track('download', slug=slug)
         fname = re.sub(r'[^A-Za-z0-9]+', '_', bio['name']).strip('_') + f'_{date}_outing_report.html'
         return Response(html, mimetype='text/html', headers={'Content-Disposition': f'attachment; filename="{fname}"'})
     return html
@@ -353,6 +374,10 @@ a{color:#6b7680;font-size:13px;} .ph{width:96px;height:96px;border-radius:50%;ob
 def save_stats(slug):
     if not can_manage(slug):
         abort(403)
+    _p = store.get_player(slug) or {}
+    if not plans.allowed(_p.get('program'), 'custom_stats'):
+        return _upgrade('custom_stats')
+    _track('customize', slug=slug)
     ids = [i for i in (request.form.get('order') or '').split(',') if i][:40]
     if request.form.get('reset'):
         ids = []
@@ -423,6 +448,17 @@ STATUS_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="vi
 <p><small>If a save shows FAILED, the change only exists on the running server and will be lost at the next deploy. Send me the message shown.</small></p></body></html>"""
 
 
+@app.route('/admin/plans', methods=['GET', 'POST'])
+@admin_required
+def admin_plans():
+    msg = None
+    if request.method == 'POST':
+        prog = request.form.get('program', '')
+        err = plans.set_plan(prog, request.form.get('plan', ''), request.form.get('trial_ends', ''), request.form.get('note', ''))
+        msg = err or f'Saved plan for {store.program_label(prog)}.'
+    return render_template('admin_plans.html', rows=plans.summary(30), plans=plans.PLANS, enforcing=plans.enforcing(), msg=msg)
+
+
 @app.route('/admin/status')
 @admin_required
 def admin_status():
@@ -452,6 +488,8 @@ def admin_coaches():
             pslug = store.program_slug(label)
             if role == 'program' and (not pslug or pslug in store.ADMIN_ONLY_PROGRAMS):
                 msg, err = 'Enter the coach\'s program or school name (e.g. Long Beach State).', True
+            elif role == 'program' and u not in store.list_coaches() and not plans.can_add_coach(pslug)[0]:
+                msg, err = plans.can_add_coach(pslug)[1] + ' Change their plan on the Plans & usage page first.', True
             else:
                 store.add_coach(u, f['display_name'].strip(), f['password'], role=role,
                                 program=pslug if role == 'program' else None, program_label=label if role == 'program' else None, push=True)
@@ -813,9 +851,18 @@ def intake_bulk_run():
             if ph and ph.filename:
                 photos[specs[-1]['name']] = ph
         i += 1
+    _new = [s_ for s_ in specs if not store.get_player(store.slugify(s_['name']))]
+    _ok, _msg = plans.can_add_players(prog, len(_new))
+    if not _ok:
+        return _upgrade('max_players', _msg)
     results = pipeline.process_trackman_bulk(path, specs, live_ab=bool(f.get('live_ab')), reassign=reassign, program=prog)
     if any(out for _, _, out in results):
         _archive_csv(path, prog)
+        try:
+            _n = max(0, sum(1 for _ in open(path, encoding='utf-8', errors='ignore')) - 1)
+        except Exception:
+            _n = 0
+        plans.track('upload', session.get('coach') or '', prog, players=sum(1 for _, _, o in results if o), rows=_n)
     for name, slug, out in results:
         if out and name in photos:
             try:

@@ -4,6 +4,7 @@ from html import escape
 
 import extract as e
 import stats as stats_mod
+import plans as plans_mod
 import savant_components as sc
 import outings as outings_mod
 import pipeline
@@ -76,7 +77,7 @@ def _stamp(outs, name):
 
 def build(slug, bio):
     name = bio['name']
-    recent = _stamp(outings_mod.recent(slug), name)
+    recent = _stamp(outings_mod.recent(slug, plans_mod.limit(bio.get('program'), 'history')), name)
     if not recent:
         return None
     rows = [r for o in recent for r in o['rows']]
