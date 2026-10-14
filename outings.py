@@ -25,7 +25,11 @@ def _path(slug):
 def load(slug):
     p = _path(slug)
     if not os.path.exists(p):
-        return {'outings': []}
+        dp = os.path.join(store.DEMO_DIR, 'outings', f'{slug}.json')     # bundled sample program (read-only)
+        if os.path.exists(dp) and store.is_demo(slug):
+            p = dp
+        else:
+            return {'outings': []}
     with open(p, encoding='utf-8') as f:
         return json.load(f)
 

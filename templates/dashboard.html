@@ -10,7 +10,7 @@
   .wrap{padding:22px 16px 0;}
   .bar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:6px;}
   .bar input{background:#fff;flex:1;min-width:200px;max-width:340px;padding:10px 14px;border:1px solid var(--border);border-radius:999px;font:500 14px 'Barlow',sans-serif;}
-  .bar a{font-size:13px;color:var(--muted);margin-left:12px;text-decoration:none;font-weight:600;}
+  .bar a.upl{font:700 14px 'Barlow',sans-serif;color:#fff;background:#5c97a8;border-radius:999px;padding:10px 20px;text-decoration:none;box-shadow:0 1px 3px rgba(26,31,36,.15);} .bar a.upl:hover{background:#4e8798;}
   .group-title{font:600 14px 'Oswald',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#22303a;margin:34px 0 14px;display:flex;align-items:center;gap:12px;} .group-title:after{content:'';flex:1;height:1px;background:#dcdfdc;}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;}
   .sq{position:relative;background:#fff;border:none;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:inherit;transition:transform .12s,box-shadow .12s;}
@@ -26,11 +26,11 @@
   .mg form{margin:0;} .mg button{font:600 11px 'Barlow',sans-serif;border:none;background:rgba(255,255,255,.92);color:var(--muted);border-radius:999px;padding:4px 9px;cursor:pointer;} .mg button.del{color:#9c3a3a;}
   @media (hover:none){.mg{display:flex;}} @media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr);gap:10px;} .nm{font-size:15px;} .ph span{font-size:42px;}}
 </style></head><body>
-<div class="hero"><div class="hero-wrap"><p class="eyebrow">Player Reports</p><h1>Player Dashboard</h1>
+<div class="hero"><div class="hero-wrap" style="position:relative;">{% if is_coach %}<div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>{% endif %}<p class="eyebrow">Player Reports</p><h1>Player Dashboard</h1>
 <p class="sub">Tap a player to see their current profile and recent outings.</p></div></div>
 <div class="wrap">
   <div class="bar"><input id="q" type="search" placeholder="Search players, schools, positions…" autocomplete="off">
-    <span>{% if is_coach %}<a href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a><a href="#" onclick="openTour();return false;">Take the tour</a>{% if is_admin %}<a href="{{ url_for('admin_coaches') }}">Coach logins</a><a href="{{ url_for('admin_status') }}">Save status</a>{% endif %}<a href="{{ url_for('change_password') }}">Change password</a><a href="{{ url_for('logout') }}">Log out</a>{% else %}<a href="{{ url_for('login') }}">Coach login</a>{% endif %}</span></div>
+    {% if is_coach %}<a class="upl" href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a>{% endif %}</div>
   {% for label, plist in groups %}{% if plist %}
   <div class="group-title">{{ label }}</div>
   <div class="grid">

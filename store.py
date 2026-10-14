@@ -67,8 +67,9 @@ def _save(path, data):
 
 # --- Programs ---------------------------------------------------------------
 PUBLIC_PROGRAMS = set()                  # nothing is public: every program is private to its own coaches (and admins)
+DEMO_PROGRAMS = {'demo_university'}      # bundled sample program (demo/ folder): visible to admins only, never written to data/
 ADMIN_ONLY_PROGRAMS = {'shepherds'}      # Shepherds reports: only admins can see or be assigned to them
-_KNOWN_LABELS = {'shepherds': 'Shepherds', 'long_beach_state': 'Long Beach State'}
+_KNOWN_LABELS = {'shepherds': 'Shepherds', 'long_beach_state': 'Long Beach State', 'demo_university': 'Demo University (sample)'}
 
 
 def program_slug(label):
@@ -85,7 +86,7 @@ def program_label(slug):
 def list_programs():
     """Private programs known to the app: [(slug, label)]."""
     slugs = {p.get('program') for p in list_players().values() if p.get('program')} | {c.get('program') for c in list_coaches().values() if c.get('program')}
-    return sorted(((x, program_label(x)) for x in slugs if x and x not in ADMIN_ONLY_PROGRAMS), key=lambda t: t[1])
+    return sorted(((x, program_label(x)) for x in slugs if x and x not in ADMIN_ONLY_PROGRAMS and x not in DEMO_PROGRAMS), key=lambda t: t[1])
 
 
 # --- Coaches ----------------------------------------------------------------
@@ -176,8 +177,29 @@ def sync_to_github():
     github_sync.sync_players_json(list_players())
 
 
+DEMO_DIR = os.path.join(BUILD_DIR, 'demo')
+DEMO_STATE_PATH = os.path.join(DATA_DIR, 'demo_state.json')     # per-demo-player choices (e.g. customized stats); not synced
+
+
+def demo_players():
+    """The bundled sample program: read-only, lives in the repo's demo/ folder, never mixed into players.json."""
+    p = _load(os.path.join(DEMO_DIR, 'players.json'), {})
+    st = _load(DEMO_STATE_PATH, {})
+    return {k: {**v, **(st.get(k) or {})} for k, v in p.items()}
+
+
+def is_demo(slug):
+    return slug in _load(os.path.join(DEMO_DIR, 'players.json'), {})
+
+
+def list_players_view():
+    """list_players() plus the sample program, for read-only display to admins. Never save this dict."""
+    return {**demo_players(), **list_players()}
+
+
 def get_player(slug):
-    return list_players().get(slug)
+    p = list_players().get(slug)
+    return p if p is not None else demo_players().get(slug)
 
 
 def upsert_player_bio(name, school, grad_year, position_pitch=None, position_hit=None, height_in=None, weight_lbs=None):
@@ -403,6 +425,14 @@ def update_profile(slug, name=None, school=None, grad_year=None, position=None, 
 
 def set_stat_ids(slug, ids):
     """Saves which stats a player's overview shows (ordered list of stat ids). Empty list resets to the default."""
+    if is_demo(slug):
+        st = _load(DEMO_STATE_PATH, {})
+        if ids:
+            st.setdefault(slug, {})['stat_ids'] = list(ids)
+        else:
+            st.pop(slug, None)
+        _save(DEMO_STATE_PATH, st)
+        return True
     players = _load(PLAYERS_PATH, {})
     if slug not in players:
         return False
@@ -423,6 +453,20 @@ def change_password(username, current, new):
         return 'New password must be at least 8 characters.'
     coaches = list_coaches()
     coaches[username]['password_hash'] = generate_password_hash(new)
+    _save(COACHES_PATH, coaches)
+    _push_coaches()
+    return None
+
+
+def set_display_name(username, display_name):
+    """Account settings: a coach changes the name shown in his profile menu."""
+    display_name = ' '.join((display_name or '').split())
+    if not display_name:
+        return 'Name cannot be blank.'
+    coaches = list_coaches()
+    if username not in coaches:
+        return 'Account not found.'
+    coaches[username]['display_name'] = display_name[:60]
     _save(COACHES_PATH, coaches)
     _push_coaches()
     return None

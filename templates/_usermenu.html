@@ -1,0 +1,21 @@
+<style>
+.um{position:relative;display:inline-block;} .um-btn{border:0;background:none;padding:0;cursor:pointer;border-radius:50%;}
+.um-av{width:40px;height:40px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:#5c97a8;color:#fff;overflow:hidden;border:2px solid #fff;box-shadow:0 1px 4px rgba(26,31,36,.25);vertical-align:middle;}
+.um-av b{font:700 15px 'Oswald',sans-serif;letter-spacing:.03em;} .um-av img{max-width:68%;max-height:68%;object-fit:contain;} .um-av.big{width:64px;height:64px;} .um-av.big b{font-size:22px;}
+.um-btn:focus-visible .um-av,.um-btn:hover .um-av{box-shadow:0 0 0 3px rgba(92,151,168,.45);}
+.um-pop{display:none;position:absolute;right:0;top:48px;min-width:220px;background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(26,31,36,.22);padding:6px;z-index:60;text-align:left;}
+.um.open .um-pop{display:block;}
+.um-who{padding:10px 12px 8px;border-bottom:1px solid #eceeed;margin-bottom:4px;} .um-who b{display:block;font:700 15px 'Barlow',sans-serif;color:#22303a;} .um-who span{font-size:12px;color:#76828a;}
+.um-pop a{display:block;padding:9px 12px;border-radius:8px;color:#22303a !important;font:600 14px 'Barlow',sans-serif;text-decoration:none;margin:0 !important;} .um-pop a:hover{background:#f2f4f3;}
+.um-sep{height:1px;background:#eceeed;margin:4px 0;} .um-lbl{font:600 10.5px 'Barlow',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#98a3a9;padding:8px 12px 2px;}
+</style>
+<span class="um" id="um"><button class="um-btn" type="button" aria-label="Account menu" aria-haspopup="true" onclick="document.getElementById('um').classList.toggle('open');event.stopPropagation();">
+  {% if me.badge %}<span class="um-av" style="background:{{ me.badge.bg }}"><img src="{{ url_for('school_logo', fname=me.badge.file) }}" alt=""></span>{% else %}<span class="um-av"><b>{{ me.initials }}</b></span>{% endif %}</button>
+  <div class="um-pop" role="menu">
+    <div class="um-who"><b>{{ me.name }}</b><span>{{ me.label or ('Administrator' if me.is_admin else '') }}</span></div>
+    <a href="{{ url_for('account') }}">Account settings</a>
+    {% if request.endpoint == 'dashboard' %}<a href="#" onclick="document.getElementById('um').classList.remove('open');openTour();return false;">Take the tour</a>{% else %}<a href="{{ url_for('dashboard') }}?tour=1">Take the tour</a>{% endif %}
+    {% if me.is_admin %}<div class="um-lbl">Admin</div><a href="{{ url_for('admin_coaches') }}">Coach logins</a><a href="{{ url_for('admin_status') }}">Save status</a>{% endif %}
+    <div class="um-sep"></div><a href="{{ url_for('logout') }}">Log out</a>
+  </div></span>
+<script>document.addEventListener('click',function(e){var m=document.getElementById('um');if(m&&!m.contains(e.target))m.classList.remove('open');});document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=document.getElementById('um');if(m)m.classList.remove('open');}});</script>

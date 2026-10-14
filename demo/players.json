@@ -1,0 +1,86 @@
+{
+ "diego_salazar": {
+  "comps": {},
+  "grad_year": 2026,
+  "height_in": 76,
+  "name": "Diego Salazar",
+  "program": "demo_university",
+  "roles": {
+   "pitch": {
+    "position": "RHP"
+   }
+  },
+  "school": "Demo University",
+  "weight_lbs": 215
+ },
+ "ethan_whitfield": {
+  "comps": {},
+  "grad_year": 2029,
+  "height_in": 72,
+  "name": "Ethan Whitfield",
+  "program": "demo_university",
+  "roles": {
+   "pitch": {
+    "position": "RHP"
+   }
+  },
+  "school": "Demo University",
+  "weight_lbs": 185
+ },
+ "jackson_reyes": {
+  "comps": {},
+  "grad_year": 2028,
+  "height_in": 73,
+  "name": "Jackson Reyes",
+  "program": "demo_university",
+  "roles": {
+   "pitch": {
+    "position": "RHP"
+   }
+  },
+  "school": "Demo University",
+  "weight_lbs": 192
+ },
+ "marcus_hale": {
+  "comps": {},
+  "grad_year": 2027,
+  "height_in": 75,
+  "name": "Marcus Hale",
+  "program": "demo_university",
+  "roles": {
+   "pitch": {
+    "position": "RHP"
+   }
+  },
+  "school": "Demo University",
+  "weight_lbs": 205
+ },
+ "noah_kimura": {
+  "comps": {},
+  "grad_year": 2027,
+  "height_in": 74,
+  "name": "Noah Kimura",
+  "program": "demo_university",
+  "roles": {
+   "pitch": {
+    "position": "LHP"
+   }
+  },
+  "school": "Demo University",
+  "weight_lbs": 198
+ },
+ "tyler_brandt": {
+  "comps": {},
+  "grad_year": 2028,
+  "height_in": 73,
+  "name": "Tyler Brandt",
+  "program": "demo_university",
+  "roles": {
+   "pitch": {
+    "position": "LHP"
+   }
+  },
+  "school": "Demo University",
+  "weight_lbs": 190
+ }
+}
