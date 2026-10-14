@@ -1,0 +1,161 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Player Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --cream:#f2f4f5; --tan:#5c97a8; --brown:#232d33; --blue:#5c97a8; --border:#dde2e5; --muted:#6b7680; }
+  *{box-sizing:border-box;} body{background:#f7f6f2;color:#22303a;font-family:'Barlow',sans-serif;margin:0;padding-bottom:40px;}
+  .hero{background:#22303a;padding:34px 16px 28px;border-bottom:3px solid #5c97a8;} .hero-wrap,.wrap{max-width:1040px;margin:0 auto;}
+  .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#5c97a8;margin:0 0 8px;}
+  h1{font:700 40px 'Oswald',sans-serif;letter-spacing:.01em;margin:0 0 6px;color:#fff;} .sub{color:#c9d3d8;font-size:14.5px;margin:0;}
+  .wrap{padding:22px 16px 0;}
+  .bar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:6px;}
+  .bar input{background:#fff;flex:1;min-width:200px;max-width:340px;padding:10px 14px;border:1px solid var(--border);border-radius:999px;font:500 14px 'Barlow',sans-serif;}
+  .bar a{font-size:13px;color:var(--muted);margin-left:12px;text-decoration:none;font-weight:600;}
+  .group-title{font:600 14px 'Oswald',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#22303a;margin:34px 0 14px;display:flex;align-items:center;gap:12px;} .group-title:after{content:'';flex:1;height:1px;background:#dcdfdc;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;}
+  .sq{position:relative;background:#fff;border:none;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:inherit;transition:transform .12s,box-shadow .12s;}
+  .sq:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(26,31,36,.16);}
+  .ph{aspect-ratio:1/1;background:linear-gradient(135deg,#e1e7e8,#c3ced1);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .ph img{width:100%;height:100%;object-fit:cover;display:block;} .ph span{font:700 54px 'Oswald',sans-serif;color:#fff;opacity:.85;}
+  .bdg{width:58%;aspect-ratio:1/1;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(34,48,58,.18);} .bdg img{max-width:70%;max-height:64%;width:auto;height:auto;object-fit:contain;}
+  .info{padding:14px 16px 16px;} .nm{font:700 20px/1.1 'Oswald',sans-serif;color:#22303a;} .nm small{display:block;font:500 14px 'Barlow',sans-serif;color:#76828a;margin-top:3px;}
+  .row2{font-size:12.5px;color:#76828a;margin-top:6px;display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;}
+  .pos{font-weight:700;color:#5c97a8;letter-spacing:.04em;} .links{padding:0 12px 12px;display:flex;gap:6px;flex-wrap:wrap;}
+  .links a{font:600 12.5px 'Barlow',sans-serif;text-decoration:none;color:#fff;background:var(--blue);border-radius:999px;padding:6px 12px;}
+  .mg{position:absolute;top:8px;right:8px;display:none;gap:4px;} .sq:hover .mg{display:flex;}
+  .mg form{margin:0;} .mg button{font:600 11px 'Barlow',sans-serif;border:none;background:rgba(255,255,255,.92);color:var(--muted);border-radius:999px;padding:4px 9px;cursor:pointer;} .mg button.del{color:#9c3a3a;}
+  @media (hover:none){.mg{display:flex;}} @media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr);gap:10px;} .nm{font-size:15px;} .ph span{font-size:42px;}}
+</style></head><body>
+<div class="hero"><div class="hero-wrap"><p class="eyebrow">Player Reports</p><h1>Player Dashboard</h1>
+<p class="sub">Tap a player to see their current profile and recent outings.</p></div></div>
+<div class="wrap">
+  <div class="bar"><input id="q" type="search" placeholder="Search players, schools, positions…" autocomplete="off">
+    <span><a href="#" onclick="openTour();return false;">Take the tour</a></span></div>
+  
+  <div class="group-title">Demo University</div>
+  <div class="grid">
+  
+    <div class="sq" data-s="tyler brandt demo university lhp 2028">
+      <a href="players/tyler_brandt.html" style="text-decoration:none;color:inherit;display:block;">
+        <div class="ph"><span>TB</span></div>
+        <div class="info"><div class="nm">Brandt<small>Tyler</small></div>
+          <div class="row2"><span>Demo University</span></div>
+          <div class="row2"><span>Class of 2028</span><span class="pos">LHP</span></div></div>
+      </a>
+      
+      <div class="mg">
+        <form method="post" action="/player/tyler_brandt/delete" onsubmit="return confirm('Delete Tyler Brandt and all their data? This cannot be undone.');"><button type="submit" class="del">Delete</button></form></div>
+    </div>
+  
+    <div class="sq" data-s="marcus hale demo university rhp 2027">
+      <a href="players/marcus_hale.html" style="text-decoration:none;color:inherit;display:block;">
+        <div class="ph"><span>MH</span></div>
+        <div class="info"><div class="nm">Hale<small>Marcus</small></div>
+          <div class="row2"><span>Demo University</span></div>
+          <div class="row2"><span>Class of 2027</span><span class="pos">RHP</span></div></div>
+      </a>
+      
+      <div class="mg">
+        <form method="post" action="/player/marcus_hale/delete" onsubmit="return confirm('Delete Marcus Hale and all their data? This cannot be undone.');"><button type="submit" class="del">Delete</button></form></div>
+    </div>
+  
+    <div class="sq" data-s="noah kimura demo university lhp 2027">
+      <a href="players/noah_kimura.html" style="text-decoration:none;color:inherit;display:block;">
+        <div class="ph"><span>NK</span></div>
+        <div class="info"><div class="nm">Kimura<small>Noah</small></div>
+          <div class="row2"><span>Demo University</span></div>
+          <div class="row2"><span>Class of 2027</span><span class="pos">LHP</span></div></div>
+      </a>
+      
+      <div class="mg">
+        <form method="post" action="/player/noah_kimura/delete" onsubmit="return confirm('Delete Noah Kimura and all their data? This cannot be undone.');"><button type="submit" class="del">Delete</button></form></div>
+    </div>
+  
+    <div class="sq" data-s="jackson reyes demo university rhp 2028">
+      <a href="players/jackson_reyes.html" style="text-decoration:none;color:inherit;display:block;">
+        <div class="ph"><span>JR</span></div>
+        <div class="info"><div class="nm">Reyes<small>Jackson</small></div>
+          <div class="row2"><span>Demo University</span></div>
+          <div class="row2"><span>Class of 2028</span><span class="pos">RHP</span></div></div>
+      </a>
+      
+      <div class="mg">
+        <form method="post" action="/player/jackson_reyes/delete" onsubmit="return confirm('Delete Jackson Reyes and all their data? This cannot be undone.');"><button type="submit" class="del">Delete</button></form></div>
+    </div>
+  
+    <div class="sq" data-s="diego salazar demo university rhp 2026">
+      <a href="players/diego_salazar.html" style="text-decoration:none;color:inherit;display:block;">
+        <div class="ph"><span>DS</span></div>
+        <div class="info"><div class="nm">Salazar<small>Diego</small></div>
+          <div class="row2"><span>Demo University</span></div>
+          <div class="row2"><span>Class of 2026</span><span class="pos">RHP</span></div></div>
+      </a>
+      
+      <div class="mg">
+        <form method="post" action="/player/diego_salazar/delete" onsubmit="return confirm('Delete Diego Salazar and all their data? This cannot be undone.');"><button type="submit" class="del">Delete</button></form></div>
+    </div>
+  
+    <div class="sq" data-s="ethan whitfield demo university rhp 2029">
+      <a href="players/ethan_whitfield.html" style="text-decoration:none;color:inherit;display:block;">
+        <div class="ph"><span>EW</span></div>
+        <div class="info"><div class="nm">Whitfield<small>Ethan</small></div>
+          <div class="row2"><span>Demo University</span></div>
+          <div class="row2"><span>Class of 2029</span><span class="pos">RHP</span></div></div>
+      </a>
+      
+      <div class="mg">
+        <form method="post" action="/player/ethan_whitfield/delete" onsubmit="return confirm('Delete Ethan Whitfield and all their data? This cannot be undone.');"><button type="submit" class="del">Delete</button></form></div>
+    </div>
+  </div>
+</div>
+<script>document.getElementById('q').addEventListener('input',function(){var v=this.value.toLowerCase().trim();document.querySelectorAll('.sq').forEach(function(c){c.style.display=(!v||c.dataset.s.indexOf(v)>-1)?'':'none';});});</script>
+<style>
+#tour{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;background:rgba(26,34,40,.62);padding:16px;}
+#tour.on{display:flex;}
+.tcard{background:#fff;border-radius:18px;max-width:560px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+.tbar{height:4px;background:#e8ecee;} .tbar i{display:block;height:100%;background:#5c97a8;transition:width .25s;}
+.tbody{padding:26px 28px 8px;} .tstep{font:600 11px 'Oswald',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#5c97a8;}
+.tbody h2{font:700 26px/1.15 'Oswald',sans-serif;margin:6px 0 10px;color:#22303a;} .tbody p{font-size:15px;line-height:1.5;color:#3c4a53;margin:8px 0;}
+.tbody ul{margin:8px 0;padding-left:20px;font-size:14.5px;line-height:1.5;color:#3c4a53;} .tbody li{margin:4px 0;} .tbody b{color:#22303a;}
+.tmock{background:#f2f4f3;border-radius:12px;padding:12px 14px;margin:12px 0;font-size:13.5px;color:#3c4a53;}
+.tfoot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 28px 22px;}
+.tdots{display:flex;gap:6px;} .tdots i{width:7px;height:7px;border-radius:50%;background:#d5dcdf;} .tdots i.a{background:#5c97a8;}
+.tbtn{font:600 14px 'Barlow',sans-serif;border:none;border-radius:999px;padding:10px 20px;cursor:pointer;background:#5c97a8;color:#fff;} .tbtn.g{background:transparent;color:#6b7680;padding:10px 8px;}
+@media (max-width:520px){.tbody{padding:22px 20px 6px;} .tfoot{padding:12px 20px 18px;} .tbody h2{font-size:22px;}}
+</style>
+<div id="tour" role="dialog" aria-modal="true" aria-label="Dashboard tour"><div class="tcard">
+  <div class="tbar"><i id="tprog"></i></div><div class="tbody" id="tbody"></div>
+  <div class="tfoot"><button class="tbtn g" id="tskip">Skip tour</button><div class="tdots" id="tdots"></div><div><button class="tbtn g" id="tback">Back</button><button class="tbtn" id="tnext">Next</button></div></div>
+</div></div>
+<script>
+(function(){
+var KEY='ss_tour_done_demo', S=[
+{t:'Welcome to your dashboard',h:'<p>This is your team\'s home base. Every player you add gets a card, and every card opens a live profile built from their <b>most recent outings</b>.</p><ul><li>Use the <b>search box</b> to find a player, school or position.</li><li>A player\'s <b>headshot</b> (or school logo until you add one) is on the card, with class year and position.</li><li>Your players are private. Only you and the admin can see them.</li></ul><p>This 2-minute tour covers adding data, reading the numbers and sending reports. You can reopen it anytime with <b>Take the tour</b> at the top of this page.</p>'},
+{t:'Add players by uploading a Trackman .CSV',h:'<p>Everything starts with <b>+ Upload a .CSV</b>.</p><ul><li>Pick the Trackman export from your session. Every pitcher in the file is found automatically.</li><li><b>Review screen:</b> fill in class year, height and weight (height is needed for the arm-angle graphic) and optionally add a headshot.</li><li>Tick <b>Game / Live AB</b> only for game or live at-bat sessions. That adds the Outing Summary (innings, batters faced, hits, walks and so on). Leave it unchecked for bullpens.</li><li>If a pitch looks like it belongs to someone else (a mis-tagged name), you\'ll see a flag. Choose to leave it out, keep it, or move it to the right pitcher.</li></ul><div class="tmock">Uploading the same file twice is safe. Pitches are never double-counted.</div>'},
+{t:'The player profile',h:'<p>Click any card. The top of the page is the player\'s <b>current form</b>, based on their last 10 outings.</p><ul><li><b>Strike %</b> &ndash; strikes out of all pitches.</li><li><b>Whiff %</b> &ndash; swings and misses out of all swings.</li><li><b>In Zone %</b> &ndash; pitches thrown in the strike zone.</li><li><b>Chase %</b> &ndash; swings at pitches outside the zone, out of all pitches outside the zone.</li></ul><p>Use <b>Edit Profile</b> to fix a name, class year, height, weight or headshot at any time.</p>'},
+{t:'Pitch Movement Profile',h:'<p>Each dot is one pitch, as the batter sees it: how far it moved sideways (horizontal break) and up or down (induced vertical break), in inches.</p><ul><li>The center is a pitch that doesn\'t move sideways or rise or drop compared with a straight throw. The farther from center, the more movement.</li><li><b>Hover</b> a dot to see its type and velocity.</li><li>The table underneath shows <b>usage, average mph and top mph</b> by pitch type.</li><li>The <b>arm angle</b> graphic shows the delivery slot (for example, around 0&deg; is sidearm, 90&deg; is straight over the top). It appears once you have entered the player\'s height.</li></ul>'},
+{t:'Pitch Location and Velocity Trend',h:'<p><b>Pitch Location</b> shows where pitches crossed the plate from the catcher\'s view, one chart against right-handed batters and one against left-handed batters.</p><ul><li>Switch between <b>Dots Only, Heat Map or Both</b>, and filter by pitch type with the buttons.</li><li>Red areas are where the most pitches were thrown.</li><li>Hover a dot for the pitch type and result.</li></ul><p><b>Velocity Trend</b> plots average velocity by pitch type across the last 10 outings, so you can spot a velocity drop or gain.</p>'},
+{t:'Outing reports',h:'<p>At the bottom of a player\'s page is the <b>log of every outing</b>, newest first, tagged <b>Live AB</b> or <b>Bullpen</b>.</p><ul><li>Tap an outing to open its full report: movement, location, spin and a pitch-by-pitch log.</li><li>Click a row in the pitch log to find that pitch on the location chart.</li><li>Live AB reports start with the <b>Outing Summary</b>. Innings, hits and walks are estimates built from the pitch-by-pitch tags, so treat them as a close guide, not an official box score.</li></ul>'},
+{t:'Sending reports to your players',h:'<p>Under each outing in the log is <b>Download to send</b>.</p><ul><li>Tap it to save the report as a single file. It works on its own, with no login needed.</li><li><b>Email or text that file</b> to the player. They open it in any web browser on a phone or computer.</li><li>Want a PDF instead? Open the outing report, then use your browser\'s <b>Print</b> and choose <b>Save as PDF</b>.</li></ul><div class="tmock">Tip: the player profile page itself needs your login, so send the downloaded outing report, not a link to the website.</div><p>That\'s it. Start with <b>+ Upload a .CSV</b>.</p>'}
+],i=0,el=document.getElementById('tour');
+function safe(f){try{return f();}catch(e){return null;}}
+function render(){
+  var s=S[i];document.getElementById('tbody').innerHTML='<div class="tstep">Step '+(i+1)+' of '+S.length+'</div><h2>'+s.t+'</h2>'+s.h;
+  document.getElementById('tprog').style.width=((i+1)/S.length*100)+'%';
+  document.getElementById('tdots').innerHTML=S.map(function(_,k){return '<i class="'+(k===i?'a':'')+'"></i>';}).join('');
+  document.getElementById('tback').style.visibility=i?'visible':'hidden';
+  document.getElementById('tnext').textContent=i===S.length-1?'Got it':'Next';
+  document.getElementById('tskip').style.visibility=i===S.length-1?'hidden':'visible';
+}
+function open_(){i=0;render();el.classList.add('on');}
+function close_(){el.classList.remove('on');safe(function(){localStorage.setItem(KEY,'1');});}
+document.getElementById('tnext').onclick=function(){if(i<S.length-1){i++;render();}else close_();};
+document.getElementById('tback').onclick=function(){if(i>0){i--;render();}};
+document.getElementById('tskip').onclick=close_;
+el.addEventListener('click',function(e){if(e.target===el)close_();});
+document.addEventListener('keydown',function(e){if(!el.classList.contains('on'))return;if(e.key==='Escape')close_();if(e.key==='ArrowRight')document.getElementById('tnext').click();if(e.key==='ArrowLeft')document.getElementById('tback').click();});
+window.openTour=open_;
+if(location.search.indexOf('tour=1')>-1||!safe(function(){return localStorage.getItem(KEY);}))open_();
+})();
+</script>
+</body></html>
