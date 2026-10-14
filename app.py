@@ -244,6 +244,18 @@ a{color:#6b7680;font-size:13px;} .ph{width:96px;height:96px;border-radius:50%;ob
 <div class="btns"><button type="submit">Save changes</button><a href="{{ url_for('player_overview', slug=slug) }}">Cancel</a></div></form></body></html>"""
 
 
+@app.route('/player/<slug>/stats', methods=['POST'])
+@login_required
+def save_stats(slug):
+    if not can_manage(slug):
+        abort(403)
+    ids = [i for i in (request.form.get('order') or '').split(',') if i][:40]
+    if request.form.get('reset'):
+        ids = []
+    store.set_stat_ids(slug, ids)
+    return redirect(url_for('player_overview', slug=slug) + '#stats')
+
+
 @app.route('/player/<slug>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_profile(slug):

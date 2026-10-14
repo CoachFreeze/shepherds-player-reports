@@ -370,3 +370,17 @@ def update_profile(slug, name=None, school=None, grad_year=None, position=None, 
     else:
         sync_to_github()
     return new_slug, None
+
+
+def set_stat_ids(slug, ids):
+    """Saves which stats a player's overview shows (ordered list of stat ids). Empty list resets to the default."""
+    players = _load(PLAYERS_PATH, {})
+    if slug not in players:
+        return False
+    if ids:
+        players[slug]['stat_ids'] = list(ids)
+    else:
+        players[slug].pop('stat_ids', None)
+    _save(PLAYERS_PATH, players)
+    sync_to_github()
+    return True

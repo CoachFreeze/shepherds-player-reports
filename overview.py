@@ -3,6 +3,7 @@ import re
 from html import escape
 
 import extract as e
+import stats as stats_mod
 import savant_components as sc
 import outings as outings_mod
 import pipeline
@@ -92,6 +93,9 @@ def build(slug, bio):
     location_html = sc.location_heatmap_html(tm, width=340, uid='loc')
 
     summ = e.outing_summary(rows) or {}
+    stat_vals = stats_mod.compute(rows)
+    stat_tiles = stats_mod.tiles(stat_vals, bio.get('stat_ids'))
+    stat_catalog = stats_mod.catalog(stat_vals)
 
     # velocity trend, oldest -> newest
     chron = list(reversed(recent))
@@ -119,7 +123,7 @@ def build(slug, bio):
                     'top': top, 'strike': os_.get('strike_pct'), 'whiff': os_.get('whiff_pct'),
                     'ip': os_.get('ip') if o.get('live_ab') else None,
                     'types': ', '.join(t['type'] for t in otm)})
-    return {'name': name, 'meta': meta, 'summary': summ, 'movement_html': movement_html, 'location_html': location_html,
+    return {'name': name, 'meta': meta, 'summary': summ, 'stat_tiles': stat_tiles, 'stat_catalog': stat_catalog, 'movement_html': movement_html, 'location_html': location_html,
             'trend_html': trend_html, 'legend': legend, 'log': log, 'n_outings': len(recent), 'n_pitches': len(rows),
             'range': (_long_date(recent[-1]['date']) + ' – ' + _long_date(recent[0]['date'])) if len(recent) > 1 else _long_date(recent[0]['date'])}
 
