@@ -61,6 +61,8 @@ def can_view(slug):
     if not p:
         return False
     c = current_coach()
+    if p.get('program') in store.DEMO_PROGRAMS:          # the bundled sample program is for admins only
+        return is_admin()
     if c and c.get('role', 'admin') != 'admin':          # a signed-in program coach sees only his own program
         return can_manage(slug)
     if p.get('program', 'shepherds') in store.PUBLIC_PROGRAMS:
@@ -118,41 +120,105 @@ def login():
     return render_template_string(LOGIN_PAGE, error=error)
 
 
-PASSWORD_PAGE = """
-<!doctype html><title>Change Password</title>
+ACCOUNT_PAGE = """
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Account Settings</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  body{font-family:Barlow,Arial,sans-serif;background:#f7f6f2;color:#22303a;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;}
-  form{background:#fff;border:1px solid #dcdfdc;border-radius:12px;padding:28px 26px;width:300px;}
-  h1{font-size:18px;margin:0 0 16px;} label{font-size:13px;font-weight:600;}
-  input{width:100%;padding:9px 10px;margin:4px 0 12px;border:1px solid #dcdfdc;border-radius:7px;box-sizing:border-box;}
-  button{width:100%;padding:10px;border:none;border-radius:999px;background:#5c97a8;color:#fff;font-weight:600;cursor:pointer;}
-  .error{color:#b33;font-size:13px;margin-bottom:10px;} .ok{color:#2a7a4b;font-size:13px;margin-bottom:10px;}
-  a{color:#5c97a8;font-size:13px;display:block;text-align:center;margin-top:12px;}
-</style>
-<form method="post">
-  <h1>Change Password</h1>
-  {% if error %}<div class="error">{{ error }}</div>{% endif %}{% if ok %}<div class="ok">Password updated.</div>{% endif %}
-  <label>Current password</label><input type="password" name="current" required autofocus>
-  <label>New password (8+ characters)</label><input type="password" name="new" required minlength="8">
-  <label>Confirm new password</label><input type="password" name="confirm" required minlength="8">
-  <button type="submit">Update password</button>
-  <a href="{{ url_for('dashboard') }}">&larr; Back to dashboard</a>
-</form>
+  body{font-family:'Barlow',Arial,sans-serif;background:#f7f6f2;color:#22303a;margin:0;}
+  .top{max-width:560px;margin:0 auto;padding:16px 16px 0;display:flex;justify-content:space-between;align-items:center;} .top a.back{color:#5c97a8;font-weight:600;font-size:13px;text-decoration:none;}
+  .wrap{max-width:560px;margin:0 auto;padding:6px 16px 50px;}
+  h1{font:700 30px 'Oswald',sans-serif;margin:8px 0 14px;}
+  .card{background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);padding:20px;margin-bottom:14px;}
+  .card h2{font:700 15px 'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;margin:0 0 12px;}
+  .id{display:flex;gap:14px;align-items:center;} .id .meta b{display:block;font-size:17px;} .id .meta span{color:#6b7680;font-size:13px;}
+  label{font-size:13px;font-weight:600;display:block;margin-top:10px;}
+  input[type=text],input[type=password]{width:100%;padding:10px 12px;margin-top:4px;border:1px solid #dcdfdc;border-radius:8px;box-sizing:border-box;font:500 15px 'Barlow',sans-serif;}
+  button{margin-top:14px;padding:10px 22px;border:none;border-radius:999px;background:#5c97a8;color:#fff;font-weight:700;cursor:pointer;font-size:14px;}
+  .msg{font-size:13px;margin:0 0 10px;padding:8px 12px;border-radius:8px;} .err{background:#f8e6e6;color:#9c3a3a;} .ok{background:#e4f2ea;color:#2a7a4b;}
+  .ro{color:#6b7680;font-size:14px;margin-top:4px;}
+</style></head><body>
+<div class="top"><a class="back" href="{{ url_for('dashboard') }}">&larr; Back to dashboard</a>{% include '_usermenu.html' %}</div>
+<div class="wrap"><h1>Account Settings</h1>
+  <div class="card"><div class="id">{% if me.badge %}<span class="um-av big" style="background:{{ me.badge.bg }}"><img src="{{ url_for('school_logo', fname=me.badge.file) }}" alt=""></span>{% else %}<span class="um-av big"><b>{{ me.initials }}</b></span>{% endif %}
+    <div class="meta"><b>{{ me.name }}</b><span>{{ me.label or ('Administrator' if me.is_admin else '') }}{% if me.is_admin and me.label %} &middot; Administrator{% endif %}</span></div></div>
+    <div class="ro">Your logo comes from your program. Username: <b>{{ me.key }}</b></div></div>
+  <div class="card"><h2>Profile</h2>
+    {% if name_msg %}<div class="msg {{ 'ok' if name_ok else 'err' }}">{{ name_msg }}</div>{% endif %}
+    <form method="post"><input type="hidden" name="form" value="name">
+      <label>Display name</label><input type="text" name="display_name" value="{{ me.name }}" maxlength="60" required>
+      <button type="submit">Save name</button></form></div>
+  <div class="card"><h2>Change password</h2>
+    {% if pw_msg %}<div class="msg {{ 'ok' if pw_ok else 'err' }}">{{ pw_msg }}</div>{% endif %}
+    <form method="post"><input type="hidden" name="form" value="password">
+      <label>Current password</label><input type="password" name="current" required>
+      <label>New password (8+ characters)</label><input type="password" name="new" required minlength="8">
+      <label>Confirm new password</label><input type="password" name="confirm" required minlength="8">
+      <button type="submit">Update password</button></form></div>
+</div></body></html>
 """
 
 
-@app.route('/account/password', methods=['GET', 'POST'])
+@app.context_processor
+def inject_me():
+    """Signed-in coach info for the profile circle/menu shown at the top of every page."""
+    c = current_coach() if session.get('coach') else None
+    if not c:
+        return {}
+    name = c.get('display_name') or session.get('coach')
+    label = c.get('program_label') or (store.program_label(c['program']) if c.get('program') else None)
+    _b = pipeline.school_badge_file(label, c.get('program')) if label else None
+    parts = [w for w in name.split() if w]
+    initials = (parts[0][:1] + (parts[-1][:1] if len(parts) > 1 else '')).upper() or '?'
+    return {'me': {'name': name, 'key': session.get('coach'), 'label': label, 'is_admin': is_admin(), 'initials': initials,
+                   'badge': {'file': _b[0], 'bg': _b[1]} if _b else None}}
+
+
+_MENU_PAGES = {'edit_profile', 'admin_status', 'admin_coaches', 'view_report', 'intake', 'intake_bulk', 'intake_bulk_run',
+               'intake_lbsu', 'intake_lbsu_confirm', 'edit_comps'}
+
+
+@app.after_request
+def add_profile_menu(resp):
+    """Pages built outside the dashboard templates (upload, edit profile, admin, Shepherds reports) still get the
+    profile circle/menu in the top-right corner, so navigation is the same everywhere."""
+    try:
+        if (request.endpoint in _MENU_PAGES and session.get('coach') and resp.status_code == 200
+                and (resp.mimetype or '') == 'text/html' and not resp.direct_passthrough
+                and 'Content-Disposition' not in resp.headers):
+            html = resp.get_data(as_text=True)
+            i = html.lower().find('<body')
+            j = (html.find('>', i) + 1) if i > -1 else 0       # pages without a <body> tag: put it at the very top
+            if True:
+                box = ('<style>.um-fixed{position:fixed;top:12px;right:14px;z-index:9999;} @media print{.um-fixed{display:none;}}</style>'
+                       '<div class="um-fixed">' + render_template('_usermenu.html', **inject_me()) + '</div>')
+                resp.set_data(html[:j] + box + html[j:])
+    except Exception as exc:
+        print(f'WARNING: profile menu not added: {exc}')
+    return resp
+
+
+@app.route('/account', methods=['GET', 'POST'])
+@login_required
+def account():
+    ctx = {}
+    if request.method == 'POST':
+        if request.form.get('form') == 'name':
+            err = store.set_display_name(session['coach'], request.form.get('display_name', ''))
+            ctx.update(name_msg=err or 'Name updated.', name_ok=not err)
+        else:
+            new = request.form.get('new', '')
+            if new != request.form.get('confirm', ''):
+                err = 'New passwords do not match.'
+            else:
+                err = store.change_password(session['coach'], request.form.get('current', ''), new)
+            ctx.update(pw_msg=err or 'Password updated.', pw_ok=not err)
+    return render_template_string(ACCOUNT_PAGE, **ctx, **inject_me())
+
+
+@app.route('/account/password')
 @login_required
 def change_password():
-    error = ok = None
-    if request.method == 'POST':
-        new = request.form.get('new', '')
-        if new != request.form.get('confirm', ''):
-            error = 'New passwords do not match.'
-        else:
-            error = store.change_password(session['coach'], request.form.get('current', ''), new)
-            ok = not error
-    return render_template_string(PASSWORD_PAGE, error=error, ok=ok)
+    return redirect(url_for('account'))
 
 
 @app.route('/logout')
@@ -183,7 +249,7 @@ def _player_pos(p):
 def dashboard():
     if not session.get('coach'):
         return redirect(url_for('login'))
-    players = store.list_players()
+    players = store.list_players_view() if is_admin() else store.list_players()
     shep, priv = [], {}
     for slug, p in players.items():
         if not can_view(slug):
@@ -191,7 +257,7 @@ def dashboard():
         p = dict(p)
         _b = pipeline.school_badge_file(p.get('school'), p.get('program'))
         p['badge'] = {'file': _b[0], 'bg': _b[1]} if _b else None
-        p['can_edit'] = can_manage(slug)
+        p['can_edit'] = can_manage(slug) and not store.is_demo(slug)
         p['has_photo'] = headshots.exists(slug)
         p['photo_v'] = int(os.path.getmtime(headshots.path(slug))) if p['has_photo'] else 0
         last, first = _split_name(p['name'])
@@ -229,7 +295,7 @@ def player_overview(slug):
     css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
     return render_template('player_overview.html', b=b, bio=bio, slug=slug, css=css, has_photo=has_photo, badge=badge,
                            photo_v=int(os.path.getmtime(headshots.path(slug))) if has_photo else 0,
-                           initials=(first[:1] + last[:1]).upper(), pos=_player_pos(bio), is_coach=bool(session.get('coach')), can_edit=can_manage(slug))
+                           initials=(first[:1] + last[:1]).upper(), pos=_player_pos(bio), is_coach=bool(session.get('coach')), can_edit=can_manage(slug), is_demo=store.is_demo(slug))
 
 
 @app.route('/report/<slug>/outing/<date>')
@@ -297,7 +363,7 @@ def save_stats(slug):
 @app.route('/player/<slug>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_profile(slug):
-    if not can_manage(slug):
+    if not can_manage(slug) or store.is_demo(slug):
         abort(403)
     p = store.get_player(slug)
     if not p:
@@ -420,7 +486,7 @@ def upload_headshot(slug):
 @app.route('/player/<slug>/delete', methods=['POST'])
 @login_required
 def delete_player_route(slug):
-    if not can_manage(slug):
+    if not can_manage(slug) or store.is_demo(slug):
         abort(403)
     if not store.delete_player(slug):
         abort(404)
