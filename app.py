@@ -3,6 +3,7 @@ import os
 import re
 from flask import Flask, Response, render_template, request, session, redirect, url_for, render_template_string, send_file, jsonify, abort
 
+import github_sync
 import store
 import pipeline
 import extract as e_mod
@@ -16,7 +17,7 @@ if app.secret_key == 'dev-only-change-me' and not app.debug:
     print('WARNING: SECRET_KEY env var is not set -- using the insecure default. '
           'Set a real SECRET_KEY in your host\'s environment variables before sharing this URL.')
 
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'uploads')
+UPLOAD_DIR = os.path.join(store.DATA_DIR, 'uploads')
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
@@ -674,6 +675,20 @@ def _bulk_ctx(prog):
     return {'programs': store.list_programs() if is_admin() else None, 'prog': prog, 'prog_label': store.program_label(prog)}
 
 
+def _archive_csv(path, prog):
+    """Keeps the original CSV in the repo under data/csv/<program>/<upload date>_<name>.csv, so each team's
+    files stay together. Best-effort: a failure never blocks the upload."""
+    try:
+        import datetime
+        base = os.path.basename(path)
+        base = base[5:] if base.startswith('bulk_') else base
+        safe = re.sub(r'[^A-Za-z0-9._-]+', '_', base)
+        with open(path, 'rb') as fh:
+            github_sync.put_file(f'data/csv/{prog}/{datetime.date.today().isoformat()}_{safe}', fh.read())
+    except Exception as exc:
+        print(f'WARNING: could not archive CSV: {exc}')
+
+
 @app.route('/intake/bulk', methods=['GET', 'POST'])
 @login_required
 def intake_bulk():
@@ -733,6 +748,8 @@ def intake_bulk_run():
                 photos[specs[-1]['name']] = ph
         i += 1
     results = pipeline.process_trackman_bulk(path, specs, live_ab=bool(f.get('live_ab')), reassign=reassign, program=prog)
+    if any(out for _, _, out in results):
+        _archive_csv(path, prog)
     for name, slug, out in results:
         if out and name in photos:
             try:

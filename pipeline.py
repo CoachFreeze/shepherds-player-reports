@@ -19,7 +19,7 @@ import outings as outings_mod
 import fonts_embed
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
-REPORTS_DIR = os.path.join(APP_DIR, 'data', 'reports')
+REPORTS_DIR = os.path.join(store.DATA_DIR, 'reports')
 os.makedirs(REPORTS_DIR, exist_ok=True)
 
 # Fonts are embedded once at process start (not per-render -- they never

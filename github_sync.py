@@ -47,6 +47,9 @@ def _log(what, ok, detail=''):
 
 
 def enabled():
+    # SHEPSAVANT_GITHUB_BACKUP=off turns commits off (e.g. once a persistent disk holds the data, so saves stop redeploying).
+    if (os.environ.get('SHEPSAVANT_GITHUB_BACKUP') or '').lower() in ('off', '0', 'false', 'no'):
+        return False
     return bool(GITHUB_TOKEN and GITHUB_REPO)
 
 

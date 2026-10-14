@@ -14,7 +14,36 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import github_sync
 
 BUILD_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BUILD_DIR, 'data')
+REPO_DATA_DIR = os.path.join(BUILD_DIR, 'data')
+# Persistent disk: set SHEPSAVANT_DATA_DIR (e.g. /var/data) on a paid Render instance with a disk attached.
+# Unset = original behaviour (data lives in the repo folder and is backed up through GitHub only).
+DATA_DIR = os.environ.get('SHEPSAVANT_DATA_DIR') or REPO_DATA_DIR
+_SEED = ('players.json', 'coaches.json', 'bio_overrides.json', 'outings', 'headshots', 'reports', 'csv')
+
+
+def _seed_data_dir():
+    """First boot on a new disk: copies the repo's data (players, coaches, outings, headshots...) onto it.
+    Only copies what is missing, so later deploys never overwrite what the disk already holds."""
+    if DATA_DIR == REPO_DATA_DIR:
+        return
+    import shutil
+    os.makedirs(DATA_DIR, exist_ok=True)
+    for name in _SEED:
+        src, dst = os.path.join(REPO_DATA_DIR, name), os.path.join(DATA_DIR, name)
+        if not os.path.exists(src):
+            continue
+        if os.path.isdir(src):
+            for root, _, files in os.walk(src):
+                for fn in files:
+                    d = os.path.join(dst, os.path.relpath(os.path.join(root, fn), src))
+                    if not os.path.exists(d):
+                        os.makedirs(os.path.dirname(d), exist_ok=True)
+                        shutil.copy2(os.path.join(root, fn), d)
+        elif not os.path.exists(dst):
+            shutil.copy2(src, dst)
+
+
+_seed_data_dir()
 COACHES_PATH = os.path.join(DATA_DIR, 'coaches.json')
 PLAYERS_PATH = os.path.join(DATA_DIR, 'players.json')
 

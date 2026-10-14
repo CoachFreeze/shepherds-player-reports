@@ -10,3 +10,10 @@ services:
         generateValue: true
       - key: PYTHON_VERSION
         value: 3.11.15
+
+# --- When you upgrade to a paid plan (Starter or higher) with a persistent disk ---
+# 1. In the Render dashboard: Settings > Disks > Add Disk, mount path /var/data (1 GB is plenty).
+# 2. Add env var SHEPSAVANT_DATA_DIR = /var/data. On the first boot the app copies the current data onto the disk.
+# 3. Optional: add SHEPSAVANT_GITHUB_BACKUP = off to stop saves from committing to GitHub (and redeploying).
+#    Leave it on if you want GitHub as an off-site backup.
+# 4. Change "plan: free" above to "plan: starter". (A disk requires a paid plan.)
