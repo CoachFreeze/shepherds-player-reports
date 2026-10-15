@@ -76,19 +76,20 @@
       <div id="pm-dec"><p class="hint">Catcher's view. Every pitch he saw.</p>
         <div style="max-width:380px;margin:0 auto;">{{ h.decision_svg|safe }}</div>
         <div class="legend"><span><i style="background:var(--good)"></i>Good</span><span><i style="background:var(--bad)"></i>Bad</span><span><i style="background:var(--neu)"></i>Borderline</span><span><i style="background:#fff;border:2px solid #55626b"></i>Take</span><span><i style="background:#55626b"></i>Swing</span></div></div>
-      <div id="pm-heat" style="display:none;"><p class="hint">Catcher's view. Each of the 9 zone squares is split into 4, colored by the average exit velocity of balls in play that crossed the plate there. Hover a square for the details.</p>
+      <div id="pm-heat" style="display:none;"><p class="hint">Catcher's view. The bold box is the strike zone, split into 36 squares and colored by the average exit velocity of balls in play at that spot. The outer ring shows balls put in play off pitches just outside the zone (up to 6 inches off the plate). Hover a square for the details.</p>
         <div class="chips" id="zt"></div>
-        <div style="max-width:400px;margin:0 auto;"><svg id="zhm" viewBox="0 0 400 408" style="display:block;width:100%;height:auto;"></svg></div>
+        <div style="max-width:400px;margin:0 auto;"><svg id="zhm" viewBox="0 0 400 486" style="display:block;width:100%;height:auto;"></svg></div>
         <div class="hm-scale"><span>65 mph</span><div id="zscale"></div><span>100 mph</span><em>avg exit velocity</em></div>
         <p class="foot" id="znote"></p></div>
     </div>
     <script>
 var ZD = {{ h.zone_ev|tojson }};
 (function(){
-  var NS='http://www.w3.org/2000/svg', svg=document.getElementById('zhm'), N=6, W=400, X0=20, Y0=18, CW=(W-2*X0)/N, CH=64, GRID=384;
-  var res=[['36 squares',6],['81 squares',9]];
-  var bx=ZD.bounds[0], zb=ZD.bounds[1], zt=ZD.bounds[2], ft={type:'All',sp:'All',detail:'36 squares'};
-  var spBands=[['All',null,null],['Under 80',0,80],['80–89',80,90],['90+',90,200]];
+  var NS='http://www.w3.org/2000/svg', svg=document.getElementById('zhm'), N=6, X0=8, Y0=8, ZW=240, RP=72;
+  var bx=ZD.bounds[0], zb=ZD.bounds[1], zt=ZD.bounds[2], rg=ZD.bounds[3], ZH=ZW*(zt-zb)/(2*bx), CW=ZW/N, CH=ZH/N;
+  var ft={type:'All',sp:'All'};
+  function cx(c){return c<0?X0:(c>=N?X0+RP+ZW:X0+RP+c*CW);} function cw(c){return (c<0||c>=N)?RP:CW;}
+  function cy(r){return r<0?Y0:(r>=N?Y0+RP+ZH:Y0+RP+r*CH);} function ch(r){return (r<0||r>=N)?RP:CH;}
   function col(v){var t=Math.max(0,Math.min(1,(v-65)/35)),st=[[0,[36,90,158]],[.5,[238,232,214]],[1,[185,41,42]]],i=t<=.5?0:1,a=st[i],b=st[i+1],f=(t-a[0])/(b[0]-a[0]);
     var c=[0,1,2].map(function(k){return Math.round(a[1][k]+(b[1][k]-a[1][k])*f);});return ['rgb('+c+')',(t<.3||t>.7)?'#fff':'#22303a'];}
   function el(n,a,p){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);(p||svg).appendChild(e);return e;}
@@ -98,24 +99,28 @@ var ZD = {{ h.zone_ev|tojson }};
       b.onclick=function(){ft[key]=o[0];draw();chips(id,label,opts,key);};box.appendChild(b);});}
   chips('zt','Pitch',[['All']].concat(ZD.types.map(function(t){return [t];})),'type');
   function draw(){
-    svg.innerHTML='';N=res.filter(function(r){return r[0]===ft.detail;})[0][1];CW=(W-2*X0)/N;CH=GRID/N;
-    var cells={}, n=0, tot=0;
+    svg.innerHTML='';
+    var cells={}, n=0, off=0;
     ZD.pts.forEach(function(p){
       if(ft.type!=='All'&&p.t!==ft.type)return;
-      var c=Math.min(N-1,Math.floor((p.x+bx)/(2*bx)*N)), r=Math.min(N-1,Math.floor((zt-p.z)/(zt-zb)*N)), k=r*N+c;
-      (cells[k]=cells[k]||[]).push(p.ev);n++;});
-    for(var r=0;r<N;r++)for(var c=0;c<N;c++){
-      var a=cells[r*N+c],x=X0+c*CW,y=Y0+r*CH,g=el('g',{});
-      var rect=el('rect',{x:x,y:y,width:CW,height:CH,fill:a?col(a.reduce(function(s,v){return s+v;},0)/a.length)[0]:'#f1f4f3'},g);
-      if(a){var avg=a.reduce(function(s,v){return s+v;},0)/a.length,fg=col(avg)[1];
-        el('text',{x:x+CW/2,y:y+CH/2+(a.length>1&&N<=6?1:5),'text-anchor':'middle','font-size':N>6?13:17,'font-weight':700,fill:fg},g).textContent=Math.round(avg);
-        if(a.length>1&&N<=6)el('text',{x:x+CW/2,y:y+CH/2+16,'text-anchor':'middle','font-size':10,fill:fg,'fill-opacity':.75},g).textContent='n='+a.length;
-        var tt=document.createElementNS(NS,'title');tt.textContent='Avg '+avg.toFixed(1)+' mph, max '+Math.max.apply(null,a).toFixed(1)+' mph, '+a.length+' ball'+(a.length>1?'s':'');rect.appendChild(tt);}
+      var c=p.x<-bx?-1:(p.x>bx?N:Math.min(N-1,Math.floor((p.x+bx)/(2*bx)*N)));
+      var r=p.z>zt?-1:(p.z<zb?N:Math.min(N-1,Math.floor((zt-p.z)/(zt-zb)*N)));
+      if(c<0||c>=N||r<0||r>=N)off++;
+      (cells[r+','+c]=cells[r+','+c]||[]).push(p.ev);n++;});
+    for(var r=-1;r<=N;r++)for(var c=-1;c<=N;c++){
+      var a=cells[r+','+c],x=cx(c),y=cy(r),w=cw(c),h=ch(r),ring=(r<0||r>=N||c<0||c>=N),g=el('g',{});
+      var avg=a?a.reduce(function(s,v){return s+v;},0)/a.length:0;
+      var rect=el('rect',{x:x,y:y,width:w,height:h,fill:a?col(avg)[0]:(ring?'#f8faf9':'#f1f4f3'),stroke:'#fff','stroke-width':1},g);
+      if(a){var fg=col(avg)[1];
+        el('text',{x:x+w/2,y:y+h/2+(a.length>1?1:5),'text-anchor':'middle','font-size':ring?15:17,'font-weight':700,fill:fg},g).textContent=Math.round(avg);
+        if(a.length>1)el('text',{x:x+w/2,y:y+h/2+16,'text-anchor':'middle','font-size':10,fill:fg,'fill-opacity':.75},g).textContent='n='+a.length;
+        var tt=document.createElementNS(NS,'title');tt.textContent=(ring?'Off the zone: ':'')+'Avg '+avg.toFixed(1)+' mph, max '+Math.max.apply(null,a).toFixed(1)+' mph, '+a.length+' ball'+(a.length>1?'s':'');rect.appendChild(tt);}
     }
     for(var i=0;i<=N;i++){var th=i%(N/3)===0;
-      el('line',{x1:X0+i*CW,y1:Y0,x2:X0+i*CW,y2:Y0+N*CH,stroke:th?'#22303a':'#ffffff','stroke-width':th?2:1});
-      el('line',{x1:X0,y1:Y0+i*CH,x2:X0+N*CW,y2:Y0+i*CH,stroke:th?'#22303a':'#ffffff','stroke-width':th?2:1});}
-    document.getElementById('znote').textContent=n?(n+' ball'+(n>1?'s':'')+' in play shown'+(ZD.outside?'; '+ZD.outside+' more were hit off pitches outside the zone and are not plotted.':'.')+(n<25?' Small sample, treat as a first look.':'')):'No balls in play in the zone for this filter.';
+      el('line',{x1:X0+RP+i*CW,y1:Y0+RP,x2:X0+RP+i*CW,y2:Y0+RP+ZH,stroke:th?'#22303a':'#ffffff','stroke-width':th?2:1});
+      el('line',{x1:X0+RP,y1:Y0+RP+i*CH,x2:X0+RP+ZW,y2:Y0+RP+i*CH,stroke:th?'#22303a':'#ffffff','stroke-width':th?2:1});}
+    el('rect',{x:X0+RP,y:Y0+RP,width:ZW,height:ZH,fill:'none',stroke:'#22303a','stroke-width':2.5});
+    document.getElementById('znote').textContent=n?(n+' ball'+(n>1?'s':'')+' in play shown'+(off?' ('+off+' off pitches outside the zone, in the outer ring)':'')+(ZD.outside?'; '+ZD.outside+' more were hit even farther off the plate and are not plotted.':'.')+(n<25?' Small sample, treat as a first look.':'')):'No balls in play with a plate location for this filter.';
   }
   draw();
 })();

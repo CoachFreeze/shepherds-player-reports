@@ -439,13 +439,14 @@ def _ev_color(v):
 
 def zone_ev_data(pitches):
     """Balls in play with a plate location, as compact rows for the zone heat map (drawn in the browser so the
-    pitch-type and pitch-speed filters update instantly). Outside-the-zone balls are counted but not plotted."""
+    pitch-type and pitch-speed filters update instantly). Balls hit off pitches just outside the zone (within 6 inches) are plotted in a ring around it."""
     bb = [p for p in pitches if p['outcome'] == 'inplay' and p['ev'] is not None and p['x'] is not None and p['z'] is not None]
     pts = [{'x': round(p['x'], 3), 'z': round(p['z'], 3), 'ev': round(p['ev'], 1),
             'sp': round(p['speed'], 1) if p['speed'] is not None else None, 't': p['pitch_type'] or 'Unknown'} for p in bb]
-    inz = [q for q in pts if abs(q['x']) <= ZX and ZB <= q['z'] <= ZT]
-    types = sorted({q['t'] for q in inz}, key=lambda t: -sum(1 for q in inz if q['t'] == t))
-    return {'pts': inz, 'types': types, 'outside': len(pts) - len(inz), 'bounds': [ZX, ZB, ZT]}
+    RING = 0.5  # feet of "just off the plate" shown around the zone
+    near = [q for q in pts if abs(q['x']) <= ZX + RING and ZB - RING <= q['z'] <= ZT + RING]
+    types = sorted({q['t'] for q in near}, key=lambda t: -sum(1 for q in near if q['t'] == t))
+    return {'pts': near, 'types': types, 'outside': len(pts) - len(near), 'bounds': [ZX, ZB, ZT, RING]}
 
 
 def spray_html(pitches, width=400, height=352, style='classic'):
