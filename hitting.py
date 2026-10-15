@@ -20,6 +20,7 @@ import os
 import re
 
 import extract as e
+import field_art
 import outings as outings_mod
 import roster as roster_mod
 import savant_components as sc
@@ -447,7 +448,7 @@ def zone_ev_data(pitches):
     return {'pts': inz, 'types': types, 'outside': len(pts) - len(inz), 'bounds': [ZX, ZB, ZT]}
 
 
-def spray_html(pitches, width=400, height=352):
+def spray_html(pitches, width=400, height=352, style='classic'):
     pts = []
     for p in pitches:
         if p['outcome'] == 'inplay' and p['direction'] is not None and p['distance'] is not None:
@@ -455,7 +456,7 @@ def spray_html(pitches, width=400, height=352):
             pts.append({'direction': p['direction'], 'distance': p['distance'], 'ev': p['ev'], 'la': p['la'], 'type': p['hit_type'], 'xba': None if hp is None else f'{hp:.3f}'.lstrip('0')})
     if not pts:
         return '<div class="empty">No tracked batted balls yet.</div>'
-    return sc.spray_chart_interactive_html(pts, width=width, height=height) + sc.spray_chart_legend_html()
+    return sc.spray_chart_interactive_html(pts, svg_fn=lambda p: field_art.make_svg(p, width=width + 20, style=style)) + sc.spray_chart_legend_html()
 
 
 # ------------------------------------------------------------------ 5. store

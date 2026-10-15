@@ -360,11 +360,11 @@ def spin_clock_row_svg(pitches):
 
 def _ev_bucket_color(ev):
     if ev is None: return '#9aa4a8'
-    if ev < 70: return '#3388d6'
-    if ev < 80: return '#e0723c'
-    if ev < 90: return '#7a56c9'
-    if ev < 100: return '#e0b23c'
-    return '#c94f8d'
+    if ev < 70: return '#f4f1e8'
+    if ev < 80: return '#ffd23f'
+    if ev < 90: return '#ff8c42'
+    if ev < 100: return '#e63946'
+    return '#7b2cbf'
 
 def spray_chart_svg(points, width=380, height=340):
     """Reference-matched fan-shaped outfield: an asymmetric arc that's
@@ -481,13 +481,13 @@ def spray_chart_svg(points, width=380, height=340):
     return ''.join(svg)
 
 
-def spray_chart_interactive_html(points, width=380, height=340):
+def spray_chart_interactive_html(points, width=380, height=340, svg_fn=None):
     """spray_chart_svg() wrapped with a hover/click tooltip -- no external
     JS libraries, just a small inline script scoped to this chart's own
     wrapper id (safe even if a page ever has more than one)."""
     import random
     uid = f'sc{random.randint(100000, 999999)}'
-    svg_html = spray_chart_svg(points, width=width, height=height)
+    svg_html = svg_fn(points) if svg_fn else spray_chart_svg(points, width=width, height=height)
     script = f'''
     <script>
     (function() {{
@@ -527,7 +527,7 @@ def spray_chart_interactive_html(points, width=380, height=340):
     )
 
 def spray_chart_legend_html():
-    items = [('<70 mph', '#3388d6'), ('70-79 mph', '#e0723c'), ('80-89 mph', '#7a56c9'), ('90-99 mph', '#e0b23c'), ('100+ mph', '#c94f8d')]
+    items = [('<70 mph', '#f4f1e8'), ('70-79 mph', '#ffd23f'), ('80-89 mph', '#ff8c42'), ('90-99 mph', '#e63946'), ('100+ mph', '#7b2cbf')]
     dots = ''.join(
         f'<div style="display:flex;align-items:center;margin-right:16px;white-space:nowrap;">'
         f'<span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:{c};margin-right:5px;flex:none;"></span>{label}</div>'
