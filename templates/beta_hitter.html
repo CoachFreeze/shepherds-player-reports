@@ -16,6 +16,11 @@
   .hero2{display:flex;gap:22px;align-items:center;flex-wrap:wrap;}
   .ring{position:relative;width:132px;height:132px;flex:none;} .ring b{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 38px 'Oswald';line-height:1;} .ring b span{font:600 11px 'Barlow';letter-spacing:.08em;text-transform:uppercase;color:#76828a;margin-top:4px;}
   .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;flex:1;min-width:260px;} .tile{background:#f7f6f2;border-radius:12px;padding:10px 12px;} .tile .v{font:700 22px 'Oswald';} .tile .l{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#76828a;font-weight:600;}
+  .subs{margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;} @media(max-width:700px){.subs{grid-template-columns:1fr;}}
+  .sub-row{background:#f7f6f2;border-radius:12px;padding:10px 12px;} .sub-h{display:flex;align-items:baseline;gap:8px;} .sub-h b{font:700 13px 'Barlow';} .sub-w{font-size:11px;color:#8a959b;font-weight:600;} .sub-v{margin-left:auto;font:700 22px 'Oswald',sans-serif;}
+  .sub-bar{height:8px;background:#e3e8e6;border-radius:999px;overflow:hidden;margin:6px 0 5px;} .sub-bar i{display:block;height:100%;border-radius:999px;} .sub-b{font-size:11.5px;color:#6b7680;line-height:1.35;}
+  .splits{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;} .splits b{font:600 10.5px 'Barlow';letter-spacing:.08em;text-transform:uppercase;color:#76828a;margin-right:4px;}
+  .spl{background:#eef1f0;border-radius:999px;padding:3px 11px;font-weight:700;color:#22303a;} .spl em{font-style:normal;font-weight:500;color:#55626b;margin-right:6px;}
   .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#55626b;margin-top:10px;} .legend i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:-1px;box-sizing:border-box;}
   .notes{margin:0;padding-left:18px;font-size:14px;line-height:1.55;} .empty{color:#9aa5ab;font-size:13px;padding:30px 0;text-align:center;}
   .split{display:flex;height:12px;border-radius:999px;overflow:hidden;margin:6px 0 4px;} .split span{display:block;} .splitl{display:flex;justify-content:space-between;font-size:12px;color:#55626b;}
@@ -36,7 +41,7 @@
     <div class="sub">Bats {{ {'R':'right','L':'left','S':'both'}.get(h.bats, '—') }} · {{ s.pitches }} pitches seen · {{ s.pa }} plate appearances · {{ h.dates|length }} session{{ '' if h.dates|length == 1 else 's' }}{% if h.demo %} · sample data{% endif %}</div></div></div>
 
   <div class="card"><h2>Swing decisions</h2>
-    <p class="hint">Did he swing at pitches he can drive and take pitches he can't? Borderline (shadow) pitches don't count for or against him.</p>
+    <p class="hint">Did he swing at pitches he can drive and take pitches he can't, in the right counts? The score blends chase discipline, swings at hittable pitches, and damage on contact.</p>
     {% if s.score is none %}<div class="empty">Not enough tracked pitches yet.</div>{% else %}
     <div class="hero2">
       <div class="ring"><svg viewBox="0 0 44 44" width="132" height="132"><circle cx="22" cy="22" r="18" fill="none" stroke="#e8eef1" stroke-width="5"/>
@@ -50,6 +55,18 @@
         <div class="tile"><div class="v">{{ s.whiff_pct if s.whiff_pct is not none else '–' }}{{ '%' if s.whiff_pct is not none }}</div><div class="l">Whiff rate</div></div>
         <div class="tile"><div class="v">{{ s.good }}<span style="color:#9aa5ab;font-size:15px;"> / {{ s.decisions }}</span></div><div class="l">Good decisions</div></div>
       </div></div>{% endif %}
+    {% if s.score is not none %}
+    <div class="subs">
+      {% for lab, val, w, blurb in [('Chase discipline', s.disc, '35%', 'Laying off pitches he can\'t drive (' ~ s.disc_n ~ ' pitches)'), ('Hittable pitches', s.hit, '35%', 'Swinging at the pitches in the middle (' ~ s.hit_n ~ ' pitches)'), ('Damage', s.dmg, '30%', ('Expected average on contact off hittable pitches' ~ ((', .' ~ ('%.3f' % s.xbacon).split('.')[1]) if s.xbacon is not none else '') ~ ' (' ~ s.dmg_n ~ ' balls)'))] %}
+      <div class="sub-row"><div class="sub-h"><b>{{ lab }}</b><span class="sub-w">{{ w }}</span><span class="sub-v">{{ val if val is not none else '–' }}</span></div>
+        <div class="sub-bar"><i style="width:{{ val or 0 }}%;background:{{ '#2f9e6b' if (val or 0) >= 75 else '#c8a132' if (val or 0) >= 60 else '#d0503f' }}"></i></div>
+        <div class="sub-b">{{ blurb if val is not none else 'Not enough pitches yet' }}</div></div>{% endfor %}
+    </div>
+    <div class="splits"><b>Where the decisions came from</b>
+      {% for sp in s.splits %}<span class="spl"><em>{{ sp.label }}</em>{{ sp.score if sp.score is not none else '–' }}</span>{% endfor %}
+    </div>
+    <p class="foot">Counts and pitch type are built in: fastball takes in the heart in hitter's counts count double, early-count takes of off-speed pitches aren't held against him{% if s.excused_takes %} ({{ s.excused_takes }} here){% endif %}, and chases with two strikes are forgiven by half when the pitch was close.</p>
+    {% endif %}
     {% if h.notes %}<ul class="notes" style="margin-top:14px;">{% for n in h.notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
   </div>
 

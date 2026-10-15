@@ -41,8 +41,14 @@ DATA_NOTES = [
 
 HITTING = [
     {'title': 'Swing decisions', 'items': [
-        ('Swing decision score', 'Of the pitches that clearly called for a swing or a take, the share where the hitter made the right choice, from 0 to 100. '
-         'Swinging at a hittable pitch or taking one he can\'t drive is good. Taking a hittable pitch or swinging at a bad one is bad. Borderline pitches don\'t count either way.'),
+        ('Swing decision score', 'One 0 to 100 number blending three sub-scores: Chase discipline (35%), Hittable pitches (35%) and Damage (30%). '
+         'A sub-score that doesn\'t have enough pitches yet (5 pitches, or 3 balls in play for Damage) is left out and the rest are re-weighted.'),
+        ('Chase discipline', 'On pitches well off the zone (chase and waste areas), the weighted share where he laid off. Chasing is a little worse in a hitter\'s count, forgiven by half on a close pitch with two strikes, and laying off with two strikes counts extra.'),
+        ('Hittable pitches', 'On pitches in the heart, the weighted share where he swung. Taking a fastball in the heart in a hitter\'s count (more balls than strikes) counts double, and taking any hittable pitch with two strikes counts 1.5 times. '
+         'Taking a breaking ball or off-speed pitch in the heart early in the count is not held against him: on 0-0 it doesn\'t count at all, and in other early counts it counts half.'),
+        ('Damage', 'The expected batting average (xBA) of the balls he put in play off pitches in the zone, turned into a 0 to 100 scale where about .330 is 50, and .530 is 100. It rewards squaring up pitches he can hit, not just swinging.'),
+        ('Hitter\'s count, pitcher\'s count', 'A hitter\'s count has more balls than strikes (1-0, 2-0, 2-1, 3-0, 3-1). A pitcher\'s count has more strikes than balls, or two strikes. Even counts are the rest.'),
+        ('Fastballs vs breaking balls / off-speed', 'Fastballs include four-seamers, sinkers and cutters. Everything else (sliders, curveballs, changeups, splitters) is breaking or off-speed. Both groups are shown as separate decision scores once there are at least 8 pitches in each.'),
         ('Grade', 'Elite 85+, Strong 75+, Solid 65+, Developing 55+, Needs work below that. These cutoffs are starting points and will be tuned as data builds. '
          'No grade is shown under 15 judged pitches.'),
         ('Heart', 'The middle of the zone: the inner two-thirds, about 1.1 ft wide and 1.4 ft tall. A hittable pitch. Taking one is a missed chance.'),
@@ -53,7 +59,7 @@ HITTING = [
         ('Zone swing', 'Share of pitches in the strike zone (heart and shadow) he swung at.'),
         ('Zone contact', 'Of his swings at pitches in the zone, the share that made contact (foul or in play).'),
         ('Whiff rate', 'Swings and misses divided by all swings.'),
-        ('Good decisions', 'Good decisions out of all judged pitches (not counting borderline pitches).'),
+        ('Good decisions', 'Number of good decisions out of all the pitches that counted (borderline pitches and excused takes aren\'t included).'),
     ]},
     {'title': 'Batted-ball quality', 'items': [
         ('Avg / max exit velo', 'Average and hardest exit velocity on tracked balls in play, in mph.'),

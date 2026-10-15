@@ -96,20 +96,78 @@ def region(x, z):
     return 'shadow' if d <= SHADOW_OUT else ('chase' if d <= CHASE_OUT else 'waste')
 
 
+_HARD = {'Fastball', 'FourSeamFastBall', 'Four-Seam', 'Four-Seam Fastball', 'Sinker', 'Cutter'}
+
+
+def pitch_class(p):
+    """'hard' (fastball family), 'soft' (breaking ball / off-speed), or None when the pitch type is unknown."""
+    t = p.get('pitch_type')
+    if not t or t in ('Undefined', 'Unknown', 'Other'):
+        return None
+    return 'hard' if t in _HARD else 'soft'
+
+
+def count_ctx(p):
+    """(balls, strikes) as ints, or None."""
+    try:
+        return int(p['balls']), int(p['strikes'])
+    except (TypeError, ValueError):
+        return None
+
+
 def judge(p):
-    """Returns (region, swung, verdict) with verdict good|bad|neutral, or None if the pitch can't be judged."""
+    """Returns (region, swung, verdict, weight, why) or None if the pitch can't be judged.
+    verdict is good|bad|neutral and weight says how much the decision counts, because the same swing or take means
+    different things in different counts and against different pitches:
+      * taking a heart pitch is bad, and worse for a fastball in a hitter's count (balls > strikes) or with two strikes;
+      * taking a breaking ball / off-speed pitch in the heart early in the count is not held against him (0-0 not at all,
+        other early counts at half weight), unless he has two strikes;
+      * swinging at a pitch off the zone is bad, a little worse in a hitter's count, and forgiven by half when it is
+        close (chase zone) and he has two strikes;
+      * taking a pitch off the zone is good, and counts extra with two strikes;
+      * swinging at a borderline pitch with two strikes is protecting the plate, a small plus."""
     o = p['outcome']
     reg = region(p['x'], p['z'])
     if reg is None or (o not in SWING and o not in TAKE):
         return None
     swung = o in SWING
+    cc = count_ctx(p)
+    b, st = cc if cc else (None, None)
+    hitters = cc is not None and b > st
+    two = st == 2
+    early = cc is not None and (b + st) <= 2 and st < 2
+    cls = pitch_class(p)
+    v, w, why = 'neutral', 0.0, None
     if reg == 'shadow':
-        v = 'neutral'
+        if swung and two:
+            v, w, why = 'good', 0.5, 'Protecting the plate with two strikes'
     elif reg == 'heart':
-        v = 'good' if swung else 'bad'
+        if swung:
+            v, w = 'good', 1.0
+        elif cls == 'soft' and early:
+            if b + st == 0:
+                v, w, why = 'neutral', 0.0, 'Took an off-speed or breaking pitch on 0-0 (not held against him)'
+            else:
+                v, w, why = 'bad', 0.5, 'Early-count take of an off-speed or breaking pitch (half weight)'
+        elif cls == 'hard' and hitters:
+            v, w, why = 'bad', 2.0, "Took a fastball in the heart in a hitter's count (counts double)"
+        elif two:
+            v, w, why = 'bad', 1.5, 'Took a hittable pitch with two strikes (counts extra)'
+        else:
+            v, w = 'bad', 1.0
     else:
-        v = 'bad' if swung else 'good'
-    return reg, swung, v
+        if swung:
+            if two and reg == 'chase':
+                v, w, why = 'bad', 0.5, 'Chased a close pitch with two strikes (half weight)'
+            elif hitters:
+                v, w, why = 'bad', 1.25, "Chased in a hitter's count (counts extra)"
+            else:
+                v, w = 'bad', 1.0
+        else:
+            v, w = 'good', (1.25 if two else 1.0)
+            if two:
+                why = 'Laid off a bad pitch with two strikes (counts extra)'
+    return reg, swung, v, w, why
 
 
 def grade(score):
@@ -241,9 +299,43 @@ def hitter_stats(pitches):
     las = [p['la'] for p in bbs if p['la'] is not None]
     hit_types = [p['hit_type'] for p in bbs if p['hit_type']]
     zones = [spray_zone(p) for p in bbs if spray_zone(p)]
-    score = round(100 * good / decided) if decided else None
     xb = xba(pitches)
+
+    def wscore(items):
+        """Weighted share of good decisions among items = [(p, j)]; (score or None, number of pitches that counted)."""
+        g = sum(j[3] for _, j in items if j[2] == 'good')
+        t = sum(j[3] for _, j in items if j[2] in ('good', 'bad'))
+        n_ = sum(1 for _, j in items if j[2] in ('good', 'bad'))
+        return (round(100 * g / t) if t else None), n_
+
+    disc, disc_n = wscore([(p, j) for p, j in judged if j[0] in ('chase', 'waste')])
+    hit, hit_n = wscore([(p, j) for p, j in judged if j[0] == 'heart'])
+    dec_w, dec_n = wscore(judged)
+    # damage: expected average on balls in play off hittable pitches (heart and shadow)
+    hp = [hit_prob(p['ev'], p['la']) for p, j in judged
+          if p['outcome'] == 'inplay' and j[0] in ('heart', 'shadow') and p['ev'] is not None and p['la'] is not None and p['hit_type'] != 'BUNT']
+    hp = [v for v in hp if v is not None]
+    xbacon = sum(hp) / len(hp) if hp else None
+    dmg = max(0, min(100, round(50 + (xbacon - 0.33) * 250))) if xbacon is not None and len(hp) >= 3 else None
+    parts = [(0.35, disc if disc_n >= 5 else None), (0.35, hit if hit_n >= 5 else None), (0.30, dmg)]
+    live = [(w_, v_) for w_, v_ in parts if v_ is not None]
+    score = round(sum(w_ * v_ for w_, v_ in live) / sum(w_ for w_, _ in live)) if len(live) >= 2 else dec_w
+
+    def split(label, pred):
+        sc, k = wscore([(p, j) for p, j in judged if pred(p)])
+        return {'label': label, 'score': sc if k >= 8 else None, 'n': k}
+
+    def ctx(p):
+        cc = count_ctx(p)
+        return None if cc is None else ('hit' if cc[0] > cc[1] else 'pit' if (cc[1] > cc[0] or cc[1] == 2) else 'even')
+    splits = [split('Vs fastballs', lambda p: pitch_class(p) == 'hard'), split('Vs breaking / off-speed', lambda p: pitch_class(p) == 'soft'),
+              split("Hitter's counts", lambda p: ctx(p) == 'hit'), split('Even counts', lambda p: ctx(p) == 'even'),
+              split("Pitcher's counts / two strikes", lambda p: ctx(p) == 'pit')]
+    fb_hc = sum(1 for p, j in judged if j[0] == 'heart' and not j[1] and pitch_class(p) == 'hard' and count_ctx(p) and count_ctx(p)[0] > count_ctx(p)[1])
+    excused = sum(1 for p, j in judged if j[2] == 'neutral' and j[4] and j[0] == 'heart')
     return {
+        'disc': disc if disc_n >= 5 else None, 'disc_n': disc_n, 'hit': hit if hit_n >= 5 else None, 'hit_n': hit_n,
+        'dmg': dmg, 'dmg_n': len(hp), 'xbacon': xbacon, 'splits': splits, 'fb_hc_takes': fb_hc, 'excused_takes': excused,
         'xba': xb['xba'], 'ba': xb['ba'], 'ab': xb['ab'], 'xh': xb['xh'], 'ks': xb['k'],
         'pitches': n, 'pa': pa, 'decisions': decided,
         'score': score, 'grade': grade(score) if decided >= 15 else None,
@@ -276,6 +368,8 @@ def takeaways(s):
         out.append(f"Chases {s['chase_pct']}% of pitches outside the zone ({s['chases']} swings)." if s['chase_pct'] >= 30
                    else f"Stays disciplined: only {s['chase_pct']}% chase outside the zone." if s['chase_pct'] <= 20 else None)
         out = [x for x in out if x]
+    if s.get('fb_hc_takes', 0) >= 2:
+        out.append(f"Took {s['fb_hc_takes']} fastballs in the heart in hitter's counts, the pitch he should be hunting there.")
     if s['heart_swing_pct'] is not None and s['heart_takes'] >= 2 and s['heart_swing_pct'] < 60:
         out.append(f"Lets {s['heart_takes']} hittable pitches go by (swings at {s['heart_swing_pct']}% of the heart).")
     if s['zone_contact_pct'] is not None and s['zone_contact_pct'] < 75:
@@ -316,10 +410,11 @@ def decision_chart_svg(pitches, side=None, width=330, height=360):
         j = judge(p)
         if not j:
             continue
-        reg, swung, v = j
+        reg, swung, v = j[0], j[1], j[2]
         col = {'good': _GOOD, 'bad': _BAD, 'neutral': _NEUT}[v]
         cx, cy = X(max(xr[0], min(xr[1], p['x']))), Y(max(zr[0], min(zr[1], p['z'])))
-        tip = f"{(p['pitch_type'] or 'Pitch')} · {'Swing' if swung else 'Take'} · {p['outcome']}"
+        cc = count_ctx(p)
+        tip = f"{(p['pitch_type'] or 'Pitch')} · {'Swing' if swung else 'Take'} · {p['outcome']}" + (f" · count {cc[0]}-{cc[1]}" if cc else '') + (f" · {j[4]}" if j[4] else '')
         if swung:
             svg.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="5.2" fill="{col}" fill-opacity=".88" stroke="#fff" stroke-width="1"><title>{tip}</title></circle>')
         else:
