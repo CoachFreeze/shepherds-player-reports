@@ -75,6 +75,30 @@ def _stamp(outs, name):
     return outs
 
 
+_FB = ('Fastball', 'Four-Seam', '4-Seam', 'FourSeam', 'Sinker')
+
+
+def _trend_note(series):
+    """Headline for the velocity chart: change in the main fastball's average velocity from the oldest to the newest
+    outing shown, e.g. {'dir': 'up', 'head': 'Up 1.2 mph', 'sub': '4-Seam velo, last 3 outings'}. None if < 2 outings."""
+    best = None
+    for name, s in series.items():
+        pts = [v for v in s['vals'] if v is not None]
+        if len(pts) < 2:
+            continue
+        isfb = any(f.lower() in name.lower() for f in _FB)
+        if best is None or (isfb and not best[0]) or (isfb == best[0] and s['n'] > best[1]['n']):
+            best = (isfb, s, name, pts)
+    if not best:
+        return None
+    _, s, name, pts = best
+    d = pts[-1] - pts[0]
+    sub = f"{name} velo, last {len(pts)} outings"
+    if abs(d) < 0.3:
+        return {'dir': 'flat', 'head': 'Holding steady', 'sub': sub}
+    return {'dir': 'up' if d > 0 else 'down', 'head': f"{'Up' if d > 0 else 'Down'} {abs(d):.1f} mph", 'sub': sub}
+
+
 def build(slug, bio):
     name = bio['name']
     recent = _stamp(outings_mod.recent(slug, plans_mod.limit(bio.get('program'), 'history')), name)
@@ -114,6 +138,7 @@ def build(slug, bio):
     series = {k: series[k] for k in order if k in series}
     trend_html = trend_svg(series, dates)
     legend = [{'type': k, 'color': v['color']} for k, v in series.items()]
+    trend_note = _trend_note(series)
 
     log = []
     for o in recent:
@@ -124,7 +149,7 @@ def build(slug, bio):
                     'top': top, 'strike': os_.get('strike_pct'), 'whiff': os_.get('whiff_pct'),
                     'ip': os_.get('ip') if o.get('live_ab') else None,
                     'types': ', '.join(t['type'] for t in otm)})
-    return {'name': name, 'meta': meta, 'summary': summ, 'stat_tiles': stat_tiles, 'stat_catalog': stat_catalog, 'movement_html': movement_html, 'location_html': location_html,
+    return {'name': name, 'meta': meta, 'trend_note': trend_note, 'summary': summ, 'stat_tiles': stat_tiles, 'stat_catalog': stat_catalog, 'movement_html': movement_html, 'location_html': location_html,
             'trend_html': trend_html, 'legend': legend, 'log': log, 'n_outings': len(recent), 'n_pitches': len(rows),
             'range': (_long_date(recent[-1]['date']) + ' – ' + _long_date(recent[0]['date'])) if len(recent) > 1 else _long_date(recent[0]['date'])}
 
