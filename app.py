@@ -129,6 +129,8 @@ def login():
         if store.verify_coach(username, password):
             session['coach'] = username
             plans.track('login', username, (store.list_coaches().get(username) or {}).get('program'))
+            if not request.args.get('next') and store.needs_first_upload(username):
+                return redirect(url_for('intake_bulk') + '?welcome=1')
             return redirect(request.args.get('next') or url_for('dashboard'))
         error = 'Incorrect username or password.'
     return render_template_string(LOGIN_PAGE, error=error)
@@ -237,6 +239,13 @@ def change_password():
     return redirect(url_for('account'))
 
 
+@app.route('/onboarding/done', methods=['POST'])
+@login_required
+def onboarding_done():
+    store.set_coach_flag(session['coach'], 'toured', True)
+    return ('', 204)
+
+
 @app.route('/logout')
 def logout():
     session.pop('coach', None)
@@ -291,6 +300,13 @@ def _build_groups():
     return groups
 
 
+def _tour_next_player(groups):
+    for _pk, _l, plist in groups:
+        if plist and _pk != 'shepherds':
+            return url_for('player_overview', slug=plist[0][0]) + '?tour=player'
+    return ''
+
+
 def _team_tiles(groups):
     """Admin home: one tile per team/program, with its logo, player count and coach count."""
     coaches = store.list_coaches().values()
@@ -316,9 +332,10 @@ def dashboard():
     groups = _build_groups()
     if is_admin():
         return render_template('dashboard.html', mode='teams', tiles=_team_tiles(groups), groups=[], team_label=None,
-                               is_coach=True, is_admin=True, coach_key=session.get('coach') or '')
+                               is_coach=True, is_admin=True, coach_key=session.get('coach') or '', tour_next=_tour_next_player(groups))
     return render_template('dashboard.html', mode='players', groups=[(l, p) for _, l, p in groups], team_label=None, tiles=[],
-                           is_coach=True, is_admin=False, coach_key=session.get('coach') or '')
+                           is_coach=True, is_admin=False, coach_key=session.get('coach') or '',
+                           first_upload=store.needs_first_upload(session.get('coach')), tour_next=_tour_next_player(groups))
 
 
 @app.route('/team/<program>')
@@ -328,7 +345,7 @@ def team_view(program):
     if not groups:
         abort(404)
     return render_template('dashboard.html', mode='players', groups=[(l, p) for _, l, p in groups], team_label=groups[0][1], tiles=[],
-                           is_coach=True, is_admin=True, coach_key=session.get('coach') or '')
+                           is_coach=True, is_admin=True, coach_key=session.get('coach') or '', tour_next=_tour_next_player(groups))
 
 
 @app.route('/brand-logo/<fname>')
@@ -358,7 +375,8 @@ def player_overview(slug):
     css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
     return render_template('player_overview.html', b=b, bio=bio, slug=slug, css=css, has_photo=has_photo, badge=badge,
                            photo_v=int(os.path.getmtime(headshots.path(slug))) if has_photo else 0,
-                           initials=(first[:1] + last[:1]).upper(), pos=_player_pos(bio), is_coach=bool(session.get('coach')), can_edit=can_manage(slug), is_demo=store.is_demo(slug))
+                           initials=(first[:1] + last[:1]).upper(), pos=_player_pos(bio), is_coach=bool(session.get('coach')), can_edit=can_manage(slug), is_demo=store.is_demo(slug),
+                           tour_next=(url_for('view_outing', slug=slug, date=b['log'][0]['id']) + '?tour=report') if b.get('log') else '')
 
 
 @app.route('/report/<slug>/outing/<date>')
@@ -375,6 +393,10 @@ def view_outing(slug, date):
         _track('download', slug=slug)
         fname = re.sub(r'[^A-Za-z0-9]+', '_', bio['name']).strip('_') + f'_{date}_outing_report.html'
         return Response(html, mimetype='text/html', headers={'Content-Disposition': f'attachment; filename="{fname}"'})
+    if request.args.get('tour') == 'report':
+        _t = render_template('_tour.html', tour_stage='report', tour_next=url_for('dashboard'), coach_key=session.get('coach') or '')
+        k = html.rfind('</body>')
+        html = html[:k] + _t + html[k:] if k > -1 else html + _t
     return html
 
 
@@ -780,7 +802,10 @@ h1{font-family:Oswald,Arial,sans-serif;} .card{background:#fff;border:1px solid 
 button{margin-top:14px;padding:11px 22px;border:none;border-radius:999px;background:#5c97a8;color:#fff;font-weight:600;cursor:pointer;}</style>"""
 
 BULK_UPLOAD_PAGE = BULK_STYLE + """
-<title>Upload a .CSV</title><h1>Upload a .CSV</h1>
+<title>Upload a .CSV</title>{% if welcome %}<div class="card" style="border-left:5px solid #5c97a8;"><h2 style="margin:0 0 6px;font-family:Oswald,Arial,sans-serif;">Welcome{% if welcome_name %}, {{ welcome_name }}{% endif %}!</h2>
+<p style="margin:0 0 8px;">Let's start by adding your first Trackman session. It takes about a minute.</p>
+<ol style="margin:0;padding-left:20px;line-height:1.6;"><li>Export a session from Trackman as a <b>CSV</b>.</li><li>Choose that file below and tap <b>Read file</b>.</li><li>On the next screen, confirm each pitcher and add class year, height and weight if you have them. Then tap <b>Generate all reports</b>.</li></ol>
+<p style="margin:8px 0 0;color:#6b7680;font-size:14px;">Right after, we'll give you a quick tour of your player dashboard and outing reports.</p></div>{% endif %}<h1>Upload a .CSV</h1>
 <p>Upload one Trackman CSV with any number of pitchers{% if prog_label %} for {{ prog_label }}{% endif %}. Everyone in the file is picked up automatically.</p>
 {% if message %}<div class="card" style="color:#9c3a3a;">{{ message }}</div>{% endif %}
 <form method="post" enctype="multipart/form-data">{% if programs %}<p><label style="font-weight:600;">Program: <select name="program">{% for s, l in programs %}<option value="{{ s }}" {{ 'selected' if s == prog }}>{{ l }}</option>{% endfor %}</select></label></p>{% endif %}<input type="file" name="trackman_file" accept=".csv" required><br><button type="submit">Read file</button></form>
@@ -824,6 +849,18 @@ def _bulk_ctx(prog):
     return {'programs': store.list_programs() if is_admin() else None, 'prog': prog, 'prog_label': store.program_label(prog)}
 
 
+def _first_upload_done(results, was_first):
+    """True when this upload is a new program coach's first and it added at least one pitcher (starts the dashboard tour)."""
+    return bool(was_first) and any(o for _, _, o in results)
+
+
+def _after_upload(results, was_first):
+    if _first_upload_done(results, was_first):
+        store.set_coach_flag(session['coach'], 'uploaded_first', True)
+        return redirect(url_for('dashboard') + '?tour=dash&first=1')
+    return redirect(url_for('dashboard'))
+
+
 def _archive_csv(path, prog):
     """Keeps the original CSV in the repo under data/csv/<program>/<upload date>_<name>.csv, so each team's
     files stay together. Best-effort: a failure never blocks the upload."""
@@ -842,7 +879,9 @@ def _archive_csv(path, prog):
 @login_required
 def intake_bulk():
     if request.method == 'GET':
-        return render_template_string(BULK_UPLOAD_PAGE, message=None, **_bulk_ctx(my_program() or 'long_beach_state'))
+        _wel = bool(request.args.get('welcome')) or store.needs_first_upload(session.get('coach'))
+        return render_template_string(BULK_UPLOAD_PAGE, message=None, welcome=_wel, welcome_name=(current_coach() or {}).get('display_name', ''),
+                                      **_bulk_ctx(my_program() or 'long_beach_state'))
     f = request.files.get('trackman_file')
     if not f or not f.filename:
         return render_template_string(BULK_UPLOAD_PAGE, message='Choose a Trackman CSV.', **_bulk_ctx(_target_program()))
@@ -881,7 +920,7 @@ def intake_bulk_run():
         abort(403)
     specs, i, photos, skipped = [], 0, {}, []
     while f'csv_{i}' in f:
-        _ex = store.get_player(store.slugify(f.get(f'name_{i}', '').strip()))
+        _ex = store.get_real_player(store.slugify(f.get(f'name_{i}', '').strip()))
         _blocked = bool(_ex) and _ex.get('program', 'shepherds') != prog
         if f.get(f'inc_{i}') and _blocked:
             skipped.append(f.get(f'name_{i}', '').strip())
@@ -896,10 +935,11 @@ def intake_bulk_run():
             if ph and ph.filename:
                 photos[specs[-1]['name']] = ph
         i += 1
-    _new = [s_ for s_ in specs if not store.get_player(store.slugify(s_['name']))]
+    _new = [s_ for s_ in specs if not store.get_real_player(store.slugify(s_['name']))]
     _ok, _msg = plans.can_add_players(prog, len(_new))
     if not _ok:
         return _upgrade('max_players', _msg)
+    _was_first = store.needs_first_upload(session.get('coach'))
     results = pipeline.process_trackman_bulk(path, specs, live_ab=bool(f.get('live_ab')), reassign=reassign, program=prog)
     if any(out for _, _, out in results):
         _archive_csv(path, prog)
@@ -914,10 +954,10 @@ def intake_bulk_run():
                 headshots.save(slug, photos[name])
             except Exception as exc:
                 print(f'WARNING: headshot for {name} not saved: {exc}')
-    if skipped:
+    if skipped and not _first_upload_done(results, _was_first):
         return (BULK_STYLE + '<h1>Done</h1><div class="card">Skipped (a player with that name already belongs to another program): <b>' + ', '.join(skipped).replace('<', '') +
                 '</b>. Everyone else was added.</div><p><a href="' + url_for('dashboard') + '">Go to the dashboard</a></p>')
-    return redirect(url_for('dashboard'))
+    return _after_upload(results, _was_first)
 
 
 REVIEW_PAGE = """

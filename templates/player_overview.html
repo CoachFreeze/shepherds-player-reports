@@ -89,4 +89,4 @@
 <script>(function(){var tip=document.getElementById('mv-tip');function lum(h){var n=parseInt(h.slice(1),16),r=n>>16,g=(n>>8)&255,b=n&255;return(.299*r+.587*g+.114*b)/255;}
 function build(el){var ty=el.getAttribute('data-ptype');if(!ty){tip.className='';tip.textContent=el.getAttribute('data-tip');return;}var c=el.getAttribute('data-pcolor'),v=el.getAttribute('data-pvelo');var fg=lum(c)>.62?'#1a1a1a':'#fff';tip.className='card';tip.innerHTML='<div class="tt-h" style="background:'+c+';color:'+fg+'">'+ty+'</div><div class="tt-b">'+(v?'<div class="tt-v">'+v+'</div>':'')+'<div class="tt-m">'+(el.getAttribute('data-psub')||('('+el.getAttribute('data-pivb')+'″, '+el.getAttribute('data-phb')+'″)'))+'</div></div>';}
 document.querySelectorAll('.mv-pt').forEach(function(el){var t=el.querySelector('title');if(t)t.remove();el.addEventListener('mousemove',function(ev){build(el);tip.style.display='block';tip.style.left=(ev.clientX+14)+'px';tip.style.top=(ev.clientY+14)+'px';});el.addEventListener('mouseleave',function(){tip.style.display='none';});});})();</script>
-</body></html>
+{% set tour_stage = 'player' %}{% include '_tour.html' %}</body></html>

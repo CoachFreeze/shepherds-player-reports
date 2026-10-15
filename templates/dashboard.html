@@ -31,6 +31,11 @@
 <div class="wrap">
   <div class="bar">{% if team_label %}<a href="{{ url_for('dashboard') }}" style="font:700 13px Barlow,sans-serif;color:#5c97a8;text-decoration:none;margin-right:6px;">&larr; All teams</a>{% endif %}<input id="q" type="search" placeholder="{{ 'Search teams…' if mode == 'teams' else 'Search players, schools, positions…' }}" autocomplete="off">
     {% if is_coach %}<a class="upl" href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a>{% endif %}</div>
+{% if first_upload %}<div class="group-title">Get started</div>
+  <div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);padding:28px;text-align:center;max-width:620px;margin:0 auto;">
+    <div style="font:700 26px 'Oswald',sans-serif;margin-bottom:6px;">Add your first Trackman session</div>
+    <p style="color:#6b7680;margin:0 0 16px;">Upload one .CSV and your pitchers appear here, each with a live profile and outing reports. We'll walk you through it right after.</p>
+    <a class="upl" href="{{ url_for('intake_bulk') }}?welcome=1" style="display:inline-block;">+ Upload your first .CSV</a></div>{% endif %}
 {% if mode == 'teams' %}
   <div class="group-title">Teams &amp; Programs</div>
   <div class="grid">
@@ -60,5 +65,5 @@
   {% endfor %}</div>{% endif %}{% endfor %}
 </div>
 <script>document.getElementById('q').addEventListener('input',function(){var v=this.value.toLowerCase().trim();document.querySelectorAll('.sq').forEach(function(c){c.style.display=(!v||c.dataset.s.indexOf(v)>-1)?'':'none';});});</script>
-{% if is_coach %}{% include '_tour.html' %}{% endif %}
+{% set tour_stage = 'dash' %}{% include '_tour.html' %}
 </body></html>

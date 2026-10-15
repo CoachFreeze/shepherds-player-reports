@@ -197,6 +197,11 @@ def list_players_view():
     return {**demo_players(), **list_players()}
 
 
+def get_real_player(slug):
+    """A saved player only (never the bundled sample program). Use this when checking whether a name is already taken."""
+    return list_players().get(slug)
+
+
 def get_player(slug):
     p = list_players().get(slug)
     return p if p is not None else demo_players().get(slug)
@@ -470,3 +475,21 @@ def set_display_name(username, display_name):
     _save(COACHES_PATH, coaches)
     _push_coaches()
     return None
+
+
+def set_coach_flag(username, key, value=True):
+    """Onboarding progress ('uploaded_first', 'toured') stored on the coach so it follows them across devices."""
+    coaches = list_coaches()
+    if username not in coaches or coaches[username].get(key) == value:
+        return
+    coaches[username][key] = value
+    _save(COACHES_PATH, coaches)
+    _push_coaches()
+
+
+def needs_first_upload(username):
+    """A program coach who has not uploaded yet and whose program has no players."""
+    c = list_coaches().get(username) or {}
+    if c.get('role', 'admin') != 'program' or c.get('uploaded_first'):
+        return False
+    return not any(p.get('program') == c.get('program') for p in list_players().values())

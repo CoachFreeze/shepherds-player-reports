@@ -1,49 +1,85 @@
 <style>
-#tour{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;background:rgba(26,34,40,.62);padding:16px;}
+#tour{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;background:rgba(26,34,40,.62);padding:16px;font-family:'Barlow',Arial,sans-serif;}
 #tour.on{display:flex;}
+#tour.dock{background:transparent;align-items:flex-end;pointer-events:none;padding:0 14px 14px;} #tour.dock .tcard{pointer-events:auto;max-height:46vh;box-shadow:0 12px 40px rgba(0,0,0,.35),0 0 0 1px rgba(92,151,168,.35);}
 .tcard{background:#fff;border-radius:18px;max-width:560px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.35);}
 .tbar{height:4px;background:#e8ecee;} .tbar i{display:block;height:100%;background:#5c97a8;transition:width .25s;}
-.tbody{padding:26px 28px 8px;} .tstep{font:600 11px 'Oswald',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#5c97a8;}
-.tbody h2{font:700 26px/1.15 'Oswald',sans-serif;margin:6px 0 10px;color:#22303a;} .tbody p{font-size:15px;line-height:1.5;color:#3c4a53;margin:8px 0;}
+.tbody{padding:22px 26px 6px;} .tstep{font:600 11px 'Oswald',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#5c97a8;}
+.tbody h2{font:700 24px/1.15 'Oswald',sans-serif;margin:6px 0 8px;color:#22303a;} .tbody p{font-size:15px;line-height:1.5;color:#3c4a53;margin:8px 0;}
 .tbody ul{margin:8px 0;padding-left:20px;font-size:14.5px;line-height:1.5;color:#3c4a53;} .tbody li{margin:4px 0;} .tbody b{color:#22303a;}
 .tmock{background:#f2f4f3;border-radius:12px;padding:12px 14px;margin:12px 0;font-size:13.5px;color:#3c4a53;}
-.tfoot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 28px 22px;}
+.tfoot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 26px 18px;}
 .tdots{display:flex;gap:6px;} .tdots i{width:7px;height:7px;border-radius:50%;background:#d5dcdf;} .tdots i.a{background:#5c97a8;}
 .tbtn{font:600 14px 'Barlow',sans-serif;border:none;border-radius:999px;padding:10px 20px;cursor:pointer;background:#5c97a8;color:#fff;} .tbtn.g{background:transparent;color:#6b7680;padding:10px 8px;}
-@media (max-width:520px){.tbody{padding:22px 20px 6px;} .tfoot{padding:12px 20px 18px;} .tbody h2{font-size:22px;}}
+.t-hl{outline:3px solid #5c97a8;outline-offset:4px;border-radius:14px;transition:outline-color .2s;}
+@media (max-width:520px){.tbody{padding:20px 18px 6px;} .tfoot{padding:12px 18px 16px;} .tbody h2{font-size:21px;}}
 </style>
-<div id="tour" role="dialog" aria-modal="true" aria-label="Dashboard tour"><div class="tcard">
+<div id="tour" role="dialog" aria-modal="true" aria-label="Guided tour"><div class="tcard">
   <div class="tbar"><i id="tprog"></i></div><div class="tbody" id="tbody"></div>
   <div class="tfoot"><button class="tbtn g" id="tskip">Skip tour</button><div class="tdots" id="tdots"></div><div><button class="tbtn g" id="tback">Back</button><button class="tbtn" id="tnext">Next</button></div></div>
 </div></div>
 <script>
 (function(){
-var KEY='ss_tour_done_{{ coach_key|e }}', S=[
-{t:'Welcome to your dashboard',h:'<p>This is your team\'s home base. Every player you add gets a card, and every card opens a live profile built from their <b>most recent outings</b>.</p><ul><li>Use the <b>search box</b> to find a player, school or position.</li><li>A player\'s <b>headshot</b> (or school logo until you add one) is on the card, with class year and position.</li><li>Your players are private. Only you and the admin can see them.</li></ul><p>This 2-minute tour covers adding data, reading the numbers and sending reports. You can reopen it anytime from your <b>profile menu</b> (the circle at the top right) &rarr; <b>Take the tour</b>.</p>'},
-{t:'Add players by uploading a Trackman .CSV',h:'<p>Everything starts with <b>+ Upload a .CSV</b>.</p><ul><li>Pick the Trackman export from your session. Every pitcher in the file is found automatically.</li><li><b>Review screen:</b> fill in class year, height and weight (height is needed for the arm-angle graphic) and optionally add a headshot.</li><li>Tick <b>Game / Live AB</b> only for game or live at-bat sessions. That adds the Outing Summary (innings, batters faced, hits, walks and so on). Leave it unchecked for bullpens.</li><li>If a pitch looks like it belongs to someone else (a mis-tagged name), you\'ll see a flag. Choose to leave it out, keep it, or move it to the right pitcher.</li></ul><div class="tmock">Uploading the same file twice is safe. Pitches are never double-counted.</div>'},
-{t:'The player profile',h:'<p>Click any card. The top of the page is the player\'s <b>current form</b>, based on their last 10 outings.</p><ul><li><b>Strike %</b> &ndash; strikes out of all pitches.</li><li><b>Whiff %</b> &ndash; swings and misses out of all swings.</li><li><b>In Zone %</b> &ndash; pitches thrown in the strike zone.</li><li><b>Chase %</b> &ndash; swings at pitches outside the zone, out of all pitches outside the zone.</li></ul><p>Use <b>Customize stats</b> to choose which stats appear for this player (there are 80+ to pick from, and hovering one shows its definition). Use <b>Edit Profile</b> to fix a name, class year, height, weight or headshot at any time.</p>'},
-{t:'Pitch Movement Profile',h:'<p>Each dot is one pitch, as the batter sees it: how far it moved sideways (horizontal break) and up or down (induced vertical break), in inches.</p><ul><li>The center is a pitch that doesn\'t move sideways or rise or drop compared with a straight throw. The farther from center, the more movement.</li><li><b>Hover</b> a dot to see its type and velocity.</li><li>The table underneath shows <b>usage, average mph and top mph</b> by pitch type.</li><li>The <b>arm angle</b> graphic shows the delivery slot (for example, around 0&deg; is sidearm, 90&deg; is straight over the top). It appears once you have entered the player\'s height.</li></ul>'},
-{t:'Pitch Location and Velocity Trend',h:'<p><b>Pitch Location</b> shows where pitches crossed the plate from the catcher\'s view, one chart against right-handed batters and one against left-handed batters.</p><ul><li>Switch between <b>Dots Only, Heat Map or Both</b>, and filter by pitch type with the buttons.</li><li>Red areas are where the most pitches were thrown.</li><li>Hover a dot for the pitch type and result.</li></ul><p><b>Velocity Trend</b> plots average velocity by pitch type across the last 10 outings, so you can spot a velocity drop or gain.</p>'},
-{t:'Outing reports',h:'<p>At the bottom of a player\'s page is the <b>log of every outing</b>, newest first, tagged <b>Live AB</b> or <b>Bullpen</b>.</p><ul><li>Tap an outing to open its full report: movement, location, spin and a pitch-by-pitch log.</li><li>Click a row in the pitch log to find that pitch on the location chart.</li><li>Live AB reports start with the <b>Outing Summary</b>. Innings, hits and walks are estimates built from the pitch-by-pitch tags, so treat them as a close guide, not an official box score.</li></ul>'},
-{t:'Sending reports to your players',h:'<p>Under each outing in the log is <b>Download to send</b>.</p><ul><li>Tap it to save the report as a single file. It works on its own, with no login needed.</li><li><b>Email or text that file</b> to the player. They open it in any web browser on a phone or computer.</li><li>Want a PDF instead? Open the outing report, then use your browser\'s <b>Print</b> and choose <b>Save as PDF</b>.</li></ul><div class="tmock">Tip: the player profile page itself needs your login, so send the downloaded outing report, not a link to the website.</div><p>That\'s it. Start with <b>+ Upload a .CSV</b>.</p>'}
-],i=0,el=document.getElementById('tour');
-function safe(f){try{return f();}catch(e){return null;}}
+var STAGE='{{ tour_stage }}', NEXT='{{ tour_next|default('', true) }}', QS=new URLSearchParams(location.search), FIRST=QS.get('first')==='1';
+var ALL={
+dash:[
+ {t:FIRST?'Your first upload worked':'Welcome to your dashboard',h:'<p>'+(FIRST?'Your pitchers are on the board. ':'')+'This is your team\'s home base. Every player gets a card, and every card opens a live profile built from their <b>most recent outings</b>.</p><ul><li>Use the <b>search box</b> to find a player, school or position.</li><li>A player\'s <b>headshot</b> (or your school logo until you add one) is on the card, with class year and position.</li><li>Your players are private. Only you and the admin can see them.</li></ul>'},
+ {t:'Add more data anytime',h:'<p>Tap <b>+ Upload a .CSV</b> after each session.</p><ul><li>Pick the Trackman export. Every pitcher in the file is found automatically.</li><li>On the review screen, fill in class year, height and weight (height is needed for the arm-angle graphic).</li><li>Tick <b>Game / Live AB</b> only for game or live at-bat sessions. That adds the Outing Summary (innings, batters faced, hits, walks).</li><li>If a pitch looks like it belongs to someone else, you\'ll get a flag and can leave it out, keep it or move it.</li></ul><div class="tmock">Uploading the same file twice is safe. Pitches are never double-counted.</div>'},
+ {t:'Your profile menu',h:'<p>The circle at the top right is your <b>profile menu</b>.</p><ul><li><b>Account settings</b>: change your display name or password.</li><li><b>Take the tour</b>: replay this walkthrough whenever you like.</li></ul><p>Next, we\'ll open a player\'s page.</p>'}
+],
+player:[
+ {sel:['.head',''],t:'The player header',h:'<p>Name, position, class year, throwing hand, height and weight. Use <b>Edit Profile</b> any time to fix a name, class year, height, weight or headshot. Height powers the <b>arm angle</b> graphic below.</p>'},
+ {sel:['#stats',''],t:'Pitching profile tiles',h:'<p>Current form over the last 10 outings. By default you see <b>Strike %</b>, <b>Whiff %</b>, <b>In Zone %</b> and <b>Chase %</b>.</p><ul><li>Tap <b>Customize stats</b> to pick from 80+ stats (command, swing and miss, contact allowed, stuff, delivery and per-pitch-type). Hover any stat for its definition.</li><li>Each player keeps their own set.</li></ul>'},
+ {sel:['.pmp-panel',''],t:'Pitch Movement Profile',h:'<p>Each dot is one pitch as the batter sees it: sideways (horizontal break) and up or down (induced vertical break), in inches.</p><ul><li>The center is a pitch with no movement. Farther from center means more movement.</li><li>Hover a dot for the pitch type and velocity.</li><li>The table underneath shows usage, average mph and top mph by pitch type.</li></ul>'},
+ {sel:['.loc-wrap',''],t:'Pitch Location',h:'<p>Where pitches crossed the plate, from the catcher\'s view: one chart against right-handed batters and one against lefties.</p><ul><li>Switch between <b>Dots Only, Heat Map or Both</b>, and filter by pitch type.</li><li>Red areas are where the most pitches were thrown.</li></ul>'},
+ {sel:['.pn-t','Velocity Trend'],t:'Velocity Trend',h:'<p>Average velocity by pitch type across the last 10 outings, so you can spot a velocity drop or gain at a glance.</p>'},
+ {sel:['.pn-t','Outing Reports'],t:'The outing log',h:'<p>Every outing, newest first, tagged <b>Live AB</b> or <b>Bullpen</b>, with pitches, top velocity and strike %.</p><ul><li>Tap an outing to open its full report.</li><li>Under each one, <b>Download to send</b> saves a single file you can email or text to the player.</li></ul><p>Let\'s open the most recent report.</p>'}
+],
+report:[
+ {sel:['.chart-title','Outing Summary'],t:'Outing Summary',h:'<p>A box-score style summary for Live AB and game sessions: innings, batters faced, pitches, hits, walks and hit-by-pitch, then strike %, first-pitch strike %, in-zone rate, whiff rate, chase rate and average exit velocity.</p><div class="tmock">Innings, hits, walks and batters faced are <b>estimates</b> built from the pitch-by-pitch tags, so treat them as a close guide, not an official box score.</div>'},
+ {sel:['.chart-title','Pitch Movement Profile'],t:'Movement for this outing',h:'<p>The same movement plot as the player page, but only for this session, with usage and velocity by pitch type underneath.</p>'},
+ {sel:['.chart-title','Pitch Tracking'],t:'Pitch Tracking table',h:'<p>One row per pitch type: count, usage, strike %, average and top velocity, spin rate, spin direction and approach angle.</p>'},
+ {sel:['.chart-title','Pitch Log'],t:'Pitch Log',h:'<p>Every pitch in order, with type, velocity, spin, movement, location and result.</p><ul><li>Click a row to find that pitch on the location chart above.</li></ul>'},
+ {sel:['',''],t:'Sending this to your player',h:'<p>This page needs your login. To send it, go back to the player page and tap <b>Download to send</b> under the outing. You get a single file that works on its own, with no login. Email or text it, or print it to PDF from your browser.</p><p>That\'s the tour. You can replay it from your profile menu any time.</p>'}
+]};
+var S=ALL[STAGE]||[], i=0, el=document.getElementById('tour'), hl=null;
+function find(sel){
+  if(!sel||!sel[0])return null;var n=[].slice.call(document.querySelectorAll(sel[0]));
+  if(sel[1]){n=n.filter(function(x){return (x.textContent||'').trim().indexOf(sel[1])===0;});}
+  var x=n[0];if(!x)return null;if(!sel[1])return x;return x.closest('.pn')||x.closest('.chart-card')||x.parentElement||x;
+}
+function focusStep(){
+  if(hl){hl.classList.remove('t-hl');hl=null;}
+  var s=S[i];if(!s||STAGE==='dash')return;
+  var t=find(s.sel);
+  if(t){hl=t;t.classList.add('t-hl');setTimeout(function(){t.scrollIntoView({behavior:'smooth',block:'start'});},60);}
+  else if(i===0||!s.sel||!s.sel[0]){window.scrollTo({top:0,behavior:'smooth'});}
+}
+function lastLabel(){return STAGE==='dash'?(NEXT?'Show me a player':'Got it'):STAGE==='player'?(NEXT?'Open an outing report':'Got it'):'Finish';}
 function render(){
   var s=S[i];document.getElementById('tbody').innerHTML='<div class="tstep">Step '+(i+1)+' of '+S.length+'</div><h2>'+s.t+'</h2>'+s.h;
   document.getElementById('tprog').style.width=((i+1)/S.length*100)+'%';
   document.getElementById('tdots').innerHTML=S.map(function(_,k){return '<i class="'+(k===i?'a':'')+'"></i>';}).join('');
   document.getElementById('tback').style.visibility=i?'visible':'hidden';
-  document.getElementById('tnext').textContent=i===S.length-1?'Got it':'Next';
+  document.getElementById('tnext').textContent=i===S.length-1?lastLabel():'Next';
   document.getElementById('tskip').style.visibility=i===S.length-1?'hidden':'visible';
+  focusStep();
 }
-function open_(){i=0;render();el.classList.add('on');}
-function close_(){el.classList.remove('on');safe(function(){localStorage.setItem(KEY,'1');});}
-document.getElementById('tnext').onclick=function(){if(i<S.length-1){i++;render();}else close_();};
+function done(){try{fetch('{{ url_for("onboarding_done") }}',{method:'POST',credentials:'same-origin'});}catch(e){}}
+function open_(){if(!S.length)return;i=0;if(STAGE!=='dash')el.classList.add('dock');render();el.classList.add('on');}
+function close_(){el.classList.remove('on');if(hl){hl.classList.remove('t-hl');hl=null;}done();
+  try{var u=new URL(location.href);u.searchParams.delete('tour');u.searchParams.delete('first');history.replaceState(null,'',u.pathname+(u.search||''));}catch(e){}}
+document.getElementById('tnext').onclick=function(){
+  if(i<S.length-1){i++;render();return;}
+  if(STAGE==='report'){done();location.href=NEXT||'/';return;}
+  if(NEXT){location.href=NEXT;return;}
+  close_();
+};
 document.getElementById('tback').onclick=function(){if(i>0){i--;render();}};
 document.getElementById('tskip').onclick=close_;
-el.addEventListener('click',function(e){if(e.target===el)close_();});
+el.addEventListener('click',function(e){if(e.target===el&&STAGE==='dash')close_();});
 document.addEventListener('keydown',function(e){if(!el.classList.contains('on'))return;if(e.key==='Escape')close_();if(e.key==='ArrowRight')document.getElementById('tnext').click();if(e.key==='ArrowLeft')document.getElementById('tback').click();});
 window.openTour=open_;
-if(location.search.indexOf('tour=1')>-1||!safe(function(){return localStorage.getItem(KEY);}))open_();
+var q=QS.get('tour');if(q===STAGE||(q==='1'&&STAGE==='dash'))setTimeout(open_,250);
 })();
 </script>

@@ -22,11 +22,11 @@ def _path(slug):
     return os.path.join(OUTINGS_DIR, f'{slug}.json')
 
 
-def load(slug):
+def load(slug, real_only=False):
     p = _path(slug)
     if not os.path.exists(p):
         dp = os.path.join(store.DEMO_DIR, 'outings', f'{slug}.json')     # bundled sample program (read-only)
-        if os.path.exists(dp) and store.is_demo(slug):
+        if not real_only and os.path.exists(dp) and store.is_demo(slug):
             p = dp
         else:
             return {'outings': []}
@@ -49,7 +49,7 @@ def _uid(r):
 
 def add_rows(slug, rows, live_ab=False, push=True):
     """Adds one pitcher's Trackman rows, split by calendar date. Returns the list of outing ids touched."""
-    data = load(slug)
+    data = load(slug, real_only=True)       # never start from the bundled sample data
     by_id = {o['id']: o for o in data['outings']}
     touched = []
     for r in rows:
@@ -90,6 +90,6 @@ def delete(slug, push=True):
 
 
 def move(old_slug, new_slug, push=True):
-    data = load(old_slug)
+    data = load(old_slug, real_only=True)
     delete(old_slug, push)
     _save(new_slug, data, push)

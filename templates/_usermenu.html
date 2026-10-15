@@ -14,7 +14,7 @@
   <div class="um-pop" role="menu">
     <div class="um-who"><b>{{ me.name }}</b><span>{{ me.label or ('Administrator' if me.is_admin else '') }}</span></div>
     <a href="{{ url_for('account') }}">Account settings</a>
-    {% if request.endpoint == 'dashboard' %}<a href="#" onclick="document.getElementById('um').classList.remove('open');openTour();return false;">Take the tour</a>{% else %}<a href="{{ url_for('dashboard') }}?tour=1">Take the tour</a>{% endif %}
+    {% if request.endpoint == 'dashboard' %}<a href="#" onclick="document.getElementById('um').classList.remove('open');openTour();return false;">Take the tour</a>{% else %}<a href="{{ url_for('dashboard') }}?tour=dash">Take the tour</a>{% endif %}
     {% if me.is_admin %}<div class="um-lbl">Admin</div><a href="{{ url_for('admin_plans') }}">Plans &amp; usage</a><a href="{{ url_for('admin_coaches') }}">Coach logins</a><a href="{{ url_for('admin_status') }}">Save status</a>{% endif %}
     <div class="um-sep"></div><a href="{{ url_for('logout') }}">Log out</a>
   </div></span>
