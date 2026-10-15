@@ -13,6 +13,7 @@ import mlb_lookup
 import headshots
 import hitting
 import roster as roster_mod
+import glossary
 import overview
 
 app = Flask(__name__)
@@ -512,6 +513,12 @@ def roster_save():
         pass
     _track('roster', players=len(keep))
     return redirect(url_for('roster_page', program=prog if is_admin() else None, saved=f'{len(keep)}:{n}'))
+
+
+@app.route('/glossary')
+@login_required
+def glossary_page():
+    return render_template('glossary.html', sections=glossary.sections(is_admin()))
 
 
 @app.route('/school-logo/<fname>')

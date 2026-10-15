@@ -1,0 +1,36 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Stats Glossary</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body{font-family:'Barlow',Arial,sans-serif;background:#f7f6f2;color:#22303a;margin:0;}
+  .top{max-width:860px;margin:0 auto;padding:16px 16px 0;display:flex;justify-content:space-between;align-items:center;} .top a.back{color:#5c97a8;font-weight:600;font-size:13px;text-decoration:none;}
+  .wrap{max-width:860px;margin:0 auto;padding:6px 16px 60px;} h1{font:700 30px 'Oswald',sans-serif;margin:8px 0 6px;} .lead{color:#6b7680;font-size:14px;margin:0 0 14px;line-height:1.5;}
+  .search{width:100%;box-sizing:border-box;font:500 15px 'Barlow',sans-serif;padding:11px 14px;border:1px solid #dcdfdc;border-radius:12px;background:#fff;margin:0 0 10px;}
+  .jump{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px;} .jump a{font:600 12.5px 'Barlow';color:#2d5a69;background:#e8f1f4;border-radius:999px;padding:5px 12px;text-decoration:none;}
+  section{margin-bottom:18px;} section>h2{font:700 20px 'Oswald',sans-serif;letter-spacing:.04em;margin:18px 0 8px;scroll-margin-top:12px;}
+  .card{background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);padding:6px 20px 8px;margin-bottom:12px;}
+  .card h3{font:700 12px 'Barlow',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#76828a;margin:14px 0 2px;} .card .note{font-size:12.5px;color:#76828a;margin:2px 0 4px;}
+  dl{margin:0;} .e{padding:10px 0;border-bottom:1px solid #f0f2f1;} .e:last-child{border-bottom:0;} dt{font:700 15px 'Barlow',sans-serif;} dd{margin:3px 0 0;font-size:14px;line-height:1.55;color:#3c4a53;}
+  .none{display:none;color:#76828a;padding:20px 0;text-align:center;} mark{background:#fbf0d9;}
+</style></head><body>
+<div class="top"><a class="back" href="{{ url_for('dashboard') }}">&larr; Back to dashboard</a>{% include '_usermenu.html' %}</div>
+<div class="wrap"><h1>Stats Glossary</h1>
+  <p class="lead">What each stat and chart in ShepSavant means and how it is calculated.</p>
+  <input class="search" id="q" type="search" placeholder="Search a stat, e.g. whiff, chase, exit velo" autocomplete="off">
+  <div class="jump">{% for s in sections %}<a href="#{{ s.id }}">{{ s.title.split(' (')[0] }}</a>{% endfor %}</div>
+  {% for s in sections %}<section id="{{ s.id }}"><h2>{{ s.title }}</h2>
+    {% for g in s.groups %}<div class="card">{% if g.title %}<h3>{{ g.title }}</h3>{% endif %}{% if g.note %}<div class="note">{{ g.note }}</div>{% endif %}
+      <dl>{% for term, d in g['items'] %}<div class="e"><dt>{{ term }}</dt><dd>{{ d }}</dd></div>{% endfor %}</dl></div>{% endfor %}</section>{% endfor %}
+  <div class="none" id="none">No matches. Try a shorter word.</div>
+</div>
+<script>
+(function(){
+  var q=document.getElementById('q'),none=document.getElementById('none');
+  q.addEventListener('input',function(){
+    var t=q.value.trim().toLowerCase(),any=false;
+    Array.prototype.forEach.call(document.querySelectorAll('.e'),function(e){var m=!t||e.textContent.toLowerCase().indexOf(t)>-1;e.style.display=m?'':'none';if(m)any=true;});
+    Array.prototype.forEach.call(document.querySelectorAll('.card'),function(c){c.style.display=c.querySelector('.e:not([style*="none"])')?'':'none';});
+    Array.prototype.forEach.call(document.querySelectorAll('section'),function(s){s.style.display=s.querySelector('.card:not([style*="none"])')?'':'none';});
+    none.style.display=any?'none':'block';
+  });
+})();
+</script></body></html>
