@@ -475,7 +475,7 @@ def spray_chart_svg(points, width=380, height=340):
         svg.append(
             f'<circle class="bb-hit" cx="{x:.1f}" cy="{y:.1f}" r="8" fill="transparent" '
             f'style="cursor:pointer;" data-ev="{ev_txt}" data-dist="{dist_txt}" '
-            f'data-la="{"" if pt.get("la") is None else format(pt["la"], ".0f") + "°"}" data-type="{pt.get("type") or ""}"/>'
+            f'data-la="{"" if pt.get("la") is None else format(pt["la"], ".0f") + "°"}" data-type="{pt.get("type") or ""}" data-xba="{pt.get("xba") or ""}"/>'
         )
     svg.append('</svg>')
     return ''.join(svg)
@@ -500,8 +500,8 @@ def spray_chart_interactive_html(points, width=380, height=340):
         var x = evt.clientX - wr.left, y = evt.clientY - wr.top;
         tip.style.left = x + "px";
         tip.style.top = Math.max(0, y - 12) + "px";
-        var la = dot.getAttribute("data-la"), ty = dot.getAttribute("data-type");
-        tip.innerHTML = "EV: <b>" + dot.getAttribute("data-ev") + "</b><br>Dist: <b>" + dot.getAttribute("data-dist") + "</b>" + (la ? "<br>LA: <b>" + la + "</b>" : "") + (ty ? " <b>" + ty + "</b>" : "");
+        var la = dot.getAttribute("data-la"), ty = dot.getAttribute("data-type"), xb = dot.getAttribute("data-xba");
+        tip.innerHTML = "EV: <b>" + dot.getAttribute("data-ev") + "</b><br>Dist: <b>" + dot.getAttribute("data-dist") + "</b>" + (la ? "<br>LA: <b>" + la + "</b>" : "") + (ty ? " <b>" + ty + "</b>" : "") + (xb ? "<br>xBA: <b>" + xb + "</b>" : "");
         tip.style.display = "block";
       }}
       function hide() {{ if (!pinned) tip.style.display = "none"; }}

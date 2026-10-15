@@ -32,13 +32,14 @@ def _norm_trackman(r):
     side = {'Right': 'R', 'Left': 'L'}.get(r.get('BatterSide'))
     return {
         'batter': (r.get('Batter') or '').strip(), 'side': side, 'date': (r.get('Date') or '')[:10],
-        'pitcher': r.get('Pitcher'), 'pitch_type': r.get('TaggedPitchType'),
+        'pitcher': r.get('Pitcher'), 'pitch_type': r.get('TaggedPitchType'), 'speed': e._fnum(r.get('RelSpeed')),
         'x': e._fnum(r.get('PlateLocSide')), 'z': e._fnum(r.get('PlateLocHeight')),
         'outcome': e._outcome(r),
         'ev': e._fnum(r.get('ExitSpeed')), 'la': e._fnum(r.get('Angle')),
         'direction': e._fnum(r.get('Direction')), 'distance': e._fnum(r.get('Distance')),
         'hit_type': _HIT_TYPES.get(r.get('HitType')),
         'balls': r.get('Balls'), 'strikes': r.get('Strikes'), 'src': 'trackman',
+        'hit': bool(e._tags(r) & e._HIT_TAGS), 'has_result': any(t.startswith('PR_') for t in e._tags(r)),
     }
 
 
@@ -116,6 +117,76 @@ def grade(score):
     return 'Elite' if score >= 85 else 'Strong' if score >= 75 else 'Solid' if score >= 65 else 'Developing' if score >= 55 else 'Needs work'
 
 
+# --------------------------------------------------------------------- xBA
+# Hit probability by exit velocity (columns) and launch angle (rows). xba_table.json (fitted to MLB batted balls)
+# is used when present; the small hand-made table below is only a fallback. Refit on your own tracked outcomes
+# once there is enough data.
+_XBA_EV = [50, 60, 70, 80, 90, 100, 110]
+_XBA_LA = [-30, -10, 0, 10, 16, 22, 28, 34, 40, 50, 60]
+_XBA_TBL = [
+    [.03, .04, .05, .06, .08, .10, .12],
+    [.08, .10, .13, .17, .24, .32, .38],
+    [.12, .15, .20, .26, .34, .45, .52],
+    [.18, .24, .33, .45, .60, .72, .78],
+    [.28, .38, .52, .68, .80, .86, .88],
+    [.25, .35, .48, .62, .72, .80, .85],
+    [.08, .15, .25, .38, .52, .68, .85],
+    [.03, .06, .10, .17, .30, .55, .82],
+    [.02, .03, .05, .09, .17, .40, .70],
+    [.01, .02, .03, .05, .08, .15, .30],
+    [.01, .01, .02, .02, .03, .05, .08],
+]
+
+
+def _interp_idx(v, nodes):
+    v = max(nodes[0], min(nodes[-1], v))
+    for i in range(len(nodes) - 1):
+        if v <= nodes[i + 1]:
+            return i, (v - nodes[i]) / (nodes[i + 1] - nodes[i])
+    return len(nodes) - 2, 1.0
+
+
+def _load_table():
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'xba_table.json')) as f:
+            j = json.load(f)
+        return j['ev'], j['la'], j['p']
+    except Exception:
+        return _XBA_EV, _XBA_LA, _XBA_TBL
+
+
+_EVN, _LAN, _TBL = _load_table()
+
+
+def hit_prob(ev, la):
+    """Probability that a ball hit at this exit velocity and launch angle is a hit (0-1). No fielders, parks or sprint speed."""
+    if ev is None or la is None:
+        return None
+    i, fi = _interp_idx(la, _LAN)
+    j, fj = _interp_idx(ev, _EVN)
+    t = _TBL
+    top = t[i][j] + (t[i][j + 1] - t[i][j]) * fj
+    bot = t[i + 1][j] + (t[i + 1][j + 1] - t[i + 1][j]) * fj
+    return top + (bot - top) * fi
+
+
+def xba(pitches):
+    """Expected batting average. At-bats = tracked balls in play (bunts excluded) + strikeouts; walks and HBP are not
+    at-bats. Expected hits = sum of hit probabilities. Also returns the real BA when the outcome tags are there."""
+    bip = [p for p in pitches if p['outcome'] == 'inplay' and p['hit_type'] != 'BUNT']
+    scored = [p for p in bip if hit_prob(p['ev'], p['la']) is not None]
+    ks = sum(1 for p in pitches if p['strikes'] == '2' and p['outcome'] in ('whiff', 'cs'))
+    ab = len(scored) + ks
+    if not ab:
+        return {'ab': 0, 'xba': None, 'ba': None, 'xh': 0, 'k': ks}
+    xh = sum(hit_prob(p['ev'], p['la']) for p in scored)
+    tagged = [p for p in scored if p['has_result']]
+    ba = None
+    if scored and len(tagged) == len(scored):
+        ba = sum(1 for p in scored if p['hit']) / ab
+    return {'ab': ab, 'xba': xh / ab, 'ba': ba, 'xh': round(xh, 1), 'k': ks}
+
+
 # ------------------------------------------------------------------ 3. stats
 def _pct(a, b, d=0):
     if not b:
@@ -170,7 +241,9 @@ def hitter_stats(pitches):
     hit_types = [p['hit_type'] for p in bbs if p['hit_type']]
     zones = [spray_zone(p) for p in bbs if spray_zone(p)]
     score = round(100 * good / decided) if decided else None
+    xb = xba(pitches)
     return {
+        'xba': xb['xba'], 'ba': xb['ba'], 'ab': xb['ab'], 'xh': xb['xh'], 'ks': xb['k'],
         'pitches': n, 'pa': pa, 'decisions': decided,
         'score': score, 'grade': grade(score) if decided >= 15 else None,
         'good': good, 'bad': bad, 'neutral': cnt(verdict='neutral'),
@@ -255,11 +328,35 @@ def decision_chart_svg(pitches, side=None, width=330, height=360):
     return ''.join(svg)
 
 
+def _ev_color(v):
+    """60 mph (cool) -> 105 mph (hot). Returns (background, text color)."""
+    t = max(0.0, min(1.0, (v - 60) / 45))
+    stops = [(0.0, (196, 220, 232)), (0.5, (244, 232, 178)), (1.0, (214, 84, 62))]
+    for (a, ca), (b, cb) in zip(stops, stops[1:]):
+        if t <= b:
+            f = (t - a) / (b - a)
+            rgb = tuple(round(ca[i] + (cb[i] - ca[i]) * f) for i in range(3))
+            break
+    return f'rgb{rgb}', ('#fff' if t > 0.8 else '#22303a')
+
+
+def zone_ev_data(pitches):
+    """Balls in play with a plate location, as compact rows for the zone heat map (drawn in the browser so the
+    pitch-type and pitch-speed filters update instantly). Outside-the-zone balls are counted but not plotted."""
+    bb = [p for p in pitches if p['outcome'] == 'inplay' and p['ev'] is not None and p['x'] is not None and p['z'] is not None]
+    pts = [{'x': round(p['x'], 3), 'z': round(p['z'], 3), 'ev': round(p['ev'], 1),
+            'sp': round(p['speed'], 1) if p['speed'] is not None else None, 't': p['pitch_type'] or 'Unknown'} for p in bb]
+    inz = [q for q in pts if abs(q['x']) <= ZX and ZB <= q['z'] <= ZT]
+    types = sorted({q['t'] for q in inz}, key=lambda t: -sum(1 for q in inz if q['t'] == t))
+    return {'pts': inz, 'types': types, 'outside': len(pts) - len(inz), 'bounds': [ZX, ZB, ZT]}
+
+
 def spray_html(pitches, width=400, height=352):
     pts = []
     for p in pitches:
         if p['outcome'] == 'inplay' and p['direction'] is not None and p['distance'] is not None:
-            pts.append({'direction': p['direction'], 'distance': p['distance'], 'ev': p['ev'], 'la': p['la'], 'type': p['hit_type']})
+            hp = hit_prob(p['ev'], p['la'])
+            pts.append({'direction': p['direction'], 'distance': p['distance'], 'ev': p['ev'], 'la': p['la'], 'type': p['hit_type'], 'xba': None if hp is None else f'{hp:.3f}'.lstrip('0')})
     if not pts:
         return '<div class="empty">No tracked batted balls yet.</div>'
     return sc.spray_chart_interactive_html(pts, width=width, height=height) + sc.spray_chart_legend_html()
@@ -336,5 +433,6 @@ def hitter_profile(key, include_demo=True):
         prow.append({'label': 'Whiff%', 'pctl': bm.interpolate(s['whiff_pct'], bm.HITTER['whiff_pct']), 'value_display': f"{s['whiff_pct']:.0f}%"})
     return {'pctl_html': sc.percentile_bars_html(prow) if prow else '', 'key': key, 'name': display_name(h['name']), 'program': h['program'], 'demo': h['demo'], 'bats': bats,
             's': s, 'notes': takeaways(s), 'dates': sorted({p['date'] for p in ps if p['date']}),
+            'zone_ev': zone_ev_data(ps),
             'decision_svg': decision_chart_svg(ps, side=bats if bats in ('L', 'R') else None),
             'spray': spray_html(ps)}
