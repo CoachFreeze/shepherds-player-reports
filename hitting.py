@@ -21,6 +21,7 @@ import re
 
 import extract as e
 import outings as outings_mod
+import roster as roster_mod
 import savant_components as sc
 import store
 
@@ -384,6 +385,7 @@ def _collect(include_demo):
     """{batter slug: {'name', 'program', 'demo', 'pitches': [...]}}"""
     real, demo = _all_pitch_files()
     out = {}
+    rosters = roster_mod.all_rosters()
     for slug, is_demo in real + (demo if include_demo else []):
         if is_demo and any(s == slug for s, _ in real):
             continue
@@ -394,9 +396,18 @@ def _collect(include_demo):
                 if not p['batter']:
                     continue
                 key = _slug(p['batter']) + ('--demo' if is_demo else '')
-                h = out.setdefault(key, {'name': p['batter'], 'program': prog, 'demo': is_demo, 'pitches': []})
+                h = out.get(key)
+                if h is None:
+                    hit = None if is_demo else roster_mod.find_anywhere(p['batter'], rosters)
+                    h = out[key] = {'name': p['batter'], 'program': hit[0] if hit else prog, 'demo': is_demo, 'pitches': [],
+                                    'roster': hit[1] if hit else None, 'on_roster': bool(hit)}
                 h['pitches'].append(p)
     return out
+
+
+def batter_names(include_demo=False):
+    """Every batter name found in stored outings (used to match an uploaded roster)."""
+    return [(h['name'], key) for key, h in _collect(include_demo).items()]
 
 
 def display_name(n):
@@ -411,7 +422,7 @@ def list_hitters(include_demo=True):
     for key, h in _collect(include_demo).items():
         s = hitter_stats(h['pitches'])
         sides = {p['side'] for p in h['pitches'] if p['side']}
-        rows.append({'key': key, 'name': display_name(h['name']), 'raw': h['name'], 'program': h['program'], 'demo': h['demo'],
+        rows.append({'key': key, 'name': display_name(h['name']), 'raw': h['name'], 'program': h['program'], 'demo': h['demo'], 'roster': h.get('roster'), 'on_roster': h.get('on_roster'),
                      'bats': 'S' if len(sides) > 1 else (next(iter(sides)) if sides else '?'), 's': s})
     rows.sort(key=lambda r: (r['demo'], -r['s']['pitches']))
     return rows
@@ -431,7 +442,7 @@ def hitter_profile(key, include_demo=True):
         prow.append({'label': 'EV90', 'pctl': bm.interpolate(s['ev90'], bm.HITTER['ev90']), 'value_display': f"{s['ev90']:.1f}"})
     if s['whiff_pct'] is not None and len([p for p in ps if p['outcome'] in SWING]) >= 10:
         prow.append({'label': 'Whiff%', 'pctl': bm.interpolate(s['whiff_pct'], bm.HITTER['whiff_pct']), 'value_display': f"{s['whiff_pct']:.0f}%"})
-    return {'pctl_html': sc.percentile_bars_html(prow) if prow else '', 'key': key, 'name': display_name(h['name']), 'program': h['program'], 'demo': h['demo'], 'bats': bats,
+    return {'roster': h.get('roster'), 'pctl_html': sc.percentile_bars_html(prow) if prow else '', 'key': key, 'name': display_name(h['name']), 'program': h['program'], 'demo': h['demo'], 'bats': bats,
             's': s, 'notes': takeaways(s), 'dates': sorted({p['date'] for p in ps if p['date']}),
             'zone_ev': zone_ev_data(ps),
             'decision_svg': decision_chart_svg(ps, side=bats if bats in ('L', 'R') else None),

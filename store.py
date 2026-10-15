@@ -18,7 +18,7 @@ REPO_DATA_DIR = os.path.join(BUILD_DIR, 'data')
 # Persistent disk: set SHEPSAVANT_DATA_DIR (e.g. /var/data) on a paid Render instance with a disk attached.
 # Unset = original behaviour (data lives in the repo folder and is backed up through GitHub only).
 DATA_DIR = os.environ.get('SHEPSAVANT_DATA_DIR') or REPO_DATA_DIR
-_SEED = ('players.json', 'coaches.json', 'bio_overrides.json', 'outings', 'headshots', 'reports', 'csv')
+_SEED = ('players.json', 'coaches.json', 'bio_overrides.json', 'outings', 'headshots', 'reports', 'csv', 'rosters')
 
 
 def _seed_data_dir():
@@ -426,6 +426,29 @@ def update_profile(slug, name=None, school=None, grad_year=None, position=None, 
     else:
         sync_to_github()
     return new_slug, None
+
+
+def apply_roster_bio(slug, rp):
+    """Fills a player's bio from a roster row. Only empty fields are filled, so a coach's own edits are never overwritten.
+    Caller syncs to GitHub once afterwards."""
+    players = _load(PLAYERS_PATH, {})
+    e = players.get(slug)
+    if not e:
+        return False
+    for k in ('height_in', 'weight_lbs'):
+        if not e.get(k) and rp.get(k):
+            e[k] = rp[k]
+    roles = e.setdefault('roles', {})
+    tpos = next((t for t in rp.get('positions', []) if t in ('RHP', 'LHP')), None)
+    hpos = next((t for t in rp.get('positions', []) if t not in ('RHP', 'LHP')), None)
+    if tpos and not (roles.get('pitch') or {}).get('position'):
+        roles.setdefault('pitch', {})['position'] = tpos
+    if hpos and not (roles.get('hit') or {}).get('position'):
+        roles.setdefault('hit', {})['position'] = {'UTL': 'INF', 'DH': 'INF'}.get(hpos, hpos)
+    e['roster'] = {k: rp.get(k) for k in ('number', 'bats', 'throws', 'class_year', 'hometown', 'major', 'high_school', 'prev_school', 'pos_raw') if rp.get(k)}
+    players[slug] = e
+    _save(PLAYERS_PATH, players)
+    return True
 
 
 def set_stat_ids(slug, ids):

@@ -16,7 +16,7 @@
   <p class="lead">Admin-only preview. Hitters are pulled from the batters in every stored outing (live ABs). Coaches cannot see this yet.</p>
   {% macro table(rows) %}<div class="scroll"><table>
     <tr><th>Hitter</th><th>Bats</th><th>Program</th><th class="n">Pitches</th><th class="n">Decision score</th><th class="n">xBA</th><th class="n">Chase%</th><th class="n">Whiff%</th><th class="n">BIP</th><th class="n">Avg EV</th><th class="n">Max EV</th></tr>
-    {% for r in rows %}{% set s = r.s %}<tr><td><a href="{{ url_for('beta_hitter', key=r.key) }}">{{ r.name }}</a></td><td>{{ r.bats }}</td><td>{{ r.program }}</td><td class="n">{{ s.pitches }}</td>
+    {% for r in rows %}{% set s = r.s %}<tr><td><a href="{{ url_for('beta_hitter', key=r.key) }}">{{ r.name }}</a></td><td>{{ r.bats }}</td><td>{{ r.program }}{% if r.on_roster %} <span style="font-size:10px;font-weight:700;color:#2a7a4b;">ROSTER</span>{% endif %}</td><td class="n">{{ s.pitches }}</td>
       <td class="n">{% if s.score is not none %}<span class="sc" style="background:{{ '#2f9e6b' if s.score >= 75 else '#c8a132' if s.score >= 60 else '#d0503f' }};{{ 'opacity:.55;' if s.decisions < 15 }}">{{ s.score }}</span>{% else %}–{% endif %}</td>
       <td class="n">{{ ('%.3f' % s.xba).lstrip('0') if s.xba is not none else '–' }}</td><td class="n">{{ s.chase_pct if s.chase_pct is not none else '–' }}</td><td class="n">{{ s.whiff_pct if s.whiff_pct is not none else '–' }}</td><td class="n">{{ s.bip }}</td><td class="n">{{ s.avg_ev or '–' }}</td><td class="n">{{ s.max_ev or '–' }}</td></tr>
     {% else %}<tr><td colspan="11" style="color:#76828a;">None yet.</td></tr>{% endfor %}</table></div>{% endmacro %}

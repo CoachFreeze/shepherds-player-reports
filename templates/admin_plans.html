@@ -44,7 +44,7 @@
     <tr><td>Outings in the profile</td>{% for k, v in plans.items() %}<td>Last {{ v.history }}</td>{% endfor %}</tr>
     <tr><td>Download-to-send reports</td>{% for k, v in plans.items() %}<td class="{{ 'yes' if v.download else 'no' }}">{{ 'Yes' if v.download else 'No' }}</td>{% endfor %}</tr>
     <tr><td>Customizable stats</td>{% for k, v in plans.items() %}<td class="{{ 'yes' if v.custom_stats else 'no' }}">{{ 'Yes' if v.custom_stats else 'No' }}</td>{% endfor %}</tr>
-    <tr><td>Roster upload (not built yet)</td>{% for k, v in plans.items() %}<td class="{{ 'yes' if v.roster_upload else 'no' }}">{{ 'Yes' if v.roster_upload else 'No' }}</td>{% endfor %}</tr>
+    <tr><td>Roster upload</td>{% for k, v in plans.items() %}<td class="{{ 'yes' if v.roster_upload else 'no' }}">{{ 'Yes' if v.roster_upload else 'No' }}</td>{% endfor %}</tr>
   </table></div>
   <p class="lead" style="margin:10px 0 0;">These are starting points for testing, defined in plans.py. Changing a tier means editing that one file.</p></div>
 </div></body></html>

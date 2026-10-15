@@ -1,4 +1,5 @@
 import functools
+import json
 import os
 import re
 from flask import Flask, Response, render_template, request, session, redirect, url_for, render_template_string, send_file, jsonify, abort
@@ -11,6 +12,7 @@ import extract as e_mod
 import mlb_lookup
 import headshots
 import hitting
+import roster as roster_mod
 import overview
 
 app = Flask(__name__)
@@ -416,6 +418,100 @@ def beta_hitter(key):
         abort(404)
     css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
     return render_template('beta_hitter.html', h=h, css=css)
+
+
+
+def _roster_program():
+    """A program coach works on his own roster; an admin picks the program (form field or ?program=)."""
+    if is_admin():
+        newp = (request.values.get('new_program') or '').strip()
+        if newp:
+            return store.program_slug(newp)
+        return request.values.get('program') or 'long_beach_state'
+    return my_program()
+
+
+def _roster_matches(prog, players):
+    """For each parsed roster row: is he already on the dashboard, a batter in the data, or new."""
+    existing = [(b.get('name', ''), (s, b)) for s, b in store.list_players().items() if b.get('program', 'shepherds') == prog]
+    batters = hitting.batter_names()
+    out = []
+    for p in players:
+        st, link, note = 'new', None, None
+        m = roster_mod.match_name(p['name'], existing)
+        if m:
+            st, link = 'player', m[0][0]
+            note = m[2] if m[1] == 'likely' else None
+        else:
+            hb = roster_mod.match_name(p['name'], batters)
+            if hb:
+                st, link = 'hitter', hb[0]
+                note = hb[2] if hb[1] == 'likely' else None
+        warn = []
+        if not (p.get('bats') and p.get('throws')):
+            warn.append('no bats/throws')
+        if not p.get('position'):
+            warn.append('no position')
+        out.append({'p': p, 'status': st, 'link': link, 'note': note, 'warn': warn})
+    return out
+
+
+@app.route('/roster', methods=['GET', 'POST'])
+@login_required
+def roster_page():
+    prog = _roster_program()
+    if not prog:
+        abort(403)
+    if not plans.allowed(prog, 'roster_upload'):
+        return _upgrade('roster_upload')
+    ctx = {'programs': store.list_programs() if is_admin() else None, 'prog': prog, 'prog_label': store.program_label(prog),
+           'saved': request.args.get('saved'), 'preview': None, 'error': None, 'token': None, 'source': None}
+    if request.method == 'POST':
+        f = request.files.get('roster_file')
+        if not f or not f.filename:
+            ctx['error'] = 'Choose a roster file (PDF, Excel or CSV).'
+        else:
+            try:
+                players = roster_mod.parse_file(f.filename, f.read())
+                import uuid
+                token = uuid.uuid4().hex
+                with open(os.path.join(UPLOAD_DIR, f'roster_{token}.json'), 'w', encoding='utf-8') as fh:
+                    json.dump({'program': prog, 'source': f.filename, 'players': players}, fh)
+                ctx.update(preview=_roster_matches(prog, players), token=token, source=f.filename)
+            except Exception as exc:
+                ctx['error'] = f"Couldn't read that roster: {exc}"
+    cur = roster_mod.load(prog)
+    ctx['current'] = None
+    if cur:
+        ctx['current'] = {'n': len(cur['players']), 'source': cur.get('source'), 'updated': cur.get('updated'),
+                          'rows': _roster_matches(prog, cur['players'])}
+    return render_template('roster.html', **ctx)
+
+
+@app.route('/roster/save', methods=['POST'])
+@login_required
+def roster_save():
+    prog = _roster_program()
+    if not prog or not plans.allowed(prog, 'roster_upload'):
+        abort(403)
+    token = re.sub(r'[^a-f0-9]', '', request.form.get('token', ''))
+    path = os.path.join(UPLOAD_DIR, f'roster_{token}.json')
+    if not token or not os.path.exists(path):
+        abort(400)
+    with open(path, encoding='utf-8') as fh:
+        data = json.load(fh)
+    keep = [p for i, p in enumerate(data['players']) if request.form.get(f'inc_{i}')]
+    season = request.form.get('season', '').strip() or None
+    roster_mod.save(prog, keep, source=data.get('source'), season=season)
+    n = roster_mod.apply_to_players(prog, keep, store.list_players())
+    if n:
+        store.sync_to_github()
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+    _track('roster', players=len(keep))
+    return redirect(url_for('roster_page', program=prog if is_admin() else None, saved=f'{len(keep)}:{n}'))
 
 
 @app.route('/school-logo/<fname>')
