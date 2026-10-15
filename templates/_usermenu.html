@@ -15,7 +15,7 @@
     <div class="um-who"><b>{{ me.name }}</b><span>{{ me.label or ('Administrator' if me.is_admin else '') }}</span></div>
     <a href="{{ url_for('account') }}">Account settings</a>
     {% if request.endpoint == 'dashboard' %}<a href="#" onclick="document.getElementById('um').classList.remove('open');openTour();return false;">Take the tour</a>{% else %}<a href="{{ url_for('dashboard') }}?tour=dash">Take the tour</a>{% endif %}
-    {% if me.is_admin %}<div class="um-lbl">Admin</div><a href="{{ url_for('admin_plans') }}">Plans &amp; usage</a><a href="{{ url_for('admin_coaches') }}">Coach logins</a><a href="{{ url_for('admin_status') }}">Save status</a>{% endif %}
+    {% if me.is_admin %}<div class="um-lbl">Admin</div><a href="{{ url_for('beta_hitters') }}">Hitting <span style="font-size:10px;font-weight:700;color:#b3791f;">BETA</span></a><a href="{{ url_for('admin_plans') }}">Plans &amp; usage</a><a href="{{ url_for('admin_coaches') }}">Coach logins</a><a href="{{ url_for('admin_status') }}">Save status</a>{% endif %}
     <div class="um-sep"></div><a href="{{ url_for('logout') }}">Log out</a>
   </div></span>
 <script>document.addEventListener('click',function(e){var m=document.getElementById('um');if(m&&!m.contains(e.target))m.classList.remove('open');});document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=document.getElementById('um');if(m)m.classList.remove('open');}});</script>

@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hitting (beta)</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body{font-family:'Barlow',Arial,sans-serif;background:#f7f6f2;color:#22303a;margin:0;}
+  .top{max-width:1000px;margin:0 auto;padding:16px 16px 0;display:flex;justify-content:space-between;align-items:center;} .top a.back{color:#5c97a8;font-weight:600;font-size:13px;text-decoration:none;}
+  .wrap{max-width:1000px;margin:0 auto;padding:6px 16px 50px;} h1{font:700 30px 'Oswald',sans-serif;margin:8px 0 6px;} .lead{color:#6b7680;font-size:14px;margin:0 0 16px;}
+  .beta{font:700 11px 'Barlow';letter-spacing:.1em;background:#fbf0d9;color:#8a6212;border-radius:999px;padding:3px 10px;vertical-align:middle;margin-left:8px;}
+  .card{background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);padding:18px 20px;margin-bottom:14px;}
+  .card h2{font:700 15px 'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;margin:0 0 10px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;} th{font:600 11px 'Barlow',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#76828a;text-align:left;padding:6px 8px;border-bottom:1px solid #e6e9e8;}
+  td{padding:9px 8px;border-bottom:1px solid #f0f2f1;} td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;} td a{color:#22303a;font-weight:700;text-decoration:none;} td a:hover{color:#5c97a8;}
+  .scroll{overflow-x:auto;} .sc{display:inline-block;min-width:34px;text-align:center;border-radius:8px;padding:2px 8px;font-weight:700;color:#fff;}
+</style></head><body>
+<div class="top"><a class="back" href="{{ url_for('dashboard') }}">&larr; Back to dashboard</a>{% include '_usermenu.html' %}</div>
+<div class="wrap"><h1>Hitting<span class="beta">BETA</span></h1>
+  <p class="lead">Admin-only preview. Hitters are pulled from the batters in every stored outing (live ABs). Coaches cannot see this yet.</p>
+  {% macro table(rows) %}<div class="scroll"><table>
+    <tr><th>Hitter</th><th>Bats</th><th>Program</th><th class="n">Pitches</th><th class="n">Decision score</th><th class="n">Chase%</th><th class="n">Whiff%</th><th class="n">BIP</th><th class="n">Avg EV</th><th class="n">Max EV</th></tr>
+    {% for r in rows %}{% set s = r.s %}<tr><td><a href="{{ url_for('beta_hitter', key=r.key) }}">{{ r.name }}</a></td><td>{{ r.bats }}</td><td>{{ r.program }}</td><td class="n">{{ s.pitches }}</td>
+      <td class="n">{% if s.score is not none %}<span class="sc" style="background:{{ '#2f9e6b' if s.score >= 75 else '#c8a132' if s.score >= 60 else '#d0503f' }};{{ 'opacity:.55;' if s.decisions < 15 }}">{{ s.score }}</span>{% else %}–{% endif %}</td>
+      <td class="n">{{ s.chase_pct if s.chase_pct is not none else '–' }}</td><td class="n">{{ s.whiff_pct if s.whiff_pct is not none else '–' }}</td><td class="n">{{ s.bip }}</td><td class="n">{{ s.avg_ev or '–' }}</td><td class="n">{{ s.max_ev or '–' }}</td></tr>
+    {% else %}<tr><td colspan="10" style="color:#76828a;">None yet.</td></tr>{% endfor %}</table></div>{% endmacro %}
+  <div class="card"><h2>Your hitters</h2>{{ table(real) }}<p class="lead" style="margin:10px 0 0;">Faded scores have fewer than 15 judged pitches.</p></div>
+  <div class="card"><h2>Sample program (fictional)</h2>{{ table(demo) }}</div>
+</div></body></html>

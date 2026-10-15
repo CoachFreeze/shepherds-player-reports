@@ -1,0 +1,70 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{ h.name }} · Hitting (beta)</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>{{ css|safe }}</style>
+<style>
+  .bb-spray-wrap svg{overflow:visible;} .bb-spray-wrap{margin:0 12px;}
+  :root{--good:#2f9e6b;--bad:#d0503f;--neu:#9aa5ab;}
+  body{font-family:'Barlow',Arial,sans-serif;background:#f7f6f2;color:#22303a;margin:0;}
+  .top{max-width:1040px;margin:0 auto;padding:16px 16px 0;display:flex;justify-content:space-between;align-items:center;} .top a.back{color:#5c97a8;font-weight:600;font-size:13px;text-decoration:none;}
+  .wrap{max-width:1040px;margin:0 auto;padding:6px 16px 50px;}
+  .head{display:flex;align-items:center;gap:16px;margin:8px 0 14px;} .av{width:64px;height:64px;border-radius:50%;background:#22303a;color:#fff;font:600 24px 'Oswald';display:flex;align-items:center;justify-content:center;}
+  h1{font:700 32px 'Oswald',sans-serif;margin:0;} .sub{color:#6b7680;font-size:14px;margin-top:2px;}
+  .beta{font:700 11px 'Barlow';letter-spacing:.1em;background:#fbf0d9;color:#8a6212;border-radius:999px;padding:3px 10px;vertical-align:middle;margin-left:8px;}
+  .card{background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);padding:18px 20px;margin-bottom:14px;}
+  .card h2{font:700 15px 'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;margin:0 0 4px;} .card .hint{color:#76828a;font-size:12.5px;margin:0 0 12px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;} @media(max-width:820px){.grid{grid-template-columns:1fr;}}
+  .hero2{display:flex;gap:22px;align-items:center;flex-wrap:wrap;}
+  .ring{position:relative;width:132px;height:132px;flex:none;} .ring b{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 38px 'Oswald';line-height:1;} .ring b span{font:600 11px 'Barlow';letter-spacing:.08em;text-transform:uppercase;color:#76828a;margin-top:4px;}
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;flex:1;min-width:260px;} .tile{background:#f7f6f2;border-radius:12px;padding:10px 12px;} .tile .v{font:700 22px 'Oswald';} .tile .l{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#76828a;font-weight:600;}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#55626b;margin-top:10px;} .legend i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:-1px;box-sizing:border-box;}
+  .notes{margin:0;padding-left:18px;font-size:14px;line-height:1.55;} .empty{color:#9aa5ab;font-size:13px;padding:30px 0;text-align:center;}
+  .split{display:flex;height:12px;border-radius:999px;overflow:hidden;margin:6px 0 4px;} .split span{display:block;} .splitl{display:flex;justify-content:space-between;font-size:12px;color:#55626b;}
+  .center{text-align:center;} .center .bb-spray-wrap{max-width:100%;}
+  .foot{color:#76828a;font-size:12.5px;margin-top:6px;line-height:1.5;}
+</style></head><body>
+<div class="top"><a class="back" href="{{ url_for('beta_hitters') }}">&larr; All hitters</a>{% include '_usermenu.html' %}</div>
+{% set s = h.s %}
+<div class="wrap">
+  <div class="head"><div class="av">{{ (h.name.split()[0][:1] + h.name.split()[-1][:1])|upper }}</div>
+    <div><h1>{{ h.name }}<span class="beta">BETA</span></h1>
+    <div class="sub">Bats {{ {'R':'right','L':'left','S':'both'}.get(h.bats, '—') }} · {{ s.pitches }} pitches seen · {{ s.pa }} plate appearances · {{ h.dates|length }} session{{ '' if h.dates|length == 1 else 's' }}{% if h.demo %} · sample data{% endif %}</div></div></div>
+
+  <div class="card"><h2>Swing decisions</h2>
+    <p class="hint">Did he swing at pitches he can drive and take pitches he can't? Borderline (shadow) pitches don't count for or against him.</p>
+    {% if s.score is none %}<div class="empty">Not enough tracked pitches yet.</div>{% else %}
+    <div class="hero2">
+      <div class="ring"><svg viewBox="0 0 44 44" width="132" height="132"><circle cx="22" cy="22" r="18" fill="none" stroke="#e8eef1" stroke-width="5"/>
+        <circle cx="22" cy="22" r="18" fill="none" stroke="{{ '#2f9e6b' if s.score >= 75 else '#c8a132' if s.score >= 60 else '#d0503f' }}" stroke-width="5" stroke-linecap="round" stroke-dasharray="{{ (113.1 * s.score / 100)|round(1) }} 113.1" transform="rotate(-90 22 22)"/></svg>
+        <b>{{ s.score }}<span>{{ s.grade or 'Small sample' }}</span></b></div>
+      <div class="tiles">
+        <div class="tile"><div class="v">{{ s.chase_pct if s.chase_pct is not none else '–' }}{{ '%' if s.chase_pct is not none }}</div><div class="l">Chase rate</div></div>
+        <div class="tile"><div class="v">{{ s.heart_swing_pct if s.heart_swing_pct is not none else '–' }}{{ '%' if s.heart_swing_pct is not none }}</div><div class="l">Swings at the heart</div></div>
+        <div class="tile"><div class="v">{{ s.zone_swing_pct if s.zone_swing_pct is not none else '–' }}{{ '%' if s.zone_swing_pct is not none }}</div><div class="l">Zone swing</div></div>
+        <div class="tile"><div class="v">{{ s.zone_contact_pct if s.zone_contact_pct is not none else '–' }}{{ '%' if s.zone_contact_pct is not none }}</div><div class="l">Zone contact</div></div>
+        <div class="tile"><div class="v">{{ s.whiff_pct if s.whiff_pct is not none else '–' }}{{ '%' if s.whiff_pct is not none }}</div><div class="l">Whiff rate</div></div>
+        <div class="tile"><div class="v">{{ s.good }}<span style="color:#9aa5ab;font-size:15px;"> / {{ s.decisions }}</span></div><div class="l">Good decisions</div></div>
+      </div></div>{% endif %}
+    {% if h.notes %}<ul class="notes" style="margin-top:14px;">{% for n in h.notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
+  </div>
+
+  <div class="grid">
+    <div class="card"><h2>Decision map</h2><p class="hint">Catcher's view. Every pitch he saw.</p>
+      <div style="max-width:380px;margin:0 auto;">{{ h.decision_svg|safe }}</div>
+      <div class="legend"><span><i style="background:var(--good)"></i>Good</span><span><i style="background:var(--bad)"></i>Bad</span><span><i style="background:var(--neu)"></i>Borderline</span><span><i style="background:#fff;border:2px solid #55626b"></i>Take</span><span><i style="background:#55626b"></i>Swing</span></div>
+    </div>
+    <div class="card"><h2>Spray chart</h2><p class="hint">Every tracked ball in play. Color is exit velocity; tap a dot for the details.</p>
+      <div class="center">{{ h.spray|safe }}</div>
+      {% if s.pull_pct is not none %}<div style="margin-top:14px;"><div class="splitl"><b>Pull {{ s.pull_pct|round|int }}%</b><b>Center {{ s.center_pct|round|int }}%</b><b>Oppo {{ s.oppo_pct|round|int }}%</b></div>
+        <div class="split"><span style="width:{{ s.pull_pct }}%;background:#5c97a8"></span><span style="width:{{ s.center_pct }}%;background:#b7cfd6"></span><span style="width:{{ s.oppo_pct }}%;background:#22303a"></span></div></div>{% endif %}
+    </div>
+  </div>
+
+  <div class="card"><h2>Batted-ball quality</h2><p class="hint">{{ s.bip }} tracked ball{{ '' if s.bip == 1 else 's' }} in play.</p>
+    <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(120px,1fr));">
+      {% for l, v, u in [('Avg exit velo', s.avg_ev, ' mph'), ('Max exit velo', s.max_ev, ' mph'), ('EV90', s.ev90, ' mph'), ('Hard-hit (95+)', s.hard_hit_pct, '%'), ('Avg launch angle', s.avg_la, '°'), ('Sweet spot (8–32°)', s.sweet_spot_pct, '%'), ('Ground ball', s.gb_pct, '%'), ('Line drive', s.ld_pct, '%'), ('Fly ball / pop', s.fb_pct, '%')] %}
+      <div class="tile"><div class="v">{{ v if v is not none else '–' }}<span style="font-size:13px;color:#76828a;">{{ u if v is not none }}</span></div><div class="l">{{ l }}</div></div>{% endfor %}
+    </div>
+    {% if h.pctl_html %}<div style="max-width:520px;margin-top:16px;">{{ h.pctl_html|safe }}</div>{% endif %}
+    <p class="foot">Percentiles use the college-level scale already in the app and need at least 5 tracked balls (EV90) or 10 swings (whiff). Decision score thresholds (85 elite, 75 strong, 65 solid, 55 developing) are starting points for beta and will be tuned once there is more data.</p>
+  </div>
+</div></body></html>

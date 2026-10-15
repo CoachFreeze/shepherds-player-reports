@@ -10,6 +10,7 @@ import pipeline
 import extract as e_mod
 import mlb_lookup
 import headshots
+import hitting
 import overview
 
 app = Flask(__name__)
@@ -398,6 +399,23 @@ def view_outing(slug, date):
         k = html.rfind('</body>')
         html = html[:k] + _t + html[k:] if k > -1 else html + _t
     return html
+
+
+@app.route('/beta/hitters')
+@admin_required
+def beta_hitters():
+    rows = hitting.list_hitters()
+    return render_template('beta_hitters.html', real=[r for r in rows if not r['demo']], demo=[r for r in rows if r['demo']])
+
+
+@app.route('/beta/hitter/<key>')
+@admin_required
+def beta_hitter(key):
+    h = hitting.hitter_profile(key)
+    if not h:
+        abort(404)
+    css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
+    return render_template('beta_hitter.html', h=h, css=css)
 
 
 @app.route('/school-logo/<fname>')
