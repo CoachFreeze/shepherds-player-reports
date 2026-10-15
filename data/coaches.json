@@ -14,6 +14,13 @@
     "display_name": "Head Coach",
     "password_hash": "scrypt:32768:8:1$HLLMUrziv4RGYXOF$611e1c7dd0027803708b44636cf967138bc20f45319fdc308655ba1d264fa29beb56e270cd84e62215aa197c212cd9ad16d6c57af8af7ee71579d6ae7a7fc9ae"
   },
+  "jesse.rodgers": {
+    "display_name": "Jesse Rodgers",
+    "password_hash": "scrypt:32768:8:1$wYiMeJJpPrLw1xpB$1ca2f0c8f75b3c69213da07fed3eb45593dbb268336e267538878c674a8acb8da9cbc4027fe37cd17dbc67cc67100b4298ef061f8e2f05166470941b637f9fca",
+    "program": "biola_university",
+    "program_label": "Biola University",
+    "role": "program"
+  },
   "tyler.latorre": {
     "display_name": "Tyler LaTorre",
     "password_hash": "scrypt:32768:8:1$SJd7oYdk6zaMOHmZ$eb7f802fc30de3bcbf504a3f86d4543d585319d2639b9dfa1603e6672b0d96264543cd6631f1c787613c1622cb7f19399587cd659c0c8d03cc9e9c68950ab0be",
