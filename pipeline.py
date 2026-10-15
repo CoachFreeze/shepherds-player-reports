@@ -446,14 +446,22 @@ def pitchers_in_trackman(trackman_path, program=None):
     for r in rows:
         seen.setdefault(r['Pitcher'], []).append(r)
     existing = store.list_players()
+    import roster as roster_mod
+    ros = roster_mod.load(program) if program else None
+    rcands = [(rp['name'], rp) for rp in ros['players']] if ros else []
     for csv_name, rs in seen.items():
         last, _, first = csv_name.partition(', ')
         disp = f'{first} {last}'.strip() if first else csv_name
+        rm = roster_mod.match_name(disp, rcands) if rcands else None
         throws = (rs[0].get('PitcherThrows') or '')[:1].upper()
         out.append({'csv_name': csv_name, 'name': disp, 'throws': throws, 'n': len(rs),
                     'known': store.slugify(disp) in existing and (program is None or existing[store.slugify(disp)].get('program') == program),
                     'bio': (existing.get(store.slugify(disp), {}) if program is None or existing.get(store.slugify(disp), {}).get('program') == program else {}),
-                    'flagged': e.detect_anomalies(rows, csv_name)})
+                    'flagged': e.detect_anomalies(rows, csv_name),
+                    'on_roster': (bool(rm) if rcands else None)})
+        if rm and not out[-1]['bio']:
+            rp = rm[0]
+            out[-1]['bio'] = {k: rp[k] for k in ('height_in', 'weight_lbs') if rp.get(k)}
     return sorted(out, key=lambda x: x['name'])
 
 

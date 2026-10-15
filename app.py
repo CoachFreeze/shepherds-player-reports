@@ -934,7 +934,7 @@ BULK_REVIEW_PAGE = BULK_STYLE + """
 <div class="row" style="margin-top:10px;"><div><label>School</label><input type="text" name="school" value="{{ prog_label }}"></div></div>
 {% for p in pitchers %}{% set i = loop.index0 %}
 <div class="card">
-  <label style="font-weight:700;font-size:16px;"><input type="checkbox" name="inc_{{ i }}" value="1" checked> <input type="text" name="name_{{ i }}" value="{{ p.name }}" style="font-weight:600;"> {{ p.throws }}HP &middot; {{ p.n }} pitches{% if p.known %}<span class="tag">already on roster</span>{% endif %}</label>
+  <label style="font-weight:700;font-size:16px;"><input type="checkbox" name="inc_{{ i }}" value="1" {{ '' if p.on_roster is sameas false else 'checked' }}> <input type="text" name="name_{{ i }}" value="{{ p.name }}" style="font-weight:600;"> {{ p.throws }}HP &middot; {{ p.n }} pitches{% if p.known %}<span class="tag">already on roster</span>{% endif %}{% if p.on_roster is sameas true %}<span class="tag" style="background:#e4f2ea;color:#2a7a4b;">on team roster</span>{% elif p.on_roster is sameas false %}<span class="tag" style="background:#fbf0d9;color:#8a6212;">not on team roster</span>{% endif %}</label>
   <input type="hidden" name="csv_{{ i }}" value="{{ p.csv_name }}"><input type="hidden" name="throws_{{ i }}" value="{{ p.throws }}">
   <div class="row" style="margin-top:8px;">
     <div><label>Class of</label><input type="number" name="grad_{{ i }}" value="{{ p.bio.get('grad_year') or '' }}" style="width:80px;"></div>
@@ -1055,6 +1055,12 @@ def intake_bulk_run():
         return _upgrade('max_players', _msg)
     _was_first = store.needs_first_upload(session.get('coach'))
     results = pipeline.process_trackman_bulk(path, specs, live_ab=bool(f.get('live_ab')), reassign=reassign, program=prog)
+    try:
+        _ros = roster_mod.load(prog)
+        if _ros and roster_mod.apply_to_players(prog, _ros['players'], store.list_players()):
+            store.sync_to_github()
+    except Exception as exc:
+        print(f'WARNING: roster details not applied: {exc}')
     if any(out for _, _, out in results):
         _archive_csv(path, prog)
         try:
