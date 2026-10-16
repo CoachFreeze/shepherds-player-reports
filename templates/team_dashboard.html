@@ -4,10 +4,13 @@
 <style>
   :root{ --ink:#22303a; --teal:#5c97a8; --muted:#6b7680; --line:#dde2e5; --good:#2f9e6b; --bad:#d0503f; --card:#fff; }
   *{box-sizing:border-box;} body{background:#f7f6f2;color:var(--ink);font-family:'Barlow',sans-serif;margin:0;padding-bottom:60px;}
-  .hero{background:#22303a;padding:34px 16px 24px;border-bottom:3px solid var(--teal);} .wrap{max-width:1040px;margin:0 auto;padding:0 16px;} .hero .wrap{padding:0;position:relative;}
+  .hero{background:#22303a;padding:34px 16px 24px;border-bottom:3px solid var(--teal);} .wrap{max-width:1280px;margin:0 auto;padding:0 16px;} .hero .wrap{padding:0;position:relative;}
   .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);margin:0 0 8px;}
   h1{font:700 40px 'Oswald',sans-serif;margin:0 0 6px;color:#fff;} .sub{color:#c9d3d8;font-size:14.5px;margin:0;}
   .jump{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;} .jump a{font:600 13px 'Barlow',sans-serif;color:#fff;text-decoration:none;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 14px;} .jump a:hover{background:rgba(255,255,255,.12);}
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 34px;align-items:start;} .cols.one{grid-template-columns:minmax(0,1040px);justify-content:center;}
+  .cols .half{min-width:0;} .cols:not(.one) .trend{grid-template-columns:1fr;} .cols:not(.one) .tiles{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));} .cols:not(.one) .boards{grid-template-columns:1fr;}
+  @media (max-width:980px){.cols{grid-template-columns:minmax(0,1fr);}}
   .half{margin-top:34px;} .half-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:6px;}
   .half-head h2{font:700 30px 'Oswald',sans-serif;letter-spacing:.02em;margin:0;text-transform:uppercase;} .half-head h2 small{font:600 11px 'Barlow',sans-serif;letter-spacing:.08em;color:#b3791f;border:1px solid #e3c88f;background:#fbf3e0;border-radius:999px;padding:3px 9px;margin-left:10px;vertical-align:middle;}
   .half-meta{color:var(--muted);font-size:13.5px;margin:0 0 4px;}
@@ -25,7 +28,7 @@
   .board ol{list-style:none;margin:0;padding:0;} .board li{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid #eef0ef;font-size:14.5px;} .board li:first-child{border-top:0;}
   .rk{width:22px;height:22px;border-radius:50%;background:#eef2f3;color:var(--muted);font:700 12px/22px 'Barlow',sans-serif;text-align:center;flex:none;} li:first-child .rk{background:var(--ink);color:#fff;}
   .board a.nm{color:var(--ink);text-decoration:none;font-weight:600;flex:1;} .board a.nm:hover{color:var(--teal);} .board .val{font:700 18px 'Oswald',sans-serif;} .board .ex{font-size:11.5px;color:#98a3a9;width:58px;text-align:right;}
-  .trend{display:grid;grid-template-columns:1fr 1fr;gap:14px;} @media (max-width:720px){.trend{grid-template-columns:1fr;}}
+  .trend{display:grid;grid-template-columns:1fr 1fr;gap:14px;} @media (max-width:720px){.cols.one .trend{grid-template-columns:1fr;}}
   .tcol h4{font:700 13px 'Barlow',sans-serif;letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px;} .tcol.up h4{color:var(--good);} .tcol.down h4{color:var(--bad);}
   .tc{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #eef0ef;} .tc:first-of-type{border-top:0;} .tc .who{flex:1;min-width:0;} .tc a{color:var(--ink);font-weight:700;text-decoration:none;font-size:15.5px;} .tc a:hover{color:var(--teal);}
   .tc .m{font-size:12.5px;color:var(--muted);margin-top:2px;} .chip{font:700 13px 'Barlow',sans-serif;border-radius:999px;padding:4px 10px;white-space:nowrap;} .chip.up{background:#e4f4ec;color:#1f7a50;} .chip.down{background:#fbe8e5;color:#a63a2c;}
@@ -44,6 +47,7 @@
   <div class="jump"><a href="#pitching">Pitching</a>{% if halves|length > 1 %}<a href="#hitting">Hitting</a>{% endif %}{% if is_admin %}<a href="{{ url_for('dashboard') }}">&larr; All teams</a>{% endif %}</div></div></div>
 
 <div class="wrap">
+<div class="cols{{ ' one' if halves|length == 1 }}">
 {% for H in halves %}{% set side = H.side %}{% set D = H.D %}
 <section class="half" id="{{ side }}">
   <div class="half-head"><h2>{{ 'Pitching' if side == 'pitching' else 'Hitting' }}{% if side == 'hitting' %}<small>BETA &middot; ADMIN ONLY</small>{% endif %}</h2>
@@ -95,6 +99,7 @@
   </div>
 </section>
 {% endfor %}
+</div>
 </div>
 <script>document.querySelectorAll('[data-pk]').forEach(function(b){b.addEventListener('click',function(){document.getElementById(b.dataset.pk).classList.toggle('open');});});</script>
 </body></html>
