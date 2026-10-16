@@ -1,0 +1,35 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hitter Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#22303a; --teal:#5c97a8; --muted:#6b7680; --line:#dde2e5; }
+  *{box-sizing:border-box;} body{background:#f7f6f2;color:var(--ink);font-family:'Barlow',sans-serif;margin:0;padding-bottom:40px;}
+  .hero{background:#22303a;padding:34px 16px 28px;border-bottom:3px solid var(--teal);} .wrap{max-width:1040px;margin:0 auto;padding:0 16px;} .hero .wrap{padding:0;position:relative;}
+  .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);margin:0 0 8px;}
+  h1{font:700 40px 'Oswald',sans-serif;margin:0 0 6px;color:#fff;} .sub{color:#c9d3d8;font-size:14.5px;margin:0;}
+  .bar{display:flex;gap:10px;align-items:center;margin:22px 0 6px;flex-wrap:wrap;} .bar a.back{font:700 13px Barlow,sans-serif;color:var(--teal);text-decoration:none;margin-right:6px;}
+  .bar input{background:#fff;flex:1;min-width:200px;max-width:340px;padding:10px 14px;border:1px solid var(--line);border-radius:999px;font:500 14px 'Barlow',sans-serif;}
+  .beta{font:600 11px 'Barlow',sans-serif;letter-spacing:.08em;color:#b3791f;border:1px solid #e3c88f;background:#fbf3e0;border-radius:999px;padding:3px 9px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-top:14px;}
+  .sq{background:#fff;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);border-radius:16px;overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column;transition:transform .12s,box-shadow .12s;} .sq:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(26,31,36,.16);}
+  .ph{aspect-ratio:1/1;background:linear-gradient(135deg,#e1e7e8,#c3ced1);display:flex;align-items:center;justify-content:center;} .ph span{font:700 54px 'Oswald',sans-serif;color:#fff;opacity:.85;}
+  .info{padding:14px 16px 16px;} .nm{font:700 20px/1.1 'Oswald',sans-serif;} .nm small{display:block;font:500 14px 'Barlow',sans-serif;color:#76828a;margin-top:3px;}
+  .row2{font-size:12.5px;color:#76828a;margin-top:8px;display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;} .pos{font-weight:700;color:var(--teal);letter-spacing:.04em;}
+  .kv{display:flex;gap:12px;margin-top:10px;font-size:12px;color:#76828a;} .kv b{display:block;font:700 17px 'Oswald',sans-serif;color:var(--ink);}
+  @media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr);gap:10px;} .nm{font-size:15px;} .ph span{font-size:42px;} h1{font-size:32px;}}
+</style></head><body>
+<div class="hero"><div class="wrap"><div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>
+  <p class="eyebrow">{{ team_label }}</p><h1>Hitter Dashboard</h1><p class="sub">Tap a hitter to see their profile, swing decisions, spray chart and exit velocity.</p></div></div>
+<div class="wrap">
+  <div class="bar"><a class="back" href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Dashboard</a><input id="q" type="search" placeholder="Search hitters…" autocomplete="off"><span class="beta">BETA &middot; ADMIN ONLY</span></div>
+  <div class="grid">
+  {% for r in rows %}{% set parts = r.name.split() %}
+    <a class="sq" href="{{ url_for('beta_hitter', key=r.key) }}" data-s="{{ (r.name ~ ' ' ~ (r.roster.position if r.roster else ''))|lower }}">
+      <div class="ph"><span>{{ (parts[0][:1] ~ parts[-1][:1])|upper }}</span></div>
+      <div class="info"><div class="nm">{{ parts[-1] }}<small>{{ parts[:-1]|join(' ') }}</small></div>
+        <div class="row2"><span>{{ 'Bats ' ~ r.bats if r.bats != '?' else '' }}</span><span class="pos">{{ r.roster.position if r.roster and r.roster.position else '' }}</span></div>
+        <div class="kv"><span><b>{{ '%.1f'|format(r.s.avg_ev) if r.s.avg_ev is not none else '—' }}</b>Avg EV</span><span><b>{{ ('%.3f'|format(r.s.xba))[1:] if r.s.xba is not none else '—' }}</b>xBA</span><span><b>{{ r.s.score if r.s.score is not none else '—' }}</b>Swing</span></div></div>
+    </a>{% endfor %}</div>
+</div>
+<script>document.getElementById('q').addEventListener('input',function(){var v=this.value.toLowerCase().trim();document.querySelectorAll('.sq').forEach(function(c){c.style.display=(!v||c.dataset.s.indexOf(v)>-1)?'':'none';});});</script>
+</body></html>

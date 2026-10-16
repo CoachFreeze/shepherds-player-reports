@@ -26,10 +26,10 @@
   .mg form{margin:0;} .mg button{font:600 11px 'Barlow',sans-serif;border:none;background:rgba(255,255,255,.92);color:var(--muted);border-radius:999px;padding:4px 9px;cursor:pointer;} .mg button.del{color:#9c3a3a;}
   @media (hover:none){.mg{display:flex;}} @media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr);gap:10px;} .nm{font-size:15px;} .ph span{font-size:42px;}}
 </style></head><body>
-<div class="hero"><div class="hero-wrap" style="position:relative;">{% if is_coach %}<div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>{% endif %}<p class="eyebrow">{{ team_label or 'Player Reports' }}</p><h1>{{ 'Teams & Programs' if mode == 'teams' else 'Player Dashboard' }}</h1>
+<div class="hero"><div class="hero-wrap" style="position:relative;">{% if is_coach %}<div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>{% endif %}<p class="eyebrow">{{ team_label or 'Player Reports' }}</p><h1>{{ 'Teams & Programs' if mode == 'teams' else (page_title or 'Player Dashboard') }}</h1>
 <p class="sub">{{ 'Choose a team to see its players.' if mode == 'teams' else 'Tap a player to see their current profile and recent outings.' }}</p></div></div>
 <div class="wrap">
-  <div class="bar">{% if team_label %}<a href="{{ url_for('dashboard') }}" style="font:700 13px Barlow,sans-serif;color:#5c97a8;text-decoration:none;margin-right:6px;">&larr; All teams</a>{% endif %}<input id="q" type="search" placeholder="{{ 'Search teams…' if mode == 'teams' else 'Search players, schools, positions…' }}" autocomplete="off">
+  <div class="bar">{% if team_program %}<a href="{{ url_for('team_dashboard', program=team_program) }}" style="font:700 13px Barlow,sans-serif;color:#5c97a8;text-decoration:none;margin-right:6px;">&larr; Team Dashboard</a>{% elif team_label %}<a href="{{ url_for('dashboard') }}" style="font:700 13px Barlow,sans-serif;color:#5c97a8;text-decoration:none;margin-right:6px;">&larr; All teams</a>{% endif %}<input id="q" type="search" placeholder="{{ 'Search teams…' if mode == 'teams' else 'Search players, schools, positions…' }}" autocomplete="off">
     {% if is_coach %}<a class="upl" href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a>{% endif %}</div>
 {% if first_upload %}<div class="group-title">Get started</div>
   <div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);padding:28px;text-align:center;max-width:620px;margin:0 auto;">
@@ -40,7 +40,7 @@
   <div class="group-title">Teams &amp; Programs</div>
   <div class="grid">
   {% for t in tiles %}
-    <a class="sq" href="{{ url_for('team_view', program=t.key) }}" data-s="{{ t.search }}" style="text-decoration:none;color:inherit;">
+    <a class="sq" href="{{ url_for('team_dashboard', program=t.key) }}" data-s="{{ t.search }}" style="text-decoration:none;color:inherit;">
       <div class="ph"><div class="bdg" style="background:{{ t.badge.bg if t.badge else '#fff' }}">{% if t.badge %}<img src="{{ url_for('school_logo', fname=t.badge.file) }}" alt="">{% elif t.brand %}<img src="{{ url_for('brand_logo', fname='shepsavant_logo.png') }}" alt="">{% else %}<span style="font-size:44px;">{{ t.label[:2]|upper }}</span>{% endif %}</div></div>
       <div class="info"><div class="nm">{{ t.label }}</div>
         <div class="row2"><span>{{ t.players }} player{{ 's' if t.players != 1 }}</span><span>{% if t.demo %}Sample{% elif t.brand %}Admin only{% else %}{{ t.coaches }} coach{{ 'es' if t.coaches != 1 }}{% endif %}</span></div></div>

@@ -12,6 +12,7 @@ import extract as e_mod
 import mlb_lookup
 import headshots
 import hitting
+import team
 import roster as roster_mod
 import glossary
 import overview
@@ -189,7 +190,7 @@ def inject_me():
     _b = pipeline.school_badge_file(label, c.get('program')) if label else None
     parts = [w for w in name.split() if w]
     initials = (parts[0][:1] + (parts[-1][:1] if len(parts) > 1 else '')).upper() or '?'
-    return {'me': {'name': name, 'key': session.get('coach'), 'label': label, 'is_admin': is_admin(), 'initials': initials,
+    return {'me': {'name': name, 'key': session.get('coach'), 'label': label, 'is_admin': is_admin(), 'initials': initials, 'program': c.get('program') if c.get('role', 'admin') != 'admin' else None,
                    'badge': {'file': _b[0], 'bg': _b[1]} if _b else None}}
 
 
@@ -337,19 +338,101 @@ def dashboard():
     if is_admin():
         return render_template('dashboard.html', mode='teams', tiles=_team_tiles(groups), groups=[], team_label=None,
                                is_coach=True, is_admin=True, coach_key=session.get('coach') or '', tour_next=_tour_next_player(groups))
+    if my_program() and not store.needs_first_upload(session.get('coach')) and not request.args.get('tour'):
+        return redirect(url_for('team_dashboard', program=my_program()))
     return render_template('dashboard.html', mode='players', groups=[(l, p) for _, l, p in groups], team_label=None, tiles=[],
                            is_coach=True, is_admin=False, coach_key=session.get('coach') or '',
                            first_upload=store.needs_first_upload(session.get('coach')), tour_next=_tour_next_player(groups))
 
 
-@app.route('/team/<program>')
-@admin_required
-def team_view(program):
+def _team_ok(program):
+    """Admins can open any team; a program coach only his own."""
+    if is_admin():
+        return
+    if not session.get('coach') or program != my_program():
+        abort(404)
+
+
+def _team_players_page(program, page_title):
     groups = [g for g in _build_groups() if g[0] == program]
     if not groups:
         abort(404)
     return render_template('dashboard.html', mode='players', groups=[(l, p) for _, l, p in groups], team_label=groups[0][1], tiles=[],
-                           is_coach=True, is_admin=True, coach_key=session.get('coach') or '', tour_next=_tour_next_player(groups))
+                           is_coach=True, is_admin=is_admin(), coach_key=session.get('coach') or '', tour_next=_tour_next_player(groups),
+                           team_program=program, page_title=page_title)
+
+
+@app.route('/team/<program>')
+@login_required
+def team_view(program):
+    _team_ok(program)
+    return redirect(url_for('team_dashboard', program=program))
+
+
+@app.route('/team/<program>/pitchers')
+@login_required
+def team_pitchers(program):
+    _team_ok(program)
+    return _team_players_page(program, 'Pitcher Dashboard')
+
+
+@app.route('/team/<program>/hitters')
+@admin_required
+def team_hitters(program):
+    rows = [r for r in hitting.list_hitters() if r['program'] == program]
+    if not rows:
+        abort(404)
+    rows.sort(key=lambda r: r['name'].split()[-1].lower())
+    return render_template('team_hitters.html', rows=rows, program=program, team_label=store.program_label(program))
+
+
+@app.route('/team/<program>/dashboard')
+@login_required
+def team_dashboard(program):
+    _team_ok(program)
+    cfg = team.load(program)
+    P = team.pitching_data(program)
+    H = team.hitting_data(program, True) if is_admin() else None
+    def half(side, D, ids):
+        tiles = [D['tiles'][i] for i in ids if i in D['tiles']]
+        return {'side': side, 'D': D, 'tiles': tiles, 'goals': team.goal_rows(program, side, D['tiles']),
+                'picker': team.stat_picker(side, ids), 'metrics': team.goal_metric_options(side)}
+    halves = [half('pitching', P, cfg['pitching_stats'])]
+    if H is not None:
+        halves.append(half('hitting', H, cfg['hitting_stats']))
+    sessions = sorted(set(P['sessions']) | set(H['sessions'] if H else []))
+    return render_template('team_dashboard.html', program=program, team_label=store.program_label(program), halves=halves,
+                           last_session=sessions[-1] if sessions else None, is_coach=True, is_admin=is_admin(),
+                           coach_key=session.get('coach') or '')
+
+
+@app.route('/team/<program>/customize', methods=['POST'])
+@login_required
+def team_customize(program):
+    _team_ok(program)
+    side = 'hitting' if request.form.get('side') == 'hitting' else 'pitching'
+    if side == 'hitting' and not is_admin():
+        abort(403)
+    team.set_stats(program, side, request.form.getlist('stat'))
+    return redirect(url_for('team_dashboard', program=program) + f'#{side}')
+
+
+@app.route('/team/<program>/goals', methods=['POST'])
+@login_required
+def team_goals(program):
+    _team_ok(program)
+    f = request.form
+    side = 'hitting' if f.get('side') == 'hitting' else 'pitching'
+    if side == 'hitting' and not is_admin():
+        abort(403)
+    act = f.get('action')
+    if act == 'add':
+        team.add_goal(program, f)
+    elif act == 'delete':
+        team.delete_goal(program, f.get('id', ''))
+    elif act in ('toggle', 'progress'):
+        team.update_goal(program, f.get('id', ''), f)
+    return redirect(url_for('team_dashboard', program=program) + f'#goals-{side}')
 
 
 @app.route('/brand-logo/<fname>')

@@ -18,7 +18,7 @@ REPO_DATA_DIR = os.path.join(BUILD_DIR, 'data')
 # Persistent disk: set SHEPSAVANT_DATA_DIR (e.g. /var/data) on a paid Render instance with a disk attached.
 # Unset = original behaviour (data lives in the repo folder and is backed up through GitHub only).
 DATA_DIR = os.environ.get('SHEPSAVANT_DATA_DIR') or REPO_DATA_DIR
-_SEED = ('players.json', 'coaches.json', 'bio_overrides.json', 'outings', 'headshots', 'reports', 'csv', 'rosters')
+_SEED = ('players.json', 'coaches.json', 'bio_overrides.json', 'outings', 'headshots', 'reports', 'csv', 'rosters', 'team')
 
 
 def _seed_data_dir():
