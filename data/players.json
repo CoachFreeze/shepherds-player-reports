@@ -135,6 +135,16 @@
         "position": "RHP"
       }
     },
+    "roster": {
+      "bats": "R",
+      "class_year": "Fr.",
+      "high_school": "Crean Lutheran HS",
+      "hometown": "Newport Beach, CA",
+      "major": "Undecided",
+      "pos_raw": "Right-Handed Pitcher",
+      "prev_school": "Crean Lutheran HS",
+      "throws": "R"
+    },
     "school": "Biola University",
     "weight_lbs": 190.0
   },
@@ -297,6 +307,16 @@
         "position": "RHP"
       }
     },
+    "roster": {
+      "bats": "R",
+      "class_year": "Jr.",
+      "high_school": "St. John Bosco HS",
+      "hometown": "Lakewood, CA",
+      "major": "Business Administration",
+      "pos_raw": "Right-Handed Pitcher",
+      "prev_school": "Long Beach CC",
+      "throws": "R"
+    },
     "school": "Biola University",
     "weight_lbs": 230.0
   },
@@ -443,9 +463,22 @@
     "name": "Jayden Rojas",
     "program": "biola_university",
     "roles": {
+      "hit": {
+        "position": "INF"
+      },
       "pitch": {
         "position": "RHP"
       }
+    },
+    "roster": {
+      "bats": "R",
+      "class_year": "Fr.",
+      "high_school": "Bell HS",
+      "hometown": "Baldwin Park, CA",
+      "major": "Kinesiology",
+      "pos_raw": "Right-Handed Pitcher/Infielder",
+      "prev_school": "Bell HS",
+      "throws": "R"
     },
     "school": "Biola University",
     "weight_lbs": 190.0
@@ -461,6 +494,17 @@
       "pitch": {
         "position": "RHP"
       }
+    },
+    "roster": {
+      "bats": "R",
+      "class_year": "Jr.",
+      "high_school": "Palisades Charter HS",
+      "hometown": "Los Angeles, CA",
+      "major": "Public Health",
+      "number": "13",
+      "pos_raw": "Right-Handed Pitcher",
+      "prev_school": "Palisades Charter HS",
+      "throws": "R"
     },
     "school": "Biola University",
     "weight_lbs": 165.0
@@ -532,9 +576,23 @@
     "name": "Oscar Knapp",
     "program": "biola_university",
     "roles": {
+      "hit": {
+        "position": "INF"
+      },
       "pitch": {
         "position": "LHP"
       }
+    },
+    "roster": {
+      "bats": "L",
+      "class_year": "Sr.",
+      "high_school": "Santa Cruz HS",
+      "hometown": "Santa Cruz, CA",
+      "major": "Sociology",
+      "number": "22",
+      "pos_raw": "Left-Handed Pitcher/First Base",
+      "prev_school": "Cabrillo",
+      "throws": "L"
     },
     "school": "Biola University",
     "weight_lbs": 205.0
