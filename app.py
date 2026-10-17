@@ -393,10 +393,12 @@ def _team_ok(program):
         abort(404)
 
 
-def _team_players_page(program, page_title):
+def _team_players_page(program, page_title, pitchers_only=False):
     groups = [g for g in _build_groups() if g[0] == program]
     if not groups:
         abort(404)
+    if pitchers_only:      # hitters who never pitched belong on the Hitter Dashboard only
+        groups = [(k, l, [t for t in pl if not t[1].get('roles') or (t[1].get('roles') or {}).get('pitch')]) for k, l, pl in groups]
     return render_template('dashboard.html', mode='players', groups=[(l, p) for _, l, p in groups], team_label=groups[0][1], tiles=[],
                            is_coach=True, is_admin=is_admin(), coach_key=session.get('coach') or '', tour_next=_tour_next_player(groups),
                            team_program=program, page_title=page_title)
@@ -413,7 +415,7 @@ def team_view(program):
 @login_required
 def team_pitchers(program):
     _team_ok(program)
-    return _team_players_page(program, 'Pitcher Dashboard')
+    return _team_players_page(program, 'Pitcher Dashboard', pitchers_only=True)
 
 
 @app.route('/team/<program>/hitters')
@@ -516,7 +518,12 @@ def player_overview(slug):
     _b = pipeline.school_badge_file(bio.get('school'), bio.get('program'))
     badge = {'file': _b[0], 'bg': _b[1]} if _b else None
     css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
-    return render_template('player_overview.html', b=b, bio=bio, slug=slug, css=css, has_photo=has_photo, badge=badge,
+    hitter_url = None      # two-way player: a hitter profile exists for the same person (same program) -> Hitter / Pitcher switch
+    _prog = bio.get('program')
+    if _prog and not store.is_demo(slug) and (is_admin() or (_prog == my_program() and plans.allowed(_prog, 'hitting'))):
+        _hk = hitting.hitter_key_for(bio['name'], _prog)
+        hitter_url = url_for('beta_hitter', key=_hk) if _hk else None
+    return render_template('player_overview.html', b=b, bio=bio, slug=slug, css=css, hitter_url=hitter_url, has_photo=has_photo, badge=badge,
                            photo_v=int(os.path.getmtime(headshots.path(slug))) if has_photo else 0,
                            initials=(first[:1] + last[:1]).upper(), pos=_player_pos(bio), is_coach=bool(session.get('coach')), can_edit=can_manage(slug), is_demo=store.is_demo(slug),
                            tour_next=(url_for('view_outing', slug=slug, date=b['log'][0]['id']) + '?tour=report') if b.get('log') else '')

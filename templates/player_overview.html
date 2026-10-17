@@ -31,6 +31,7 @@
   .trendnote{position:absolute;top:14px;right:16px;text-align:right;line-height:1.2;} .trendnote b{display:block;font:700 15px 'Barlow',sans-serif;} .trendnote span{font-size:11.5px;color:#76828a;}
   .trendnote.up b{color:#2a7a4b;} .trendnote.down b{color:#b3563a;} .trendnote.flat b{color:#6b7680;}
   @media (max-width:640px){.trendnote{position:static;text-align:center;margin:0 0 6px;}}
+  .vsw{display:inline-flex;background:#eef1f0;border-radius:999px;padding:3px;margin:0 10px 0 0;vertical-align:middle;} .vsw a,.vsw b{padding:6px 16px;border-radius:999px;font:600 13px 'Barlow',sans-serif;text-decoration:none;color:#55626b;} .vsw b{background:var(--accent,#5c97a8);color:var(--on-accent,#fff);box-shadow:0 1px 3px rgba(26,31,36,.15);}
   .trow{display:grid;grid-template-columns:1fr 1fr;gap:14px;} .trow .pn{margin-top:14px;min-width:0;} .trow .pn:only-child{grid-column:1/-1;} .trow .trendnote{position:static;text-align:left;margin:0 0 4px 6px;} @media (max-width:760px){.trow{grid-template-columns:1fr;gap:0;}}
   .mv-pt{cursor:pointer;} @media (max-width:560px){.tiles{grid-template-columns:repeat(2,1fr);} .olog .st{width:100%;justify-content:space-between;}}
 </style></head><body><div class="ov">
@@ -42,7 +43,7 @@
     <div class="sub">{% if pos %}<b>{{ pos }}</b>{% endif %}{% if bio.school %} &middot; {{ bio.school }}{% endif %}{% if bio.grad_year %} &middot; Class of {{ bio.grad_year }}{% endif %}</div>
     <div class="sub">{% if b.meta.throws %}<b>Throws:</b> {{ b.meta.throws }}{% endif %}{% if bio.height_in %} &middot; {{ (bio.height_in//12)|int }}'{{ (bio.height_in%12)|int }}"{% endif %}{% if bio.weight_lbs %} &middot; {{ bio.weight_lbs|int }} lb{% endif %}</div>
     <div class="rng">Profile built from the last {{ b.n_outings }} outing{{ 's' if b.n_outings != 1 }} &middot; {{ b.n_pitches }} pitches &middot; {{ b.range }}</div>
-    {% if can_edit and not is_demo %}<div class="photo-form"><a class="editbtn" href="{{ url_for('edit_profile', slug=slug) }}">Edit Profile</a></div>{% endif %}
+    {% if hitter_url or (can_edit and not is_demo) %}<div class="photo-form">{% if hitter_url %}<span class="vsw"><a href="{{ hitter_url }}">Hitter</a><b>Pitcher</b></span>{% endif %}{% if can_edit and not is_demo %}<a class="editbtn" href="{{ url_for('edit_profile', slug=slug) }}">Edit Profile</a>{% endif %}</div>{% endif %}
   </div>
 </div>
 

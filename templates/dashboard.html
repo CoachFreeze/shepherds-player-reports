@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+{% from '_card.html' import card, css as card_css with context %}<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Player Dashboard</title>
 <style>{{ theme_css|safe }}</style>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
@@ -14,19 +14,8 @@
   .bar a.upl{font:700 14px 'Barlow',sans-serif;color:var(--on-accent,#fff);background:var(--accent,var(--accent,#5c97a8));border-radius:999px;padding:10px 20px;text-decoration:none;box-shadow:0 1px 3px rgba(26,31,36,.15);} .bar a.upl:hover{background:var(--accent-dark,#4e8798);}
   .group-title{font:600 14px 'Oswald',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#22303a;margin:34px 0 14px;display:flex;align-items:center;gap:12px;} .group-title:after{content:'';flex:1;height:1px;background:#dcdfdc;}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;}
-  .sq{position:relative;background:#fff;border:none;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:inherit;transition:transform .12s,box-shadow .12s;}
-  .sq:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(26,31,36,.16);}
-  .ph{aspect-ratio:1/1;background:linear-gradient(135deg,#e1e7e8,#c3ced1);display:flex;align-items:center;justify-content:center;overflow:hidden;}
-  .ph img{width:100%;height:100%;object-fit:cover;display:block;} .ph span{font:700 54px 'Oswald',sans-serif;color:#fff;opacity:.85;}
-  .bdg{width:58%;aspect-ratio:1/1;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(34,48,58,.18);} .bdg span{color:var(--accent-ink,var(--accent,#5c97a8)) !important;opacity:1 !important;} .bdg img{max-width:70%;max-height:64%;width:auto;height:auto;object-fit:contain;}
-  .info{padding:14px 16px 16px;} .nm{font:700 20px/1.1 'Oswald',sans-serif;color:#22303a;} .nm small{display:block;font:500 14px 'Barlow',sans-serif;color:#76828a;margin-top:3px;}
-  .row2{font-size:12.5px;color:#76828a;margin-top:6px;display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;}
-  .pos{font-weight:700;color:var(--accent-ink,var(--accent,#5c97a8));letter-spacing:.04em;} .links{padding:0 12px 12px;display:flex;gap:6px;flex-wrap:wrap;}
-  .links a{font:600 12.5px 'Barlow',sans-serif;text-decoration:none;color:#fff;background:var(--blue);border-radius:999px;padding:6px 12px;}
-  .mg{position:absolute;top:8px;right:8px;display:none;gap:4px;} .sq:hover .mg{display:flex;}
-  .mg form{margin:0;} .mg button{font:600 11px 'Barlow',sans-serif;border:none;background:rgba(255,255,255,.92);color:var(--muted);border-radius:999px;padding:4px 9px;cursor:pointer;} .mg button.del{color:#9c3a3a;}
-  @media (hover:none){.mg{display:flex;}} @media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr);gap:10px;} .nm{font-size:15px;} .ph span{font-size:42px;}}
-</style></head><body>
+  @media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr);gap:10px;}}
+</style><style>{{ card_css() }}</style></head><body>
 <div class="hero"><div class="hero-wrap" style="position:relative;">{% if is_coach %}<div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>{% endif %}<p class="eyebrow">{{ team_label or 'Player Reports' }}</p><h1>{{ 'Teams & Programs' if mode == 'teams' else (page_title or 'Player Dashboard') }}</h1>
 <p class="sub">{{ 'Choose a team to see its players.' if mode == 'teams' else 'Tap a player to see their current profile and recent outings.' }}</p></div></div>
 <div class="wrap">
@@ -51,18 +40,16 @@
   {% for label, plist in groups %}{% if plist %}
   <div class="group-title">{{ label }}</div>
   <div class="grid">
-  {% for slug, p, href, last, first, pos in plist %}
-    <div class="sq" data-s="{{ (p.name ~ ' ' ~ (p.school or '') ~ ' ' ~ (pos or '') ~ ' ' ~ (p.grad_year or ''))|lower }}">
-      <a href="{{ href }}" style="text-decoration:none;color:inherit;display:block;">
-        <div class="ph">{% if p.has_photo %}<img src="{{ url_for('headshot', slug=slug) }}?v={{ p.photo_v }}" alt="" loading="lazy">{% elif p.badge %}<div class="bdg" style="background:{{ p.badge.bg }}"><img src="{{ url_for('school_logo', fname=p.badge.file) }}" alt="" loading="lazy"></div>{% else %}<span>{{ (first[:1] ~ last[:1])|upper }}</span>{% endif %}</div>
-        <div class="info"><div class="nm">{{ last }}<small>{{ first }}</small></div>
-          <div class="row2"><span>{{ p.school or '' }}</span></div>
-          <div class="row2"><span>{% if p.grad_year %}Class of {{ p.grad_year }}{% endif %}</span><span class="pos">{{ pos or '' }}</span></div></div>
-      </a>
+  {% for slug, p, href, last, first, pos in plist %}{% set ro = p.roster or {} %}{% set two = p.roles and p.roles.get('hit') and p.roles.get('pitch') %}
+    {% set thr = ro.throws or ('R' if pos == 'RHP' else 'L' if pos == 'LHP' else None) %}
+    {% call card(href, last, first, p.school, ('Class of ' ~ p.grad_year) if p.grad_year else ro.class_year, 'TWP' if two else pos, p.height_in, p.weight_lbs,
+                 (('B/T ' ~ ro.bats ~ '/' ~ thr) if (two and ro.bats and thr) else ('Throws ' ~ thr if thr else '')),
+                 (p.name ~ ' ' ~ (p.school or '') ~ ' ' ~ (pos or '') ~ ' ' ~ (p.grad_year or '') ~ (' two-way twp' if two else ''))|lower,
+                 (url_for('headshot', slug=slug) ~ '?v=' ~ p.photo_v) if p.has_photo else none, p.badge, (first[:1] ~ last[:1])|upper) %}
       {% if p.shep_links %}<div class="links">{% for t, u in p.shep_links %}<a href="{{ u }}">{{ t }}</a>{% endfor %}</div>{% endif %}
       {% if p.can_edit %}<div class="mg">
         <form method="post" action="{{ url_for('delete_player_route', slug=slug) }}" onsubmit="return confirm('Delete {{ p.name|e }} and all their data? This cannot be undone.');"><button type="submit" class="del">Delete</button></form></div>{% endif %}
-    </div>
+    {% endcall %}
   {% endfor %}</div>{% endif %}{% endfor %}
 </div>
 <script>document.getElementById('q').addEventListener('input',function(){var v=this.value.toLowerCase().trim();document.querySelectorAll('.sq').forEach(function(c){c.style.display=(!v||c.dataset.s.indexOf(v)>-1)?'':'none';});});</script>

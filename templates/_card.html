@@ -1,0 +1,25 @@
+{# One player card for every dashboard (pitchers, hitters, Shepherds): photo or school logo, name, school, class + position, height / weight / hand. #}
+{% macro css() %}
+  .sq{position:relative;background:#fff;border:none;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:inherit;transition:transform .12s,box-shadow .12s;} .sq:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(26,31,36,.16);}
+  .sq>a.ca{text-decoration:none;color:inherit;display:block;}
+  .ph{aspect-ratio:1/1;background:linear-gradient(135deg,#e1e7e8,#c3ced1);display:flex;align-items:center;justify-content:center;overflow:hidden;} .ph img{width:100%;height:100%;object-fit:cover;display:block;} .ph span{font:700 54px 'Oswald',sans-serif;color:#fff;opacity:.85;}
+  .bdg span{color:var(--accent-ink,#5c97a8) !important;opacity:1 !important;}
+  .bdg{width:58%;aspect-ratio:1/1;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(34,48,58,.18);} .bdg img{max-width:70%;max-height:64%;width:auto;height:auto;object-fit:contain;}
+  .info{padding:14px 16px 16px;} .nm{font:700 20px/1.1 'Oswald',sans-serif;color:#22303a;} .nm small{display:block;font:500 14px 'Barlow',sans-serif;color:#76828a;margin-top:3px;}
+  .row2{font-size:12.5px;color:#76828a;margin-top:8px;display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;} .pos{font-weight:700;color:var(--accent-ink,#5c97a8);letter-spacing:.04em;}
+  .links{padding:0 12px 12px;display:flex;gap:6px;flex-wrap:wrap;} .links a{font:600 12.5px 'Barlow',sans-serif;text-decoration:none;color:#fff;background:var(--blue,#5c97a8);border-radius:999px;padding:6px 12px;}
+  .mg{position:absolute;top:8px;right:8px;display:none;gap:4px;} .sq:hover .mg{display:flex;} .mg form{margin:0;} .mg button{font:600 11px 'Barlow',sans-serif;border:none;background:rgba(255,255,255,.92);color:#6b7680;border-radius:999px;padding:4px 9px;cursor:pointer;} .mg button.del{color:#9c3a3a;}
+  @media (hover:none){.mg{display:flex;}} @media (max-width:520px){.nm{font-size:15px;} .ph span{font-size:42px;}}
+{% endmacro %}
+{% macro card(href, last, first, school, cls, pos, ht, wt, tag, search, photo=none, badge=none, initials='') %}
+<div class="sq" data-s="{{ search }}">
+  <a class="ca" href="{{ href }}">
+    <div class="ph">{% if photo %}<img src="{{ photo }}" alt="" loading="lazy">{% elif badge %}<div class="bdg" style="background:{{ badge.bg }}"><img src="{{ url_for('school_logo', fname=badge.file) }}" alt="" loading="lazy"></div>{% else %}<span>{{ initials }}</span>{% endif %}</div>
+    <div class="info"><div class="nm">{{ last }}<small>{{ first }}</small></div>
+      <div class="row2"><span>{{ school or '' }}</span></div>
+      <div class="row2"><span>{{ cls or '' }}</span><span class="pos">{{ pos or '' }}</span></div>
+      {% if ht or wt or tag %}<div class="row2"><span>{% if ht %}{{ (ht//12)|int }}'{{ (ht%12)|int }}"{% endif %}{% if wt %}{% if ht %} &middot; {% endif %}{{ wt|int }} lb{% endif %}</span><span>{{ tag or '' }}</span></div>{% endif %}</div>
+  </a>
+  {% if caller %}{{ caller() }}{% endif %}
+</div>
+{% endmacro %}

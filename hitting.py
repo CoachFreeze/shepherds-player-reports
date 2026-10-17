@@ -619,7 +619,8 @@ def _bio(key, h, players_idx, bats_seen):
     pr = pl.get('roster') or {}
     cy = ov.get('class_year') or pr.get('class_year') or rost.get('class_year')
     gy = ov.get('grad_year') or pl.get('grad_year')
-    return {'name': display_name(h['name']), 'school': pl.get('school') or label, 'program': prog, 'position': pos,
+    two_way = bool(pslug and (pl.get('roles') or {}).get('pitch'))       # a real pitcher profile exists too (not just a name match)
+    return {'name': display_name(h['name']), 'school': pl.get('school') or label, 'program': prog, 'position': pos, 'two_way': two_way,
             'bats': ov.get('bats') or rost.get('bats') or pr.get('bats') or bats_seen,
             'throws': ov.get('throws') or rost.get('throws') or pr.get('throws'),
             'height_in': ov.get('height_in') or pl.get('height_in') or rost.get('height_in'),
@@ -629,6 +630,13 @@ def _bio(key, h, players_idx, bats_seen):
             'hometown': rost.get('hometown') or pr.get('hometown'),
             'pitcher_slug': pslug, 'photo_slug': pslug if (pslug and headshots.exists(pslug)) else (f'h_{key}' if headshots.exists(f'h_{key}') else None),
             'photo_kind': 'player' if (pslug and headshots.exists(pslug)) else 'hitter'}
+
+
+def hitter_key_for(name, program, include_demo=True):
+    """The hitter profile key for a pitcher (same person, same program), or None. Used for the Hitter/Pitcher switch on two-way players."""
+    cands = [(display_name(h['name']), k) for k, h in _collect(include_demo).items() if h['program'] == program]
+    m = roster_mod.match_name(name, cands) if cands else None
+    return m[0] if m else None
 
 
 def _players_index(program_agnostic=True):
