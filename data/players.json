@@ -123,6 +123,21 @@
     "school": "West Texas A&M",
     "sixty_yd_time": 7.53
   },
+  "ben_ricketts": {
+    "comps": {},
+    "grad_year": null,
+    "height_in": 77.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261010-BiolaUniversity-Private-1_unverified.csv",
+    "name": "Ben Ricketts",
+    "program": "biola_university",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Biola University",
+    "weight_lbs": 190.0
+  },
   "caiden_christianson": {
     "comps": {},
     "grad_year": 2028,
