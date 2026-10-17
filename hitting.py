@@ -20,6 +20,8 @@ import os
 import re
 
 import extract as e
+import headshots
+import github_sync
 import field_art
 import outings as outings_mod
 import roster as roster_mod
@@ -516,10 +518,12 @@ def display_name(n):
 
 def list_hitters(include_demo=True):
     rows = []
+    pidx = _players_index()
     for key, h in _collect(include_demo).items():
         s = hitter_stats(h['pitches'])
         sides = {p['side'] for p in h['pitches'] if p['side']}
-        rows.append({'key': key, 'name': display_name(h['name']), 'raw': h['name'], 'program': h['program'], 'demo': h['demo'], 'roster': h.get('roster'), 'on_roster': h.get('on_roster'),
+        _bs = 'S' if len(sides) > 1 else (next(iter(sides)) if sides else None)
+        rows.append({'bio': _bio(key, h, pidx, _bs), 'key': key, 'name': display_name(h['name']), 'raw': h['name'], 'program': h['program'], 'demo': h['demo'], 'roster': h.get('roster'), 'on_roster': h.get('on_roster'),
                      'bats': 'S' if len(sides) > 1 else (next(iter(sides)) if sides else '?'), 's': s})
     rows.sort(key=lambda r: (r['demo'], -r['s']['pitches']))
     return rows
@@ -539,8 +543,68 @@ def hitter_profile(key, include_demo=True):
         prow.append({'label': 'EV90', 'pctl': bm.interpolate(s['ev90'], bm.HITTER['ev90']), 'value_display': f"{s['ev90']:.1f}"})
     if s['whiff_pct'] is not None and len([p for p in ps if p['outcome'] in SWING]) >= 10:
         prow.append({'label': 'Whiff%', 'pctl': bm.interpolate(s['whiff_pct'], bm.HITTER['whiff_pct']), 'value_display': f"{s['whiff_pct']:.0f}%"})
-    return {'roster': h.get('roster'), 'pctl_html': sc.percentile_bars_html(prow) if prow else '', 'key': key, 'name': display_name(h['name']), 'program': h['program'], 'demo': h['demo'], 'bats': bats,
+    return {'bio': _bio(key, h, _players_index(), bats), 'ps_n': len(ps), 'roster': h.get('roster'), 'pctl_html': sc.percentile_bars_html(prow) if prow else '', 'key': key, 'name': display_name(h['name']), 'program': h['program'], 'demo': h['demo'], 'bats': bats,
             's': s, 'notes': takeaways(s), 'dates': sorted({p['date'] for p in ps if p['date']}),
             'zone_ev': zone_ev_data(ps),
             'decision_svg': decision_chart_svg(ps, side=bats if bats in ('L', 'R') else None),
             'spray': spray_html(ps)}
+
+# ------------------------------------------------------------------ hitter bios (card + profile header)
+HITTER_BIOS_PATH = os.path.join(store.DATA_DIR, 'hitters.json')
+_DEMO_BIOS_PATH = os.path.join(store.DEMO_DIR, 'hitters.json')
+
+
+def _load_json(p):
+    try:
+        with open(p, encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def save_bio(key, fields):
+    """Coach edits for a hitter (position, bats/throws, height, weight, class). Kept in data/hitters.json and committed like the rosters."""
+    d = _load_json(HITTER_BIOS_PATH)
+    e = d.setdefault(key, {})
+    e.update({k: v for k, v in fields.items()})
+    os.makedirs(os.path.dirname(HITTER_BIOS_PATH), exist_ok=True)
+    text = json.dumps(d, separators=(',', ':'), ensure_ascii=False)
+    with open(HITTER_BIOS_PATH, 'w', encoding='utf-8') as f:
+        f.write(text)
+    github_sync.put_file('data/hitters.json', text.encode('utf-8'))
+
+
+def _bio(key, h, players_idx, bats_seen):
+    """Everything the card and profile header show. Priority: coach edits > the same person's pitcher profile (two-way players share one
+    headshot and bio) > the uploaded roster > what the data itself shows (batting side)."""
+    ov = _load_json(HITTER_BIOS_PATH).get(key) or (_load_json(_DEMO_BIOS_PATH).get(key) if h['demo'] else None) or {}
+    rost = h.get('roster') or {}
+    pm = roster_mod.match_name(h['name'], [(n, s) for n, s, pg in players_idx if pg == h['program']]) if players_idx else None
+    pslug = pm[0] if pm else None
+    pl = (store.get_player(pslug) or {}) if pslug else {}
+    hpos = next((t for t in rost.get('positions', []) if t not in ('RHP', 'LHP')), None)
+    pos = ov.get('position') or ((pl.get('roles') or {}).get('hit') or {}).get('position') or ({'UTL': 'INF', 'DH': 'INF'}.get(hpos, hpos))
+    if not pos and rost.get('positions'):
+        pos = rost['positions'][0]
+    if not pos and pl:
+        pos = ((pl.get('roles') or {}).get('pitch') or {}).get('position')      # a pitcher who also bats
+    prog = h['program']
+    label = store.program_label(prog)
+    pr = pl.get('roster') or {}
+    cy = ov.get('class_year') or pr.get('class_year') or rost.get('class_year')
+    gy = ov.get('grad_year') or pl.get('grad_year')
+    return {'name': display_name(h['name']), 'school': pl.get('school') or label, 'program': prog, 'position': pos,
+            'bats': ov.get('bats') or rost.get('bats') or pr.get('bats') or bats_seen,
+            'throws': ov.get('throws') or rost.get('throws') or pr.get('throws'),
+            'height_in': ov.get('height_in') or pl.get('height_in') or rost.get('height_in'),
+            'weight_lbs': ov.get('weight_lbs') or pl.get('weight_lbs') or rost.get('weight_lbs'),
+            'grad_year': gy, 'class_year': cy, 'class_label': (f'Class of {gy}' if gy else (cy or None)),
+            'number': ov.get('number') or rost.get('number') or pr.get('number'),
+            'hometown': rost.get('hometown') or pr.get('hometown'),
+            'pitcher_slug': pslug, 'photo_slug': pslug if (pslug and headshots.exists(pslug)) else (f'h_{key}' if headshots.exists(f'h_{key}') else None),
+            'photo_kind': 'player' if (pslug and headshots.exists(pslug)) else 'hitter'}
+
+
+def _players_index(program_agnostic=True):
+    return [(b.get('name', ''), s, b.get('program') or 'shepherds') for s, b in store.list_players_view().items() if b.get('name')]
+

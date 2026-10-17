@@ -571,7 +571,9 @@ def beta_hitter(key):
         abort(404)
     g.theme_program = h['program']
     css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
-    return render_template('beta_hitter.html', h=h, css=css)
+    _ps = h['bio']['photo_slug']
+    return render_template('beta_hitter.html', h=h, css=css, can_edit=(not h['demo'] and (is_admin() or h['program'] == my_program())),
+                           photo_v=int(os.path.getmtime(headshots.path(_ps))) if _ps else 0)
 
 
 
@@ -708,6 +710,92 @@ a{color:#6b7680;font-size:13px;} .ph{width:96px;height:96px;border-radius:50%;ob
 <div class="row"><div><label>Position</label><select name="position">{% for o in ['RHP','LHP','INF','OF','C','TWP'] %}<option value="{{ o }}" {{ 'selected' if pos == o }}>{{ o }}</option>{% endfor %}</select></div></div>
 <div class="row"><div><label>Height (ft)</label><input type="number" name="ft" value="{{ ((p.height_in or 0)//12)|int or '' }}"></div><div><label>(in)</label><input type="number" name="inch" value="{{ ((p.height_in or 0)%12)|int if p.height_in else '' }}"></div><div><label>Weight (lb)</label><input type="number" name="wt" value="{{ p.weight_lbs|int if p.weight_lbs else '' }}"></div></div>
 <div class="btns"><button type="submit">Save changes</button><a href="{{ url_for('player_overview', slug=slug) }}">Cancel</a></div></form></body></html>"""
+
+
+@app.template_global()
+def hphoto(bio):
+    """URL of a hitter's headshot (his own, or the shared one of his pitcher profile), or None."""
+    if not bio or not bio.get('photo_slug'):
+        return None
+    if bio['photo_kind'] == 'player':
+        return url_for('headshot', slug=bio['photo_slug'])
+    return url_for('hitter_photo', key=bio['photo_slug'][2:])
+
+
+@app.template_global()
+def sbadge(program, label=None):
+    b = pipeline.school_badge_file(label or store.program_label(program), program)
+    return {'file': b[0], 'bg': b[1]} if b else None
+
+
+@app.route('/hitter-photo/<key>')
+@login_required
+def hitter_photo(key):
+    """Headshot of a hitter who has no pitcher profile (two-way players share the pitcher headshot instead)."""
+    slug = f'h_{key}'
+    prog = (hitting._load_json(hitting.HITTER_BIOS_PATH).get(key) or {}).get('program')
+    if not headshots.exists(slug) or not prog or not (is_admin() or prog == my_program()):
+        abort(404)
+    resp = send_file(headshots.path(slug), mimetype='image/jpeg')
+    resp.headers['Cache-Control'] = 'private, max-age=3600'
+    return resp
+
+
+def _hitter_for_edit(key):
+    h = hitting._collect(True).get(key)
+    if not h or h['demo'] or not (is_admin() or h['program'] == my_program()):
+        abort(404)
+    return h
+
+
+HITTER_EDIT_PAGE = EDIT_PAGE.replace("background:#5c97a8;color:#fff", "background:var(--accent,#5c97a8);color:var(--on-accent,#fff)").replace("{{ url_for('player_overview', slug=slug) }}", "{{ url_for('beta_hitter', key=key) }}").replace(
+    "<title>Edit Profile</title>", "<title>Edit Profile</title><style>{{ theme_css|safe }}</style>").replace(
+    "src=\"{{ url_for('headshot', slug=slug) }}?v={{ v }}\"", "src=\"{{ photo_url }}?v={{ v }}\"").replace(
+    "{% for o in ['RHP','LHP','INF','OF','C','TWP'] %}", "{% for o in ['INF','OF','C','DH','UTL','TWP'] %}").replace(
+    "<label>Full name</label><input type=\"text\" name=\"name\" value=\"{{ p.name }}\" required>",
+    "<label>Name</label><input type=\"text\" value=\"{{ p.name }}\" disabled>").replace(
+    "<div class=\"row\"><div><label>School</label><input type=\"text\" name=\"school\" value=\"{{ p.school or '' }}\"></div>",
+    "<div class=\"row\"><div><label>School</label><input type=\"text\" value=\"{{ p.school or '' }}\" disabled></div>").replace(
+    "<div class=\"row\"><div><label>Position</label>",
+    "<div class=\"row\"><div><label>Bats</label><select name=\"bats\">{% for o in ['R','L','S'] %}<option value=\"{{ o }}\" {{ 'selected' if p.bats == o }}>{{ o }}</option>{% endfor %}</select></div><div><label>Throws</label><select name=\"throws\">{% for o in ['R','L'] %}<option value=\"{{ o }}\" {{ 'selected' if p.throws == o }}>{{ o }}</option>{% endfor %}</select></div><div><label>Position</label>").replace(
+    "<div class=\"btns\">", "<div class=\"row\"><div><label>Jersey #</label><input type=\"number\" name=\"number\" value=\"{{ p.number or '' }}\"></div></div>\n<div class=\"btns\">")
+
+
+@app.route('/hitter/<key>/edit', methods=['GET', 'POST'])
+@login_required
+def hitter_edit(key):
+    h = _hitter_for_edit(key)
+    g.theme_program = h['program']
+    _sides = {p['side'] for p in h['pitches'] if p['side']}
+    bio = hitting._bio(key, h, hitting._players_index(), 'S' if len(_sides) > 1 else (next(iter(_sides)) if _sides else None))
+    pitcher_slug = bio['pitcher_slug']
+    photo_slug = pitcher_slug or f'h_{key}'
+    if request.method == 'POST':
+        f = request.form
+        def num(x):
+            try:
+                return float(x) if x not in (None, '') else None
+            except Exception:
+                return None
+        ft, inch, wt, no = num(f.get('ft')), num(f.get('inch')), num(f.get('wt')), num(f.get('number'))
+        height = int(ft * 12 + (inch or 0)) if ft else None
+        fields = {'program': h['program'], 'position': f.get('position') or None, 'bats': f.get('bats') or None, 'throws': f.get('throws') or None,
+                  'height_in': height, 'weight_lbs': int(wt) if wt else None, 'grad_year': int(num(f.get('grad_year'))) if num(f.get('grad_year')) else None,
+                  'number': int(no) if no else None}
+        hitting.save_bio(key, {k: v for k, v in fields.items() if v is not None or k in ('height_in', 'weight_lbs', 'grad_year', 'number')})
+        if f.get('remove_photo'):
+            headshots.delete(photo_slug)
+        up = request.files.get('photo')
+        if up and up.filename:
+            try:
+                headshots.save(photo_slug, up)
+            except Exception as exc:
+                return f"Couldn't read that image: {exc}", 400
+        return redirect(url_for('beta_hitter', key=key))
+    has = headshots.exists(photo_slug)
+    p = dict(bio, school=bio['school'])
+    ph = url_for('headshot', slug=photo_slug) if pitcher_slug else url_for('hitter_photo', key=key)
+    return render_template_string(HITTER_EDIT_PAGE, p=p, key=key, has_photo=has, pos=bio['position'], photo_url=ph, v=int(os.path.getmtime(headshots.path(photo_slug))) if has else 0, err=None)
 
 
 @app.route('/player/<slug>/stats', methods=['POST'])

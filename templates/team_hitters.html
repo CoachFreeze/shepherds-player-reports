@@ -8,12 +8,13 @@
   .hero{background:var(--brand,#22303a);padding:34px 16px 28px;border-bottom:3px solid var(--teal);} .wrap{max-width:1040px;margin:0 auto;padding:0 16px;} .hero .wrap{padding:0;position:relative;}
   .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-on-dark,#5c97a8);margin:0 0 8px;}
   h1{font:700 40px 'Oswald',sans-serif;margin:0 0 6px;color:#fff;} .sub{color:#c9d3d8;font-size:14.5px;margin:0;}
-  .bar{display:flex;gap:10px;align-items:center;margin:22px 0 6px;flex-wrap:wrap;} .bar a.back{font:700 13px Barlow,sans-serif;color:var(--teal);text-decoration:none;margin-right:6px;}
+  .bar{display:flex;gap:10px;align-items:center;margin:22px 0 6px;flex-wrap:wrap;} .bar a.back{font:700 13px Barlow,sans-serif;color:var(--accent-ink,#5c97a8);text-decoration:none;margin-right:6px;}
   .bar input{background:#fff;flex:1;min-width:200px;max-width:340px;padding:10px 14px;border:1px solid var(--line);border-radius:999px;font:500 14px 'Barlow',sans-serif;}
   .beta{font:600 11px 'Barlow',sans-serif;letter-spacing:.08em;color:#b3791f;border:1px solid #e3c88f;background:#fbf3e0;border-radius:999px;padding:3px 9px;}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;margin-top:14px;}
   .sq{background:#fff;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);border-radius:16px;overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column;transition:transform .12s,box-shadow .12s;} .sq:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(26,31,36,.16);}
-  .ph{aspect-ratio:1/1;background:linear-gradient(135deg,#e1e7e8,#c3ced1);display:flex;align-items:center;justify-content:center;} .ph span{font:700 54px 'Oswald',sans-serif;color:#fff;opacity:.85;}
+  .ph{aspect-ratio:1/1;background:linear-gradient(135deg,#e1e7e8,#c3ced1);display:flex;align-items:center;justify-content:center;} .ph{overflow:hidden;} .ph img{width:100%;height:100%;object-fit:cover;display:block;} .ph span{font:700 54px 'Oswald',sans-serif;color:#fff;opacity:.85;}
+  .bdg{width:58%;aspect-ratio:1/1;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(34,48,58,.18);} .bdg img{max-width:70%;max-height:64%;width:auto;height:auto;object-fit:contain;}
   .info{padding:14px 16px 16px;} .nm{font:700 20px/1.1 'Oswald',sans-serif;} .nm small{display:block;font:500 14px 'Barlow',sans-serif;color:#76828a;margin-top:3px;}
   .row2{font-size:12.5px;color:#76828a;margin-top:8px;display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;} .pos{font-weight:700;color:var(--teal);letter-spacing:.04em;}
   .kv{display:flex;gap:12px;margin-top:10px;font-size:12px;color:#76828a;} .kv b{display:block;font:700 17px 'Oswald',sans-serif;color:var(--ink);}
@@ -25,12 +26,13 @@
   <div class="bar"><a class="back" href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Dashboard</a><input id="q" type="search" placeholder="Search hitters…" autocomplete="off"></div>
   {% if not rows %}<p style="color:var(--muted);margin-top:24px;">No hitters tracked for this team yet. Hitters appear here automatically once a session with batter data is uploaded.</p>{% endif %}
   <div class="grid">
-  {% for r in rows %}{% set parts = r.name.split() %}
-    <a class="sq" href="{{ url_for('beta_hitter', key=r.key) }}" data-s="{{ (r.name ~ ' ' ~ (r.roster.position if r.roster else ''))|lower }}">
-      <div class="ph"><span>{{ (parts[0][:1] ~ parts[-1][:1])|upper }}</span></div>
+  {% for r in rows %}{% set bio = r.bio %}{% set parts = r.name.split() %}{% set badge = sbadge(bio.program, bio.school) %}{% set photo = hphoto(bio) %}
+    <a class="sq" href="{{ url_for('beta_hitter', key=r.key) }}" data-s="{{ (r.name ~ ' ' ~ (bio.position or '') ~ ' ' ~ (bio.school or '') ~ ' ' ~ (bio.class_label or ''))|lower }}">
+      <div class="ph">{% if photo %}<img src="{{ photo }}" alt="" loading="lazy">{% elif badge %}<div class="bdg" style="background:{{ badge.bg }}"><img src="{{ url_for('school_logo', fname=badge.file) }}" alt="" loading="lazy"></div>{% else %}<span>{{ (parts[0][:1] ~ parts[-1][:1])|upper }}</span>{% endif %}</div>
       <div class="info"><div class="nm">{{ parts[-1] }}<small>{{ parts[:-1]|join(' ') }}</small></div>
-        <div class="row2"><span>{{ 'Bats ' ~ r.bats if r.bats != '?' else '' }}</span><span class="pos">{{ r.roster.position if r.roster and r.roster.position else '' }}</span></div>
-        <div class="kv"><span><b>{{ '%.1f'|format(r.s.avg_ev) if r.s.avg_ev is not none else '—' }}</b>Avg EV</span><span><b>{{ ('%.3f'|format(r.s.xba))[1:] if r.s.xba is not none else '—' }}</b>xBA</span><span><b>{{ r.s.score if r.s.score is not none else '—' }}</b>Swing</span></div></div>
+        <div class="row2"><span>{{ bio.school or '' }}</span></div>
+        <div class="row2"><span>{{ bio.class_label or '' }}</span><span class="pos">{{ bio.position or '' }}</span></div>
+        {% if bio.height_in or bio.weight_lbs or bio.bats %}<div class="row2"><span>{% if bio.height_in %}{{ (bio.height_in//12)|int }}'{{ (bio.height_in%12)|int }}"{% endif %}{% if bio.weight_lbs %} &middot; {{ bio.weight_lbs|int }} lb{% endif %}</span><span>{{ 'Bats ' ~ bio.bats if bio.bats else '' }}</span></div>{% endif %}</div>
     </a>{% endfor %}</div>
 </div>
 <script>document.getElementById('q').addEventListener('input',function(){var v=this.value.toLowerCase().trim();document.querySelectorAll('.sq').forEach(function(c){c.style.display=(!v||c.dataset.s.indexOf(v)>-1)?'':'none';});});</script>

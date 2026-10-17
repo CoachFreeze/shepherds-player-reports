@@ -1,0 +1,92 @@
+{
+ "lowe_eli--demo": {
+  "position": "INF",
+  "bats": "L",
+  "throws": "R",
+  "height_in": 71,
+  "weight_lbs": 190,
+  "grad_year": 2027,
+  "number": 5
+ },
+ "monroe_gavin--demo": {
+  "position": "OF",
+  "bats": "R",
+  "throws": "R",
+  "height_in": 74,
+  "weight_lbs": 202,
+  "grad_year": 2027,
+  "number": 33
+ },
+ "sims_jake--demo": {
+  "position": "C",
+  "bats": "R",
+  "throws": "R",
+  "height_in": 69,
+  "weight_lbs": 170,
+  "grad_year": 2030,
+  "number": 27
+ },
+ "cole_aiden--demo": {
+  "position": "INF",
+  "bats": "L",
+  "throws": "R",
+  "height_in": 72,
+  "weight_lbs": 170,
+  "grad_year": 2030,
+  "number": 4
+ },
+ "tate_hudson--demo": {
+  "position": "OF",
+  "bats": "R",
+  "throws": "R",
+  "height_in": 72,
+  "weight_lbs": 205,
+  "grad_year": 2027,
+  "number": 37
+ },
+ "ortiz_beau--demo": {
+  "position": "INF",
+  "bats": "R",
+  "throws": "L",
+  "height_in": 69,
+  "weight_lbs": 179,
+  "grad_year": 2027,
+  "number": 36
+ },
+ "pratt_dylan--demo": {
+  "position": "OF",
+  "bats": "R",
+  "throws": "R",
+  "height_in": 73,
+  "weight_lbs": 191,
+  "grad_year": 2028,
+  "number": 35
+ },
+ "nguyen_caleb--demo": {
+  "position": "INF",
+  "bats": "L",
+  "throws": "R",
+  "height_in": 73,
+  "weight_lbs": 200,
+  "grad_year": 2028,
+  "number": 7
+ },
+ "boyd_kyle--demo": {
+  "position": "C",
+  "bats": "R",
+  "throws": "R",
+  "height_in": 74,
+  "weight_lbs": 171,
+  "grad_year": 2027,
+  "number": 37
+ },
+ "vega_felix--demo": {
+  "position": "OF",
+  "bats": "R",
+  "throws": "R",
+  "height_in": 72,
+  "weight_lbs": 196,
+  "grad_year": 2030,
+  "number": 21
+ }
+}
