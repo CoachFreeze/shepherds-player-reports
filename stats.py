@@ -95,7 +95,7 @@ def _avg(rows, k):
 
 
 def _pct(a, b):
-    return (f'{100 * a / b:.0f}%', f'{a}/{b}') if b else ('-', '')
+    return (f'{100 * a / b:.1f}%', f'{a}/{b}') if b else ('-', '')
 
 
 def _f(v, d=1, suf=''):

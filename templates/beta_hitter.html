@@ -150,7 +150,7 @@ var ZD = {{ h.zone_ev|tojson }};
     <script>(function(){var b=document.querySelectorAll('#mapseg button');Array.prototype.forEach.call(b,function(x){x.addEventListener('click',function(){Array.prototype.forEach.call(b,function(y){y.classList.toggle('on',y===x);});document.getElementById('pm-dec').style.display=x.dataset.v==='dec'?'block':'none';document.getElementById('pm-heat').style.display=x.dataset.v==='heat'?'block':'none';});});})();</script>
     <div class="card"><h2>Spray chart</h2><p class="hint">Every tracked ball in play. Color is exit velocity; tap a dot for the details.</p>
       <div class="center">{{ h.spray|safe }}</div>
-      {% if s.pull_pct is not none %}<div style="margin-top:14px;"><div class="splitl"><b>Pull {{ s.pull_pct|round|int }}%</b><b>Center {{ s.center_pct|round|int }}%</b><b>Oppo {{ s.oppo_pct|round|int }}%</b></div>
+      {% if s.pull_pct is not none %}<div style="margin-top:14px;"><div class="splitl"><b>Pull {{ '%.1f' % s.pull_pct }}%</b><b>Center {{ '%.1f' % s.center_pct }}%</b><b>Oppo {{ '%.1f' % s.oppo_pct }}%</b></div>
         <div class="split"><span style="width:{{ s.pull_pct }}%;background:var(--accent,#5c97a8)"></span><span style="width:{{ s.center_pct }}%;background:#b7cfd6"></span><span style="width:{{ s.oppo_pct }}%;background:#22303a"></span></div></div>{% endif %}
     </div>
   </div>

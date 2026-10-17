@@ -69,9 +69,9 @@ def _fmt_hit(kind, v):
     if kind == 'mph':
         return f'{v:.1f}'
     if kind == 'deg':
-        return f'{v:.0f}°'
+        return f'{v:.1f}°'
     if kind == 'pct':
-        return f'{v:.0f}%'
+        return f'{v:.1f}%'
     return f'{v:.0f}'
 
 
@@ -323,11 +323,11 @@ def _fmt_trend(f, side):
     def v(x):
         if f['metric'] == 'xba':
             return f'{x:.3f}'.lstrip('0')
-        if f['unit'] == '%' or f['metric'] == 'score':
+        if f['metric'] == 'score':
             return f'{x:.0f}'
         return f'{x:.1f}'
     d = f['delta']
-    ds = (f'{d:+.3f}'.replace('0.', '.', 1) if f['metric'] == 'xba' else (f'{d:+.0f}' if f['unit'] == '%' or f['metric'] == 'score' else f'{d:+.1f}'))
+    ds = (f'{d:+.3f}'.replace('0.', '.', 1) if f['metric'] == 'xba' else (f'{d:+.0f}' if f['metric'] == 'score' else f'{d:+.1f}'))
     return {'from': v(f['from']) + f['unit'], 'to': v(f['to']) + f['unit'], 'delta': ds + (f['unit'] if f['unit'] != '%' else ' pts')}
 
 

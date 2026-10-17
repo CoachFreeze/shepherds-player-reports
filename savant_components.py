@@ -283,7 +283,7 @@ def pitch_usage_legend_html(pitches):
         color = p['color']
         cells_header.append(f'<div class="ml-cell ml-name">{p["type"]}</div>')
         cells_pill.append(f'<div class="ml-cell"><span class="ml-pill" style="width:{pill_w}px;background:{color};"></span></div>')
-        cells_usage.append(f'<div class="ml-cell">{pct:.0f}%</div>')
+        cells_usage.append(f'<div class="ml-cell">{pct:.1f}%</div>')
         cells_mph.append(f'<div class="ml-cell">{p["velo"]:.1f}</div>' if p.get('velo') is not None else '<div class="ml-cell">&mdash;</div>')
         cells_top.append(f'<div class="ml-cell">{p["top_velo"]:.1f}</div>' if p.get('top_velo') is not None else '<div class="ml-cell">&mdash;</div>')
     return (
@@ -706,7 +706,7 @@ def location_heatmap_html(pitches, width=340, uid='loc'):
             if not n:
                 return 'No pitches'
             z = sum(1 for l in pts if _in_zone(l['side'], l['height']))
-            return f'{n} pitches &middot; {z} in zone ({z / n * 100:.0f}%)'
+            return f'{n} pitches &middot; {z} in zone ({z / n * 100:.1f}%)'
         stats = ''.join(f'<div class="{uid}-stat" data-view="{name}" style="display:{"block" if i == 0 else "none"}">{stat(name)}</div>'
                         for i, name in enumerate(view_names))
         return (f'<div class="{uid}-col"><div class="{uid}-title">{title}</div>' + ''.join(svg) +

@@ -250,7 +250,7 @@ def xba(pitches):
 
 
 # ------------------------------------------------------------------ 3. stats
-def _pct(a, b, d=0):
+def _pct(a, b, d=1):
     if not b:
         return None
     v = round(100 * a / b, d)
