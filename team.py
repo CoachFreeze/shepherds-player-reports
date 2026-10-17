@@ -212,7 +212,7 @@ def pitching_data(program):
         players.append({'key': slug, 'name': bio.get('name', slug), 'v': v, 'n': len(rows), 'series': _pitch_session_series(outs),
                         'sessions': len(outs)})
     boards = []
-    fb = [(p, _num(p['v']['fb_velo'][0]), _num(p['v'].get('fb_top', ('', ''))[0])) for p in players if 'fb_velo' in p['v'] and p['n'] >= 15]
+    fb = [(p, _num(p['v']['fb_velo'][0]), _num(p['v'].get('fb_top', ('', ''))[0])) for p in players if 'fb_velo' in p['v'] and p['n'] >= 15 and _num(p['v']['fb_velo'][0]) is not None]
     boards.append({'title': 'Fastball velocity', 'sub': 'Average, min. 15 pitches', 'unit': 'mph',
                    'rows': [{'key': p['key'], 'name': p['name'], 'value': f'{a:.1f}', 'extra': f'top {t:.1f}' if t else ''}
                             for p, a, t in sorted(fb, key=lambda x: -x[1])[:5]]})

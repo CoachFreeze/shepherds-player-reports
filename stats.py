@@ -124,6 +124,8 @@ def _core(rows):
     c['known'] = sum(1 for x in o if x != 'unk')
     c['strikes'] = sum(1 for x in o if x not in ('ball', 'hbp', 'unk'))
     c['balls'] = o.count('ball')
+    if rows and all((r.get('Source') or '') == 'fullswing' for r in rows):     # Full Swing logs swings only, so there is no called-strike / ball data
+        c['known'] = c['strikes'] = c['balls'] = 0
     zin = zout = zsw = ocon = zcon = osw = loc = 0
     for r, x in zip(rows, o):
         a, b = _n(r, 'PlateLocSide'), _n(r, 'PlateLocHeight')
@@ -219,6 +221,9 @@ def compute(rows):
         t = r.get('TaggedPitchType')
         if t:
             types.setdefault(t, []).append(r)
+    if all((r.get('Source') or '') == 'fullswing' for r in rows):
+        for k in ('strike_pct', 'ball_pct', 'ahead_pct', 'twostrike_pct', 'csw_pct', 'cs_pct', 'ks', 'fps_pct', 'zone_pct', 'edge_pct', 'chase_pct'):
+            out[k] = ('-', '')
     out['arsenal'] = (str(len(types)), ', '.join(types))
     # per pitch type
     for t, rs in types.items():

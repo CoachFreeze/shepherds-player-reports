@@ -18,6 +18,7 @@ import roster as roster_mod
 import glossary
 import overview
 import outings as outings_mod
+import fullswing
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-only-change-me')
@@ -1320,6 +1321,8 @@ def intake_bulk():
     path = os.path.join(UPLOAD_DIR, fname)
     f.save(path)
     try:
+        if fullswing.is_fullswing(path):          # Full Swing Live-at-Bat export: translate to the row shape the intake reads
+            fullswing.convert_file(path)
         prog = _target_program()
         pitchers = pipeline.pitchers_in_trackman(path, program=prog)
     except Exception as exc:
@@ -1371,7 +1374,7 @@ def intake_bulk_run():
     if not _ok:
         return _upgrade('max_players', _msg)
     _was_first = store.needs_first_upload(session.get('coach'))
-    results = pipeline.process_trackman_bulk(path, specs, live_ab=bool(f.get('live_ab')), reassign=reassign, program=prog)
+    results = pipeline.process_trackman_bulk(path, specs, live_ab=bool(f.get('live_ab')) or fullswing.is_converted(path), reassign=reassign, program=prog)
     try:
         _ros = roster_mod.load(prog)
         if _ros and roster_mod.apply_to_players(prog, _ros['players'], store.list_players()):

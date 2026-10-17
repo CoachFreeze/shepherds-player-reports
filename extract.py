@@ -450,11 +450,12 @@ TRACKMAN_FINE_TYPE_MAP = {
     'curveball': 'Curve', 'curve': 'Curve', 'knucklecurve': 'Curve',
     'cutter': 'Cutter',
     'splitter': 'Split', 'splitfinger': 'Split',
+    'untagged': 'Untagged',      # Full Swing exports carry no pitch type; the converter stamps this so velo/spin still show
 }
 # Sampled from the client's reference pitch-type legend.
 MINI_PITCH_COLORS = {
     'Sinker': '#f0a139', 'Curve': '#5fcee9', '4-Seam': '#c13d4d', 'Slider': '#ede750',
-    'Cutter': '#894432', 'Split': '#5daaab', 'Sweeper': '#d6b552', 'Change': '#5abb4e',
+    'Cutter': '#894432', 'Split': '#5daaab', 'Sweeper': '#d6b552', 'Change': '#5abb4e', 'Untagged': '#9aa5ab',
 }
 
 _TM_PITCHER_COLS = ['Pitcher', 'PitcherName', 'Pitcher Name']
@@ -1015,10 +1016,13 @@ def outing_summary(rows):
     outs = sum(1 for r in rows if 'PR_Out' in _tags(r)) + ks
     evs = [_fnum(r.get('ExitSpeed')) for r, o in zip(rows, outs_) if o == 'inplay']
     evs = [v for v in evs if v]
+    fs = all((r.get('Source') or '') == 'fullswing' for r in rows)       # Full Swing: swings only -- no calls, counts or locations
+    if fs:
+        strikes = known = 0
     def pct(a, b):
         return f'{100 * a / b:.1f}%' if b else '-'
     return {
-        'ip': f'{outs // 3}.{outs % 3}', 'bf': bf, 'pitches': n, 'hits': hits, 'walks': walks, 'hbp': hbp,
+        'ip': '-' if fs else f'{outs // 3}.{outs % 3}', 'bf': bf, 'pitches': n, 'hits': hits, 'walks': walks, 'hbp': hbp,
         'strike_pct': pct(strikes, known), 'fps_pct': pct(fps, len(fp)), 'zone_pct': pct(inzone, loc_n),
         'whiff_pct': pct(whiffs, swings), 'chase_pct': pct(chases, outside),
         'avg_ev': f'{sum(evs) / len(evs):.1f}' if evs else '-',
