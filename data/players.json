@@ -36,6 +36,21 @@
     "school": "Biola University",
     "weight_lbs": 205.0
   },
+  "aidan_dahlk": {
+    "comps": {},
+    "grad_year": null,
+    "height_in": 74.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261016-BiolaUniversity-Private-1_unverified.csv",
+    "name": "Aidan Dahlk",
+    "program": "biola_university",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Biola University",
+    "weight_lbs": 200.0
+  },
   "aidan_young": {
     "comps": {
       "hit": [
