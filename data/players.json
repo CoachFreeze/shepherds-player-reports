@@ -285,6 +285,21 @@
     "school": "Long Beach State",
     "weight_lbs": 225
   },
+  "dylan_proost": {
+    "comps": {},
+    "grad_year": null,
+    "height_in": 76.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261010-BiolaUniversity-Private-1_unverified.csv",
+    "name": "Dylan Proost",
+    "program": "biola_university",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Biola University",
+    "weight_lbs": 230.0
+  },
   "hayden_vanderhoof": {
     "comps": {},
     "grad_year": 2030,
