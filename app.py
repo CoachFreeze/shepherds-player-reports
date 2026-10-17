@@ -17,6 +17,7 @@ import theme
 import roster as roster_mod
 import glossary
 import overview
+import outings as outings_mod
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-only-change-me')
@@ -759,6 +760,65 @@ HITTER_EDIT_PAGE = EDIT_PAGE.replace("background:#5c97a8;color:#fff", "backgroun
     "<div class=\"row\"><div><label>Position</label>",
     "<div class=\"row\"><div><label>Bats</label><select name=\"bats\">{% for o in ['R','L','S'] %}<option value=\"{{ o }}\" {{ 'selected' if p.bats == o }}>{{ o }}</option>{% endfor %}</select></div><div><label>Throws</label><select name=\"throws\">{% for o in ['R','L'] %}<option value=\"{{ o }}\" {{ 'selected' if p.throws == o }}>{{ o }}</option>{% endfor %}</select></div><div><label>Position</label>").replace(
     "<div class=\"btns\">", "<div class=\"row\"><div><label>Jersey #</label><input type=\"number\" name=\"number\" value=\"{{ p.number or '' }}\"></div></div>\n<div class=\"btns\">")
+
+
+RETAG_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Retag Pitches</title>
+<style>{{ theme_css|safe }}</style>
+<style>body{font-family:Barlow,Arial,sans-serif;background:#f7f6f2;color:#22303a;max-width:760px;margin:0 auto;padding:24px 16px 80px;} h1{font-family:Oswald,Arial,sans-serif;margin:6px 0 2px;}
+a{color:var(--accent-ink,#6b7680);font-size:13px;} p.s{color:#6b7680;font-size:13.5px;margin:4px 0 14px;line-height:1.45;}
+.card{background:#fff;border-radius:14px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);padding:14px 16px;margin:12px 0;}
+.tabs a{display:inline-block;margin:0 6px 6px 0;padding:5px 12px;border-radius:999px;background:#eef1f0;color:#55626b;text-decoration:none;font-weight:600;} .tabs a.on{background:var(--accent,#5c97a8);color:var(--on-accent,#fff);}
+table{width:100%;border-collapse:collapse;font-size:13.5px;} th{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#76828a;text-align:left;padding:6px 6px;border-bottom:1px solid #e6e9e8;} td{padding:6px;border-bottom:1px solid #f0f2f1;}
+td.n{font-variant-numeric:tabular-nums;} select{padding:6px 8px;border:1px solid #dcdfdc;border-radius:7px;font:inherit;background:#fff;} tr.ch td{background:#fbf3e0;} .was{font-size:11.5px;color:#8a6212;}
+.bulk{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13.5px;} button{padding:10px 22px;border:none;border-radius:999px;background:var(--accent,#5c97a8);color:var(--on-accent,#fff);font-weight:700;cursor:pointer;font-size:14px;} button.g{background:#eef1f0;color:#22303a;padding:7px 14px;font-size:13px;}
+.bar{position:sticky;bottom:0;background:linear-gradient(transparent,#f7f6f2 30%);padding:18px 0 4px;} .ok{background:#e4f2ea;color:#2a7a4b;padding:10px 14px;border-radius:10px;margin:10px 0;font-size:14px;}</style></head><body>
+<a href="{{ url_for('player_overview', slug=slug) }}">&larr; Back to {{ p.name }}</a><h1>Retag Pitches</h1>
+<p class="s">Fix a pitch Trackman tagged wrong. Every report, chart and stat for {{ p.name }} updates right away, and the original tag is kept so any change can be undone. A correction stays put even if the same CSV is uploaded again.</p>
+{% if saved is not none %}<div class="ok">{{ saved }} pitch{{ '' if saved == 1 else 'es' }} updated.</div>{% endif %}
+<div class="tabs">{% for o in outs %}<a href="{{ url_for('retag_pitches', slug=slug, date=o.id) }}" class="{{ 'on' if o.id == date }}">{{ o.id }}</a>{% endfor %}</div>
+{% if rows %}<form method="post">
+<div class="card bulk"><b>Change all</b><select id="bf">{% for l, v in types %}<option>{{ l }}</option>{% endfor %}</select><b>to</b><select id="bt">{% for l, v in types %}<option>{{ l }}</option>{% endfor %}</select><button type="button" class="g" id="ba">Apply to this outing</button></div>
+<div class="card"><table><tr><th>#</th><th>Velo</th><th>Spin</th><th>IVB / HB</th><th>Pitch type</th></tr>
+{% for r in rows %}<tr class="{{ 'ch' if r.was }}"><td class="n">{{ loop.index }}</td><td class="n">{{ r.velo }}</td><td class="n">{{ r.spin }}</td><td class="n">{{ r.mv }}</td>
+<td><select name="t_{{ r.uid }}" data-orig="{{ r.cur }}">{% for l, v in types %}<option {{ 'selected' if l == r.cur }}>{{ l }}</option>{% endfor %}{% if r.cur not in type_labels %}<option selected>{{ r.cur }}</option>{% endif %}</select>{% if r.was %}<div class="was">was {{ r.was }}</div>{% endif %}</td></tr>{% endfor %}</table></div>
+<div class="bar"><button type="submit">Save changes</button></div></form>
+<script>document.getElementById('ba').onclick=function(){var f=document.getElementById('bf').value,t=document.getElementById('bt').value;document.querySelectorAll('td select').forEach(function(s){if(s.value===f)s.value=t;});};</script>
+{% else %}<p class="s">No pitches for this outing.</p>{% endif %}</body></html>"""
+
+
+@app.route('/player/<slug>/retag', defaults={'date': None}, methods=['GET', 'POST'])
+@app.route('/player/<slug>/retag/<date>', methods=['GET', 'POST'])
+@login_required
+def retag_pitches(slug, date):
+    """Coaches (their own players) and admins can correct pitch-type tags; stored on the outing rows (see outings.retag)."""
+    if not can_manage(slug) or store.is_demo(slug):
+        abort(403)
+    p = store.get_player(slug)
+    if not p:
+        abort(404)
+    outs = outings_mod.outings(slug)
+    if not outs:
+        abort(404)
+    date = date or outs[0]['id']
+    if request.method == 'POST':
+        ch = {k[2:]: v for k, v in request.form.items() if k.startswith('t_')}
+        n = outings_mod.retag(slug, date, ch, who=session.get('coach') or '')
+        return redirect(url_for('retag_pitches', slug=slug, date=date, saved=n))
+    o = next((x for x in outs if x['id'] == date), None)
+    if not o:
+        abort(404)
+    def f1(v, d=1):
+        try:
+            return f"{float(v):.{d}f}"
+        except Exception:
+            return '–'
+    rows = [{'uid': outings_mod._uid(r), 'cur': outings_mod.label_for(r.get('TaggedPitchType')),
+             'was': outings_mod.label_for(r['OrigTaggedPitchType']) if r.get('OrigTaggedPitchType') else '',
+             'velo': f1(r.get('RelSpeed')), 'spin': f1(r.get('SpinRate'), 0),
+             'mv': f"{f1(r.get('InducedVertBreak'))} / {f1(r.get('HorzBreak'))}"} for r in o['rows']]
+    saved = request.args.get('saved', type=int)
+    return render_template_string(RETAG_PAGE, p=p, slug=slug, outs=outs, date=date, rows=rows, types=outings_mod.RETAG_TYPES,
+                                  type_labels=[l for l, _ in outings_mod.RETAG_TYPES], saved=saved)
 
 
 @app.route('/hitter/<key>/edit', methods=['GET', 'POST'])

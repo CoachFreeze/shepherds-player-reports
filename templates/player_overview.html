@@ -31,6 +31,7 @@
   .trendnote{position:absolute;top:14px;right:16px;text-align:right;line-height:1.2;} .trendnote b{display:block;font:700 15px 'Barlow',sans-serif;} .trendnote span{font-size:11.5px;color:#76828a;}
   .trendnote.up b{color:#2a7a4b;} .trendnote.down b{color:#b3563a;} .trendnote.flat b{color:#6b7680;}
   @media (max-width:640px){.trendnote{position:static;text-align:center;margin:0 0 6px;}}
+  .trow{display:grid;grid-template-columns:1fr 1fr;gap:14px;} .trow .pn{margin-top:14px;min-width:0;} .trow .pn:only-child{grid-column:1/-1;} .trow .trendnote{position:static;text-align:left;margin:0 0 4px 6px;} @media (max-width:760px){.trow{grid-template-columns:1fr;gap:0;}}
   .mv-pt{cursor:pointer;} @media (max-width:560px){.tiles{grid-template-columns:repeat(2,1fr);} .olog .st{width:100%;justify-content:space-between;}}
 </style></head><body><div class="ov">
 <div class="top"><a href="{{ pitchers_url }}">&larr; {{ 'Pitcher Dashboard' if nav_program else 'All players' }}</a>{% if is_coach %}<span style="display:flex;align-items:center;gap:12px;"><a class="upl" href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a>{% include '_usermenu.html' %}</span>{% endif %}</div>
@@ -81,14 +82,15 @@
 
 {% if b.movement_html %}<div class="pn pmp-panel"><div class="pn-t">Pitch Movement Profile</div>{{ b.movement_html|safe }}</div>{% endif %}
 {% if b.location_html %}<div class="pn loc-wrap"><div class="pn-t">Pitch Location</div><div class="pn-s">Catcher's view &middot; vs left- and right-handed batters</div>{{ b.location_html|safe }}</div>{% endif %}
-{% if b.trend_html %}<div class="pn" style="position:relative;">{% if b.trend_note %}<div class="trendnote {{ b.trend_note.dir }}"><b>{% if b.trend_note.dir == 'up' %}&#9650;{% elif b.trend_note.dir == 'down' %}&#9660;{% else %}&#9644;{% endif %} {{ b.trend_note.head }}</b><span>{{ b.trend_note.sub }}</span></div>{% endif %}<div class="pn-t">Velocity Trend</div><div class="pn-s">Average velocity by pitch type, last {{ b.n_outings }} outing{{ 's' if b.n_outings != 1 }}</div>
-  <div class="lg">{% for l in b.legend %}<span><i style="background:{{ l.color }}"></i>{{ l.type }}</span>{% endfor %}</div>{{ b.trend_html|safe }}</div>{% endif %}
+{% if b.trend_html %}<div class="trow"><div class="pn" style="position:relative;">{% if b.trend_note %}<div class="trendnote {{ b.trend_note.dir }}"><b>{% if b.trend_note.dir == 'up' %}&#9650;{% elif b.trend_note.dir == 'down' %}&#9660;{% else %}&#9644;{% endif %} {{ b.trend_note.head }}</b><span>{{ b.trend_note.sub }}</span></div>{% endif %}<div class="pn-t">Velocity Trend</div><div class="pn-s">Average velocity by pitch type, last {{ b.n_outings }} outing{{ 's' if b.n_outings != 1 }}</div>
+  <div class="lg">{% for l in b.legend %}<span><i style="background:{{ l.color }}"></i>{{ l.type }}</span>{% endfor %}</div>{{ b.trend_html|safe }}</div>{% if b.spin_html %}<div class="pn" style="position:relative;">{% if b.spin_note %}<div class="trendnote {{ b.spin_note.dir }}"><b>{% if b.spin_note.dir == 'up' %}&#9650;{% elif b.spin_note.dir == 'down' %}&#9660;{% else %}&#9644;{% endif %} {{ b.spin_note.head }}</b><span>{{ b.spin_note.sub }}</span></div>{% endif %}<div class="pn-t">Spin Rate Trend</div><div class="pn-s">Average spin rate by pitch type, last {{ b.n_outings }} outing{{ 's' if b.n_outings != 1 }}</div>
+  <div class="lg">{% for l in b.spin_legend %}<span><i style="background:{{ l.color }}"></i>{{ l.type }}</span>{% endfor %}</div>{{ b.spin_html|safe }}</div>{% endif %}</div>{% endif %}
 
 <div class="pn olog"><div class="pn-t">Outing Reports</div><div class="pn-s">Most recent first &middot; tap one to open the full report</div>
   {% for o in b.log %}<div class="orow"><a class="main" href="{{ url_for('view_outing', slug=slug, date=o.id) }}">
     <div><div class="d">{{ o.label }}<span class="tag2 {{ 'live' if o.live_ab else 'bp' }}">{{ 'Live AB' if o.live_ab else 'Bullpen' }}</span></div><div class="m">{{ o.types }}</div></div>
     <div class="st"><span><b>{{ o.n }}</b>Pitches</span><span><b>{{ '%.1f'|format(o.top) if o.top else '—' }}</b>Top Velo</span><span><b>{{ o.strike }}</b>Strike %</span>{% if o.ip %}<span><b>{{ o.ip }}</b>IP</span>{% endif %}</div></a>
-    <div class="dlrow"><a class="dl" href="{{ url_for('view_outing', slug=slug, date=o.id) }}?download=1">&#8681; Download to send to {{ bio.name.split()[0] }}</a></div></div>{% endfor %}
+    <div class="dlrow"><a class="dl" href="{{ url_for('view_outing', slug=slug, date=o.id) }}?download=1">&#8681; Download to send to {{ bio.name.split()[0] }}</a>{% if can_edit and not is_demo %} <a class="dl" style="margin-left:12px;" href="{{ url_for('retag_pitches', slug=slug, date=o.id) }}">&#9998; Retag pitches</a>{% endif %}</div></div>{% endfor %}
 </div>
 </div><div id="mv-tip"></div>
 <script>(function(){var tip=document.getElementById('mv-tip');function lum(h){var n=parseInt(h.slice(1),16),r=n>>16,g=(n>>8)&255,b=n&255;return(.299*r+.587*g+.114*b)/255;}

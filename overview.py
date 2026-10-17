@@ -32,16 +32,20 @@ def _long_date(d):
         return d
 
 
-def trend_svg(series, dates, width=680, height=300):
-    """series: {type: {'color':hex, 'vals':[avg velo or None per outing, oldest first]}}"""
+def trend_svg(series, dates, width=560, height=300, ylabel='Avg velocity (mph)', unit='mph', dec=1, nice=None):
+    """series: {type: {'color':hex, 'vals':[avg per outing or None, oldest first]}}. Defaults draw the velocity chart;
+    pass ylabel/unit/dec/nice (candidate gridline steps) for another metric such as spin rate."""
     vals = [v for s in series.values() for v in s['vals'] if v is not None]
     if not vals:
         return ''
     lo, hi = min(vals), max(vals)
-    step = 2 if hi - lo > 6 else 1
+    if nice:
+        step = next((k for k in nice if (hi - lo) / k <= 5), nice[-1])
+    else:
+        step = 2 if hi - lo > 6 else 1
     ymin = (int(lo) // step) * step - step
     ymax = (int(hi) // step + 1) * step + step
-    L, R, T, B = 46, 18, 16, 38
+    L, R, T, B = 58, 18, 16, 38
     pw, ph = width - L - R, height - T - B
     n = len(dates)
     X = lambda i: L + (pw / 2 if n == 1 else pw * i / (n - 1))
@@ -54,7 +58,7 @@ def trend_svg(series, dates, width=680, height=300):
         y += step
     for i, d in enumerate(dates):
         o.append(f'<text x="{X(i):.1f}" y="{height-14}" text-anchor="middle" font-size="12" fill="#6b7680">{_date_label(d)}</text>')
-    o.append(f'<text x="12" y="{T+ph/2}" transform="rotate(-90 12 {T+ph/2})" text-anchor="middle" font-size="12" fill="#6b7680">Avg velocity (mph)</text>')
+    o.append(f'<text x="12" y="{T+ph/2}" transform="rotate(-90 12 {T+ph/2})" text-anchor="middle" font-size="12" fill="#6b7680">{ylabel}</text>')
     for ty, s in series.items():
         pts = [(X(i), Y(v), v, dates[i]) for i, v in enumerate(s['vals']) if v is not None]
         if len(pts) > 1:
@@ -62,7 +66,7 @@ def trend_svg(series, dates, width=680, height=300):
                      ' '.join(f'{x:.1f},{yy:.1f}' for x, yy, _, _ in pts) + '"/>')
         for x, yy, v, d in pts:
             o.append(f'<circle class="mv-pt" cx="{x:.1f}" cy="{yy:.1f}" r="5.5" fill="{s["color"]}" stroke="#fff" stroke-width="1.5" '
-                     f'data-tip="{escape(ty)} · {v:.1f} mph · {_date_label(d)}"/>')
+                     f'data-tip="{escape(ty)} · {v:.{dec}f} {unit} · {_date_label(d)}"/>')
     o.append('</svg>')
     return ''.join(o)
 
@@ -78,7 +82,7 @@ def _stamp(outs, name):
 _FB = ('Fastball', 'Four-Seam', '4-Seam', 'FourSeam', 'Sinker')
 
 
-def _trend_note(series):
+def _trend_note(series, label='velo', unit=' mph', dec=1, flat=0.3):
     """Headline for the velocity chart: change in the main fastball's average velocity from the oldest to the newest
     outing shown, e.g. {'dir': 'up', 'head': 'Up 1.2 mph', 'sub': '4-Seam velo, last 3 outings'}. None if < 2 outings."""
     best = None
@@ -93,10 +97,10 @@ def _trend_note(series):
         return None
     _, s, name, pts = best
     d = pts[-1] - pts[0]
-    sub = f"{name} velo, last {len(pts)} outings"
-    if abs(d) < 0.3:
+    sub = f"{name} {label}, last {len(pts)} outings"
+    if abs(d) < flat:
         return {'dir': 'flat', 'head': 'Holding steady', 'sub': sub}
-    return {'dir': 'up' if d > 0 else 'down', 'head': f"{'Up' if d > 0 else 'Down'} {abs(d):.1f} mph", 'sub': sub}
+    return {'dir': 'up' if d > 0 else 'down', 'head': f"{'Up' if d > 0 else 'Down'} {abs(d):.{dec}f}{unit}", 'sub': sub}
 
 
 def build(slug, bio):
@@ -125,20 +129,25 @@ def build(slug, bio):
     # velocity trend, oldest -> newest
     chron = list(reversed(recent))
     dates = [o['date'] for o in chron]
-    series = {}
+    series, spin_series = {}, {}
     for i, o in enumerate(chron):
         _, ptm = e.pitcher_trackman_summary(o['rows'], name)
         for t in ptm:
-            if t.get('velo') is None:
-                continue
-            s = series.setdefault(t['type'], {'color': e.MINI_PITCH_COLORS.get(t['type'], '#555'), 'vals': [None] * len(chron), 'n': 0})
-            s['vals'][i] = t['velo']
-            s['n'] += t['n']
+            for key, ser in (('velo', series), ('spin_avg', spin_series)):
+                if t.get(key) is None:
+                    continue
+                s = ser.setdefault(t['type'], {'color': e.MINI_PITCH_COLORS.get(t['type'], '#555'), 'vals': [None] * len(chron), 'n': 0})
+                s['vals'][i] = t[key]
+                s['n'] += t['n']
     order = [t['type'] for t in tm]
     series = {k: series[k] for k in order if k in series}
+    spin_series = {k: spin_series[k] for k in order if k in spin_series}
     trend_html = trend_svg(series, dates)
+    spin_html = trend_svg(spin_series, dates, ylabel='Avg spin rate (rpm)', unit='rpm', dec=0, nice=[50, 100, 200, 250, 500])
     legend = [{'type': k, 'color': v['color']} for k, v in series.items()]
+    spin_legend = [{'type': k, 'color': v['color']} for k, v in spin_series.items()]
     trend_note = _trend_note(series)
+    spin_note = _trend_note(spin_series, label='spin', unit=' rpm', dec=0, flat=15)
 
     log = []
     for o in recent:
@@ -150,7 +159,7 @@ def build(slug, bio):
                     'ip': os_.get('ip') if o.get('live_ab') else None,
                     'types': ', '.join(t['type'] for t in otm)})
     return {'name': name, 'meta': meta, 'trend_note': trend_note, 'summary': summ, 'stat_tiles': stat_tiles, 'stat_catalog': stat_catalog, 'movement_html': movement_html, 'location_html': location_html,
-            'trend_html': trend_html, 'legend': legend, 'log': log, 'n_outings': len(recent), 'n_pitches': len(rows),
+            'trend_html': trend_html, 'legend': legend, 'spin_html': spin_html, 'spin_legend': spin_legend, 'spin_note': spin_note, 'log': log, 'n_outings': len(recent), 'n_pitches': len(rows),
             'range': (_long_date(recent[-1]['date']) + ' – ' + _long_date(recent[0]['date'])) if len(recent) > 1 else _long_date(recent[0]['date'])}
 
 

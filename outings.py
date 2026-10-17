@@ -93,3 +93,46 @@ def move(old_slug, new_slug, push=True):
     data = load(old_slug, real_only=True)
     delete(old_slug, push)
     _save(new_slug, data, push)
+
+
+RETAG_TYPES = [('4-Seam', 'Fastball'), ('Sinker', 'Sinker'), ('Cutter', 'Cutter'), ('Slider', 'Slider'), ('Sweeper', 'Sweeper'),
+               ('Curveball', 'Curveball'), ('Changeup', 'ChangeUp'), ('Splitter', 'Splitter')]     # (label shown, value stored in TaggedPitchType)
+_STORED = dict(RETAG_TYPES)
+_STORED['Untagged'] = ''          # only reachable when undoing a retag of a pitch Trackman left untagged
+
+
+def label_for(raw):
+    """The friendly chip label for whatever Trackman tagged (TwoSeamFastBall -> Sinker, ChangeUp -> Changeup...)."""
+    import extract
+    k = str(raw or '').lower().replace(' ', '').replace('-', '').replace('_', '')
+    return extract.TRACKMAN_FINE_TYPE_MAP.get(k) or (raw if raw and raw != 'Undefined' else 'Untagged')
+
+
+def retag(slug, date, changes, who='', push=True):
+    """changes: {pitch uid: label from RETAG_TYPES}. The first retag of a pitch remembers Trackman's original tag
+    (OrigTaggedPitchType) so it can always be undone, and later uploads of the same CSV never overwrite a correction
+    (add_rows keeps the stored row). Returns how many pitches changed."""
+    data = load(slug, real_only=True)
+    n = 0
+    for o in data['outings']:
+        if o['id'] != date:
+            continue
+        for r in o['rows']:
+            new_label = changes.get(_uid(r))
+            if new_label is None or new_label not in _STORED:
+                continue
+            new = _STORED[new_label]
+            cur_lab = label_for(r.get('TaggedPitchType'))
+            if new_label == cur_lab:
+                continue
+            r.setdefault('OrigTaggedPitchType', r.get('TaggedPitchType') or '')
+            r['TaggedPitchType'] = new
+            r['RetaggedBy'] = who
+            if label_for(r['OrigTaggedPitchType']) == new_label:       # put back to Trackman's own tag: not a correction any more
+                r['TaggedPitchType'] = r['OrigTaggedPitchType']
+                for k in ('OrigTaggedPitchType', 'RetaggedBy'):
+                    r.pop(k, None)
+            n += 1
+    if n:
+        _save(slug, data, push)
+    return n
