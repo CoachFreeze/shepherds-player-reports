@@ -244,8 +244,8 @@ def movement_plot_svg(pitches, width=340, height=340, max_range=24, all_pitches=
             color, hb, vb = p['color'], p['hb'], p['vb']
             x, y = to_xy(hb, vb)
             arm_side = (hb < 0) if throws == 'L' else (hb > 0)
-            rise = f'{abs(vb):.1f} INCHES {"RISE" if vb >= 0 else "DROP"}'
-            run = f'{abs(hb):.1f} INCHES {"TAIL" if arm_side else "CUT"}'
+            rise = f'{vb:.1f}" IVB'
+            run = f'{hb:.1f}" HB'
             fs = 12 * font_scale
             halo = 'paint-order="stroke" stroke="#fff" stroke-width="4" stroke-linejoin="round"'
             hx = (x + cx) / 2
@@ -254,8 +254,8 @@ def movement_plot_svg(pitches, width=340, height=340, max_range=24, all_pitches=
                 f'<g class="mv-hl" data-ptype="{p["type"]}" style="display:none;pointer-events:none">'
                 f'<line x1="{x:.1f}" y1="{y:.1f}" x2="{cx:.1f}" y2="{y:.1f}" stroke="{color}" stroke-width="3"/>'
                 f'<line x1="{x:.1f}" y1="{y:.1f}" x2="{x:.1f}" y2="{cy:.1f}" stroke="{color}" stroke-width="3"/>'
-                f'<text x="{cx + (8 if x > cx else -8):.1f}" y="{y - 9:.1f}" font-size="{fs:.1f}" font-weight="700" fill="#6b7f8c" text-anchor="{"start" if x > cx else "end"}" {halo}>{rise}</text>'
-                f'<text x="{x + 9:.1f}" y="{vy:.1f}" font-size="{fs:.1f}" font-weight="700" fill="#6b7f8c" text-anchor="start" {halo}>{run}</text>'
+                f'<text x="{cx + (-9 if x >= cx else 9):.1f}" y="{y + fs * 0.36:.1f}" font-size="{fs:.1f}" font-weight="800" fill="{color}" text-anchor="{"end" if x >= cx else "start"}" {halo}>{rise}</text>'
+                f'<text x="{x:.1f}" y="{cy + (fs + 8 if y <= cy else -9):.1f}" font-size="{fs:.1f}" font-weight="800" fill="{color}" text-anchor="middle" {halo}>{run}</text>'
                 f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{pt_r * 2.7:.1f}" fill="{color}" stroke="#fff" stroke-width="2.5"/>'
                 f'<text x="{x:.1f}" y="{y + fs * 0.36:.1f}" font-size="{fs:.1f}" font-weight="800" fill="#fff" text-anchor="middle" '
                 f'style="text-shadow:0 0 3px rgba(0,0,0,.35)">AVG</text></g>')
