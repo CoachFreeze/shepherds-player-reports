@@ -21,32 +21,6 @@
     ],
     "weight_lbs": 190.0
   },
-  "aidan_cube": {
-    "comps": {},
-    "grad_year": null,
-    "height_in": 75.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261016-BiolaUniversity-Private-1_unverified.csv",
-    "name": "Aidan Cube",
-    "program": "biola_university",
-    "roles": {
-      "pitch": {
-        "position": "LHP"
-      }
-    },
-    "roster": {
-      "bats": "L",
-      "class_year": "Jr.",
-      "high_school": "Los Osos HS",
-      "hometown": "Rancho Cucamonga, CA",
-      "major": "Engineering",
-      "number": "30",
-      "pos_raw": "Left-Handed Pitcher",
-      "prev_school": "Los Osos HS",
-      "throws": "L"
-    },
-    "school": "Biola University",
-    "weight_lbs": 205.0
-  },
   "aidan_dahlk": {
     "comps": {},
     "grad_year": null,
@@ -127,7 +101,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 77.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261010-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261016-BiolaUniversity-Private-1_unverified.csv",
     "name": "Ben Ricketts",
     "program": "biola_university",
     "roles": {
@@ -549,9 +523,6 @@
     "roles": {
       "hit": {
         "position": "C"
-      },
-      "pitch": {
-        "position": "RHP"
       }
     },
     "roster": {
@@ -572,7 +543,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 74.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261010-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261016-BiolaUniversity-Private-1_unverified.csv",
     "name": "Oscar Knapp",
     "program": "biola_university",
     "roles": {
