@@ -36,7 +36,7 @@ def _norm_trackman(r):
     side = {'Right': 'R', 'Left': 'L'}.get(r.get('BatterSide'))
     return {
         'batter': (r.get('Batter') or '').strip(), 'side': side, 'date': (r.get('Date') or '')[:10],
-        'pitcher': r.get('Pitcher'), 'pitch_type': r.get('TaggedPitchType'), 'speed': e._fnum(r.get('RelSpeed')),
+        'pitcher': r.get('Pitcher'), 'p_throws': {'Right': 'R', 'Left': 'L', 'R': 'R', 'L': 'L'}.get(r.get('PitcherThrows') or r.get('Pitcher Throws')), 'pitch_type': r.get('TaggedPitchType'), 'speed': e._fnum(r.get('RelSpeed')),
         'x': e._fnum(r.get('PlateLocSide')), 'z': e._fnum(r.get('PlateLocHeight')),
         'outcome': e._outcome(r),
         'ev': e._fnum(r.get('ExitSpeed')), 'la': e._fnum(r.get('Angle')),
@@ -490,10 +490,14 @@ def _collect(include_demo):
             continue
         pl = store.get_player(slug) or {}
         prog = pl.get('program') or ('demo_university' if is_demo else 'shepherds')
+        _pp = ((pl.get('roles') or {}).get('pitch') or {}).get('position')          # fallback for the pitcher's hand
+        _hand = 'R' if _pp == 'RHP' else ('L' if _pp == 'LHP' else None)
         for o in outings_mod.load(slug)['outings']:
             for p in normalize(o['rows']):
                 if not p['batter']:
                     continue
+                if not p.get('p_throws'):
+                    p['p_throws'] = _hand
                 key = _slug(p['batter']) + ('--demo' if is_demo else '')
                 h = out.get(key)
                 if h is None:
@@ -529,13 +533,29 @@ def list_hitters(include_demo=True):
     return rows
 
 
-def hitter_profile(key, include_demo=True):
+def hitter_profile(key, include_demo=True, side='all'):
     h = _collect(include_demo).get(key)
     if not h:
         return None
-    ps = h['pitches']
-    sides = {p['side'] for p in ps if p['side']}
-    bats = 'S' if len(sides) > 1 else (next(iter(sides)) if sides else None)
+    ps_all = h['pitches']
+    sides = {p['side'] for p in ps_all if p['side']}
+    bats_seen = 'S' if len(sides) > 1 else (next(iter(sides)) if sides else None)
+    bio = _bio(key, h, _players_index(), bats_seen)
+    switch = None
+    if bio['bats'] == 'S':
+        # The data rarely says which side a switch hitter hit from, so it comes from the pitcher's hand: left-handed against righties,
+        # right-handed against lefties. Pitches with no known pitcher hand stay in Combined only.
+        for p in ps_all:
+            if p.get('p_throws') in ('R', 'L'):
+                p['side'] = 'L' if p['p_throws'] == 'R' else 'R'
+        n_l = sum(1 for p in ps_all if p.get('p_throws') == 'R')
+        n_r = sum(1 for p in ps_all if p.get('p_throws') == 'L')
+        side = side if side in ('L', 'R') else 'all'
+        switch = {'cur': side, 'n_all': len(ps_all), 'n_l': n_l, 'n_r': n_r, 'unknown': len(ps_all) - n_l - n_r}
+    else:
+        side = 'all'
+    ps = [p for p in ps_all if p.get('p_throws') == ('R' if side == 'L' else 'L')] if side in ('L', 'R') else ps_all
+    bats = side if side in ('L', 'R') else bats_seen if not switch else 'S'
     s = hitter_stats(ps)
     import benchmarks as bm
     prow = []
@@ -543,11 +563,12 @@ def hitter_profile(key, include_demo=True):
         prow.append({'label': 'EV90', 'pctl': bm.interpolate(s['ev90'], bm.HITTER['ev90']), 'value_display': f"{s['ev90']:.1f}"})
     if s['whiff_pct'] is not None and len([p for p in ps if p['outcome'] in SWING]) >= 10:
         prow.append({'label': 'Whiff%', 'pctl': bm.interpolate(s['whiff_pct'], bm.HITTER['whiff_pct']), 'value_display': f"{s['whiff_pct']:.0f}%"})
-    return {'bio': _bio(key, h, _players_index(), bats), 'ps_n': len(ps), 'roster': h.get('roster'), 'pctl_html': sc.percentile_bars_html(prow) if prow else '', 'key': key, 'name': display_name(h['name']), 'program': h['program'], 'demo': h['demo'], 'bats': bats,
-            's': s, 'notes': takeaways(s), 'dates': sorted({p['date'] for p in ps if p['date']}),
+    return {'bio': bio, 'switch': switch, 'ps_n': len(ps), 'roster': h.get('roster'), 'pctl_html': sc.percentile_bars_html(prow) if prow else '', 'key': key, 'name': display_name(h['name']), 'program': h['program'], 'demo': h['demo'], 'bats': bats,
+            's': s, 'notes': takeaways(s), 'dates': sorted({p['date'] for p in ps_all if p['date']}),
             'zone_ev': zone_ev_data(ps),
             'decision_svg': decision_chart_svg(ps, side=bats if bats in ('L', 'R') else None),
             'spray': spray_html(ps)}
+
 
 # ------------------------------------------------------------------ hitter bios (card + profile header)
 HITTER_BIOS_PATH = os.path.join(store.DATA_DIR, 'hitters.json')
