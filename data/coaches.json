@@ -20,7 +20,8 @@
   "sebastian.garcia": {
     "display_name": "Sebastian Garcia",
     "password_hash": "scrypt:32768:8:1$DltZjQ0tOoPyOO2D$bd2cc4e80fb1bc49b2cbf82911f33f33cbbf5433912f610e207f81d2911ea38463ce607c6f314da99e0c11ec82eff54ccf7c20941583e113b20349af083a28d7",
-    "role": "admin"
+    "role": "admin",
+    "toured": true
   },
   "tyler.latorre": {
     "display_name": "Tyler LaTorre",
