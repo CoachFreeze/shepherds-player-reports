@@ -12,6 +12,8 @@
   .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 34px;align-items:start;} .cols.one{grid-template-columns:minmax(0,1040px);justify-content:center;}
   .cols .half{min-width:0;} .cols:not(.one) .trend{grid-template-columns:1fr;} .cols:not(.one) .tiles{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));} .cols:not(.one) .boards{grid-template-columns:1fr;}
   @media (max-width:980px){.cols{grid-template-columns:minmax(0,1fr);}}
+  /* Pitching and hitting sit side by side: let the two halves share row tracks so each section (stats, leaderboard, movement, goals) starts at the same height in both columns. */
+  @supports (grid-template-rows: subgrid){@media (min-width:981px){.cols:not(.one) .half[id]{display:grid;grid-template-rows:subgrid;grid-row:span 5;}}}
   .half{margin-top:34px;} .half-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:6px;}
   .half-head h2{font:700 30px 'Oswald',sans-serif;letter-spacing:.02em;margin:0;text-transform:uppercase;} .half-head h2 small{font:600 11px 'Barlow',sans-serif;letter-spacing:.08em;color:#b3791f;border:1px solid #e3c88f;background:#fbf3e0;border-radius:999px;padding:3px 9px;margin-left:10px;vertical-align:middle;}
   .half-meta{color:var(--muted);font-size:13.5px;margin:0 0 4px;}
@@ -51,13 +53,16 @@
 <div class="cols{{ ' one' if halves|length == 1 }}">
 {% for H in halves %}{% set side = H.side %}{% set D = H.D %}
 <section class="half" id="{{ side }}">
+<div class="blk">
   <div class="half-head"><h2>{{ 'Pitching' if side == 'pitching' else 'Hitting' }}</h2>
     {% if side == 'pitching' %}<a class="btn" href="{{ url_for('team_pitchers', program=program) }}">See Pitcher Dashboard &rarr;</a>
     {% else %}<a class="btn" href="{{ url_for('team_hitters', program=program) }}">See Hitter Dashboard &rarr;</a>{% endif %}</div>
   <p class="half-meta">{{ D.n_players }} {{ 'pitcher' if side == 'pitching' else 'hitter' }}{{ 's' if D.n_players != 1 }} &middot; {{ '{:,}'.format(D.n_pitches) }} pitches &middot; {{ D.sessions|length }} session{{ 's' if D.sessions|length != 1 }}</p>
+</div>
 
-  {% if not D.n_players %}<div class="card" style="margin-top:14px;"><div class="empty">No {{ 'pitching' if side == 'pitching' else 'hitting' }} data yet. Upload a Trackman .CSV and this half fills in automatically.</div></div>
+  {% if not D.n_players %}<div class="blk"><div class="card" style="margin-top:14px;"><div class="empty">No {{ 'pitching' if side == 'pitching' else 'hitting' }} data yet. Upload a Trackman .CSV and this half fills in automatically.</div></div></div><div class="blk"></div><div class="blk"></div>
   {% else %}
+<div class="blk">
   <h3>Team stats <button type="button" class="btn ghost act" data-pk="pk-{{ side }}">Customize</button></h3>
   {% if H.tiles %}<div class="tiles">{% for t in H.tiles %}<div class="tile" title="{{ t.definition }}"><div class="v">{{ t.value }}</div><div class="l">{{ t.label }}</div></div>{% endfor %}</div>
   {% else %}<div class="card"><div class="empty">None of the selected stats have data yet. Use Customize to pick others.</div></div>{% endif %}
@@ -65,12 +70,16 @@
     <p class="hint">Choose which team stats appear on your dashboard. They show in the order listed below. Team numbers are pooled across every tracked {{ 'pitch' if side == 'pitching' else 'pitch seen' }}.</p>
     {% for g, items in H.picker %}<fieldset><legend>{{ g }}</legend>{% for it in items %}<label title="{{ it.definition }}"><input type="checkbox" name="stat" value="{{ it.id }}" {{ 'checked' if it.on }}> {{ it.label }}</label>{% endfor %}</fieldset>{% endfor %}
     <button class="btn" type="submit">Save</button></form>
+</div>
 
+<div class="blk">
   <h3>Leaderboard</h3>
   <div class="boards">{% for b in D.boards %}<div class="card board"><h4>{{ b.title }}</h4><div class="s">{{ b.sub }}</div>
     {% if b.rows %}<ol>{% for r in b.rows %}<li><span class="rk">{{ loop.index }}</span><a class="nm" href="{{ url_for('player_overview', slug=r.key) if side == 'pitching' else url_for('beta_hitter', key=r.key) }}">{{ r.name }}</a><span class="ex">{{ r.extra }}</span><span class="val">{{ r.value }}</span></li>{% endfor %}</ol>
     {% else %}<div class="empty">Not enough tracked data yet.</div>{% endif %}</div>{% endfor %}</div>
+</div>
 
+<div class="blk">
   <h3>Movement over recent sessions</h3>
   {% set T = D.trend %}
   {% if not T.have_history %}<div class="card"><div class="empty">Risers and decliners show up once players have two or more tracked sessions. Right now each {{ 'pitcher' if side == 'pitching' else 'hitter' }} has one.</div></div>
@@ -78,8 +87,10 @@
     <div class="tcol up"><h4>Making a jump</h4>{% for f in T.risers %}<div class="tc"><div class="who"><a href="{{ url_for('player_overview', slug=f.key) if side == 'pitching' else url_for('beta_hitter', key=f.key) }}">{{ f.name }}</a><div class="m">{{ f.label }} {{ f.fmt.from }} &rarr; {{ f.fmt.to }} &middot; {{ f.span }}</div></div>{{ f.spark_svg|safe }}<span class="chip up">{{ f.fmt.delta }}</span></div>{% else %}<div class="empty">No one has made a clear jump yet.</div>{% endfor %}</div>
     <div class="tcol down"><h4>Trending down</h4>{% for f in T.decliners %}<div class="tc"><div class="who"><a href="{{ url_for('player_overview', slug=f.key) if side == 'pitching' else url_for('beta_hitter', key=f.key) }}">{{ f.name }}</a><div class="m">{{ f.label }} {{ f.fmt.from }} &rarr; {{ f.fmt.to }} &middot; {{ f.span }}</div></div>{{ f.spark_svg|safe }}<span class="chip down">{{ f.fmt.delta }}</span></div>{% else %}<div class="empty">No one is trending down. Nice.</div>{% endfor %}</div>
   </div>{% endif %}
+</div>
   {% endif %}
 
+<div class="blk">
   <h3 id="goals-{{ side }}">Team goals <button type="button" class="btn ghost act" data-pk="gf-{{ side }}">+ Add goal</button></h3>
   <div class="card">
     {% for g in H.goals %}<div class="goal"><div class="g-top"><span class="g-t">{{ g.title }}</span><span class="tag {{ g.kind }}">{{ g.kind }}</span>{% if g.met %}<span class="tag met">Met</span>{% elif g.overdue %}<span class="tag late">Past due</span>{% endif %}</div>
@@ -98,6 +109,7 @@
       <label>Due<input name="due" type="date"></label>
       <button class="btn" type="submit">Add goal</button></form>
   </div>
+</div>
 </section>
 {% endfor %}
 <section class="half" style="margin-top:34px;grid-column:1/-1;"><h3 id="colors">Team colors</h3>
