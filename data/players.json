@@ -340,6 +340,21 @@
     },
     "school": "La Mirada HS"
   },
+  "jacob_talbott": {
+    "comps": {},
+    "grad_year": null,
+    "height_in": 72.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261016-BiolaUniversity-Private-1_unverified.csv",
+    "name": "Jacob Talbott",
+    "program": "biola_university",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Biola University",
+    "weight_lbs": 185.0
+  },
   "jason_gerfers": {
     "comps": {},
     "grad_year": 2029,
