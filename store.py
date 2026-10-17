@@ -334,6 +334,28 @@ def _report_files(slug):
     return [(s, os.path.join(d, slug + s)) for s in REPORT_SUFFIXES if os.path.exists(os.path.join(d, slug + s))]
 
 
+def legacy_shepherds_reports():
+    """[(slug, suffix, path)] for the static report files (made before Shepherds used the live pages) of every Shepherds player."""
+    out = []
+    for slug, p in list_players().items():
+        if p.get('program', 'shepherds') in ADMIN_ONLY_PROGRAMS:
+            out += [(slug, suffix, path) for suffix, path in _report_files(slug)]
+    return out
+
+
+def delete_legacy_shepherds_reports():
+    """Deletes those files locally and in the repo. Returns how many."""
+    n = 0
+    for slug, suffix, path in legacy_shepherds_reports():
+        try:
+            os.remove(path)
+            github_sync.delete_file(f'data/reports/{slug}{suffix}')
+            n += 1
+        except Exception as exc:
+            print(f'WARNING: could not delete {path}: {exc}')
+    return n
+
+
 def delete_player(slug):
     """Removes the player's record, bio override and report files (locally and, when
     GitHub sync is configured, in the repo). Returns False if the slug doesn't exist."""

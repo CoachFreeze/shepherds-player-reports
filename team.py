@@ -42,6 +42,11 @@ HIT_CATALOG = {
     'fb_pct': ('Fly Ball %', 'Batted-ball mix', 'Share of balls in play that are fly balls (25-50 degrees).', 'pct'),
     'pu_pct': ('Pop-Up %', 'Batted-ball mix', 'Share of balls in play that are pop-ups (over 50 degrees).', 'pct'),
     'pull_pct': ('Pull %', 'Batted-ball mix', 'Share of balls in play pulled.', 'pct'),
+    'avg_bs': ('Avg Bat Speed', 'Swing tracking', 'Average bat speed on tracked swings (mph). Needs a bat-tracking system such as Full Swing.', 'mph'),
+    'max_bs': ('Max Bat Speed', 'Swing tracking', 'Fastest tracked swing (mph).', 'mph'),
+    'sq_pct': ('Squared-Up %', 'Swing tracking', 'Average squared-up rate on balls in play: how close the ball came to the exit velocity that swing could have produced.', 'pct'),
+    'avg_smash': ('Avg Smash Factor', 'Swing tracking', 'Exit velocity divided by bat speed on balls in play. Higher means more of the swing went into the ball.', 'x2'),
+    'ev_gap': ('EV Left On The Table', 'Swing tracking', 'Average gap between the exit velocity the swing could have produced and what the ball actually did (mph). Lower is better.', 'mph'),
     'pitches': ('Pitches Seen', 'Volume', 'Total pitches the team has seen.', 'int'),
     'bip': ('Balls In Play', 'Volume', 'Total balls put in play.', 'int'),
 }
@@ -70,6 +75,8 @@ def _fmt_hit(kind, v):
         return f'{v:.3f}'.lstrip('0')
     if kind == 'mph':
         return f'{v:.1f}'
+    if kind == 'x2':
+        return f'{v:.2f}'
     if kind == 'deg':
         return f'{v:.1f}°'
     if kind == 'pct':

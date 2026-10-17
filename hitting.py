@@ -41,6 +41,7 @@ def _norm_trackman(r):
         'x': e._fnum(r.get('PlateLocSide')), 'z': e._fnum(r.get('PlateLocHeight')),
         'outcome': e._outcome(r),
         'ev': e._fnum(r.get('ExitSpeed')), 'la': e._fnum(r.get('Angle')),
+        'bat_speed': e._fnum(r.get('BatSpeed')), 'smash': e._fnum(r.get('SmashFactor')), 'squared': e._fnum(r.get('SquaredUp')), 'pot_ev': e._fnum(r.get('PotExitSpeed')),
         'direction': e._fnum(r.get('Direction')), 'distance': e._fnum(r.get('Distance')),
         'hit_type': _HIT_TYPES.get(r.get('HitType')),
         'balls': r.get('Balls'), 'strikes': r.get('Strikes'), 'src': 'trackman',
@@ -301,6 +302,10 @@ def hitter_stats(pitches):
     bbs = [p for p in pitches if p['outcome'] == 'inplay' and p['ev'] is not None]
     evs = [p['ev'] for p in bbs]
     las = [p['la'] for p in bbs if p['la'] is not None]
+    bsv = [p['bat_speed'] for p in pitches if p.get('bat_speed')]          # bat tracking (Full Swing): every swing, contact or not
+    sqv = [p['squared'] for p in bbs if p.get('squared') is not None]
+    smv = [p['smash'] for p in bbs if p.get('smash')]
+    gapv = [p['pot_ev'] - p['ev'] for p in bbs if p.get('pot_ev') and p['ev']]
     hit_types = [p['hit_type'] for p in bbs if p['hit_type']]
     mix = [(p['ev'], p['la']) for p in bbs if p['la'] is not None and p['hit_type'] != 'BUNT']      # Statcast-style: type and barrel from launch angle
     mix_b = [batted.bucket(la) for _, la in mix]
@@ -364,6 +369,9 @@ def hitter_stats(pitches):
         'brl_pct': _pct(barrels, len(mix)), 'brl': barrels, 'mix_n': len(mix),
         'pull_pct': _pct(zones.count('pull'), len(zones)), 'center_pct': _pct(zones.count('center'), len(zones)),
         'oppo_pct': _pct(zones.count('oppo'), len(zones)),
+        'bs_n': len(bsv), 'avg_bs': round(sum(bsv) / len(bsv), 1) if bsv else None, 'max_bs': round(max(bsv), 1) if bsv else None,
+        'sq_pct': round(100 * sum(sqv) / len(sqv), 1) if sqv else None, 'avg_smash': round(sum(smv) / len(smv), 2) if smv else None,
+        'ev_gap': round(sum(gapv) / len(gapv), 1) if gapv else None,
     }
 
 

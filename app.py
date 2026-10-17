@@ -235,7 +235,7 @@ def inject_me():
                    'badge': {'file': _b[0], 'bg': _b[1]} if _b else None}}
 
 
-_MENU_PAGES = {'edit_profile', 'admin_status', 'admin_coaches', 'view_report', 'intake', 'intake_bulk', 'intake_bulk_run',
+_MENU_PAGES = {'edit_profile', 'admin_status', 'admin_old_reports', 'admin_coaches', 'view_report', 'intake', 'intake_bulk', 'intake_bulk_run',
                'intake_lbsu', 'intake_lbsu_confirm', 'edit_comps'}
 
 
@@ -318,7 +318,7 @@ def _player_pos(p):
 
 def _build_groups():
     players = store.list_players_view() if is_admin() else store.list_players()
-    shep, priv = [], {}
+    priv = {}
     for slug, p in players.items():
         if not can_view(slug):
             continue
@@ -330,19 +330,11 @@ def _build_groups():
         p['photo_v'] = int(os.path.getmtime(headshots.path(slug))) if p['has_photo'] else 0
         last, first = _split_name(p['name'])
         pos = _player_pos(p)
-        if p.get('program', 'shepherds') not in store.ADMIN_ONLY_PROGRAMS:
-            priv.setdefault(p['program'], []).append((slug, p, url_for('player_overview', slug=slug), last, first, pos))
-        else:
-            links = []
-            if (p.get('roles') or {}).get('pitch'):
-                links.append(('Pitching', url_for('view_report', slug=slug, role='pitching')))
-            if (p.get('roles') or {}).get('hit'):
-                links.append(('Hitting', url_for('view_report', slug=slug, role='hitting')))
-            p['shep_links'] = links
-            shep.append((slug, p, links[0][1] if links else '#', last, first, pos))
+        priv.setdefault(p.get('program', 'shepherds'), []).append((slug, p, url_for('player_overview', slug=slug), last, first, pos))   # Shepherds is built exactly like every other team; can_view() keeps it admin-only
     key = lambda t: (t[3].lower(), t[4].lower())
     groups = [(k, store.program_label(k), sorted(v, key=key)) for k, v in sorted(priv.items(), key=lambda kv: store.program_label(kv[0]))]
-    groups.append(('shepherds', 'Shepherds', sorted(shep, key=key)))
+    if 'shepherds' not in priv:
+        groups.append(('shepherds', 'Shepherds', []))
     return groups
 
 
@@ -940,6 +932,7 @@ STATUS_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="vi
 <a href="{{ url_for('dashboard') }}">&larr; Dashboard</a><h1>Save Status</h1>
 <div class="card">Automatic GitHub saving: {% if on %}<span class="ok">ON</span> <small>repo <code>{{ repo }}</code>, branch <code>{{ branch }}</code></small>{% else %}<span class="bad">OFF</span><br><small>The Render environment variables <code>SHEPSAVANT_GITHUB_TOKEN</code> and <code>SHEPSAVANT_GITHUB_REPO</code> are missing, so edits only last until the next deploy.</small>{% endif %}</div>
 <form method="post" action="{{ url_for('admin_status_test') }}"><button>Test save now</button></form>
+<p style="margin-top:18px;"><a href="{{ url_for('admin_old_reports') }}">Old Shepherds reports</a></p>
 <div class="card"><b>Recent saves (since the last restart)</b>{% if not log %}<br><small>None yet. Edit a profile or upload a CSV, then reload this page.</small>{% endif %}
 {% for l in log|reverse %}<div style="margin-top:8px;">{{ l.when }} &middot; <code>{{ l.what }}</code> &middot; {% if l.ok %}<span class="ok">saved</span>{% else %}<span class="bad">FAILED</span>{% endif %}<br><small>{{ l.detail }}</small></div>{% endfor %}</div>
 <p><small>If a save shows FAILED, the change only exists on the running server and will be lost at the next deploy. Send me the message shown.</small></p></body></html>"""
@@ -961,6 +954,27 @@ def admin_plans():
 def admin_status():
     import github_sync
     return render_template_string(STATUS_PAGE, on=github_sync.enabled(), repo=github_sync.GITHUB_REPO, branch=github_sync.GITHUB_BRANCH, log=github_sync.LOG)
+
+
+OLD_REPORTS_PAGE = """
+<title>Old Shepherds reports</title><h1>Old Shepherds reports</h1>
+<p>Shepherds players now get the same live dashboards and outing reports as every other team, built from their uploaded sessions. These are the original static report files made before that, and nothing links to them anymore.</p>
+{% if message %}<div class="card" style="color:#2a7a4b;">{{ message }}</div>{% endif %}
+{% if files %}<div class="card"><b>{{ files|length }} file{{ 's' if files|length != 1 }} will be deleted:</b><ul>{% for slug, suffix in files %}<li>{{ slug }}{{ suffix }}</li>{% endfor %}</ul>
+<p style="font-size:13px;color:#6b7680;">Player profiles, outings, headshots and everything for other teams are not touched.</p>
+<form method="post"><button type="submit" style="background:#a63a2c;">Delete these old reports</button></form></div>
+{% else %}<div class="card">No old Shepherds report files are left.</div>{% endif %}
+<p><a href="{{ url_for('admin_status') }}">&larr; Save status</a></p>"""
+
+
+@app.route('/admin/old-reports', methods=['GET', 'POST'])
+@admin_required
+def admin_old_reports():
+    message = None
+    if request.method == 'POST':
+        n = store.delete_legacy_shepherds_reports()
+        message = f'Deleted {n} old report file{"s" if n != 1 else ""}.'
+    return render_template_string(BULK_STYLE + OLD_REPORTS_PAGE, files=[(s_, suf) for s_, suf, _p in store.legacy_shepherds_reports()], message=message)
 
 
 @app.route('/admin/status/test', methods=['POST'])

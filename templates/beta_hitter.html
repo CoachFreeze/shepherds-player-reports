@@ -156,6 +156,14 @@ var ZD = {{ h.zone_ev|tojson }};
     </div>
   </div>
 
+  {% if s.bs_n %}<div class="card"><h2>Swing tracking</h2><p class="hint">{{ s.bs_n }} tracked swing{{ '' if s.bs_n == 1 else 's' }} (bat speed is logged on every swing, contact or not).</p>
+    <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(120px,1fr));">
+      {% for l, v, u in [('Avg bat speed', s.avg_bs, ' mph'), ('Max bat speed', s.max_bs, ' mph'), ('Squared-up', s.sq_pct, '%'), ('Smash factor', s.avg_smash, ''), ('EV left on table', s.ev_gap, ' mph')] %}
+      <div class="tile"><div class="v">{{ v if v is not none else '–' }}<span style="font-size:13px;color:#76828a;">{{ u if v is not none }}</span></div><div class="l">{{ l }}</div></div>{% endfor %}
+    </div>
+  </div>
+
+  {% endif %}
   <div class="card"><h2>Batted-ball quality</h2><p class="hint">{{ s.bip }} tracked ball{{ '' if s.bip == 1 else 's' }} in play.</p>
     <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(120px,1fr));">
       <div class="tile" style="background:#e8f1f4;"><div class="v">{{ ('%.3f' % s.xba).lstrip('0') if s.xba is not none else '–' }}</div><div class="l">xBA</div>{% if s.xba is not none %}<div style="font-size:11px;color:#55626b;margin-top:2px;">{% if s.ba is not none %}BA {{ ('%.3f' % s.ba).lstrip('0') if s.ba < 1 else '1.000' }} · {% endif %}{{ s.ab }} AB</div>{% endif %}</div>
