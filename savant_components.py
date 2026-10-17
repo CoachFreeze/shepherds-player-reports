@@ -158,7 +158,7 @@ def movement_plot_svg(pitches, width=340, height=340, max_range=24, all_pitches=
     wash_fill = '#e9f1f4'
     label_col = line_col
 
-    svg = [f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" '
+    svg = [f'<svg class="{"mv-plot" if all_pitches else ""}" width="{width}" height="{height}" viewBox="0 0 {width} {height}" '
            f'xmlns="http://www.w3.org/2000/svg" font-family="ProximaNova,Helvetica Neue,Arial,sans-serif">']
 
     # pale wash fill -- sits outside the 24" ring rather than stopping
@@ -235,6 +235,30 @@ def movement_plot_svg(pitches, width=340, height=340, max_range=24, all_pitches=
                     f'<circle class="mv-pt" cx="{x:.1f}" cy="{y:.1f}" r="{pt_r}" fill="{color}" fill-opacity="0.7" '
                     f'stroke="{color}" stroke-width="1" data-tip="{tip}" data-ptype="{p["type"]}" data-pcolor="{color}" '
                     f'data-pivb="{vb:.1f}" data-phb="{hb:.1f}"/>')
+        # hover-isolate layer: one hidden group per pitch type -- a big circle at the type's average movement with lines out to
+        # the axes (shown by the legend's hover script, see MOVEMENT_ISO_JS). Drawn last so it sits above the dimmed dots.
+        throws = (arm_badge or {}).get('throws') or 'R'
+        for p in pitches:
+            if p.get('hb') is None or p.get('vb') is None:
+                continue
+            color, hb, vb = p['color'], p['hb'], p['vb']
+            x, y = to_xy(hb, vb)
+            arm_side = (hb < 0) if throws == 'L' else (hb > 0)
+            rise = f'{abs(vb):.1f} INCHES {"RISE" if vb >= 0 else "DROP"}'
+            run = f'{abs(hb):.1f} INCHES {"TAIL" if arm_side else "CUT"}'
+            fs = 12 * font_scale
+            halo = 'paint-order="stroke" stroke="#fff" stroke-width="4" stroke-linejoin="round"'
+            hx = (x + cx) / 2
+            vy = (y + cy) / 2
+            svg.append(
+                f'<g class="mv-hl" data-ptype="{p["type"]}" style="display:none;pointer-events:none">'
+                f'<line x1="{x:.1f}" y1="{y:.1f}" x2="{cx:.1f}" y2="{y:.1f}" stroke="{color}" stroke-width="3"/>'
+                f'<line x1="{x:.1f}" y1="{y:.1f}" x2="{x:.1f}" y2="{cy:.1f}" stroke="{color}" stroke-width="3"/>'
+                f'<text x="{cx + (8 if x > cx else -8):.1f}" y="{y - 9:.1f}" font-size="{fs:.1f}" font-weight="700" fill="#6b7f8c" text-anchor="{"start" if x > cx else "end"}" {halo}>{rise}</text>'
+                f'<text x="{x + 9:.1f}" y="{vy:.1f}" font-size="{fs:.1f}" font-weight="700" fill="#6b7f8c" text-anchor="start" {halo}>{run}</text>'
+                f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{pt_r * 2.7:.1f}" fill="{color}" stroke="#fff" stroke-width="2.5"/>'
+                f'<text x="{x:.1f}" y="{y + fs * 0.36:.1f}" font-size="{fs:.1f}" font-weight="800" fill="#fff" text-anchor="middle" '
+                f'style="text-shadow:0 0 3px rgba(0,0,0,.35)">AVG</text></g>')
         svg.append(_arm_badge_svg(arm_badge, width, height))
         svg.append('</svg>')
         return ''.join(svg)
@@ -264,6 +288,17 @@ def movement_plot_caption_html():
             '</div>')
 
 
+MOVEMENT_ISO_JS = '''<style>.movement-legend [data-ptype]{cursor:pointer;transition:opacity .12s;} .mv-plot .mv-pt{transition:opacity .12s;}</style>
+<script>(function(){document.querySelectorAll('.movement-legend:not([data-iso])').forEach(function(lg){lg.setAttribute('data-iso','1');
+var box=lg.parentNode,svg=box.querySelector('svg.mv-plot');if(!svg)return;
+var pts=svg.querySelectorAll('.mv-pt'),hls=svg.querySelectorAll('.mv-hl'),cells=lg.querySelectorAll('[data-ptype]'),cur=null;
+function on(t){cur=t;pts.forEach(function(p){p.style.opacity=p.getAttribute('data-ptype')===t?'1':'.15';});hls.forEach(function(h){h.style.display=h.getAttribute('data-ptype')===t?'block':'none';});cells.forEach(function(c){c.style.opacity=c.getAttribute('data-ptype')===t?'1':'.25';});}
+function off(){cur=null;pts.forEach(function(p){p.style.opacity='';});hls.forEach(function(h){h.style.display='none';});cells.forEach(function(c){c.style.opacity='';});}
+cells.forEach(function(c){c.addEventListener('mouseenter',function(){on(c.getAttribute('data-ptype'));});c.addEventListener('click',function(e){e.stopPropagation();var t=c.getAttribute('data-ptype');if(cur===t)off();else on(t);});});
+lg.addEventListener('mouseleave',off);document.addEventListener('click',function(e){if(cur&&!lg.contains(e.target))off();});
+});})();</script>'''
+
+
 def pitch_usage_legend_html(pitches):
     """
     pitches: list of {'type': str, 'color': '#hex', 'pct': float (0-100),
@@ -281,11 +316,12 @@ def pitch_usage_legend_html(pitches):
         pct = p.get('pct') or 0
         pill_w = 20 + round(38 * (pct / max_pct))
         color = p['color']
-        cells_header.append(f'<div class="ml-cell ml-name">{p["type"]}</div>')
-        cells_pill.append(f'<div class="ml-cell"><span class="ml-pill" style="width:{pill_w}px;background:{color};"></span></div>')
-        cells_usage.append(f'<div class="ml-cell">{pct:.1f}%</div>')
-        cells_mph.append(f'<div class="ml-cell">{p["velo"]:.1f}</div>' if p.get('velo') is not None else '<div class="ml-cell">&mdash;</div>')
-        cells_top.append(f'<div class="ml-cell">{p["top_velo"]:.1f}</div>' if p.get('top_velo') is not None else '<div class="ml-cell">&mdash;</div>')
+        d = f'data-ptype="{p["type"]}"'
+        cells_header.append(f'<div class="ml-cell ml-name" {d}>{p["type"]}</div>')
+        cells_pill.append(f'<div class="ml-cell" {d}><span class="ml-pill" style="width:{pill_w}px;background:{color};"></span></div>')
+        cells_usage.append(f'<div class="ml-cell" {d}>{pct:.1f}%</div>')
+        cells_mph.append(f'<div class="ml-cell" {d}>{p["velo"]:.1f}</div>' if p.get('velo') is not None else f'<div class="ml-cell" {d}>&mdash;</div>')
+        cells_top.append(f'<div class="ml-cell" {d}>{p["top_velo"]:.1f}</div>' if p.get('top_velo') is not None else f'<div class="ml-cell" {d}>&mdash;</div>')
     return (
         '<div class="movement-legend">'
         f'<div class="ml-row ml-header"><div class="ml-label"></div>{"".join(cells_header)}</div>'
@@ -293,7 +329,7 @@ def pitch_usage_legend_html(pitches):
         f'<div class="ml-row"><div class="ml-label">USAGE</div>{"".join(cells_usage)}</div>'
         f'<div class="ml-row"><div class="ml-label">MPH</div>{"".join(cells_mph)}</div>'
         f'<div class="ml-row"><div class="ml-label ml-italic">TOP MPH</div>{"".join(cells_top)}</div>'
-        '</div>'
+        '</div>' + MOVEMENT_ISO_JS
     )
 
 
