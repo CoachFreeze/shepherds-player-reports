@@ -67,7 +67,8 @@ HITTING = [
         ('Hard-hit %', 'Balls in play hit 95 mph or harder.'),
         ('Avg launch angle', 'Average vertical angle off the bat, in degrees.'),
         ('Sweet spot %', 'Balls hit between 8 and 32 degrees, the range where most line drives and productive fly balls land.'),
-        ('Ground ball / line drive / fly ball %', 'The hit type recorded by the tracking system for each ball in play (fly ball includes pop-ups).'),
+        ('Barrel %', 'Share of balls in play that were barrels: the exit velocity and launch angle combos that have produced at least a .500 average and 1.500 slugging in the majors. A ball needs 98+ mph; at 98 mph the launch angle window is 26 to 30 degrees, it widens as the ball is hit harder, and at 116 mph anything from 8 to 50 degrees counts. Calculated per ball in play (not per plate appearance). Bunts are left out. The cutoffs come from MLB data, so college hitters are being measured against a major-league yardstick, and the edge of the zone is approximated between the speeds MLB publishes.'),
+        ('Ground ball / line drive / fly ball / pop-up %', 'Each ball in play is typed by launch angle alone, the same way Statcast does it: ground ball under 10 degrees, line drive 10 to 25, fly ball 25 to 50, pop-up over 50. Exit velocity does not matter. Bunts are left out.'),
         ('Pull / center / oppo', 'Where the ball went relative to the hitter: more than 15 degrees toward his pull side is pull, more than 15 degrees the other way is oppo, the rest is center. A switch hitter uses the side he batted from on each ball.'),
         ('xBA (expected batting average)', 'What his average would be from how hard and at what angle he hit the ball, ignoring defense, parks and luck. '
          'Each ball is given a chance of being a hit from its exit velocity and launch angle; the chances are added up and divided by at-bats (balls in play plus strikeouts, no walks or hit by pitches). '

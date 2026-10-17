@@ -6,6 +6,7 @@ Each stat: id, label, group, definition. Values are display strings; detail is a
 Per-pitch-type stats get ids like 'pt:Fastball:velo' and exist only for pitch types the player throws.
 """
 import extract as e
+import batted
 
 DEFAULT_IDS = ['strike_pct', 'whiff_pct', 'zone_pct', 'chase_pct']
 HARD_HIT = 95.0
@@ -50,6 +51,7 @@ BASE = {
     'ld_pct': ('Line Drive %', 'Contact Allowed', 'Launch angle 10-25 degrees.'),
     'fb_pct': ('Fly Ball %', 'Contact Allowed', 'Launch angle 25-50 degrees.'),
     'pu_pct': ('Pop-Up %', 'Contact Allowed', 'Launch angle over 50 degrees.'),
+    'brl_pct': ('Barrel % Allowed', 'Contact Allowed', 'Balls in play that were barrels (the ideal mix of exit velocity and launch angle: 98+ mph at about 26-30 degrees, widening as the ball is hit harder) / balls in play.'),
     # Stuff (all pitches)
     'top_velo': ('Top Velocity', 'Stuff', 'Fastest pitch (mph).'),
     'fb_velo': ('Avg Fastball Velo', 'Stuff', 'Average velocity of fastballs (mph).'),
@@ -182,10 +184,13 @@ def compute(rows):
     out['max_ev'] = _f(max(ev) if ev else None)
     out['avg_la'] = _f(sum(la) / len(la) if la else None, 0, '°')
     out['hh_pct'] = _pct(sum(1 for v in ev if v >= HARD_HIT), len(ev))
-    out['gb_pct'] = _pct(sum(1 for v in la if v < 10), len(la))
-    out['ld_pct'] = _pct(sum(1 for v in la if 10 <= v < 25), len(la))
-    out['fb_pct'] = _pct(sum(1 for v in la if 25 <= v < 50), len(la))
-    out['pu_pct'] = _pct(sum(1 for v in la if v >= 50), len(la))
+    pairs = [(_n(r, 'ExitSpeed'), _n(r, 'Angle')) for r in bip]
+    pairs = [(v, a) for v, a in pairs if v and a is not None]
+    out['gb_pct'] = _pct(sum(1 for v in la if batted.bucket(v) == 'GB'), len(la))
+    out['ld_pct'] = _pct(sum(1 for v in la if batted.bucket(v) == 'LD'), len(la))
+    out['fb_pct'] = _pct(sum(1 for v in la if batted.bucket(v) == 'FB'), len(la))
+    out['pu_pct'] = _pct(sum(1 for v in la if batted.bucket(v) == 'PU'), len(la))
+    out['brl_pct'] = _pct(sum(1 for v, a in pairs if batted.is_barrel(v, a)), len(pairs))
     # stuff
     spd = [v for v in (_n(r, 'RelSpeed') for r in rows) if v]
     out['top_velo'] = _f(max(spd) if spd else None)

@@ -36,9 +36,11 @@ HIT_CATALOG = {
     'swing_pct': ('Swing %', 'Plate discipline', 'Swings / pitches seen.', 'pct'),
     'whiff_pct': ('Whiff %', 'Plate discipline', 'Swings and misses / swings. Lower is better.', 'pct'),
     'zone_contact_pct': ('Zone Contact %', 'Plate discipline', 'Contact on swings at pitches in the zone.', 'pct'),
-    'gb_pct': ('Ground Ball %', 'Batted-ball mix', 'Share of balls in play that are ground balls.', 'pct'),
-    'ld_pct': ('Line Drive %', 'Batted-ball mix', 'Share of balls in play that are line drives.', 'pct'),
-    'fb_pct': ('Fly Ball %', 'Batted-ball mix', 'Share of balls in play that are fly balls.', 'pct'),
+    'brl_pct': ('Barrel %', 'Contact quality', 'Balls in play that were barrels (98+ mph at the launch angles that have historically produced .500+ AVG and 1.500+ SLG).', 'pct'),
+    'gb_pct': ('Ground Ball %', 'Batted-ball mix', 'Share of balls in play that are ground balls (launch angle under 10 degrees).', 'pct'),
+    'ld_pct': ('Line Drive %', 'Batted-ball mix', 'Share of balls in play that are line drives (10-25 degrees).', 'pct'),
+    'fb_pct': ('Fly Ball %', 'Batted-ball mix', 'Share of balls in play that are fly balls (25-50 degrees).', 'pct'),
+    'pu_pct': ('Pop-Up %', 'Batted-ball mix', 'Share of balls in play that are pop-ups (over 50 degrees).', 'pct'),
     'pull_pct': ('Pull %', 'Batted-ball mix', 'Share of balls in play pulled.', 'pct'),
     'pitches': ('Pitches Seen', 'Volume', 'Total pitches the team has seen.', 'int'),
     'bip': ('Balls In Play', 'Volume', 'Total balls put in play.', 'int'),
@@ -46,7 +48,7 @@ HIT_CATALOG = {
 HIT_DEFAULT = ['avg_ev', 'hard_hit_pct', 'xba', 'score', 'chase_pct', 'whiff_pct']
 
 PITCH_IDS = ['fb_velo', 'fb_top', 'top_velo', 'fb_spin', 'strike_pct', 'fps_pct', 'zone_pct', 'ahead_pct', 'whiff_pct', 'csw_pct',
-             'chase_pct', 'avg_ev', 'hh_pct', 'gb_pct', 'pitches', 'ks']
+             'chase_pct', 'avg_ev', 'hh_pct', 'brl_pct', 'gb_pct', 'ld_pct', 'fb_pct', 'pu_pct', 'pitches', 'ks']
 PITCH_DEFAULT = ['fb_velo', 'strike_pct', 'fps_pct', 'whiff_pct', 'csw_pct', 'chase_pct']
 
 # Metrics tracked session-to-session for risers/decliners: id -> (label, unit, "meaningful change", minimum sample key)

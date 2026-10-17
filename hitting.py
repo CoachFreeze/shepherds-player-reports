@@ -27,6 +27,7 @@ import outings as outings_mod
 import roster as roster_mod
 import savant_components as sc
 import store
+import batted
 
 # ---------------------------------------------------------------- 1. adapters
 _HIT_TYPES = {'GroundBall': 'GB', 'LineDrive': 'LD', 'FlyBall': 'FB', 'Popup': 'PU', 'Bunt': 'BUNT'}
@@ -301,6 +302,9 @@ def hitter_stats(pitches):
     evs = [p['ev'] for p in bbs]
     las = [p['la'] for p in bbs if p['la'] is not None]
     hit_types = [p['hit_type'] for p in bbs if p['hit_type']]
+    mix = [(p['ev'], p['la']) for p in bbs if p['la'] is not None and p['hit_type'] != 'BUNT']      # Statcast-style: type and barrel from launch angle
+    mix_b = [batted.bucket(la) for _, la in mix]
+    barrels = sum(1 for ev, la in mix if batted.is_barrel(ev, la))
     zones = [spray_zone(p) for p in bbs if spray_zone(p)]
     xb = xba(pitches)
 
@@ -355,8 +359,9 @@ def hitter_stats(pitches):
         'hard_hit_pct': _pct(sum(1 for v in evs if v >= 95), len(evs)),
         'avg_la': round(sum(las) / len(las), 1) if las else None,
         'sweet_spot_pct': _pct(sum(1 for v in las if 8 <= v <= 32), len(las)),
-        'gb_pct': _pct(hit_types.count('GB'), len(hit_types)), 'ld_pct': _pct(hit_types.count('LD'), len(hit_types)),
-        'fb_pct': _pct(hit_types.count('FB') + hit_types.count('PU'), len(hit_types)),
+        'gb_pct': _pct(mix_b.count('GB'), len(mix_b)), 'ld_pct': _pct(mix_b.count('LD'), len(mix_b)),
+        'fb_pct': _pct(mix_b.count('FB'), len(mix_b)), 'pu_pct': _pct(mix_b.count('PU'), len(mix_b)),
+        'brl_pct': _pct(barrels, len(mix)), 'brl': barrels, 'mix_n': len(mix),
         'pull_pct': _pct(zones.count('pull'), len(zones)), 'center_pct': _pct(zones.count('center'), len(zones)),
         'oppo_pct': _pct(zones.count('oppo'), len(zones)),
     }
