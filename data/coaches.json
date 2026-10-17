@@ -17,6 +17,11 @@
     "program_label": "Biola University",
     "role": "program"
   },
+  "sebastian.garcia": {
+    "display_name": "Sebastian Garcia",
+    "password_hash": "scrypt:32768:8:1$DltZjQ0tOoPyOO2D$bd2cc4e80fb1bc49b2cbf82911f33f33cbbf5433912f610e207f81d2911ea38463ce607c6f314da99e0c11ec82eff54ccf7c20941583e113b20349af083a28d7",
+    "role": "admin"
+  },
   "tyler.latorre": {
     "display_name": "Tyler LaTorre",
     "password_hash": "scrypt:32768:8:1$SJd7oYdk6zaMOHmZ$eb7f802fc30de3bcbf504a3f86d4543d585319d2639b9dfa1603e6672b0d96264543cd6631f1c787613c1622cb7f19399587cd659c0c8d03cc9e9c68950ab0be",
