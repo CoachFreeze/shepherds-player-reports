@@ -629,7 +629,7 @@ def roster_page():
         abort(403)
     if not plans.allowed(prog, 'roster_upload'):
         return _upgrade('roster_upload')
-    ctx = {'programs': store.list_programs() if is_admin() else None, 'prog': prog, 'prog_label': store.program_label(prog),
+    ctx = {'programs': ([('shepherds', store.program_label('shepherds'))] + store.list_programs()) if is_admin() else None, 'prog': prog, 'prog_label': store.program_label(prog),
            'saved': request.args.get('saved'), 'preview': None, 'error': None, 'token': None, 'source': None}
     if request.method == 'POST':
         f = request.files.get('roster_file')
@@ -1235,13 +1235,21 @@ button{margin-top:14px;padding:11px 22px;border:none;border-radius:999px;backgro
 
 BULK_UPLOAD_PAGE = BULK_STYLE + """
 <title>Upload a .CSV</title>{% if welcome %}<div class="card" style="border-left:5px solid #5c97a8;"><h2 style="margin:0 0 6px;font-family:Oswald,Arial,sans-serif;">Welcome{% if welcome_name %}, {{ welcome_name }}{% endif %}!</h2>
-<p style="margin:0 0 8px;">Let's start by adding your first Trackman session. It takes about a minute.</p>
-<ol style="margin:0;padding-left:20px;line-height:1.6;"><li>Export a session from Trackman as a <b>CSV</b>.</li><li>Choose that file below and tap <b>Read file</b>.</li><li>On the next screen, confirm each pitcher and add class year, height and weight if you have them. Then tap <b>Generate all reports</b>.</li></ol>
+<p style="margin:0 0 8px;">Let's start by adding your first session. It takes about a minute.</p>
+<ol style="margin:0;padding-left:20px;line-height:1.6;"><li>Export a session from your tracking system as a <b>CSV</b>.</li><li>Choose that file in the matching box below and tap <b>Read file</b>.</li><li>On the next screen, confirm each player and add class year, height and weight if you have them. Then tap <b>Generate all reports</b>.</li></ol>
 <p style="margin:8px 0 0;color:#6b7680;font-size:14px;">Right after, we'll give you a quick tour of your player dashboard and outing reports.</p></div>{% endif %}<h1>Upload a .CSV</h1>
-<p>Upload one Trackman CSV with any number of pitchers{% if prog_label %} for {{ prog_label }}{% endif %}. Everyone in the file is picked up automatically.</p>
+<p>Pick the box that matches the system your file came from. Everyone in the file is picked up automatically.</p>
 {% if message %}<div class="card" style="color:#9c3a3a;">{{ message }}</div>{% endif %}
-<form method="post" enctype="multipart/form-data">{% if programs %}<p><label style="font-weight:600;">Program: <select name="program">{% for s, l in programs %}<option value="{{ s }}" {{ 'selected' if s == prog }}>{{ l }}</option>{% endfor %}</select></label></p>{% endif %}<input type="file" name="trackman_file" accept=".csv" required><br><button type="submit">Read file</button></form>
+<form method="post" enctype="multipart/form-data">{% if programs %}<p><label style="font-weight:600;">Upload to: <select name="program">{% for s, l in programs %}<option value="{{ s }}" {{ 'selected' if s == prog }}>{{ l }}</option>{% endfor %}</select></label></p>{% endif %}
+{% for sid, lab, note in sources %}<div class="card"><label style="font-weight:700;font-size:16px;display:block;margin-bottom:6px;">{{ lab }} CSV</label><input type="file" name="file_{{ sid }}" accept=".csv"><div style="color:#6b7680;font-size:13px;margin-top:6px;">{{ note }}</div></div>{% endfor %}
+<button type="submit">Read file</button></form>
 <p><a href="{{ home_url }}">&larr; {{ home_label|capitalize }}</a></p>"""
+
+UPLOAD_SOURCES = [('trackman', 'Trackman', 'Per-pitch export from a Trackman session.'),
+                  ('fullswing', 'Full Swing', 'Per-pitch export from a Full Swing session.'),
+                  ('yakkertech', 'Yakkertech', 'Per-pitch export from a Yakkertech session.'),
+                  ('rapsodo', 'Rapsodo', 'Per-pitch export from a Rapsodo session.')]
+_SOURCES_READY = {'trackman', 'fullswing'}
 
 BULK_REVIEW_PAGE = BULK_STYLE + """
 <title>Review Pitchers</title><h1>Review pitchers</h1>
@@ -1278,7 +1286,7 @@ def _target_program():
 
 
 def _bulk_ctx(prog):
-    return {'programs': store.list_programs() if is_admin() else None, 'prog': prog, 'prog_label': store.program_label(prog)}
+    return {'sources': UPLOAD_SOURCES, 'programs': ([('shepherds', store.program_label('shepherds'))] + store.list_programs()) if is_admin() else None, 'prog': prog, 'prog_label': store.program_label(prog)}
 
 
 def _first_upload_done(results, was_first):
@@ -1313,10 +1321,21 @@ def intake_bulk():
     if request.method == 'GET':
         _wel = bool(request.args.get('welcome')) or store.needs_first_upload(session.get('coach'))
         return render_template_string(BULK_UPLOAD_PAGE, message=None, welcome=_wel, welcome_name=(current_coach() or {}).get('display_name', ''),
-                                      **_bulk_ctx(my_program() or 'long_beach_state'))
-    f = request.files.get('trackman_file')
+                                      **_bulk_ctx((request.args.get('program') if is_admin() and request.args.get('program') else None) or my_program() or 'long_beach_state'))
+    src, f = None, None
+    for sid, _l, _n in UPLOAD_SOURCES:
+        _f = request.files.get(f'file_{sid}')
+        if _f and _f.filename:
+            src, f = sid, _f
+            break
+    if f is None:
+        f = request.files.get('trackman_file')
+        src = 'trackman' if f and f.filename else None
     if not f or not f.filename:
-        return render_template_string(BULK_UPLOAD_PAGE, message='Choose a Trackman CSV.', **_bulk_ctx(_target_program()))
+        return render_template_string(BULK_UPLOAD_PAGE, message='Choose a CSV file in one of the boxes.', **_bulk_ctx(_target_program()))
+    if src not in _SOURCES_READY:
+        _lab = {sid: l for sid, l, _n in UPLOAD_SOURCES}[src]
+        return render_template_string(BULK_UPLOAD_PAGE, message=f"{_lab} files can't be read yet. Nothing was uploaded. Support is being added.", **_bulk_ctx(_target_program()))
     fname = 'bulk_' + os.path.basename(f.filename)
     path = os.path.join(UPLOAD_DIR, fname)
     f.save(path)

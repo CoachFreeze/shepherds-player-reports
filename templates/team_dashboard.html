@@ -8,7 +8,7 @@
   .hero{background:var(--brand,#22303a);padding:34px 16px 24px;border-bottom:3px solid var(--teal);} .wrap{max-width:1280px;margin:0 auto;padding:0 16px;} .hero .wrap{padding:0;position:relative;}
   .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-on-dark,#5c97a8);margin:0 0 8px;}
   h1{font:700 40px 'Oswald',sans-serif;margin:0 0 6px;color:#fff;} .sub{color:#c9d3d8;font-size:14.5px;margin:0;}
-  .jump{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;} .jump a{font:600 13px 'Barlow',sans-serif;color:#fff;text-decoration:none;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 14px;} .jump a:hover{background:rgba(255,255,255,.12);}
+  .jump{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;} .jump a{font:600 13px 'Barlow',sans-serif;color:#fff;text-decoration:none;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 14px;} .jump a:hover{background:rgba(255,255,255,.12);} .jump a.up{background:var(--accent,#5c97a8);border-color:transparent;color:var(--on-accent,#fff);} .jump a.up:hover{background:var(--accent-dark,#4e8798);}
   .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 34px;align-items:start;} .cols.one{grid-template-columns:minmax(0,1040px);justify-content:center;}
   .cols .half{min-width:0;} .cols:not(.one) .trend{grid-template-columns:1fr;} .cols:not(.one) .tiles{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));} .cols:not(.one) .boards{grid-template-columns:repeat(2,minmax(0,1fr));}
   @media (max-width:980px){.cols{grid-template-columns:minmax(0,1fr);}}
@@ -47,7 +47,7 @@
 <div class="hero"><div class="wrap"><div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>
   <p class="eyebrow">{{ team_label }}</p><h1>Team Dashboard</h1>
   <p class="sub">{% set P = halves[0].D %}{{ P.n_players }} pitcher{{ 's' if P.n_players != 1 }}{% if halves|length > 1 %} &middot; {{ halves[1].D.n_players }} hitter{{ 's' if halves[1].D.n_players != 1 }}{% endif %}{% if last_session %} &middot; last session {{ last_session }}{% endif %}</p>
-  <div class="jump"><a href="#pitching">Pitching</a>{% if halves|length > 1 %}<a href="#hitting">Hitting</a>{% endif %}{% if is_admin %}<a href="{{ url_for('dashboard') }}">&larr; All teams</a>{% endif %}</div></div></div>
+  <div class="jump"><a href="{{ url_for('intake_bulk', program=program) }}" class="up">+ Upload a .CSV</a><a href="#pitching">Pitching</a>{% if halves|length > 1 %}<a href="#hitting">Hitting</a>{% endif %}{% if is_admin %}<a href="{{ url_for('dashboard') }}">&larr; All teams</a>{% endif %}</div></div></div>
 
 <div class="wrap">
 <div class="cols{{ ' one' if halves|length == 1 }}">
