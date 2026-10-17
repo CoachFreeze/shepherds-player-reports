@@ -1308,10 +1308,12 @@ def _first_upload_done(results, was_first):
     return bool(was_first) and any(o for _, _, o in results)
 
 
-def _after_upload(results, was_first):
+def _after_upload(results, was_first, prog=None):
     if _first_upload_done(results, was_first):
         store.set_coach_flag(session['coach'], 'uploaded_first', True)
         return redirect(url_for('dashboard') + '?tour=dash&first=1')
+    if prog:                                   # straight to the team the file was uploaded to
+        return redirect(url_for('team_dashboard', program=prog))
     return redirect(url_for('dashboard'))
 
 
@@ -1430,7 +1432,7 @@ def intake_bulk_run():
     if skipped and not _first_upload_done(results, _was_first):
         return (BULK_STYLE + '<h1>Done</h1><div class="card">Skipped (a player with that name already belongs to another program): <b>' + ', '.join(skipped).replace('<', '') +
                 '</b>. Everyone else was added.</div><p><a href="' + home_url() + '">Go to the dashboard</a></p>')
-    return _after_upload(results, _was_first)
+    return _after_upload(results, _was_first, prog)
 
 
 REVIEW_PAGE = """
