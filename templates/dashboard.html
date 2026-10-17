@@ -1,26 +1,27 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Player Dashboard</title>
+<style>{{ theme_css|safe }}</style>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{ --cream:#f2f4f5; --tan:#5c97a8; --brown:#232d33; --blue:#5c97a8; --border:#dde2e5; --muted:#6b7680; }
+  :root{ --cream:#f2f4f5; --tan:var(--accent,#5c97a8); --brown:#232d33; --blue:var(--accent,#5c97a8); --border:#dde2e5; --muted:#6b7680; }
   *{box-sizing:border-box;} body{background:#f7f6f2;color:#22303a;font-family:'Barlow',sans-serif;margin:0;padding-bottom:40px;}
-  .hero{background:#22303a;padding:34px 16px 28px;border-bottom:3px solid #5c97a8;} .hero-wrap,.wrap{max-width:1040px;margin:0 auto;}
-  .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#5c97a8;margin:0 0 8px;}
+  .hero{background:var(--brand,#22303a);padding:34px 16px 28px;border-bottom:3px solid var(--accent,#5c97a8);} .hero-wrap,.wrap{max-width:1040px;margin:0 auto;}
+  .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-on-dark,var(--accent,#5c97a8));margin:0 0 8px;}
   h1{font:700 40px 'Oswald',sans-serif;letter-spacing:.01em;margin:0 0 6px;color:#fff;} .sub{color:#c9d3d8;font-size:14.5px;margin:0;}
   .wrap{padding:22px 16px 0;}
   .bar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:6px;}
   .bar input{background:#fff;flex:1;min-width:200px;max-width:340px;padding:10px 14px;border:1px solid var(--border);border-radius:999px;font:500 14px 'Barlow',sans-serif;}
-  .bar a.upl{font:700 14px 'Barlow',sans-serif;color:#fff;background:#5c97a8;border-radius:999px;padding:10px 20px;text-decoration:none;box-shadow:0 1px 3px rgba(26,31,36,.15);} .bar a.upl:hover{background:#4e8798;}
+  .bar a.upl{font:700 14px 'Barlow',sans-serif;color:var(--on-accent,#fff);background:var(--accent,var(--accent,#5c97a8));border-radius:999px;padding:10px 20px;text-decoration:none;box-shadow:0 1px 3px rgba(26,31,36,.15);} .bar a.upl:hover{background:var(--accent-dark,#4e8798);}
   .group-title{font:600 14px 'Oswald',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#22303a;margin:34px 0 14px;display:flex;align-items:center;gap:12px;} .group-title:after{content:'';flex:1;height:1px;background:#dcdfdc;}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px;}
   .sq{position:relative;background:#fff;border:none;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:inherit;transition:transform .12s,box-shadow .12s;}
   .sq:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(26,31,36,.16);}
   .ph{aspect-ratio:1/1;background:linear-gradient(135deg,#e1e7e8,#c3ced1);display:flex;align-items:center;justify-content:center;overflow:hidden;}
   .ph img{width:100%;height:100%;object-fit:cover;display:block;} .ph span{font:700 54px 'Oswald',sans-serif;color:#fff;opacity:.85;}
-  .bdg{width:58%;aspect-ratio:1/1;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(34,48,58,.18);} .bdg span{color:#5c97a8 !important;opacity:1 !important;} .bdg img{max-width:70%;max-height:64%;width:auto;height:auto;object-fit:contain;}
+  .bdg{width:58%;aspect-ratio:1/1;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(34,48,58,.18);} .bdg span{color:var(--accent-ink,var(--accent,#5c97a8)) !important;opacity:1 !important;} .bdg img{max-width:70%;max-height:64%;width:auto;height:auto;object-fit:contain;}
   .info{padding:14px 16px 16px;} .nm{font:700 20px/1.1 'Oswald',sans-serif;color:#22303a;} .nm small{display:block;font:500 14px 'Barlow',sans-serif;color:#76828a;margin-top:3px;}
   .row2{font-size:12.5px;color:#76828a;margin-top:6px;display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;}
-  .pos{font-weight:700;color:#5c97a8;letter-spacing:.04em;} .links{padding:0 12px 12px;display:flex;gap:6px;flex-wrap:wrap;}
+  .pos{font-weight:700;color:var(--accent-ink,var(--accent,#5c97a8));letter-spacing:.04em;} .links{padding:0 12px 12px;display:flex;gap:6px;flex-wrap:wrap;}
   .links a{font:600 12.5px 'Barlow',sans-serif;text-decoration:none;color:#fff;background:var(--blue);border-radius:999px;padding:6px 12px;}
   .mg{position:absolute;top:8px;right:8px;display:none;gap:4px;} .sq:hover .mg{display:flex;}
   .mg form{margin:0;} .mg button{font:600 11px 'Barlow',sans-serif;border:none;background:rgba(255,255,255,.92);color:var(--muted);border-radius:999px;padding:4px 9px;cursor:pointer;} .mg button.del{color:#9c3a3a;}
@@ -29,7 +30,7 @@
 <div class="hero"><div class="hero-wrap" style="position:relative;">{% if is_coach %}<div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>{% endif %}<p class="eyebrow">{{ team_label or 'Player Reports' }}</p><h1>{{ 'Teams & Programs' if mode == 'teams' else (page_title or 'Player Dashboard') }}</h1>
 <p class="sub">{{ 'Choose a team to see its players.' if mode == 'teams' else 'Tap a player to see their current profile and recent outings.' }}</p></div></div>
 <div class="wrap">
-  <div class="bar">{% if team_program %}<a href="{{ url_for('team_dashboard', program=team_program) }}" style="font:700 13px Barlow,sans-serif;color:#5c97a8;text-decoration:none;margin-right:6px;">&larr; Team Dashboard</a>{% elif team_label %}<a href="{{ url_for('dashboard') }}" style="font:700 13px Barlow,sans-serif;color:#5c97a8;text-decoration:none;margin-right:6px;">&larr; All teams</a>{% endif %}<input id="q" type="search" placeholder="{{ 'Search teams…' if mode == 'teams' else 'Search players, schools, positions…' }}" autocomplete="off">
+  <div class="bar">{% if team_program %}<a href="{{ url_for('team_dashboard', program=team_program) }}" style="font:700 13px Barlow,sans-serif;color:var(--accent-ink,var(--accent,#5c97a8));text-decoration:none;margin-right:6px;">&larr; Team Dashboard</a>{% elif team_label %}<a href="{{ url_for('dashboard') }}" style="font:700 13px Barlow,sans-serif;color:var(--accent-ink,var(--accent,#5c97a8));text-decoration:none;margin-right:6px;">&larr; All teams</a>{% endif %}<input id="q" type="search" placeholder="{{ 'Search teams…' if mode == 'teams' else 'Search players, schools, positions…' }}" autocomplete="off">
     {% if is_coach %}<a class="upl" href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a>{% endif %}</div>
 {% if first_upload %}<div class="group-title">Get started</div>
   <div style="background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);padding:28px;text-align:center;max-width:620px;margin:0 auto;">

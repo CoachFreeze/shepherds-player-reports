@@ -3,15 +3,15 @@
 #tour.on{display:flex;}
 #tour.dock{background:transparent;align-items:flex-end;pointer-events:none;padding:0 14px 14px;} #tour.dock .tcard{pointer-events:auto;max-height:46vh;box-shadow:0 12px 40px rgba(0,0,0,.35),0 0 0 1px rgba(92,151,168,.35);}
 .tcard{background:#fff;border-radius:18px;max-width:560px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.35);}
-.tbar{height:4px;background:#e8ecee;} .tbar i{display:block;height:100%;background:#5c97a8;transition:width .25s;}
-.tbody{padding:22px 26px 6px;} .tstep{font:600 11px 'Oswald',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#5c97a8;}
+.tbar{height:4px;background:#e8ecee;} .tbar i{display:block;height:100%;background:var(--accent,#5c97a8);transition:width .25s;}
+.tbody{padding:22px 26px 6px;} .tstep{font:600 11px 'Oswald',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink,var(--accent,#5c97a8));}
 .tbody h2{font:700 24px/1.15 'Oswald',sans-serif;margin:6px 0 8px;color:#22303a;} .tbody p{font-size:15px;line-height:1.5;color:#3c4a53;margin:8px 0;}
 .tbody ul{margin:8px 0;padding-left:20px;font-size:14.5px;line-height:1.5;color:#3c4a53;} .tbody li{margin:4px 0;} .tbody b{color:#22303a;}
 .tmock{background:#f2f4f3;border-radius:12px;padding:12px 14px;margin:12px 0;font-size:13.5px;color:#3c4a53;}
 .tfoot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 26px 18px;}
-.tdots{display:flex;gap:6px;} .tdots i{width:7px;height:7px;border-radius:50%;background:#d5dcdf;} .tdots i.a{background:#5c97a8;}
-.tbtn{font:600 14px 'Barlow',sans-serif;border:none;border-radius:999px;padding:10px 20px;cursor:pointer;background:#5c97a8;color:#fff;} .tbtn.g{background:transparent;color:#6b7680;padding:10px 8px;}
-.t-hl{outline:3px solid #5c97a8;outline-offset:4px;border-radius:14px;transition:outline-color .2s;}
+.tdots{display:flex;gap:6px;} .tdots i{width:7px;height:7px;border-radius:50%;background:#d5dcdf;} .tdots i.a{background:var(--accent,#5c97a8);}
+.tbtn{font:600 14px 'Barlow',sans-serif;border:none;border-radius:999px;padding:10px 20px;cursor:pointer;background:var(--accent,var(--accent,#5c97a8));color:var(--on-accent,#fff);} .tbtn.g{background:transparent;color:#6b7680;padding:10px 8px;}
+.t-hl{outline:3px solid var(--accent,#5c97a8);outline-offset:4px;border-radius:14px;transition:outline-color .2s;}
 @media (max-width:520px){.tbody{padding:20px 18px 6px;} .tfoot{padding:12px 18px 16px;} .tbody h2{font-size:21px;}}
 </style>
 <div id="tour" role="dialog" aria-modal="true" aria-label="Guided tour"><div class="tcard">

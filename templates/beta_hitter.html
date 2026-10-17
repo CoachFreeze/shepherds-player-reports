@@ -1,11 +1,13 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{ h.name }} · Hitting (beta)</title>
+<style>{{ theme_css|safe }}</style>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>{{ css|safe }}</style>
+<style>{{ css|safe }}
+{{ theme_css|safe }}</style>
 <style>
   .bb-spray-wrap svg{overflow:visible;} .bb-spray-wrap{margin:0 12px;}
   :root{--good:#2f9e6b;--bad:#d0503f;--neu:#9aa5ab;}
   body{font-family:'Barlow',Arial,sans-serif;background:#f7f6f2;color:#22303a;margin:0;}
-  .top{max-width:1040px;margin:0 auto;padding:16px 16px 0;display:flex;justify-content:space-between;align-items:center;} .top a.back{color:#5c97a8;font-weight:600;font-size:13px;text-decoration:none;}
+  .top{max-width:1040px;margin:0 auto;padding:16px 16px 0;display:flex;justify-content:space-between;align-items:center;} .top a.back{color:var(--accent-ink,var(--accent,#5c97a8));font-weight:600;font-size:13px;text-decoration:none;}
   .wrap{max-width:1040px;margin:0 auto;padding:6px 16px 50px;}
   .head{display:flex;align-items:center;gap:16px;margin:8px 0 14px;} .av{width:64px;height:64px;border-radius:50%;background:#22303a;color:#fff;font:600 24px 'Oswald';display:flex;align-items:center;justify-content:center;}
   h1{font:700 32px 'Oswald',sans-serif;margin:0;} .sub{color:#6b7680;font-size:14px;margin-top:2px;}
@@ -27,7 +29,7 @@
   .center{text-align:center;} .center .bb-spray-wrap{max-width:100%;}
   .seg{display:inline-flex;background:#eef1f0;border-radius:999px;padding:3px;margin:0 0 12px;} .seg button{border:0;background:none;font:600 12.5px 'Barlow',sans-serif;color:#55626b;padding:6px 14px;border-radius:999px;cursor:pointer;} .seg button.on{background:#22303a;color:#fff;}
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px;align-items:center;} .chips span.k{font:600 10.5px 'Barlow';letter-spacing:.08em;text-transform:uppercase;color:#76828a;margin-right:2px;}
-  .chips button{border:1px solid #dcdfdc;background:#fff;font:600 12px 'Barlow',sans-serif;color:#55626b;padding:4px 11px;border-radius:999px;cursor:pointer;} .chips button.on{background:#5c97a8;border-color:#5c97a8;color:#fff;}
+  .chips button{border:1px solid #dcdfdc;background:#fff;font:600 12px 'Barlow',sans-serif;color:#55626b;padding:4px 11px;border-radius:999px;cursor:pointer;} .chips button.on{background:var(--accent,#5c97a8);border-color:var(--accent,#5c97a8);color:#fff;}
   .hm-scale{display:flex;align-items:center;gap:8px;font-size:11px;color:#76828a;margin-top:10px;justify-content:center;} .hm-scale div{display:flex;} .hm-scale i{width:14px;height:9px;display:block;} .hm-scale em{margin-left:6px;}
   #zhm text{font-family:'Barlow',Arial,sans-serif;pointer-events:none;}
   .foot{color:#76828a;font-size:12.5px;margin-top:6px;line-height:1.5;}
@@ -129,7 +131,7 @@ var ZD = {{ h.zone_ev|tojson }};
     <div class="card"><h2>Spray chart</h2><p class="hint">Every tracked ball in play. Color is exit velocity; tap a dot for the details.</p>
       <div class="center">{{ h.spray|safe }}</div>
       {% if s.pull_pct is not none %}<div style="margin-top:14px;"><div class="splitl"><b>Pull {{ s.pull_pct|round|int }}%</b><b>Center {{ s.center_pct|round|int }}%</b><b>Oppo {{ s.oppo_pct|round|int }}%</b></div>
-        <div class="split"><span style="width:{{ s.pull_pct }}%;background:#5c97a8"></span><span style="width:{{ s.center_pct }}%;background:#b7cfd6"></span><span style="width:{{ s.oppo_pct }}%;background:#22303a"></span></div></div>{% endif %}
+        <div class="split"><span style="width:{{ s.pull_pct }}%;background:var(--accent,#5c97a8)"></span><span style="width:{{ s.center_pct }}%;background:#b7cfd6"></span><span style="width:{{ s.oppo_pct }}%;background:#22303a"></span></div></div>{% endif %}
     </div>
   </div>
 

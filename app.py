@@ -2,7 +2,7 @@ import functools
 import json
 import os
 import re
-from flask import Flask, Response, render_template, request, session, redirect, url_for, render_template_string, send_file, jsonify, abort
+from flask import g, Flask, Response, render_template, request, session, redirect, url_for, render_template_string, send_file, jsonify, abort
 
 import github_sync
 import plans
@@ -13,6 +13,7 @@ import mlb_lookup
 import headshots
 import hitting
 import team
+import theme
 import roster as roster_mod
 import glossary
 import overview
@@ -177,6 +178,26 @@ ACCOUNT_PAGE = """
       <button type="submit">Update password</button></form></div>
 </div></body></html>
 """
+
+
+@app.context_processor
+def inject_theme():
+    """School colors for whichever program's page this is (see theme.py): the program in the URL, else the owner of the player
+    being viewed, else the signed-in coach's own program. Pages with no program (admin tools, login) keep the default colors."""
+    prog = getattr(g, 'theme_program', None)
+    if not prog:
+        va = request.view_args or {}
+        prog = va.get('program')
+        if not prog and va.get('slug'):
+            prog = (store.get_player(va['slug']) or {}).get('program')
+        if not prog and session.get('coach') and not is_admin():
+            prog = my_program()
+    if not prog or prog in store.ADMIN_ONLY_PROGRAMS:
+        return {'theme_css': '', 'theme_program': None}
+    try:
+        return {'theme_css': theme.css(theme.for_program(prog)), 'theme_program': prog}
+    except Exception:
+        return {'theme_css': '', 'theme_program': None}
 
 
 @app.context_processor
@@ -403,7 +424,7 @@ def team_dashboard(program):
     sessions = sorted(set(P['sessions']) | set(H['sessions'] if H else []))
     return render_template('team_dashboard.html', program=program, team_label=store.program_label(program), halves=halves,
                            last_session=sessions[-1] if sessions else None, is_coach=True, is_admin=is_admin(),
-                           coach_key=session.get('coach') or '')
+                           coach_key=session.get('coach') or '', th=theme.for_program(program), th_default=theme.default_pair(program))
 
 
 @app.route('/team/<program>/customize', methods=['POST'])
@@ -415,6 +436,21 @@ def team_customize(program):
         abort(403)
     team.set_stats(program, side, request.form.getlist('stat'))
     return redirect(url_for('team_dashboard', program=program) + f'#{side}')
+
+
+@app.route('/team/<program>/theme', methods=['POST'])
+@login_required
+def team_theme(program):
+    _team_ok(program)
+    d = team.load(program)
+    if request.form.get('reset'):
+        d.pop('theme', None)
+    else:
+        brand, accent = request.form.get('brand', ''), request.form.get('accent', '')
+        if theme._valid(brand) and theme._valid(accent):
+            d['theme'] = {'brand': brand.lower(), 'accent': accent.lower()}
+    team.save(program, d)
+    return redirect(url_for('team_dashboard', program=program))
 
 
 @app.route('/team/<program>/goals', methods=['POST'])
@@ -500,6 +536,7 @@ def beta_hitter(key):
     h = hitting.hitter_profile(key)
     if not h:
         abort(404)
+    g.theme_program = h['program']
     css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
     return render_template('beta_hitter.html', h=h, css=css)
 

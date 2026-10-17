@@ -1,11 +1,12 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Team Dashboard</title>
+<style>{{ theme_css|safe }}</style>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{ --ink:#22303a; --teal:#5c97a8; --muted:#6b7680; --line:#dde2e5; --good:#2f9e6b; --bad:#d0503f; --card:#fff; }
+  :root{ --ink:#22303a; --teal:var(--accent,#5c97a8); --muted:#6b7680; --line:#dde2e5; --good:#2f9e6b; --bad:#d0503f; --card:#fff; }
   *{box-sizing:border-box;} body{background:#f7f6f2;color:var(--ink);font-family:'Barlow',sans-serif;margin:0;padding-bottom:60px;}
-  .hero{background:#22303a;padding:34px 16px 24px;border-bottom:3px solid var(--teal);} .wrap{max-width:1280px;margin:0 auto;padding:0 16px;} .hero .wrap{padding:0;position:relative;}
-  .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);margin:0 0 8px;}
+  .hero{background:var(--brand,#22303a);padding:34px 16px 24px;border-bottom:3px solid var(--teal);} .wrap{max-width:1280px;margin:0 auto;padding:0 16px;} .hero .wrap{padding:0;position:relative;}
+  .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-on-dark,#5c97a8);margin:0 0 8px;}
   h1{font:700 40px 'Oswald',sans-serif;margin:0 0 6px;color:#fff;} .sub{color:#c9d3d8;font-size:14.5px;margin:0;}
   .jump{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;} .jump a{font:600 13px 'Barlow',sans-serif;color:#fff;text-decoration:none;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 14px;} .jump a:hover{background:rgba(255,255,255,.12);}
   .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 34px;align-items:start;} .cols.one{grid-template-columns:minmax(0,1040px);justify-content:center;}
@@ -14,7 +15,7 @@
   .half{margin-top:34px;} .half-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:6px;}
   .half-head h2{font:700 30px 'Oswald',sans-serif;letter-spacing:.02em;margin:0;text-transform:uppercase;} .half-head h2 small{font:600 11px 'Barlow',sans-serif;letter-spacing:.08em;color:#b3791f;border:1px solid #e3c88f;background:#fbf3e0;border-radius:999px;padding:3px 9px;margin-left:10px;vertical-align:middle;}
   .half-meta{color:var(--muted);font-size:13.5px;margin:0 0 4px;}
-  .btn{display:inline-block;font:700 14px 'Barlow',sans-serif;color:#fff;background:var(--teal);border:none;border-radius:999px;padding:10px 20px;text-decoration:none;cursor:pointer;box-shadow:0 1px 3px rgba(26,31,36,.15);} .btn:hover{background:#4e8798;}
+  .btn{display:inline-block;font:700 14px 'Barlow',sans-serif;color:#fff;background:var(--teal);border:none;border-radius:999px;padding:10px 20px;text-decoration:none;cursor:pointer;box-shadow:0 1px 3px rgba(26,31,36,.15);} .btn:hover{background:var(--accent-dark,#4e8798);}
   .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none;padding:7px 14px;font-size:13px;} .btn.ghost:hover{background:#f2f4f3;}
   h3{font:600 14px 'Oswald',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);margin:28px 0 12px;display:flex;align-items:center;gap:12px;} h3:after{content:'';flex:1;height:1px;background:#dcdfdc;} h3 .act{order:3;}
   .card{background:var(--card);border-radius:16px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);padding:16px 18px;}
@@ -99,6 +100,13 @@
   </div>
 </section>
 {% endfor %}
+<section class="half" style="margin-top:34px;grid-column:1/-1;"><h3 id="colors">Team colors</h3>
+  <form class="card" method="post" action="{{ url_for('team_theme', program=program) }}" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;">
+    <span style="font-size:13.5px;color:var(--muted);flex:1;min-width:240px;">{% if th.source == 'custom' %}Using your custom colors.{% elif th.source == 'logo' %}Pulled from your school logo.{% else %}Default colors.{% endif %} They show on this dashboard, player pages and outing reports.</span>
+    <label style="font:600 12px 'Barlow',sans-serif;color:var(--muted);display:flex;align-items:center;gap:8px;">Header <input type="color" name="brand" value="{{ th.brand }}" style="width:42px;height:32px;border:1px solid var(--line);border-radius:8px;padding:2px;background:#fff;"></label>
+    <label style="font:600 12px 'Barlow',sans-serif;color:var(--muted);display:flex;align-items:center;gap:8px;">Accent <input type="color" name="accent" value="{{ th.accent }}" style="width:42px;height:32px;border:1px solid var(--line);border-radius:8px;padding:2px;background:#fff;"></label>
+    <button class="btn" type="submit">Save colors</button>
+    {% if th.source == 'custom' %}<button class="btn ghost" type="submit" name="reset" value="1">Reset to school colors</button>{% endif %}</form></section>
 </div>
 </div>
 <script>document.querySelectorAll('[data-pk]').forEach(function(b){b.addEventListener('click',function(){document.getElementById(b.dataset.pk).classList.toggle('open');});});</script>

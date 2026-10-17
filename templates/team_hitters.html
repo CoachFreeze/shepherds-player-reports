@@ -1,11 +1,12 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Hitter Dashboard</title>
+<style>{{ theme_css|safe }}</style>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{ --ink:#22303a; --teal:#5c97a8; --muted:#6b7680; --line:#dde2e5; }
+  :root{ --ink:#22303a; --teal:var(--accent,#5c97a8); --muted:#6b7680; --line:#dde2e5; }
   *{box-sizing:border-box;} body{background:#f7f6f2;color:var(--ink);font-family:'Barlow',sans-serif;margin:0;padding-bottom:40px;}
-  .hero{background:#22303a;padding:34px 16px 28px;border-bottom:3px solid var(--teal);} .wrap{max-width:1040px;margin:0 auto;padding:0 16px;} .hero .wrap{padding:0;position:relative;}
-  .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);margin:0 0 8px;}
+  .hero{background:var(--brand,#22303a);padding:34px 16px 28px;border-bottom:3px solid var(--teal);} .wrap{max-width:1040px;margin:0 auto;padding:0 16px;} .hero .wrap{padding:0;position:relative;}
+  .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-on-dark,#5c97a8);margin:0 0 8px;}
   h1{font:700 40px 'Oswald',sans-serif;margin:0 0 6px;color:#fff;} .sub{color:#c9d3d8;font-size:14.5px;margin:0;}
   .bar{display:flex;gap:10px;align-items:center;margin:22px 0 6px;flex-wrap:wrap;} .bar a.back{font:700 13px Barlow,sans-serif;color:var(--teal);text-decoration:none;margin-right:6px;}
   .bar input{background:#fff;flex:1;min-width:200px;max-width:340px;padding:10px 14px;border:1px solid var(--line);border-radius:999px;font:500 14px 'Barlow',sans-serif;}

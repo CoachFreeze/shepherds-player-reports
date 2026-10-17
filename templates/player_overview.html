@@ -1,16 +1,18 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ b.name }} · Player Overview</title>
+<style>{{ theme_css|safe }}</style>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>{{ css }}
+{{ theme_css|safe }}
   body{background:#f7f6f2;font-family:'Barlow',sans-serif;}
   .ov{max-width:900px;margin:0 auto;padding:0 14px 50px;}
-  .top{display:flex;justify-content:space-between;align-items:center;padding:14px 2px;font-size:13px;} .top a.upl{background:#5c97a8;color:#fff;border-radius:999px;padding:8px 16px;font-weight:700;} .top a{color:#5c97a8;font-weight:600;text-decoration:none;}
-  .head{background:#fff;border:none;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);border-radius:16px;border-top:4px solid #5c97a8;padding:18px;display:flex;gap:18px;align-items:center;flex-wrap:wrap;}
+  .top{display:flex;justify-content:space-between;align-items:center;padding:14px 2px;font-size:13px;} .top a.upl{background:var(--accent,var(--accent,#5c97a8));color:var(--on-accent,#fff);border-radius:999px;padding:8px 16px;font-weight:700;} .top a{color:var(--accent-ink,var(--accent,#5c97a8));font-weight:600;text-decoration:none;}
+  .head{background:#fff;border:none;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);border-radius:16px;border-top:4px solid var(--accent,#5c97a8);padding:18px;display:flex;gap:18px;align-items:center;flex-wrap:wrap;}
   .hs{width:128px;height:128px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#e1e7e8,#c3ced1);display:flex;align-items:center;justify-content:center;flex:none;}
   .hs img{width:100%;height:100%;object-fit:cover;} .hs span{font:700 46px 'Oswald',sans-serif;color:#fff;}
   .head h1{font:700 34px/1.05 'Oswald',sans-serif;margin:0;color:var(--ink);} .head .sub{font:500 15px 'Barlow',sans-serif;color:#6b7680;margin-top:6px;}
   .head .sub b{color:var(--ink);} .rng{font-size:12.5px;color:#6b7680;margin-top:8px;}
-  .editbtn{display:inline-block;border:1px solid #5c97a8;color:#5c97a8;background:#fff;border-radius:999px;padding:6px 16px;font:600 13px 'Barlow',sans-serif;text-decoration:none;} .editbtn:hover{background:#5c97a8;color:#fff;} .photo-form{margin-top:10px;font-size:12px;} .photo-form button{border:1px solid #b5c6cb;background:#fff;border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;}
+  .editbtn{display:inline-block;border:1px solid var(--accent,#5c97a8);color:var(--accent-ink,var(--accent,#5c97a8));background:#fff;border-radius:999px;padding:6px 16px;font:600 13px 'Barlow',sans-serif;text-decoration:none;} .editbtn:hover{background:var(--accent,var(--accent,#5c97a8));color:var(--on-accent,#fff);} .photo-form{margin-top:10px;font-size:12px;} .photo-form button{border:1px solid #b5c6cb;background:#fff;border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;}
   .pn{background:#fff;border:none;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);border-radius:16px;margin-top:14px;padding:14px 10px;}
   .pn-t{font:700 17px 'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;text-align:center;color:var(--ink);} .pn-s{font-size:12px;text-align:center;color:#6b7680;margin:2px 0 8px;}
   .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px;}
@@ -25,7 +27,7 @@
   .tag2{font:700 10px 'Barlow',sans-serif;letter-spacing:.05em;text-transform:uppercase;border-radius:999px;padding:2px 8px;margin-left:8px;vertical-align:2px;} .live{background:#e3ecdf;color:#3f6b42;} .bp{background:#e8eef2;color:#5c7280;}
   #mv-tip{position:fixed;z-index:50;pointer-events:none;display:none;background:#26343b;color:#fff;font:600 12px/1.3 'Barlow',sans-serif;padding:6px 9px;border-radius:5px;white-space:nowrap;}
   #mv-tip.card{padding:0;background:#000;border-radius:10px;overflow:hidden;text-align:center;min-width:104px;} #mv-tip .tt-h{font:700 14px/1 'Barlow';padding:7px 12px;} #mv-tip .tt-b{padding:5px 12px 8px;color:#fff;} #mv-tip .tt-v{font:700 26px/1.05 'Oswald';} #mv-tip .tt-m{font:700 13px/1.2 'Barlow';margin-top:2px;}
-  .dlrow{text-align:right;margin:3px 2px 0;} .olog a.dl{font:600 12.5px 'Barlow',sans-serif;color:#5c97a8;text-decoration:none;} .olog a.dl:hover{text-decoration:underline;}
+  .dlrow{text-align:right;margin:3px 2px 0;} .olog a.dl{font:600 12.5px 'Barlow',sans-serif;color:var(--accent-ink,var(--accent,#5c97a8));text-decoration:none;} .olog a.dl:hover{text-decoration:underline;}
   .trendnote{position:absolute;top:14px;right:16px;text-align:right;line-height:1.2;} .trendnote b{display:block;font:700 15px 'Barlow',sans-serif;} .trendnote span{font-size:11.5px;color:#76828a;}
   .trendnote.up b{color:#2a7a4b;} .trendnote.down b{color:#b3563a;} .trendnote.flat b{color:#6b7680;}
   @media (max-width:640px){.trendnote{position:static;text-align:center;margin:0 0 6px;}}
@@ -67,7 +69,7 @@
    var cbs=[].slice.call(f.querySelectorAll('.stcb'));
    function paint(){document.getElementById('stOrder').value=order.join(',');var s=document.getElementById('stSel');s.innerHTML='';
      order.forEach(function(id,i){var c=cbs.filter(function(x){return x.value===id})[0];if(!c)return;var b=document.createElement('span');
-       b.style.cssText='background:#f2f4f3;border-radius:999px;padding:3px 10px;font-size:12px;border-bottom:2px solid #5c97a8;';
+       b.style.cssText='background:#f2f4f3;border-radius:999px;padding:3px 10px;font-size:12px;border-bottom:2px solid var(--accent,#5c97a8);';
        b.textContent=(i+1)+'. '+c.dataset.label+'  ';var up=document.createElement('a');up.href='#';up.textContent='\u2190';up.onclick=function(e){e.preventDefault();if(i>0){var t=order[i-1];order[i-1]=order[i];order[i]=t;paint();}};b.appendChild(up);s.appendChild(b);});
      cbs.forEach(function(c){c.checked=order.indexOf(c.value)>-1;});}
    cbs.forEach(function(c){c.onchange=function(){var k=order.indexOf(c.value);if(c.checked&&k<0)order.push(c.value);if(!c.checked&&k>-1)order.splice(k,1);paint();};});
