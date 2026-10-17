@@ -524,6 +524,21 @@
     "school": "Biola University",
     "weight_lbs": 210.0
   },
+  "oscar_knapp": {
+    "comps": {},
+    "grad_year": null,
+    "height_in": 74.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261010-BiolaUniversity-Private-1_unverified.csv",
+    "name": "Oscar Knapp",
+    "program": "biola_university",
+    "roles": {
+      "pitch": {
+        "position": "LHP"
+      }
+    },
+    "school": "Biola University",
+    "weight_lbs": 205.0
+  },
   "reagan_samples": {
     "comps": {
       "hit": [
