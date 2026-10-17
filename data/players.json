@@ -513,32 +513,6 @@
     "school": "Long Beach State",
     "weight_lbs": 185.0
   },
-  "nicholas_whippo": {
-    "comps": {},
-    "grad_year": null,
-    "height_in": 72.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261016-BiolaUniversity-Private-1_unverified.csv",
-    "name": "Nicholas Whippo",
-    "program": "biola_university",
-    "roles": {
-      "hit": {
-        "position": "C"
-      }
-    },
-    "roster": {
-      "bats": "R",
-      "class_year": "Jr.",
-      "high_school": "Ontario Christian HS",
-      "hometown": "Eastvale, CA",
-      "major": "Kinesiology",
-      "number": "36",
-      "pos_raw": "Catcher",
-      "prev_school": "Ontario Christian HS",
-      "throws": "R"
-    },
-    "school": "Biola University",
-    "weight_lbs": 210.0
-  },
   "oscar_knapp": {
     "comps": {},
     "grad_year": null,
