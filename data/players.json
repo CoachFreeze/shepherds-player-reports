@@ -33,6 +33,17 @@
         "position": "LHP"
       }
     },
+    "roster": {
+      "bats": "L",
+      "class_year": "Jr.",
+      "high_school": "Los Osos HS",
+      "hometown": "Rancho Cucamonga, CA",
+      "major": "Engineering",
+      "number": "30",
+      "pos_raw": "Left-Handed Pitcher",
+      "prev_school": "Los Osos HS",
+      "throws": "L"
+    },
     "school": "Biola University",
     "weight_lbs": 205.0
   },
@@ -47,6 +58,16 @@
       "pitch": {
         "position": "RHP"
       }
+    },
+    "roster": {
+      "bats": "L",
+      "class_year": "Fr.",
+      "high_school": "St. John Bosco HS",
+      "hometown": "Lakewood, CA",
+      "major": "Business Administration",
+      "pos_raw": "Right-Handed Pitcher",
+      "prev_school": "St. John Bosco HS",
+      "throws": "R"
     },
     "school": "Biola University",
     "weight_lbs": 200.0
@@ -348,9 +369,23 @@
     "name": "Jacob Talbott",
     "program": "biola_university",
     "roles": {
+      "hit": {
+        "position": "INF"
+      },
       "pitch": {
         "position": "RHP"
       }
+    },
+    "roster": {
+      "bats": "R",
+      "class_year": "Jr.",
+      "high_school": "Yorba Linda HS",
+      "hometown": "Yorba Linda, CA",
+      "major": "Public Health",
+      "number": "10",
+      "pos_raw": "Infield/Right-Handed Pitcher",
+      "prev_school": "Yorba Linda HS",
+      "throws": "R"
     },
     "school": "Biola University",
     "weight_lbs": 185.0
@@ -408,9 +443,23 @@
     "name": "Nicholas Whippo",
     "program": "biola_university",
     "roles": {
+      "hit": {
+        "position": "C"
+      },
       "pitch": {
         "position": "RHP"
       }
+    },
+    "roster": {
+      "bats": "R",
+      "class_year": "Jr.",
+      "high_school": "Ontario Christian HS",
+      "hometown": "Eastvale, CA",
+      "major": "Kinesiology",
+      "number": "36",
+      "pos_raw": "Catcher",
+      "prev_school": "Ontario Christian HS",
+      "throws": "R"
     },
     "school": "Biola University",
     "weight_lbs": 210.0
@@ -617,9 +666,22 @@
     "name": "Shane Piester",
     "program": "biola_university",
     "roles": {
+      "hit": {
+        "position": "OF"
+      },
       "pitch": {
         "position": "RHP"
       }
+    },
+    "roster": {
+      "bats": "R",
+      "class_year": "Fr.",
+      "high_school": "Maranatha Christian Schools",
+      "hometown": "Carlesbad, CA",
+      "major": "Bible, Theology, and Ministry",
+      "pos_raw": "Outfield/Right-Handed Pitcher",
+      "prev_school": "Maranatha Christian Schools",
+      "throws": "R"
     },
     "school": "Biola University",
     "weight_lbs": 210.0
