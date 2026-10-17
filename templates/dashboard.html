@@ -33,7 +33,7 @@
     <a class="sq" href="{{ url_for('team_dashboard', program=t.key) }}" data-s="{{ t.search }}" style="text-decoration:none;color:inherit;">
       <div class="ph"><div class="bdg" style="background:{{ t.badge.bg if t.badge else '#fff' }}">{% if t.badge %}<img src="{{ url_for('school_logo', fname=t.badge.file) }}" alt="">{% elif t.brand %}<img src="{{ url_for('brand_logo', fname='shepsavant_logo.png') }}" alt="">{% else %}<span style="font-size:44px;">{{ t.label[:2]|upper }}</span>{% endif %}</div></div>
       <div class="info"><div class="nm">{{ t.label }}</div>
-        <div class="row2"><span>{{ t.players }} player{{ 's' if t.players != 1 }}</span><span>{% if t.demo %}Sample{% elif t.brand %}Admin only{% else %}{{ t.coaches }} coach{{ 'es' if t.coaches != 1 }}{% endif %}</span></div></div>
+        <div class="row2"><span>{% if t.demo %}Sample{% elif t.brand %}Admin only{% else %}{{ t.coaches }} coach{{ 'es' if t.coaches != 1 }}{% endif %}</span></div></div>
     </a>
   {% endfor %}</div>
   {% endif %}
