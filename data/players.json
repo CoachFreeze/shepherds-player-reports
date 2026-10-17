@@ -779,7 +779,8 @@
   "zachary_berntsen": {
     "comps": {},
     "grad_year": null,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261016-BiolaUniversity-Private-1_unverified.csv",
+    "height_in": 73.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261010-BiolaUniversity-Private-1_unverified.csv",
     "name": "Zachary Berntsen",
     "program": "biola_university",
     "roles": {
@@ -787,6 +788,7 @@
         "position": "RHP"
       }
     },
-    "school": "Biola University"
+    "school": "Biola University",
+    "weight_lbs": 185.0
   }
 }
