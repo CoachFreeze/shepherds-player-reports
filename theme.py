@@ -139,10 +139,16 @@ def _build(brand, accent):
             'accent_on_dark': _hex(on_dark), 'on_accent': on_accent}
 
 
+# Official school colors where the logo can't give them (Biola: red header with a blue stripe). A coach's saved override still wins.
+PROGRAM_DEFAULTS = {'biola_university': ('#d2373f', '#5f9dda')}
+
+
 def default_pair(program):
     """(brand, accent, source) the program would get with no override: logo colors, else the ShepSavant default."""
     import pipeline
     import store
+    if program in PROGRAM_DEFAULTS:
+        return PROGRAM_DEFAULTS[program][0], PROGRAM_DEFAULTS[program][1], 'school'
     entry = pipeline._badge_entry(store.program_label(program), program) if program else None
     if entry:
         fname, bg = entry
