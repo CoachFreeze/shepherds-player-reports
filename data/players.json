@@ -384,8 +384,11 @@
       ]
     },
     "grad_year": 2032,
+    "height_in": 76.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_Session_2026-07-25_ec96c14b-a281-4c1d-97e2-2ce52e3e40c4_1784998884 2.csv",
     "last_xlsx_path": "/opt/render/project/src/data/uploads/jackson_orr_2026_Shepherds_Live_AB_Data.xlsx",
     "name": "Jackson Orr",
+    "program": "shepherds",
     "roles": {
       "hit": {
         "position": "OF"
@@ -394,7 +397,8 @@
         "position": "LHP"
       }
     },
-    "school": "La Mirada HS"
+    "school": "Shepherds",
+    "weight_lbs": 205.0
   },
   "jacob_talbott": {
     "comps": {},
