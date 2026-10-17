@@ -21,6 +21,21 @@
     ],
     "weight_lbs": 190.0
   },
+  "aidan_cube": {
+    "comps": {},
+    "grad_year": null,
+    "height_in": 75.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261016-BiolaUniversity-Private-1_unverified.csv",
+    "name": "Aidan Cube",
+    "program": "biola_university",
+    "roles": {
+      "pitch": {
+        "position": "LHP"
+      }
+    },
+    "school": "Biola University",
+    "weight_lbs": 205.0
+  },
   "aidan_young": {
     "comps": {
       "hit": [
