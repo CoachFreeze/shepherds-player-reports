@@ -22,14 +22,14 @@ USAGE_PATH = os.path.join(store.DATA_DIR, 'usage.json')
 
 # None = unlimited. history = how many recent outings feed the player profile.
 PLANS = {
-    'pilot':   {'label': 'Pilot (free trial)', 'max_players': None, 'max_coaches': None, 'history': 10, 'download': True,  'custom_stats': True,  'roster_upload': True},
-    'free':    {'label': 'Free',               'max_players': 5,    'max_coaches': 1,    'history': 3,  'download': False, 'custom_stats': False, 'roster_upload': False},
-    'team':    {'label': 'Team',               'max_players': None, 'max_coaches': 3,    'history': 10, 'download': True,  'custom_stats': True,  'roster_upload': False},
-    'program': {'label': 'Program',            'max_players': None, 'max_coaches': 10,   'history': 10, 'download': True,  'custom_stats': True,  'roster_upload': True},
+    'pilot':   {'label': 'Pilot (free trial)', 'max_players': None, 'max_coaches': None, 'history': 10, 'download': True,  'custom_stats': True,  'roster_upload': True, 'hitting': True},
+    'free':    {'label': 'Free',               'max_players': 5,    'max_coaches': 1,    'history': 3,  'download': False, 'custom_stats': False, 'roster_upload': False, 'hitting': False},
+    'team':    {'label': 'Team',               'max_players': None, 'max_coaches': 3,    'history': 10, 'download': True,  'custom_stats': True,  'roster_upload': False, 'hitting': True},
+    'program': {'label': 'Program',            'max_players': None, 'max_coaches': 10,   'history': 10, 'download': True,  'custom_stats': True,  'roster_upload': True, 'hitting': True},
 }
 DEFAULT_PLAN = 'pilot'
 FEATURE_NAMES = {'download': 'Download-to-send outing reports', 'custom_stats': 'Customizable player stats',
-                 'roster_upload': 'Team roster upload', 'max_players': 'More players', 'max_coaches': 'More coach logins'}
+                 'roster_upload': 'Team roster upload', 'hitting': 'Hitting profiles and team hitting dashboard', 'max_players': 'More players', 'max_coaches': 'More coach logins'}
 
 
 def enforcing():

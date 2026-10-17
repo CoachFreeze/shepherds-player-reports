@@ -207,7 +207,7 @@ def inject_theme():
     prog = _nav_program() if session.get('coach') else None
     out = {'nav_program': prog, 'home_url': home_url(), 'home_label': 'Team Dashboard' if prog else 'dashboard',
            'pitchers_url': url_for('team_pitchers', program=prog) if prog else url_for('dashboard'),
-           'hitters_url': url_for('team_hitters', program=prog) if (prog and is_admin()) else (url_for('beta_hitters') if is_admin() else url_for('dashboard')),
+           'hitters_url': url_for('team_hitters', program=prog) if prog else (url_for('beta_hitters') if is_admin() else url_for('dashboard')),
            'theme_css': '', 'theme_program': None}
     if prog and prog not in store.ADMIN_ONLY_PROGRAMS:
         try:
@@ -416,8 +416,11 @@ def team_pitchers(program):
 
 
 @app.route('/team/<program>/hitters')
-@admin_required
+@login_required
 def team_hitters(program):
+    _team_ok(program)
+    if not plans.allowed(program, 'hitting'):
+        return _upgrade('hitting')
     rows = [r for r in hitting.list_hitters() if r['program'] == program]
     rows.sort(key=lambda r: r['name'].split()[-1].lower())
     return render_template('team_hitters.html', rows=rows, program=program, team_label=store.program_label(program))
@@ -429,7 +432,7 @@ def team_dashboard(program):
     _team_ok(program)
     cfg = team.load(program)
     P = team.pitching_data(program)
-    H = team.hitting_data(program, True) if is_admin() else None
+    H = team.hitting_data(program, True) if plans.allowed(program, 'hitting') else None
     def half(side, D, ids):
         tiles = [D['tiles'][i] for i in ids if i in D['tiles']]
         return {'side': side, 'D': D, 'tiles': tiles, 'goals': team.goal_rows(program, side, D['tiles']),
@@ -448,7 +451,7 @@ def team_dashboard(program):
 def team_customize(program):
     _team_ok(program)
     side = 'hitting' if request.form.get('side') == 'hitting' else 'pitching'
-    if side == 'hitting' and not is_admin():
+    if side == 'hitting' and not plans.allowed(program, 'hitting'):
         abort(403)
     team.set_stats(program, side, request.form.getlist('stat'))
     return redirect(url_for('team_dashboard', program=program) + f'#{side}')
@@ -475,7 +478,7 @@ def team_goals(program):
     _team_ok(program)
     f = request.form
     side = 'hitting' if f.get('side') == 'hitting' else 'pitching'
-    if side == 'hitting' and not is_admin():
+    if side == 'hitting' and not plans.allowed(program, 'hitting'):
         abort(403)
     act = f.get('action')
     if act == 'add':
@@ -553,10 +556,18 @@ def beta_hitters():
 
 
 @app.route('/beta/hitter/<key>')
-@admin_required
+@login_required
+def beta_hitter_old(key):
+    return redirect(url_for('beta_hitter', key=key))
+
+
+@app.route('/hitter/<key>')
+@login_required
 def beta_hitter(key):
     h = hitting.hitter_profile(key)
-    if not h:
+    if not h or h['demo'] and not is_admin():
+        abort(404)
+    if not is_admin() and (h['program'] != my_program() or not plans.allowed(h['program'], 'hitting')):   # a coach sees only his own program's hitters
         abort(404)
     g.theme_program = h['program']
     css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)

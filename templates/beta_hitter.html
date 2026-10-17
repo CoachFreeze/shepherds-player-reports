@@ -38,7 +38,7 @@
 {% set s = h.s %}
 <div class="wrap">
   <div class="head"><div class="av">{{ (h.name.split()[0][:1] + h.name.split()[-1][:1])|upper }}</div>
-    <div><h1>{{ h.name }}<span class="beta">BETA</span></h1>
+    <div><h1>{{ h.name }}</h1>
     {% if h.roster %}{% set r = h.roster %}<div class="sub" style="color:#22303a;font-weight:600;">{% if r.number %}#{{ r.number }} · {% endif %}{{ r.pos_raw or r.position or '' }}{% if r.class_year %} · {{ r.class_year }}{% endif %}{% if r.height_in %} · {{ (r.height_in // 12)|int }}'{{ (r.height_in % 12)|int }}"{% endif %}{% if r.weight_lbs %} · {{ r.weight_lbs }} lb{% endif %}{% if r.hometown %} · {{ r.hometown }}{% endif %}</div>{% endif %}
     <div class="sub">Bats {{ {'R':'right','L':'left','S':'both'}.get(h.bats, '—') }} · {{ s.pitches }} pitches seen · {{ s.pa }} plate appearances · {{ h.dates|length }} session{{ '' if h.dates|length == 1 else 's' }}{% if h.demo %} · sample data{% endif %}</div></div></div>
 

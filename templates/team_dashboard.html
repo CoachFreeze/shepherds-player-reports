@@ -51,7 +51,7 @@
 <div class="cols{{ ' one' if halves|length == 1 }}">
 {% for H in halves %}{% set side = H.side %}{% set D = H.D %}
 <section class="half" id="{{ side }}">
-  <div class="half-head"><h2>{{ 'Pitching' if side == 'pitching' else 'Hitting' }}{% if side == 'hitting' %}<small>BETA &middot; ADMIN ONLY</small>{% endif %}</h2>
+  <div class="half-head"><h2>{{ 'Pitching' if side == 'pitching' else 'Hitting' }}</h2>
     {% if side == 'pitching' %}<a class="btn" href="{{ url_for('team_pitchers', program=program) }}">See Pitcher Dashboard &rarr;</a>
     {% else %}<a class="btn" href="{{ url_for('team_hitters', program=program) }}">See Hitter Dashboard &rarr;</a>{% endif %}</div>
   <p class="half-meta">{{ D.n_players }} {{ 'pitcher' if side == 'pitching' else 'hitter' }}{{ 's' if D.n_players != 1 }} &middot; {{ '{:,}'.format(D.n_pitches) }} pitches &middot; {{ D.sessions|length }} session{{ 's' if D.sessions|length != 1 }}</p>
