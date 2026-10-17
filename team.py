@@ -216,6 +216,22 @@ def pitching_data(program):
     boards.append({'title': 'Fastball velocity', 'sub': 'Average, min. 15 pitches', 'unit': 'mph',
                    'rows': [{'key': p['key'], 'name': p['name'], 'value': f'{a:.1f}', 'extra': f'top {t:.1f}' if t else ''}
                             for p, a, t in sorted(fb, key=lambda x: -x[1])[:5]]})
+    def _rate_board(sid, title, sub, min_den):
+        got = []
+        for p in players:
+            if sid not in p['v']:
+                continue
+            val, det = p['v'][sid]
+            m = re.match(r'\s*(\d+)\s*/\s*(\d+)', str(det or ''))
+            if _num(val) is None or not m or int(m.group(2)) < min_den:
+                continue
+            got.append((p, _num(val), det))
+        boards.append({'title': title, 'sub': sub, 'unit': '%',
+                       'rows': [{'key': p['key'], 'name': p['name'], 'value': f'{v:.1f}%', 'extra': det}
+                                for p, v, det in sorted(got, key=lambda x: -x[1])[:5]]})
+    _rate_board('strike_pct', 'Strike %', 'Strikes / pitches, min. 15 pitches', 15)
+    _rate_board('fps_pct', 'First-pitch strike %', 'Strikes on 0-0, min. 5 first pitches', 5)
+    _rate_board('whiff_pct', 'Whiff %', 'Swinging strikes / swings, min. 10 swings', 10)
     return {'players': players, 'tiles': tiles_all, 'boards': boards, 'n_players': len(players), 'n_pitches': len(all_rows),
             'sessions': sorted({o['date'] for _, _, outs in ps for o in outs}), 'trend': _trends(players, PITCH_TREND, 'pitch')}
 
@@ -268,6 +284,11 @@ def hitting_data(program, include_demo):
     boards.append({'title': 'Swing Decision Rating', 'sub': '0-100, min. 15 decisions', 'unit': '',
                    'rows': [{'key': p['key'], 'name': p['name'], 'value': f"{p['s']['score']:.0f}",
                              'extra': p['s']['grade'] or ''} for p in sorted(sd, key=lambda p: -p['s']['score'])[:5]]})
+    br = [p for p in players if (p['s'].get('mix_n') or 0) > 0]
+    boards.append({'title': 'Total barrels', 'sub': 'Barrels on balls in play', 'unit': '',
+                   'rows': [{'key': p['key'], 'name': p['name'], 'value': str(p['s']['brl']),
+                             'extra': f"{p['s']['brl_pct']:.1f}%" if isinstance(p['s'].get('brl_pct'), (int, float)) else str(p['s'].get('brl_pct') or '')}
+                            for p in sorted(br, key=lambda p: (-p['s']['brl'], -(p['s']['mix_n'])))[:5] if p['s']['brl']]})
     return {'players': players, 'tiles': tiles_all, 'boards': boards, 'n_players': len(players), 'n_pitches': len(all_p),
             'sessions': sorted({p['date'] for h in hs.values() for p in h['pitches'] if p['date']}),
             'trend': _trends(players, HIT_TREND, 'hit')}
