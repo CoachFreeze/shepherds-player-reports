@@ -54,6 +54,7 @@ SCHOOL_BADGES = [
     (('ucla',), 'ucla.png', '#FFFFFF'),
     (('loyola marymount', 'lmu'), 'loyola_marymount.png', '#FFFFFF'),
     (('biola',), 'biola.png', '#FFFFFF'),
+    (('shepherds',), 'shepherds.png', '#F3E8D7'),
     (('west texas', 'wtamu'), 'west_texas_am.png', '#FFFFFF'),
     (('northwest nazarene', 'nnu'), 'northwest_nazarene.png', '#FFFFFF'),
     (('ventura college', 'ventura'), 'ventura_college.png', '#FFFFFF'),
@@ -306,7 +307,7 @@ def render_trackman_mini(name, trackman_rows, bio=None, summary_rows=None, write
     }
     css = CSS
     prog = (bio or {}).get('program')
-    if prog and prog not in store.ADMIN_ONLY_PROGRAMS:        # school colors for a program's outing reports (see theme.py)
+    if prog:        # school colors for a program's outing reports (see theme.py)
         try:
             import theme
             css = CSS + '\n' + theme.css(theme.for_program(prog))

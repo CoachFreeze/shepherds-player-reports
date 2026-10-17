@@ -140,7 +140,7 @@ def _build(brand, accent):
 
 
 # Official school colors where the logo can't give them (Biola: red header with a blue stripe). A coach's saved override still wins.
-PROGRAM_DEFAULTS = {'biola_university': ('#d2373f', '#5f9dda')}
+PROGRAM_DEFAULTS = {'biola_university': ('#d2373f', '#5f9dda'), 'shepherds': ('#744c28', '#79add3')}
 
 
 def default_pair(program):

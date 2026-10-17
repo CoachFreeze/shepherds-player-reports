@@ -210,7 +210,7 @@ def inject_theme():
            'pitchers_url': url_for('team_pitchers', program=prog) if prog else url_for('dashboard'),
            'hitters_url': url_for('team_hitters', program=prog) if prog else (url_for('beta_hitters') if is_admin() else url_for('dashboard')),
            'theme_css': '', 'theme_program': None}
-    if prog and prog not in store.ADMIN_ONLY_PROGRAMS:
+    if prog:
         try:
             out['theme_css'] = theme.css(theme.for_program(prog))
             out['theme_program'] = prog
