@@ -20,7 +20,7 @@
   h3{font:600 14px 'Oswald',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);margin:28px 0 12px;display:flex;align-items:center;gap:12px;} h3:after{content:'';flex:1;height:1px;background:#dcdfdc;} h3 .act{order:3;}
   .card{background:var(--card);border-radius:16px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);padding:16px 18px;}
   .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
-  .tile{background:var(--card);border-radius:14px;box-shadow:0 1px 3px rgba(26,31,36,.08);padding:14px 14px 12px;} .tile .v{font:700 30px 'Oswald',sans-serif;line-height:1;} .tile .l{font:600 12px 'Barlow',sans-serif;color:var(--muted);margin-top:6px;letter-spacing:.02em;} .tile .d{font-size:11.5px;color:#98a3a9;margin-top:2px;}
+  .tile{text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center;background:var(--card);border-radius:14px;box-shadow:0 1px 3px rgba(26,31,36,.08);padding:14px 14px 12px;} .tile .v{font:700 30px 'Oswald',sans-serif;line-height:1;} .tile .l{font:600 12px 'Barlow',sans-serif;color:var(--muted);margin-top:6px;letter-spacing:.02em;} .tile .d{font-size:11.5px;color:#98a3a9;margin-top:2px;}
   .empty{color:var(--muted);font-size:14px;padding:6px 0;}
   .picker{display:none;margin-top:12px;} .picker.open{display:block;} .picker fieldset{border:0;margin:0 0 12px;padding:0;} .picker legend{font:700 11px 'Barlow',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#98a3a9;margin-bottom:6px;}
   .picker label{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;margin:0 14px 6px 0;cursor:pointer;} .picker .hint{font-size:12.5px;color:var(--muted);margin:0 0 12px;}
@@ -59,7 +59,7 @@
   {% if not D.n_players %}<div class="card" style="margin-top:14px;"><div class="empty">No {{ 'pitching' if side == 'pitching' else 'hitting' }} data yet. Upload a Trackman .CSV and this half fills in automatically.</div></div>
   {% else %}
   <h3>Team stats <button type="button" class="btn ghost act" data-pk="pk-{{ side }}">Customize</button></h3>
-  {% if H.tiles %}<div class="tiles">{% for t in H.tiles %}<div class="tile" title="{{ t.definition }}"><div class="v">{{ t.value }}</div><div class="l">{{ t.label }}</div>{% if t.detail %}<div class="d">{{ t.detail }}</div>{% endif %}</div>{% endfor %}</div>
+  {% if H.tiles %}<div class="tiles">{% for t in H.tiles %}<div class="tile" title="{{ t.definition }}"><div class="v">{{ t.value }}</div><div class="l">{{ t.label }}</div></div>{% endfor %}</div>
   {% else %}<div class="card"><div class="empty">None of the selected stats have data yet. Use Customize to pick others.</div></div>{% endif %}
   <form class="card picker" id="pk-{{ side }}" method="post" action="{{ url_for('team_customize', program=program) }}"><input type="hidden" name="side" value="{{ side }}">
     <p class="hint">Choose which team stats appear on your dashboard. They show in the order listed below. Team numbers are pooled across every tracked {{ 'pitch' if side == 'pitching' else 'pitch seen' }}.</p>

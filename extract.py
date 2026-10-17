@@ -1016,7 +1016,7 @@ def outing_summary(rows):
     evs = [_fnum(r.get('ExitSpeed')) for r, o in zip(rows, outs_) if o == 'inplay']
     evs = [v for v in evs if v]
     def pct(a, b):
-        return f'{100 * a / b:.0f}%' if b else '-'
+        return f'{100 * a / b:.1f}%' if b else '-'
     return {
         'ip': f'{outs // 3}.{outs % 3}', 'bf': bf, 'pitches': n, 'hits': hits, 'walks': walks, 'hbp': hbp,
         'strike_pct': pct(strikes, known), 'fps_pct': pct(fps, len(fp)), 'zone_pct': pct(inzone, loc_n),

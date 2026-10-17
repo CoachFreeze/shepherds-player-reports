@@ -567,7 +567,7 @@ def hitter_profile(key, include_demo=True, side='all'):
     if s['ev90'] is not None:
         prow.append({'label': 'EV90', 'pctl': bm.interpolate(s['ev90'], bm.HITTER['ev90']), 'value_display': f"{s['ev90']:.1f}"})
     if s['whiff_pct'] is not None and len([p for p in ps if p['outcome'] in SWING]) >= 10:
-        prow.append({'label': 'Whiff%', 'pctl': bm.interpolate(s['whiff_pct'], bm.HITTER['whiff_pct']), 'value_display': f"{s['whiff_pct']:.0f}%"})
+        prow.append({'label': 'Whiff%', 'pctl': bm.interpolate(s['whiff_pct'], bm.HITTER['whiff_pct']), 'value_display': f"{s['whiff_pct']:.1f}%"})
     return {'bio': bio, 'switch': switch, 'ps_n': len(ps), 'roster': h.get('roster'), 'pctl_html': sc.percentile_bars_html(prow) if prow else '', 'key': key, 'name': display_name(h['name']), 'program': h['program'], 'demo': h['demo'], 'bats': bats,
             's': s, 'notes': takeaways(s), 'dates': sorted({p['date'] for p in ps_all if p['date']}),
             'zone_ev': zone_ev_data(ps),
