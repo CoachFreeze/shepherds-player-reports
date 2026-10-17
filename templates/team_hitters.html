@@ -23,6 +23,7 @@
   <p class="eyebrow">{{ team_label }}</p><h1>Hitter Dashboard</h1><p class="sub">Tap a hitter to see their profile, swing decisions, spray chart and exit velocity.</p></div></div>
 <div class="wrap">
   <div class="bar"><a class="back" href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Dashboard</a><input id="q" type="search" placeholder="Search hitters…" autocomplete="off"><span class="beta">BETA &middot; ADMIN ONLY</span></div>
+  {% if not rows %}<p style="color:var(--muted);margin-top:24px;">No hitters tracked for this team yet. Hitters appear here automatically once a session with batter data is uploaded.</p>{% endif %}
   <div class="grid">
   {% for r in rows %}{% set parts = r.name.split() %}
     <a class="sq" href="{{ url_for('beta_hitter', key=r.key) }}" data-s="{{ (r.name ~ ' ' ~ (r.roster.position if r.roster else ''))|lower }}">

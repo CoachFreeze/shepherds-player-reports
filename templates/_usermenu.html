@@ -13,7 +13,7 @@
   {% if me.badge %}<span class="um-av" style="background:{{ me.badge.bg }}"><img src="{{ url_for('school_logo', fname=me.badge.file) }}" alt=""></span>{% else %}<span class="um-av"><b>{{ me.initials }}</b></span>{% endif %}</button>
   <div class="um-pop" role="menu">
     <div class="um-who"><b>{{ me.name }}</b><span>{{ me.label or ('Administrator' if me.is_admin else '') }}</span></div>
-    {% if me.program %}<a href="{{ url_for('team_dashboard', program=me.program) }}">Team Dashboard</a><a href="{{ url_for('team_pitchers', program=me.program) }}">Pitcher Dashboard</a>{% endif %}
+    {% if nav_program %}<a href="{{ url_for('team_dashboard', program=nav_program) }}">Team Dashboard</a><a href="{{ url_for('team_pitchers', program=nav_program) }}">Pitcher Dashboard</a>{% if me.is_admin %}<a href="{{ url_for('team_hitters', program=nav_program) }}">Hitter Dashboard</a>{% endif %}{% endif %}
     <a href="{{ url_for('account') }}">Account settings</a>
     <a href="{{ url_for('roster_page') }}">Team roster</a>
     <a href="{{ url_for('glossary_page') }}">Stats glossary</a>

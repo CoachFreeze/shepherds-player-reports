@@ -33,7 +33,7 @@
   @media (max-width:640px){.trendnote{position:static;text-align:center;margin:0 0 6px;}}
   .mv-pt{cursor:pointer;} @media (max-width:560px){.tiles{grid-template-columns:repeat(2,1fr);} .olog .st{width:100%;justify-content:space-between;}}
 </style></head><body><div class="ov">
-<div class="top"><a href="{{ url_for('dashboard') }}">&larr; All players</a>{% if is_coach %}<span style="display:flex;align-items:center;gap:12px;"><a class="upl" href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a>{% include '_usermenu.html' %}</span>{% endif %}</div>
+<div class="top"><a href="{{ pitchers_url }}">&larr; {{ 'Pitcher Dashboard' if nav_program else 'All players' }}</a>{% if is_coach %}<span style="display:flex;align-items:center;gap:12px;"><a class="upl" href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a>{% include '_usermenu.html' %}</span>{% endif %}</div>
 <div class="head">
   <div class="hs">{% if has_photo %}<img src="{{ url_for('headshot', slug=slug) }}?v={{ photo_v }}" alt="">{% elif badge %}<img src="{{ url_for('school_logo', fname=badge.file) }}" alt="" style="width:100%;height:100%;object-fit:contain;padding:18%;background:{{ badge.bg }};">{% else %}<span>{{ initials }}</span>{% endif %}</div>
   <div style="flex:1;min-width:220px;">

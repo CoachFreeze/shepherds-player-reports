@@ -34,7 +34,7 @@
   #zhm text{font-family:'Barlow',Arial,sans-serif;pointer-events:none;}
   .foot{color:#76828a;font-size:12.5px;margin-top:6px;line-height:1.5;}
 </style></head><body>
-<div class="top"><a class="back" href="{{ url_for('beta_hitters') }}">&larr; All hitters</a>{% include '_usermenu.html' %}</div>
+<div class="top"><a class="back" href="{{ hitters_url }}">&larr; {{ 'Hitter Dashboard' if nav_program else 'All hitters' }}</a>{% include '_usermenu.html' %}</div>
 {% set s = h.s %}
 <div class="wrap">
   <div class="head"><div class="av">{{ (h.name.split()[0][:1] + h.name.split()[-1][:1])|upper }}</div>

@@ -16,7 +16,7 @@
   .warn{color:#b3791f;font-size:11.5px;} .sub{color:#8a959b;font-size:11.5px;display:block;} .n{font-variant-numeric:tabular-nums;white-space:nowrap;}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
 </style></head><body>
-<div class="top"><a class="back" href="{{ url_for('dashboard') }}">&larr; Back to dashboard</a>{% include '_usermenu.html' %}</div>
+<div class="top"><a class="back" href="{{ home_url }}">&larr; Back to {{ home_label }}</a>{% include '_usermenu.html' %}</div>
 <div class="wrap"><h1>Team Roster</h1>
   <p class="lead">Upload your roster once and keep it current. It fills in bio details for your players and tells ShepSavant which hitters are yours, since tracking files don't say what team a batter is on. Works with a PDF printed from your athletics site, an Excel file, or a CSV.</p>
   {% if saved %}{% set sv = saved.split(':') %}<div class="banner ok"><b>Roster saved.</b> {{ sv[0] }} players on the roster{% if sv[1] and sv[1] != '0' %}; bio details filled in for {{ sv[1] }} already on the dashboard{% endif %}.</div>{% endif %}

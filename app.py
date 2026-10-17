@@ -81,7 +81,7 @@ def _upgrade(feature, detail=''):
     """Shown when a plan doesn't include something (only possible once plan enforcement is switched on)."""
     name = plans.FEATURE_NAMES.get(feature, feature)
     return (BULK_STYLE + f'<h1>{name}</h1><div class="card">{detail or "This is not included in your current plan."} '
-            'Contact the ShepSavant admin to upgrade.</div><p><a href="' + url_for('dashboard') + '">Back to the dashboard</a></p>'), 402
+            'Contact the ShepSavant admin to upgrade.</div><p><a href="' + home_url() + '">Back to the dashboard</a></p>'), 402
 
 
 def _track(event, **meta):
@@ -159,7 +159,7 @@ ACCOUNT_PAGE = """
   .msg{font-size:13px;margin:0 0 10px;padding:8px 12px;border-radius:8px;} .err{background:#f8e6e6;color:#9c3a3a;} .ok{background:#e4f2ea;color:#2a7a4b;}
   .ro{color:#6b7680;font-size:14px;margin-top:4px;}
 </style></head><body>
-<div class="top"><a class="back" href="{{ url_for('dashboard') }}">&larr; Back to dashboard</a>{% include '_usermenu.html' %}</div>
+<div class="top"><a class="back" href="{{ home_url }}">&larr; Back to {{ home_label }}</a>{% include '_usermenu.html' %}</div>
 <div class="wrap"><h1>Account Settings</h1>
   <div class="card"><div class="id">{% if me.badge %}<span class="um-av big" style="background:{{ me.badge.bg }}"><img src="{{ url_for('school_logo', fname=me.badge.file) }}" alt=""></span>{% else %}<span class="um-av big"><b>{{ me.initials }}</b></span>{% endif %}
     <div class="meta"><b>{{ me.name }}</b><span>{{ me.label or ('Administrator' if me.is_admin else '') }}{% if me.is_admin and me.label %} &middot; Administrator{% endif %}</span></div></div>
@@ -180,24 +180,42 @@ ACCOUNT_PAGE = """
 """
 
 
-@app.context_processor
-def inject_theme():
-    """School colors for whichever program's page this is (see theme.py): the program in the URL, else the owner of the player
-    being viewed, else the signed-in coach's own program. Pages with no program (admin tools, login) keep the default colors."""
+def _nav_program():
+    """The program whose pages the signed-in person is on: set by the route (g.theme_program), else the program in the URL, else the owner
+    of the player being viewed, else a program coach's own program. None on pages that belong to no program (admin tools, glossary...)."""
     prog = getattr(g, 'theme_program', None)
     if not prog:
         va = request.view_args or {}
         prog = va.get('program')
         if not prog and va.get('slug'):
             prog = (store.get_player(va['slug']) or {}).get('program')
-        if not prog and session.get('coach') and not is_admin():
-            prog = my_program()
-    if not prog or prog in store.ADMIN_ONLY_PROGRAMS:
-        return {'theme_css': '', 'theme_program': None}
-    try:
-        return {'theme_css': theme.css(theme.for_program(prog)), 'theme_program': prog}
-    except Exception:
-        return {'theme_css': '', 'theme_program': None}
+    if not prog and session.get('coach') and not is_admin():
+        prog = my_program()
+    return prog or None
+
+
+def home_url():
+    """Where "back to dashboard" goes: a program's Team Dashboard for coaches (and for admins inside a program), else the team list."""
+    prog = _nav_program() if session.get('coach') else None
+    return url_for('team_dashboard', program=prog) if prog else url_for('dashboard')
+
+
+@app.context_processor
+def inject_theme():
+    """School colors (see theme.py) plus back-link targets for whichever program's page this is. Pages with no program (admin tools,
+    login) keep the default colors and link back to the team list."""
+    prog = _nav_program() if session.get('coach') else None
+    out = {'nav_program': prog, 'home_url': home_url(), 'home_label': 'Team Dashboard' if prog else 'dashboard',
+           'pitchers_url': url_for('team_pitchers', program=prog) if prog else url_for('dashboard'),
+           'hitters_url': url_for('team_hitters', program=prog) if (prog and is_admin()) else (url_for('beta_hitters') if is_admin() else url_for('dashboard')),
+           'theme_css': '', 'theme_program': None}
+    if prog and prog not in store.ADMIN_ONLY_PROGRAMS:
+        try:
+            out['theme_css'] = theme.css(theme.for_program(prog))
+            out['theme_program'] = prog
+        except Exception:
+            pass
+    return out
 
 
 @app.context_processor
@@ -401,8 +419,6 @@ def team_pitchers(program):
 @admin_required
 def team_hitters(program):
     rows = [r for r in hitting.list_hitters() if r['program'] == program]
-    if not rows:
-        abort(404)
     rows.sort(key=lambda r: r['name'].split()[-1].lower())
     return render_template('team_hitters.html', rows=rows, program=program, team_label=store.program_label(program))
 
@@ -516,6 +532,12 @@ def view_outing(slug, date):
         _track('download', slug=slug)
         fname = re.sub(r'[^A-Za-z0-9]+', '_', bio['name']).strip('_') + f'_{date}_outing_report.html'
         return Response(html, mimetype='text/html', headers={'Content-Disposition': f'attachment; filename="{fname}"'})
+    _bar = ('<style>.ss-back{position:fixed;top:10px;left:10px;z-index:100;background:#fff;color:#22303a;font:700 13px Arial,sans-serif;'
+            'text-decoration:none;border:1px solid #cfd6d9;border-radius:999px;padding:7px 14px;box-shadow:0 2px 8px rgba(26,31,36,.18);}'
+            '@media print{.ss-back{display:none}}</style><a class="ss-back" href="' + url_for('player_overview', slug=slug) + '">&larr; Back to '
+            + re.sub(r'<[^>]*>', '', (bio.get('name') or 'profile')).replace('&', '&amp;').replace('<', '') + '</a>')
+    _k = re.search(r'<body[^>]*>', html)
+    html = html[:_k.end()] + _bar + html[_k.end():] if _k else _bar + html
     if request.args.get('tour') == 'report':
         _t = render_template('_tour.html', tour_stage='report', tour_next=url_for('dashboard'), coach_key=session.get('coach') or '')
         k = html.rfind('</body>')
@@ -834,9 +856,10 @@ def upload_headshot(slug):
 def delete_player_route(slug):
     if not can_manage(slug) or store.is_demo(slug):
         abort(403)
+    prog = (store.get_player(slug) or {}).get('program')
     if not store.delete_player(slug):
         abort(404)
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('team_pitchers', program=prog) if prog else url_for('dashboard'))
 
 
 @app.route('/player/<slug>/rename', methods=['POST'])
@@ -844,10 +867,11 @@ def delete_player_route(slug):
 def rename_player_route(slug):
     if not can_manage(slug):
         abort(403)
+    prog = (store.get_player(slug) or {}).get('program')
     new_slug, err = store.rename_player(slug, request.form.get('name', ''))
     if err:
         return err, 400
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('player_overview', slug=new_slug) if new_slug else (url_for('team_pitchers', program=prog) if prog else url_for('dashboard')))
 
 
 @app.route('/admin/backup/players.json')
@@ -925,7 +949,7 @@ INTAKE_PAGE = """
   <button type="submit">Generate report(s)</button>
 </form>
 <p style="margin-top:28px;"><a href="{{ url_for('intake_bulk') }}">Adding Trackman pitchers? Upload a .CSV &rarr;</a></p>
-<p style="margin-top:10px;"><a href="{{ url_for('dashboard') }}">&larr; View the public dashboard</a></p>
+<p style="margin-top:10px;"><a href="{{ home_url }}">&larr; Back to {{ home_label }}</a></p>
 <p style="margin-top:10px;font-size:12.5px;"><a href="{{ url_for('backup_players') }}">Download current roster data (players.json)</a> -- after adding players, upload this file into the GitHub repo's <code>data/</code> folder so the roster survives the next code update.</p>
 """
 
@@ -1025,7 +1049,7 @@ LBSU_INTAKE_PAGE = """
   <button type="submit">Generate report</button>
 </form>
 <p style="margin-top:28px;"><a href="{{ url_for('intake') }}">&larr; Back to Shepherds intake</a></p>
-<p style="margin-top:10px;"><a href="{{ url_for('dashboard') }}">&larr; View the public dashboard</a></p>
+<p style="margin-top:10px;"><a href="{{ home_url }}">&larr; Back to {{ home_label }}</a></p>
 """
 
 
@@ -1050,7 +1074,7 @@ BULK_UPLOAD_PAGE = BULK_STYLE + """
 <p>Upload one Trackman CSV with any number of pitchers{% if prog_label %} for {{ prog_label }}{% endif %}. Everyone in the file is picked up automatically.</p>
 {% if message %}<div class="card" style="color:#9c3a3a;">{{ message }}</div>{% endif %}
 <form method="post" enctype="multipart/form-data">{% if programs %}<p><label style="font-weight:600;">Program: <select name="program">{% for s, l in programs %}<option value="{{ s }}" {{ 'selected' if s == prog }}>{{ l }}</option>{% endfor %}</select></label></p>{% endif %}<input type="file" name="trackman_file" accept=".csv" required><br><button type="submit">Read file</button></form>
-<p><a href="{{ url_for('dashboard') }}">&larr; Dashboard</a></p>"""
+<p><a href="{{ home_url }}">&larr; {{ home_label|capitalize }}</a></p>"""
 
 BULK_REVIEW_PAGE = BULK_STYLE + """
 <title>Review Pitchers</title><h1>Review pitchers</h1>
@@ -1203,7 +1227,7 @@ def intake_bulk_run():
                 print(f'WARNING: headshot for {name} not saved: {exc}')
     if skipped and not _first_upload_done(results, _was_first):
         return (BULK_STYLE + '<h1>Done</h1><div class="card">Skipped (a player with that name already belongs to another program): <b>' + ', '.join(skipped).replace('<', '') +
-                '</b>. Everyone else was added.</div><p><a href="' + url_for('dashboard') + '">Go to the dashboard</a></p>')
+                '</b>. Everyone else was added.</div><p><a href="' + home_url() + '">Go to the dashboard</a></p>')
     return _after_upload(results, _was_first)
 
 

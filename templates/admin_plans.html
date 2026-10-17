@@ -15,7 +15,7 @@
   .tiers td:first-child{font-weight:700;} .yes{color:#2a7a4b;font-weight:700;} .no{color:#b0b7bb;}
   .scroll{overflow-x:auto;}
 </style></head><body>
-<div class="top"><a class="back" href="{{ url_for('dashboard') }}">&larr; Back to dashboard</a>{% include '_usermenu.html' %}</div>
+<div class="top"><a class="back" href="{{ home_url }}">&larr; Back to {{ home_label }}</a>{% include '_usermenu.html' %}</div>
 <div class="wrap"><h1>Plans &amp; Usage</h1>
   <p class="lead">Who is using the dashboard and which plan each program is on. Usage covers the last 30 days.</p>
   {% if msg %}<div class="banner ok">{{ msg }}</div>{% endif %}

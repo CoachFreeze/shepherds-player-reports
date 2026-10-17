@@ -13,7 +13,7 @@
   dl{margin:0;} .e{padding:10px 0;border-bottom:1px solid #f0f2f1;} .e:last-child{border-bottom:0;} dt{font:700 15px 'Barlow',sans-serif;} dd{margin:3px 0 0;font-size:14px;line-height:1.55;color:#3c4a53;}
   .none{display:none;color:#76828a;padding:20px 0;text-align:center;} mark{background:#fbf0d9;}
 </style></head><body>
-<div class="top"><a class="back" href="{{ url_for('dashboard') }}">&larr; Back to dashboard</a>{% include '_usermenu.html' %}</div>
+<div class="top"><a class="back" href="{{ home_url }}">&larr; Back to {{ home_label }}</a>{% include '_usermenu.html' %}</div>
 <div class="wrap"><h1>Stats Glossary</h1>
   <p class="lead">What each stat and chart in ShepSavant means and how it is calculated.</p>
   <input class="search" id="q" type="search" placeholder="Search a stat, e.g. whiff, chase, exit velo" autocomplete="off">
