@@ -609,6 +609,21 @@
     },
     "school": "University of Hawaii at Hilo"
   },
+  "shane_piester": {
+    "comps": {},
+    "grad_year": 2030,
+    "height_in": 78.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261016-BiolaUniversity-Private-1_unverified.csv",
+    "name": "Shane Piester",
+    "program": "biola_university",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Biola University",
+    "weight_lbs": 210.0
+  },
   "tristan_ramos": {
     "comps": {},
     "grad_year": 2030,
