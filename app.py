@@ -1409,26 +1409,27 @@ def intake_bulk_run():
     if not _ok:
         return _upgrade('max_players', _msg)
     _was_first = store.needs_first_upload(session.get('coach'))
-    results = pipeline.process_trackman_bulk(path, specs, live_ab=bool(f.get('live_ab')) or fullswing.is_converted(path), reassign=reassign, program=prog)
-    try:
-        _ros = roster_mod.load(prog)
-        if _ros and roster_mod.apply_to_players(prog, _ros['players'], store.list_players()):
-            store.sync_to_github()
-    except Exception as exc:
-        print(f'WARNING: roster details not applied: {exc}')
-    if any(out for _, _, out in results):
-        _archive_csv(path, prog)
+    with github_sync.batch(f'Upload to {store.program_label(prog)}'):      # one commit for the whole upload (a commit per file restarted the site mid-request)
+        results = pipeline.process_trackman_bulk(path, specs, live_ab=bool(f.get('live_ab')) or fullswing.is_converted(path), reassign=reassign, program=prog)
         try:
-            _n = max(0, sum(1 for _ in open(path, encoding='utf-8', errors='ignore')) - 1)
-        except Exception:
-            _n = 0
-        plans.track('upload', session.get('coach') or '', prog, players=sum(1 for _, _, o in results if o), rows=_n)
-    for name, slug, out in results:
-        if out and name in photos:
+            _ros = roster_mod.load(prog)
+            if _ros and roster_mod.apply_to_players(prog, _ros['players'], store.list_players()):
+                store.sync_to_github()
+        except Exception as exc:
+            print(f'WARNING: roster details not applied: {exc}')
+        if any(out for _, _, out in results):
+            _archive_csv(path, prog)
             try:
-                headshots.save(slug, photos[name])
-            except Exception as exc:
-                print(f'WARNING: headshot for {name} not saved: {exc}')
+                _n = max(0, sum(1 for _ in open(path, encoding='utf-8', errors='ignore')) - 1)
+            except Exception:
+                _n = 0
+            plans.track('upload', session.get('coach') or '', prog, players=sum(1 for _, _, o in results if o), rows=_n)
+        for name, slug, out in results:
+            if out and name in photos:
+                try:
+                    headshots.save(slug, photos[name])
+                except Exception as exc:
+                    print(f'WARNING: headshot for {name} not saved: {exc}')
     if skipped and not _first_upload_done(results, _was_first):
         return (BULK_STYLE + '<h1>Done</h1><div class="card">Skipped (a player with that name already belongs to another program): <b>' + ', '.join(skipped).replace('<', '') +
                 '</b>. Everyone else was added.</div><p><a href="' + home_url() + '">Go to the dashboard</a></p>')

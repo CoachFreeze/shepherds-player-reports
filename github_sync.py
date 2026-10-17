@@ -52,6 +52,70 @@ def enabled():
         return False
     return bool(GITHUB_TOKEN and GITHUB_REPO)
 
+# ---- batching: many saves in one request become ONE commit (every commit triggers a Render redeploy, so a bulk upload
+# that committed once per file used to restart the site over and over mid-request -> "502 Bad Gateway").
+import contextlib
+import threading
+_tl = threading.local()
+
+
+def _pending():
+    return getattr(_tl, 'pending', None)
+
+
+@contextlib.contextmanager
+def batch(message='Update data'):
+    """Inside this block put_file / delete_file / players.json saves are only collected; on exit they go up as one commit.
+    Nested use joins the outer batch. If the single commit fails, each file is saved on its own as before."""
+    if _pending() is not None:
+        yield
+        return
+    _tl.pending = {}
+    try:
+        yield
+    finally:
+        pend, _tl.pending = _tl.pending, None
+        if pend:
+            _flush(pend, message)
+
+
+def _flush(pend, message):
+    if not enabled():
+        return
+    try:
+        h, base = _headers(), f'{API_BASE}/repos/{GITHUB_REPO}'
+        ref = requests.get(f'{base}/git/ref/heads/{GITHUB_BRANCH}', headers=h, timeout=15)
+        ref.raise_for_status()
+        head = ref.json()['object']['sha']
+        cm = requests.get(f'{base}/git/commits/{head}', headers=h, timeout=15)
+        cm.raise_for_status()
+        entries = []
+        for path, content in pend.items():
+            if content is None:                                   # delete
+                entries.append({'path': path, 'mode': '100644', 'type': 'blob', 'sha': None})
+                continue
+            b = requests.post(f'{base}/git/blobs', headers=h, timeout=30,
+                              json={'content': base64.b64encode(content).decode(), 'encoding': 'base64'})
+            b.raise_for_status()
+            entries.append({'path': path, 'mode': '100644', 'type': 'blob', 'sha': b.json()['sha']})
+        tr = requests.post(f'{base}/git/trees', headers=h, timeout=30, json={'base_tree': cm.json()['tree']['sha'], 'tree': entries})
+        tr.raise_for_status()
+        nc = requests.post(f'{base}/git/commits', headers=h, timeout=30,
+                           json={'message': message, 'tree': tr.json()['sha'], 'parents': [head]})
+        nc.raise_for_status()
+        up = requests.patch(f'{base}/git/refs/heads/{GITHUB_BRANCH}', headers=h, timeout=15, json={'sha': nc.json()['sha']})
+        up.raise_for_status()
+        _log(f'{len(pend)} files', True, 'saved to GitHub in one commit')
+    except Exception as exc:
+        print(f'WARNING: one-commit save failed ({exc}); saving files one by one')
+        _log(f'{len(pend)} files', False, f'one-commit save failed: {exc}')
+        for path, content in pend.items():
+            if content is None:
+                delete_file(path)
+            else:
+                put_file(path, content)
+
+
 
 def sync_players_json(players_dict):
     """Commits the current players dict to GitHub as data/players.json.
@@ -61,6 +125,9 @@ def sync_players_json(players_dict):
     at least visible in Render's logs if it starts failing persistently."""
     if not enabled():
         _log('players.json', False, 'GitHub sync is not configured (token/repo env vars missing)')
+        return
+    if _pending() is not None:
+        _pending()[GITHUB_DATA_PATH] = json.dumps(players_dict, indent=2, sort_keys=True).encode()
         return
     try:
         headers = {
@@ -106,6 +173,9 @@ def delete_file(repo_path):
     without credentials or if the file isn't in the repo."""
     if not enabled():
         return
+    if _pending() is not None:
+        _pending()[repo_path] = None
+        return
     try:
         url = f'{API_BASE}/repos/{GITHUB_REPO}/contents/{repo_path}'
         g = requests.get(url, headers=_headers(), params={'ref': GITHUB_BRANCH}, timeout=10)
@@ -122,6 +192,9 @@ def delete_file(repo_path):
 def put_file(repo_path, content_bytes):
     """Best-effort create/update of one file in the repo."""
     if not enabled():
+        return
+    if _pending() is not None:
+        _pending()[repo_path] = bytes(content_bytes)
         return
     try:
         url = f'{API_BASE}/repos/{GITHUB_REPO}/contents/{repo_path}'
