@@ -638,5 +638,18 @@
     },
     "school": "Long Beach State",
     "weight_lbs": 210
+  },
+  "zachary_berntsen": {
+    "comps": {},
+    "grad_year": null,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261016-BiolaUniversity-Private-1_unverified.csv",
+    "name": "Zachary Berntsen",
+    "program": "biola_university",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Biola University"
   }
 }
