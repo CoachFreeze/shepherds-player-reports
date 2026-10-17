@@ -269,6 +269,17 @@
     "school": "Long Beach State",
     "weight_lbs": 225
   },
+  "drew_craig": {
+    "comps": {},
+    "grad_year": 2030,
+    "height_in": 76.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_Session_2026-07-21_3c473bd5-bfca-4682-8eaf-5a4972a2afa4_1784678984 2.csv",
+    "name": "Drew Craig",
+    "program": "shepherds",
+    "roles": {},
+    "school": "Shepherds",
+    "weight_lbs": 190.0
+  },
   "dylan_proost": {
     "comps": {},
     "grad_year": null,
