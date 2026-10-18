@@ -21,7 +21,7 @@ FS_KEYS = ('LM FSID', 'SmashFactor', 'PotSmashFactor')
 KEEP = ('BatSpeed', 'SmashFactor', 'PotSmashFactor', 'PotExitSpeed', 'SquaredUp', 'HitSpinRate')
 OUT_COLS = ['PitchNo', 'PitchUID', 'Date', 'Time', 'Pitcher', 'PitcherThrows', 'Batter', 'BatterSide', 'PitchCall', 'CustomTags',
             'TaggedPitchType', 'PitchSession', 'RelSpeed', 'SpinRate', 'ExitSpeed', 'Angle', 'Direction', 'Distance',
-            'Balls', 'Strikes', 'Source'] + list(KEEP[:-1]) + ['HitSpinRate']
+            'Balls', 'Strikes', 'Source', 'TypeInferred'] + list(KEEP[:-1]) + ['HitSpinRate']
 OUT_COLS = list(dict.fromkeys(OUT_COLS))
 
 
@@ -93,6 +93,51 @@ def _num(x, nd=3):
         return ''
 
 
+MIN_FOR_INFERENCE = 8
+
+
+def _f(x):
+    try:
+        return float(x)
+    except (TypeError, ValueError):
+        return None
+
+
+def infer_types(rows):
+    """Full Swing exports carry no pitch type, so group each pitcher's pitches by velocity + spin:
+    Fastball = the top velocity cluster, Slider = slower with fastball-like (or higher) spin, ChangeUp = slower with low spin.
+    Pitchers with fewer than MIN_FOR_INFERENCE pitches stay 'Untagged'. Labels are guesses (TypeInferred='1') and can be
+    corrected with the normal retag tool."""
+    by = {}
+    for o in rows:
+        if _f(o.get('RelSpeed')):
+            by.setdefault(o['Pitcher'], []).append(o)
+    for p, rs in by.items():
+        if len(rs) < MIN_FOR_INFERENCE:
+            continue
+        v = sorted((_f(o['RelSpeed']) for o in rs), reverse=True)
+        top = v[max(0, int(len(v) * 0.1) - 1)] if len(v) >= 10 else v[0]
+        cut = top - 5.0
+        # prefer a natural break: the biggest gap (>=3 mph) between sorted velocities within 12 mph of the top
+        best = None
+        for a, b in zip(v, v[1:]):
+            if a >= top - 12 and a - b >= 3.0 and (best is None or a - b > best[0]):
+                best = (a - b, (a + b) / 2)
+        if best:
+            cut = max(best[1], top - 12)
+        fb = [o for o in rs if _f(o['RelSpeed']) >= cut]
+        sp = sorted(_f(o['SpinRate']) for o in fb if _f(o['SpinRate']))
+        fb_spin = sp[len(sp) // 2] if sp else None
+        for o in rs:
+            if _f(o['RelSpeed']) >= cut:
+                t = 'Fastball'
+            else:
+                s = _f(o['SpinRate'])
+                t = 'Slider' if (s and fb_spin and s >= fb_spin * 0.9) else 'ChangeUp'
+            o['TaggedPitchType'], o['TypeInferred'] = t, '1'
+    return rows
+
+
 def convert_rows(rows):
     """-> (trackman-shaped rows, summary dict)."""
     out, dropped_pitcher, dropped_batter, dropped_both = [], 0, 0, 0
@@ -121,6 +166,7 @@ def convert_rows(rows):
         for k in KEEP:
             o[k] = _num(r.get(k), 4 if k in ('SmashFactor', 'PotSmashFactor', 'SquaredUp') else 2)
         out.append(o)
+    infer_types(out)
     summary = {'rows_in': len(rows), 'rows_out': len(out), 'dropped_guest_pitcher': dropped_pitcher,
                'no_batter': dropped_batter,
                'pitchers': sorted({o['Pitcher'] for o in out}), 'batters': sorted({o['Batter'] for o in out if o['Batter']}),
