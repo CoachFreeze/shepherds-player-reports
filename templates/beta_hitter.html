@@ -170,8 +170,8 @@ var ZD = {{ h.zone_ev|tojson }};
       {% for l, v, u in [('Avg exit velo', s.avg_ev, ' mph'), ('Max exit velo', s.max_ev, ' mph'), ('EV90', s.ev90, ' mph'), ('Hard-hit (95+)', s.hard_hit_pct, '%'), ('Barrel %', s.brl_pct, '%'), ('Avg launch angle', s.avg_la, '°'), ('Sweet spot (8–32°)', s.sweet_spot_pct, '%'), ('Ground ball', s.gb_pct, '%'), ('Line drive', s.ld_pct, '%'), ('Fly ball', s.fb_pct, '%'), ('Pop-up', s.pu_pct, '%')] %}
       <div class="tile"><div class="v">{{ v if v is not none else '–' }}<span style="font-size:13px;color:#76828a;">{{ u if v is not none }}</span></div><div class="l">{{ l }}</div>{% if l == 'Barrel %' and s.mix_n %}<div style="font-size:11px;color:#76828a;margin-top:2px;">{{ s.brl }} of {{ s.mix_n }} batted balls</div>{% endif %}</div>{% endfor %}
     </div>
-    {% if h.pctl_html %}<div style="max-width:520px;margin-top:16px;">{{ h.pctl_html|safe }}</div>{% endif %}
+    {# percentile bars hidden for now (to be rebuilt with more data): {{ h.pctl_html|safe }} #}
     <p class="foot"><b>xBA</b> adds up the chance each tracked ball in play would be a hit, from its exit velocity and launch angle, then divides by at-bats (balls in play plus strikeouts; walks and HBP aren't at-bats). Fielders, parks and sprint speed aren't included. The hit-probability table is fitted to about 25,000 MLB batted balls (not Statcast's own model, and MLB hitters on wood bats, so college numbers can run a bit different). It will be refit to your own data as it builds. Under about 20 at-bats it swings a lot.</p>
-    <p class="foot">Percentiles use the college-level scale already in the app and need at least 5 tracked balls (EV90) or 10 swings (whiff). Decision score thresholds (85 elite, 75 strong, 65 solid, 55 developing) are starting points for beta and will be tuned once there is more data.</p>
+    <p class="foot">Decision score thresholds (85 elite, 75 strong, 65 solid, 55 developing) are starting points for beta and will be tuned once there is more data.</p>
   </div>
 </div></body></html>
