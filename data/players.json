@@ -126,7 +126,7 @@
     "comps": {},
     "grad_year": 2028,
     "height_in": 76.0,
-    "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/65aa1506-10.9.26_INTRASQUAD.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_2.csv",
     "name": "Caiden Christianson",
     "program": "long_beach_state",
     "roles": {
@@ -694,7 +694,7 @@
     "comps": {},
     "grad_year": 2028,
     "height_in": 75.0,
-    "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/65aa1506-10.9.26_INTRASQUAD.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_2.csv",
     "name": "Ryan DiMaggio",
     "program": "long_beach_state",
     "roles": {
@@ -842,8 +842,8 @@
   "tristan_ramos": {
     "comps": {},
     "grad_year": 2030,
-    "height_in": 73,
-    "last_trackman_path": "/root/.claude/uploads/1994ceeb-3cce-577e-92b1-02b933289045/65aa1506-10.9.26_INTRASQUAD.csv",
+    "height_in": 73.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_2.csv",
     "name": "Tristan Ramos",
     "program": "long_beach_state",
     "roles": {
@@ -852,7 +852,7 @@
       }
     },
     "school": "Long Beach State",
-    "weight_lbs": 210
+    "weight_lbs": 210.0
   },
   "zachary_berntsen": {
     "comps": {},
