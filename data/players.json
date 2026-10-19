@@ -260,7 +260,8 @@
   },
   "chris_grothues": {
     "comps": {},
-    "grad_year": null,
+    "grad_year": 2027,
+    "height_in": 75.0,
     "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_1.csv",
     "name": "Chris Grothues",
     "program": "long_beach_state",
@@ -269,7 +270,8 @@
         "position": "LHP"
       }
     },
-    "school": "Long Beach State"
+    "school": "Long Beach State",
+    "weight_lbs": 210.0
   },
   "christephor_alzaga": {
     "comps": {},
