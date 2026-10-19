@@ -258,6 +258,32 @@
     "school": "Long Beach State",
     "weight_lbs": 180.0
   },
+  "chris_grothues": {
+    "comps": {},
+    "grad_year": null,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_1.csv",
+    "name": "Chris Grothues",
+    "program": "long_beach_state",
+    "roles": {
+      "pitch": {
+        "position": "LHP"
+      }
+    },
+    "school": "Long Beach State"
+  },
+  "christephor_alzaga": {
+    "comps": {},
+    "grad_year": null,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_1.csv",
+    "name": "Christephor Alzaga",
+    "program": "long_beach_state",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Long Beach State"
+  },
   "derek_valdez": {
     "comps": {},
     "grad_year": 2027,
