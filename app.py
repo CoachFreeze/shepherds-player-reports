@@ -455,7 +455,7 @@ def team_dashboard(program):
     sessions = sorted(set(P['sessions']) | set(H['sessions'] if H else []))
     return render_template('team_dashboard.html', program=program, team_label=store.program_label(program), halves=halves,
                            last_session=sessions[-1] if sessions else None, is_coach=True, is_admin=is_admin(),
-                           mark=(pipeline.school_badge_file(store.program_label(program), program) or [None])[0],
+                           wm_url=_wm_url(program),
                            coach_key=session.get('coach') or '', th=theme.for_program(program), th_default=theme.default_pair(program))
 
 
@@ -480,6 +480,107 @@ def team_customize(program):
     return redirect(url_for('team_dashboard', program=program) + f'#{side}')
 
 
+def _wm_url(program):
+    src = theme.watermark_source(program)
+    if not src:
+        return None
+    try:
+        v = int(os.path.getmtime(src[1])) if src[0] != 'school' else 0
+    except OSError:
+        v = 0
+    return url_for('watermark', program=program, v=v)
+
+
+APPEARANCE_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Appearance Settings</title>
+<style>{{ theme_css|safe }}</style>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#22303a; --teal:var(--accent,#5c97a8); --muted:#6b7680; --line:#dde2e5; }
+  *{box-sizing:border-box;} body{background:#f7f6f2;color:var(--ink);font-family:'Barlow',sans-serif;margin:0;padding-bottom:50px;}
+  .hero{background:var(--brand,#22303a);padding:34px 16px 28px;border-bottom:3px solid var(--teal);position:relative;overflow:hidden;} .wrap{max-width:860px;margin:0 auto;padding:0 16px;} .hero .wrap{padding:0;position:relative;}
+  .hero .wm{position:absolute;right:0;top:50%;transform:translateY(-50%);height:118%;max-height:140px;max-width:300px;width:auto;opacity:.2;pointer-events:none;object-fit:contain;} .hero .wrap>*:not(.wm){position:relative;z-index:1;}
+  .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-on-dark,#5c97a8);margin:0 0 8px;}
+  h1{font:700 40px 'Oswald',sans-serif;margin:0 0 6px;color:#fff;} .sub{color:#c9d3d8;font-size:14.5px;margin:0;}
+  .back{display:inline-block;margin:18px 0 6px;font:700 13px Barlow,sans-serif;color:var(--accent-ink,#5c97a8);text-decoration:none;}
+  h2{font:700 24px 'Oswald',sans-serif;margin:26px 0 10px;} .card{background:#fff;border-radius:14px;box-shadow:0 1px 3px rgba(26,31,36,.08);padding:18px 20px;}
+  .note{font-size:13.5px;color:var(--muted);line-height:1.55;margin:0 0 12px;} .msg{background:#e4f4ec;color:#1f7a50;border-radius:10px;padding:10px 14px;margin:14px 0 0;font-size:14px;} .msg.err{background:#fbe8e5;color:#a63a2c;}
+  .row{display:flex;gap:18px;align-items:center;flex-wrap:wrap;} .row label{font:600 12px 'Barlow',sans-serif;color:var(--muted);display:flex;align-items:center;gap:8px;}
+  input[type=color]{width:42px;height:32px;border:1px solid var(--line);border-radius:8px;padding:2px;background:#fff;}
+  .btn{border:0;background:var(--accent,#5c97a8);color:var(--on-accent,#fff);font:700 14px 'Barlow',sans-serif;border-radius:999px;padding:10px 20px;cursor:pointer;} .btn.ghost{background:#eef1f0;color:var(--ink);}
+  .prev{border-radius:12px;background:var(--brand,#22303a);height:120px;position:relative;overflow:hidden;margin:0 0 14px;} .prev img{position:absolute;right:16px;top:50%;transform:translateY(-50%);max-height:92px;max-width:240px;opacity:.2;object-fit:contain;} .prev b{position:absolute;left:18px;top:50%;transform:translateY(-50%);font:700 26px 'Oswald',sans-serif;color:#fff;}
+  @media (max-width:520px){h1{font-size:32px;}}
+</style></head><body>
+<div class="hero"><div class="wrap">{% if wm_url %}<img class="wm" src="{{ wm_url }}" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
+  <p class="eyebrow">{{ team_label }}</p><h1>Appearance Settings</h1><p class="sub">Colors and the logo shown in your dashboard header.</p></div></div>
+<div class="wrap">
+  <a class="back" href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Dashboard</a>
+  {% if msg %}<div class="msg {{ 'err' if err }}">{{ msg }}</div>{% endif %}
+  <h2>Team colors</h2>
+  <form class="card" method="post" action="{{ url_for('team_theme', program=program) }}"><p class="note">{% if th.source == 'custom' %}Using your custom colors.{% elif th.source == 'logo' %}Pulled from your school logo.{% elif th.source == 'school' %}Your school's colors.{% else %}Default colors.{% endif %} They show on the dashboards, player pages and outing reports.</p>
+    <div class="row"><label>Header <input type="color" name="brand" value="{{ th.brand }}"></label><label>Accent <input type="color" name="accent" value="{{ th.accent }}"></label>
+    <button class="btn" type="submit">Save colors</button>{% if th.source == 'custom' %}<button class="btn ghost" type="submit" name="reset" value="1">Reset to school colors</button>{% endif %}</div></form>
+  <h2>Header logo</h2>
+  <div class="card"><p class="note">Shown faintly in the top right of your Team Dashboard header. A PNG with a transparent background looks best, in white or a light color so it reads on your header. A solid white box around the logo is removed automatically.</p>
+    <div class="prev"><b>Team Dashboard</b>{% if wm_url %}<img src="{{ wm_url }}" alt="">{% endif %}</div>
+    <p class="note">{% if kind == 'custom' %}Using the logo you uploaded.{% elif kind == 'builtin' %}Using the built-in logo for {{ team_label }}.{% elif kind == 'school' %}Using the school logo.{% else %}No logo yet.{% endif %}</p>
+    <form method="post" action="{{ url_for('team_logo', program=program) }}" enctype="multipart/form-data" class="row"><input type="file" name="logo" accept="image/png,image/jpeg,image/webp" required><button class="btn" type="submit">{{ 'Replace logo' if kind == 'custom' else 'Upload logo' }}</button>
+      {% if kind == 'custom' %}<button class="btn ghost" type="submit" name="remove" value="1" formnovalidate>Remove my logo</button>{% endif %}</form></div>
+</div></body></html>"""
+
+
+@app.route('/team/<program>/appearance')
+@login_required
+def team_appearance(program):
+    _team_ok(program)
+    src = theme.watermark_source(program)
+    g.theme_program = program
+    return render_template_string(APPEARANCE_PAGE, program=program, team_label=store.program_label(program), th=theme.for_program(program),
+                                  wm_url=_wm_url(program), kind=src[0] if src else None, msg=request.args.get('msg'), err=bool(request.args.get('err')))
+
+
+@app.route('/team/<program>/appearance/logo', methods=['POST'])
+@login_required
+def team_logo(program):
+    _team_ok(program)
+    back = lambda m, err=False: redirect(url_for('team_appearance', program=program, msg=m, **({'err': 1} if err else {})))
+    path = theme.custom_logo_path(program)
+    if request.form.get('remove'):
+        if os.path.exists(path):
+            os.remove(path)
+            github_sync.delete_file(f'data/logos/{program}.png')
+        return back('Your logo was removed.')
+    f = request.files.get('logo')
+    if not f or not f.filename:
+        return back('Choose an image first.', True)
+    raw = f.read(3 * 1024 * 1024 + 1)
+    if len(raw) > 3 * 1024 * 1024:
+        return back('That image is over 3 MB. Please use a smaller one.', True)
+    try:
+        import io
+        from PIL import Image, ImageDraw
+        im = Image.open(io.BytesIO(raw))
+        if im.format not in ('PNG', 'JPEG', 'WEBP'):
+            raise ValueError('format')
+        im = im.convert('RGBA')
+        im.thumbnail((900, 900))
+        w, h = im.size
+        px = im.load()
+        for seed in ((0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)):
+            r, g_, b, al = px[seed]
+            if al > 200 and min(r, g_, b) > 235:
+                ImageDraw.floodfill(im, seed, (255, 255, 255, 0), thresh=40)
+        buf = io.BytesIO()
+        im.save(buf, 'PNG')
+    except Exception:
+        return back('That file could not be read as a PNG, JPG or WebP image.', True)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'wb') as out:
+        out.write(buf.getvalue())
+    github_sync.put_file(f'data/logos/{program}.png', buf.getvalue())
+    return back('Logo saved.')
+
+
 @app.route('/team/<program>/theme', methods=['POST'])
 @login_required
 def team_theme(program):
@@ -492,7 +593,7 @@ def team_theme(program):
         if theme._valid(brand) and theme._valid(accent):
             d['theme'] = {'brand': brand.lower(), 'accent': accent.lower()}
     team.save(program, d)
-    return redirect(url_for('team_dashboard', program=program))
+    return redirect(url_for('team_appearance', program=program, msg='Colors saved.'))
 
 
 @app.route('/team/<program>/goals', methods=['POST'])
@@ -777,6 +878,22 @@ def school_logo(fname):
 
 
 _MARKS = {}
+
+
+@app.route('/watermark/<program>')
+@login_required
+def watermark(program):
+    """The header logo for a team: the coach's own upload, else the built-in one, else the school logo with its white backing removed."""
+    _team_ok(program)
+    src = theme.watermark_source(program)
+    if not src:
+        abort(404)
+    kind, ref = src
+    if kind == 'school':
+        return school_mark(ref)
+    resp = send_file(ref, mimetype='image/png')
+    resp.headers['Cache-Control'] = 'private, max-age=3600'
+    return resp
 
 
 @app.route('/school-mark/<fname>')

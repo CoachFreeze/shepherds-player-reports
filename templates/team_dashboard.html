@@ -47,7 +47,7 @@
   .tile.has-plus{position:relative;overflow:hidden;} .tile .plus{position:absolute;right:0;bottom:0;width:42px;height:42px;background:var(--accent,#5c97a8);color:var(--on-accent,#fff);clip-path:polygon(100% 0,100% 100%,0 100%);font:600 20px/1 'Barlow',sans-serif;text-decoration:none;display:flex;align-items:flex-end;justify-content:flex-end;padding:0 7px 5px 0;transition:filter .15s;} .tile .plus:hover{filter:brightness(1.12);}
   @media (max-width:520px){h1{font-size:32px;} .half-head h2{font-size:25px;}}
 </style></head><body>
-<div class="hero"><div class="wrap">{% if mark %}<img class="wm" src="{{ url_for('school_mark', fname=mark) }}" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
+<div class="hero"><div class="wrap">{% if wm_url %}<img class="wm" src="{{ wm_url }}" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
   <p class="eyebrow">{{ team_label }}</p><h1>Team Dashboard</h1>
   <p class="sub">{% set P = halves[0].D %}{{ P.n_players }} pitcher{{ 's' if P.n_players != 1 }}{% if halves|length > 1 %} &middot; {{ halves[1].D.n_players }} hitter{{ 's' if halves[1].D.n_players != 1 }}{% endif %}{% if last_session %} &middot; last session {{ last_session }}{% endif %}</p>
   <div class="jump"><a href="{{ url_for('intake_bulk', program=program) }}" class="up">+ Upload a .CSV</a><a href="{{ url_for('team_scouting', program=program) }}">Scouting</a>{% if is_admin %}<a href="{{ url_for('dashboard') }}">&larr; All teams</a>{% endif %}</div></div></div>
@@ -115,13 +115,7 @@
 </div>
 </section>
 {% endfor %}
-<section class="half" style="margin-top:34px;grid-column:1/-1;"><h3 id="colors">Team colors</h3>
-  <form class="card" method="post" action="{{ url_for('team_theme', program=program) }}" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;">
-    <span style="font-size:13.5px;color:var(--muted);flex:1;min-width:240px;">{% if th.source == 'custom' %}Using your custom colors.{% elif th.source == 'logo' %}Pulled from your school logo.{% else %}Default colors.{% endif %} They show on this dashboard, player pages and outing reports.</span>
-    <label style="font:600 12px 'Barlow',sans-serif;color:var(--muted);display:flex;align-items:center;gap:8px;">Header <input type="color" name="brand" value="{{ th.brand }}" style="width:42px;height:32px;border:1px solid var(--line);border-radius:8px;padding:2px;background:#fff;"></label>
-    <label style="font:600 12px 'Barlow',sans-serif;color:var(--muted);display:flex;align-items:center;gap:8px;">Accent <input type="color" name="accent" value="{{ th.accent }}" style="width:42px;height:32px;border:1px solid var(--line);border-radius:8px;padding:2px;background:#fff;"></label>
-    <button class="btn" type="submit">Save colors</button>
-    {% if th.source == 'custom' %}<button class="btn ghost" type="submit" name="reset" value="1">Reset to school colors</button>{% endif %}</form></section>
+
 </div>
 </div>
 <script>document.querySelectorAll('[data-pk]').forEach(function(b){b.addEventListener('click',function(){document.getElementById(b.dataset.pk).classList.toggle('open');});});</script>

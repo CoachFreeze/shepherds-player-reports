@@ -188,3 +188,35 @@ def css(t):
 
 def style_tag(program):
     return '<style>' + css(for_program(program)) + '</style>'
+
+
+# ---------------------------------------------------------------- header watermark logo
+WM_BUILTIN = {'long_beach_state': 'long_beach_state.png', 'biola_university': 'biola_university.png', 'ucla': 'ucla.png'}
+
+
+def custom_logo_path(program):
+    import store
+    return os.path.join(store.DATA_DIR, 'logos', f'{program}.png')
+
+
+def builtin_logo_path(program):
+    import pipeline
+    key = program if program in WM_BUILTIN else ('ucla' if (program or '').startswith('ucla') else None)
+    p = os.path.join(pipeline.APP_DIR, 'assets', 'watermarks', WM_BUILTIN[key]) if key else None
+    return p if p and os.path.exists(p) else None
+
+
+def watermark_source(program):
+    """('custom'|'builtin'|'school', path or logo file name) for the logo that sits in the dashboard header, or None."""
+    import pipeline
+    import store
+    if not program:
+        return None
+    p = custom_logo_path(program)
+    if os.path.exists(p):
+        return 'custom', p
+    p = builtin_logo_path(program)
+    if p:
+        return 'builtin', p
+    b = pipeline.school_badge_file(store.program_label(program), program)
+    return ('school', b[0]) if b else None
