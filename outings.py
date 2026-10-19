@@ -24,6 +24,42 @@ def _path(slug):
     return os.path.join(OUTINGS_DIR, f'{slug}.json')
 
 
+_DATE_FORMATS = ('%Y-%m-%d', '%m/%d/%Y', '%m/%d/%y', '%Y/%m/%d', '%m-%d-%Y', '%b %d, %Y', '%B %d, %Y', '%d-%b-%Y')
+
+
+def iso_date(d):
+    """Any date a tracking system might export -> YYYY-MM-DD (unparseable text is returned unchanged)."""
+    import datetime
+    s = str(d or '').strip()
+    for cand in (s, s[:10], s.split(' ')[0].split('T')[0]):
+        for fmt in _DATE_FORMATS:
+            try:
+                return datetime.datetime.strptime(cand, fmt).strftime('%Y-%m-%d')
+            except ValueError:
+                pass
+    return s
+
+
+def _normalize_dates(data):
+    for o in data.get('outings', []):
+        o['id'] = o['date'] = iso_date(o.get('id') or o.get('date'))
+        for r in o.get('rows', []):
+            if r.get('Date'):
+                r['Date'] = iso_date(r['Date'])
+    merged = {}
+    for o in data.get('outings', []):             # the same day stored under two spellings becomes one outing
+        m = merged.get(o['id'])
+        if m is None:
+            merged[o['id']] = o
+        else:
+            have = {_uid(x) for x in m['rows']}
+            m['rows'] += [x for x in o['rows'] if _uid(x) not in have]
+            m['live_ab'] = bool(m.get('live_ab') or o.get('live_ab'))
+    if 'outings' in data:
+        data['outings'] = sorted(merged.values(), key=lambda x: x['date'], reverse=True)
+    return data
+
+
 def load(slug, real_only=False):
     p = _path(slug)
     if not os.path.exists(p):
@@ -33,7 +69,7 @@ def load(slug, real_only=False):
         else:
             return {'outings': []}
     with open(p, encoding='utf-8') as f:
-        return json.load(f)
+        return _normalize_dates(json.load(f))
 
 
 def _save(slug, data, push=True):
@@ -55,7 +91,7 @@ def add_rows(slug, rows, live_ab=False, push=True):
     by_id = {o['id']: o for o in data['outings']}
     touched = []
     for r in rows:
-        oid = (r.get('Date') or 'unknown').strip()[:10]
+        oid = iso_date(r.get('Date') or 'unknown')[:10]
         o = by_id.get(oid)
         if o is None:
             o = {'id': oid, 'date': oid, 'live_ab': bool(live_ab), 'rows': []}
@@ -64,6 +100,8 @@ def add_rows(slug, rows, live_ab=False, push=True):
         have = {_uid(x) for x in o['rows']}
         if _uid(r) not in have:
             nr = dict(r)
+            if nr.get('Date'):
+                nr['Date'] = iso_date(nr['Date'])
             if CURRENT_UPLOAD:
                 nr['_upload'] = CURRENT_UPLOAD
             if CURRENT_SESSION:

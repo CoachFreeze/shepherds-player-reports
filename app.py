@@ -788,7 +788,7 @@ td.n{font-variant-numeric:tabular-nums;} select{padding:6px 8px;border:1px solid
 <a href="{{ url_for('player_overview', slug=slug) }}">&larr; Back to {{ p.name }}</a><h1>Retag Pitches</h1>
 <p class="s">Fix a pitch Trackman tagged wrong. Every report, chart and stat for {{ p.name }} updates right away, and the original tag is kept so any change can be undone. A correction stays put even if the same CSV is uploaded again.</p>
 {% if saved is not none %}<div class="ok">{{ saved }} pitch{{ '' if saved == 1 else 'es' }} updated.</div>{% endif %}
-<div class="tabs">{% for o in outs %}<a href="{{ url_for('retag_pitches', slug=slug, date=o.id) }}" class="{{ 'on' if o.id == date }}">{{ o.id }}</a>{% endfor %}</div>
+<div class="tabs">{% for o in outs %}<a href="{{ url_for('retag_pitches', slug=slug, date=o.id) }}" class="{{ 'on' if o.id == date }}">{{ o.label }}</a>{% endfor %}</div>
 {% if rows %}<form method="post">
 <div class="card bulk"><b>Change all</b><select id="bf">{% for l, v in types %}<option>{{ l }}</option>{% endfor %}</select><b>to</b><select id="bt">{% for l, v in types %}<option>{{ l }}</option>{% endfor %}</select><button type="button" class="g" id="ba">Apply to this outing</button></div>
 <div class="card"><table><tr><th>#</th><th>Velo</th><th>Spin</th><th>IVB / HB</th><th>Pitch type</th></tr>
@@ -812,7 +812,7 @@ def retag_pitches(slug, date):
     outs = outings_mod.outings(slug)
     if not outs:
         abort(404)
-    date = date or outs[0]['id']
+    date = outings_mod.iso_date(date) if date else outs[0]['id']
     if request.method == 'POST':
         ch = {k[2:]: v for k, v in request.form.items() if k.startswith('t_')}
         n = outings_mod.retag(slug, date, ch, who=session.get('coach') or '')
@@ -830,6 +830,7 @@ def retag_pitches(slug, date):
              'velo': f1(r.get('RelSpeed')), 'spin': f1(r.get('SpinRate'), 0),
              'mv': f"{f1(r.get('InducedVertBreak'))} / {f1(r.get('HorzBreak'))}"} for r in o['rows']]
     saved = request.args.get('saved', type=int)
+    outs = [{'id': x['id'], 'label': overview._long_date(x['id'])} for x in outs]
     return render_template_string(RETAG_PAGE, p=p, slug=slug, outs=outs, date=date, rows=rows, types=outings_mod.RETAG_TYPES,
                                   type_labels=[l for l, _ in outings_mod.RETAG_TYPES], saved=saved)
 

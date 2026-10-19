@@ -27,7 +27,7 @@ def _date_label(d):
 def _long_date(d):
     import datetime
     try:
-        return datetime.date.fromisoformat(d).strftime('%a, %b %-d, %Y')
+        return datetime.date.fromisoformat(outings_mod.iso_date(d)).strftime('%a, %b %-d, %Y')
     except Exception:
         return d
 
