@@ -21,6 +21,7 @@ import outings as outings_mod
 import fullswing
 import uploadlog
 import cleanup
+import scouting
 import uuid
 
 app = Flask(__name__)
@@ -587,6 +588,65 @@ def beta_hitter_old(key):
     return redirect(url_for('beta_hitter', key=key))
 
 
+# ----------------------------------------------------------------- scouting (premium)
+def _scouting_ok(program):
+    _team_ok(program)
+    if not plans.allowed(program, 'scouting'):
+        return _upgrade('scouting')
+    return None
+
+
+@app.route('/team/<program>/scouting')
+@login_required
+def team_scouting(program):
+    blocked = _scouting_ok(program)
+    if blocked:
+        return blocked
+    opps = sorted(scouting.opponents(program).values(), key=lambda s: (s['dates'][-1] if s['dates'] else ''), reverse=True)
+    return render_template('scouting.html', program=program, team_label=store.program_label(program), opps=opps, opp=None)
+
+
+@app.route('/team/<program>/scouting/<opp>')
+@login_required
+def team_scouting_opp(program, opp):
+    blocked = _scouting_ok(program)
+    if blocked:
+        return blocked
+    o = scouting.opponents(program).get(opp)
+    if not o:
+        abort(404)
+    return render_template('scouting.html', program=program, team_label=store.program_label(program), opps=[], opp=o)
+
+
+@app.route('/scouting/pitcher/<slug>')
+@login_required
+def scouting_pitcher(slug):
+    if not slug.startswith(cleanup.OPP_PREFIX):
+        abort(404)
+    data = outings_mod.load(slug, real_only=True)
+    prog = data.get('program')
+    if not prog or not data.get('outings'):
+        abort(404)
+    blocked = _scouting_ok(prog)
+    if blocked:
+        return blocked
+    rows = [r for o in data['outings'] for r in o['rows']]
+    nm = scouting._flip(rows[0].get('Pitcher')) if rows else slug
+    opp = next((r.get('Opponent') for r in rows if r.get('Opponent')), 'Unlabeled opponent')
+    bio = {'name': nm, 'program': prog, 'school': opp, 'roles': {}, 'stat_ids': None}
+    b = overview.build(slug, bio)
+    if not b:
+        abort(404)
+    b['log'] = []                       # outing reports are for your own pitchers
+    last, first = _split_name(nm)
+    css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
+    g.theme_program = prog
+    return render_template('player_overview.html', b=b, bio=bio, slug=slug, css=css, hitter_url=None, has_photo=False, badge=None, photo_v=0,
+                           initials=(first[:1] + last[:1]).upper(), pos=None, is_coach=bool(session.get('coach')), can_edit=False, is_demo=False,
+                           tour_next='', scouting=True,
+                           pitchers_url=url_for('team_scouting_opp', program=prog, opp=store.slugify(opp) or 'unlabeled'))
+
+
 @app.route('/hitter/<key>')
 @login_required
 def beta_hitter(key):
@@ -595,11 +655,14 @@ def beta_hitter(key):
         abort(404)
     if not is_admin() and (h['program'] != my_program() or not plans.allowed(h['program'], 'hitting')):   # a coach sees only his own program's hitters
         abort(404)
+    if h.get('opp_slug') and not plans.allowed(h['program'], 'scouting'):
+        return _upgrade('scouting')
     g.theme_program = h['program']
     css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
     _ps = h['bio']['photo_slug']
-    return render_template('beta_hitter.html', h=h, css=css, can_edit=(not h['demo'] and (is_admin() or h['program'] == my_program())),
-                           photo_v=int(os.path.getmtime(headshots.path(_ps))) if _ps else 0)
+    return render_template('beta_hitter.html', h=h, css=css, can_edit=(not h['demo'] and not h.get('opp_slug') and (is_admin() or h['program'] == my_program())),
+                           photo_v=int(os.path.getmtime(headshots.path(_ps))) if _ps else 0,
+                           **({'hitters_url': url_for('team_scouting_opp', program=h['program'], opp=h['opp_slug']), 'scouting': True} if h.get('opp_slug') else {}))
 
 
 

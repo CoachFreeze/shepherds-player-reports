@@ -528,6 +528,43 @@ def _slug(name):
     return store.slugify(re.sub(r'\s+', ' ', name))
 
 
+SCOUT = 'scout--'
+
+
+def collect_scouting(program=None):
+    """Opponent hitters: batters our pitchers faced in Game / Scrimmage uploads, grouped by the opponent entered at upload.
+    {key: {'name','program','demo','pitches','opponent','school_override',...}}; key = scout--<program>--<opponent>--<batter>."""
+    real, _ = _all_pitch_files()
+    out = {}
+    for slug, _d in real:
+        if slug.startswith('opp-'):
+            continue
+        pl = store.get_real_player(slug)
+        if not pl or (program and pl.get('program') != program):
+            continue
+        prog = pl.get('program')
+        _pp = ((pl.get('roles') or {}).get('pitch') or {}).get('position')
+        _hand = 'R' if _pp == 'RHP' else ('L' if _pp == 'LHP' else None)
+        for o in outings_mod.load(slug, real_only=True)['outings']:
+            for r_ in o['rows']:
+                if r_.get('SessionType') not in ('Game', 'Scrimmage'):
+                    continue
+                ps = normalize([r_])
+                if not ps or not ps[0]['batter']:
+                    continue
+                p = ps[0]
+                if not p.get('p_throws'):
+                    p['p_throws'] = _hand
+                opp = r_.get('Opponent') or 'Unlabeled opponent'
+                key = f"{SCOUT}{prog}--{store.slugify(opp) or 'unlabeled'}--{_slug(p['batter'])}"
+                h = out.get(key)
+                if h is None:
+                    h = out[key] = {'name': p['batter'], 'program': prog, 'demo': False, 'pitches': [], 'roster': None, 'on_roster': False,
+                                    'opponent': opp, 'opp_slug': store.slugify(opp) or 'unlabeled', 'school_override': opp, 'scouting': True}
+                h['pitches'].append(p)
+    return out
+
+
 def _all_pitch_files():
     """(slug, is_demo) for every pitcher with stored outings, real ones first."""
     real = []
@@ -612,7 +649,7 @@ def list_hitters(include_demo=True):
 
 
 def hitter_profile(key, include_demo=True, side='all'):
-    h = _collect(include_demo).get(key)
+    h = (collect_scouting().get(key) if key.startswith(SCOUT) else _collect(include_demo).get(key))
     if not h:
         return None
     ps_all = h['pitches']
@@ -641,7 +678,7 @@ def hitter_profile(key, include_demo=True, side='all'):
         prow.append({'label': 'EV90', 'pctl': bm.interpolate(s['ev90'], bm.HITTER['ev90']), 'value_display': f"{s['ev90']:.1f}"})
     if s['whiff_pct'] is not None and len([p for p in ps if p['outcome'] in SWING]) >= 10:
         prow.append({'label': 'Whiff%', 'pctl': bm.interpolate(s['whiff_pct'], bm.HITTER['whiff_pct']), 'value_display': f"{s['whiff_pct']:.1f}%"})
-    return {'bio': bio, 'switch': switch, 'ps_n': len(ps), 'roster': h.get('roster'), 'pctl_html': sc.percentile_bars_html(prow) if prow else '', 'key': key, 'name': display_name(h['name']), 'program': h['program'], 'demo': h['demo'], 'bats': bats,
+    return {'bio': bio, 'switch': switch, 'ps_n': len(ps), 'roster': h.get('roster'), 'pctl_html': sc.percentile_bars_html(prow) if prow else '', 'key': key, 'name': display_name(h['name']), 'program': h['program'], 'demo': h['demo'], 'bats': bats, 'opponent': h.get('opponent'), 'opp_slug': h.get('opp_slug'),
             's': s, 'notes': takeaways(s), 'dates': sorted({p['date'] for p in ps_all if p['date']}),
             'zone_ev': zone_ev_data(ps),
             'decision_svg': decision_chart_svg(ps, side=bats if bats in ('L', 'R') else None),
@@ -678,7 +715,7 @@ def _bio(key, h, players_idx, bats_seen):
     headshot and bio) > the uploaded roster > what the data itself shows (batting side)."""
     ov = _load_json(HITTER_BIOS_PATH).get(key) or (_load_json(_DEMO_BIOS_PATH).get(key) if h['demo'] else None) or {}
     rost = h.get('roster') or {}
-    pm = roster_mod.match_name(h['name'], [(n, s) for n, s, pg in players_idx if pg == h['program']]) if players_idx else None
+    pm = None if h.get('scouting') else (roster_mod.match_name(h['name'], [(n, s) for n, s, pg in players_idx if pg == h['program']]) if players_idx else None)
     pslug = pm[0] if pm else None
     pl = (store.get_player(pslug) or {}) if pslug else {}
     hpos = next((t for t in rost.get('positions', []) if t not in ('RHP', 'LHP')), None)
@@ -693,7 +730,7 @@ def _bio(key, h, players_idx, bats_seen):
     cy = ov.get('class_year') or pr.get('class_year') or rost.get('class_year')
     gy = ov.get('grad_year') or pl.get('grad_year')
     two_way = bool(pslug and (pl.get('roles') or {}).get('pitch'))       # a real pitcher profile exists too (not just a name match)
-    return {'name': display_name(h['name']), 'school': pl.get('school') or label, 'program': prog, 'position': pos, 'two_way': two_way,
+    return {'name': display_name(h['name']), 'school': h.get('school_override') or pl.get('school') or label, 'program': prog, 'position': pos, 'two_way': two_way,
             'bats': ov.get('bats') or rost.get('bats') or pr.get('bats') or bats_seen,
             'throws': ov.get('throws') or rost.get('throws') or pr.get('throws'),
             'height_in': ov.get('height_in') or pl.get('height_in') or rost.get('height_in'),
