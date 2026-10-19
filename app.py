@@ -443,6 +443,16 @@ def team_dashboard(program):
                            coach_key=session.get('coach') or '', th=theme.for_program(program), th_default=theme.default_pair(program))
 
 
+@app.route('/team/<program>/swing-decisions')
+@login_required
+def team_swing_decisions(program):
+    _team_ok(program)
+    if not plans.allowed(program, 'hitting'):
+        return _upgrade('hitting')
+    return render_template('team_swing_decisions.html', program=program, team_label=store.program_label(program),
+                           D=team.swing_decision_page_data(program), th=theme.for_program(program))
+
+
 @app.route('/team/<program>/customize', methods=['POST'])
 @login_required
 def team_customize(program):

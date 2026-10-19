@@ -1,0 +1,72 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Swing Decisions</title>
+<style>{{ theme_css|safe }}</style>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#22303a; --teal:var(--accent,#5c97a8); --muted:#6b7680; --line:#dde2e5; --good:#2f9e6b; --bad:#d0503f; }
+  *{box-sizing:border-box;} body{background:#f7f6f2;color:var(--ink);font-family:'Barlow',sans-serif;margin:0;padding-bottom:50px;}
+  .hero{background:var(--brand,#22303a);padding:34px 16px 24px;border-bottom:3px solid var(--teal);} .wrap{max-width:1180px;margin:0 auto;padding:0 16px;} .hero .wrap{padding:0;position:relative;}
+  .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-on-dark,#5c97a8);margin:0 0 8px;}
+  h1{font:700 40px 'Oswald',sans-serif;margin:0 0 6px;color:#fff;} .sub{color:#c9d3d8;font-size:14.5px;margin:0;}
+  .back{display:inline-block;margin:18px 0 10px;font:700 13px Barlow,sans-serif;color:var(--teal);text-decoration:none;}
+  .layout{display:grid;grid-template-columns:minmax(0,760px) minmax(240px,1fr);gap:26px;align-items:start;}
+  .plate{background:#fff;border-radius:14px;box-shadow:0 1px 3px rgba(26,31,36,.08);padding:12px;position:relative;}
+  .side{background:#fff;border-radius:14px;box-shadow:0 1px 3px rgba(26,31,36,.08);padding:16px 18px;}
+  .side h3{font:700 13px 'Oswald',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;} .side h3:first-child{margin-top:0;}
+  .score{font:700 54px 'Oswald',sans-serif;line-height:1;} .score small{font:600 14px Barlow,sans-serif;color:var(--muted);margin-left:8px;}
+  select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:10px;font:500 14px Barlow,sans-serif;background:#fff;}
+  .tg{display:flex;flex-wrap:wrap;gap:6px;} .tg label{font:600 13px Barlow,sans-serif;border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px;} .tg input{display:none;} .tg label:has(input:checked){background:var(--ink);color:#fff;border-color:var(--ink);}
+  .sw{display:inline-block;width:11px;height:11px;border-radius:50%;} .cnt{font-size:13.5px;color:var(--muted);line-height:1.8;}
+  .cnt b{color:var(--ink);} .leg{font-size:12.5px;color:var(--muted);line-height:1.7;margin-top:12px;}
+  #tip{position:fixed;display:none;pointer-events:none;background:#22303a;color:#fff;border-radius:10px;padding:9px 12px;font-size:13px;line-height:1.45;box-shadow:0 6px 20px rgba(0,0,0,.28);z-index:90;max-width:260px;}
+  #tip b{font:700 15px Barlow,sans-serif;display:block;} #tip i{font-style:normal;color:#e8c36a;display:block;margin-top:3px;font-size:12px;}
+  .dot{cursor:pointer;transition:r .1s;} .dot.hl{stroke:#22303a !important;stroke-width:3 !important;}
+  @media (max-width:860px){.layout{grid-template-columns:1fr;} h1{font-size:32px;}}
+</style></head><body>
+<div class="hero"><div class="wrap"><div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>
+  <p class="eyebrow">{{ team_label }}</p><h1>Swing Decisions</h1>
+  <p class="sub">Every swing and take, catcher's view. Hover a pitch to see who it was, the count and the pitch.</p></div></div>
+<div class="wrap">
+  <a class="back" href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Dashboard</a>
+  {% if not D.n %}<div class="side">No judgeable pitches yet. Swing decisions need pitch locations, which come from Trackman files.</div>{% else %}
+  <div class="layout">
+    <div class="plate">{{ D.svg|safe }}</div>
+    <div class="side">
+      <h3>Swing Decision Rating</h3>
+      <div class="score">{{ '%.0f'|format(D.score) if D.score is not none else '–' }}<small>{{ D.grade or '' }}</small></div>
+      <h3>Hitter</h3>
+      <select id="f-p"><option value="">Whole team</option>{% for p in D.players %}<option>{{ p }}</option>{% endfor %}</select>
+      <h3>Show</h3>
+      <div class="tg" id="f-a"><label><input type="checkbox" value="Swing" checked>Swings</label><label><input type="checkbox" value="Take" checked>Takes</label></div>
+      <div class="tg" id="f-v" style="margin-top:6px;"><label><input type="checkbox" value="good" checked><span class="sw" style="background:var(--good)"></span>Good</label><label><input type="checkbox" value="bad" checked><span class="sw" style="background:var(--bad)"></span>Bad</label><label><input type="checkbox" value="neutral" checked><span class="sw" style="background:#9aa5ab"></span>Neutral</label></div>
+      <h3>Showing</h3>
+      <div class="cnt" id="cnt"></div>
+      <div class="leg">Filled dot = swing, ring = take. Green is a good decision, red a bad one, grey neutral. Dashed outer box = chase area, inner dashed box = heart of the zone.</div>
+    </div>
+  </div>{% endif %}
+</div>
+<div id="tip"></div>
+<script>
+(function(){
+  var dots=[].slice.call(document.querySelectorAll('.dot')), tip=document.getElementById('tip'); if(!dots.length)return;
+  function checked(id){return [].slice.call(document.querySelectorAll('#'+id+' input:checked')).map(function(i){return i.value;});}
+  function apply(){
+    var p=document.getElementById('f-p').value, a=checked('f-a'), v=checked('f-v'), n=0, sw=0, g=0, b=0;
+    dots.forEach(function(d){
+      var ok=(!p||d.dataset.n===p)&&a.indexOf(d.dataset.a)>-1&&v.indexOf(d.dataset.v)>-1;
+      d.style.display=ok?'':'none'; if(ok){n++; if(d.dataset.a==='Swing')sw++; if(d.dataset.v==='good')g++; if(d.dataset.v==='bad')b++;}
+    });
+    document.getElementById('cnt').innerHTML='<b>'+n+'</b> pitches &middot; <b>'+sw+'</b> swings, <b>'+(n-sw)+'</b> takes<br><b>'+g+'</b> good &middot; <b>'+b+'</b> bad';
+  }
+  document.querySelectorAll('.side select,.side input').forEach(function(e){e.addEventListener('change',apply);}); apply();
+  function show(e){var d=e.target; if(!d.classList||!d.classList.contains('dot'))return;
+    d.classList.add('hl');
+    tip.innerHTML='<b>'+d.dataset.n+'</b>Count '+d.dataset.c+' &middot; '+d.dataset.p+'<br>'+d.dataset.a+' &middot; '+d.dataset.o+(d.dataset.w?'<i>'+d.dataset.w+'</i>':'');
+    tip.style.display='block'; move(e);}
+  function move(e){var x=e.clientX+16,y=e.clientY+16; if(x+270>window.innerWidth)x=e.clientX-276; if(y+110>window.innerHeight)y=e.clientY-110; tip.style.left=x+'px'; tip.style.top=y+'px';}
+  var svg=document.getElementById('tdc');
+  svg.addEventListener('mouseover',show); svg.addEventListener('mousemove',move);
+  svg.addEventListener('mouseout',function(e){if(e.target.classList)e.target.classList.remove('hl'); tip.style.display='none';});
+  svg.addEventListener('click',function(e){if(e.target.classList&&e.target.classList.contains('dot')){show(e);}});
+})();
+</script></body></html>

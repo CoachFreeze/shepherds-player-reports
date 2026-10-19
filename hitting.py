@@ -440,6 +440,54 @@ def decision_chart_svg(pitches, side=None, width=330, height=360):
     return ''.join(svg)
 
 
+def team_decision_chart_svg(items, width=760, height=840):
+    """Big catcher's-view plate for a whole team. items = [(player name, pitch)]. Same colours and zone as the single-hitter
+    chart (filled = swing, ring = take; green good, red bad, grey neutral). Each dot carries data-* for the hover card."""
+    xr, zr = (-2.7, 2.7), (0.4, 4.6)
+    k = min(width / (xr[1] - xr[0]), height / (zr[1] - zr[0]))
+    ox = (width - k * (xr[1] - xr[0])) / 2
+
+    def X(v):
+        return ox + (v - xr[0]) * k
+
+    def Y(v):
+        return (zr[1] - v) * k
+
+    h = int(Y(zr[0]))
+    svg = [f'<svg id="tdc" viewBox="0 0 {width} {h}" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:auto;" '
+           f'font-family="Barlow,Arial,sans-serif"><rect width="{width}" height="{h}" fill="#f4f8fa"/>']
+    svg.append(f'<rect x="{X(-ZX-CHASE_OUT):.1f}" y="{Y(ZT+CHASE_OUT):.1f}" width="{k*(2*ZX+2*CHASE_OUT):.1f}" height="{k*(ZT-ZB+2*CHASE_OUT):.1f}" rx="18" fill="none" stroke="#c9d3d8" stroke-dasharray="4 5"/>')
+    svg.append(f'<rect x="{X(-ZX-SHADOW_OUT):.1f}" y="{Y(ZT+SHADOW_OUT):.1f}" width="{k*(2*ZX+2*SHADOW_OUT):.1f}" height="{k*(ZT-ZB+2*SHADOW_OUT):.1f}" rx="10" fill="#e8eef1" fill-opacity=".6"/>')
+    svg.append(f'<rect x="{X(-ZX):.1f}" y="{Y(ZT):.1f}" width="{k*2*ZX:.1f}" height="{k*(ZT-ZB):.1f}" fill="#fff" stroke="#5c6b74" stroke-width="2"/>')
+    svg.append(f'<rect x="{X(-HEART_X):.1f}" y="{Y(HEART_T):.1f}" width="{k*2*HEART_X:.1f}" height="{k*(HEART_T-HEART_B):.1f}" fill="#f1f7f4" stroke="#b9cfc5" stroke-dasharray="5 4"/>')
+    from html import escape
+    n = 0
+    for name, p in items:
+        j = judge(p)
+        if not j:
+            continue
+        n += 1
+        reg, swung, v = j[0], j[1], j[2]
+        col = {'good': _GOOD, 'bad': _BAD, 'neutral': _NEUT}[v]
+        cx, cy = X(max(xr[0], min(xr[1], p['x']))), Y(max(zr[0], min(zr[1], p['z'])))
+        cc = count_ctx(p)
+        pt = (p['pitch_type'] or 'Pitch') + (f" {p['speed']:.0f} mph" if p.get('speed') else '')
+        d = (f'class="dot" data-n="{escape(name)}" data-c="{f"{cc[0]}-{cc[1]}" if cc else "-"}" data-p="{escape(pt)}" '
+             f'data-a="{"Swing" if swung else "Take"}" data-o="{escape(str(p["outcome"]))}" data-v="{v}" data-w="{why_attr(j)}"')
+        if swung:
+            svg.append(f'<circle {d} cx="{cx:.1f}" cy="{cy:.1f}" r="8" fill="{col}" fill-opacity=".85" stroke="#fff" stroke-width="1.5"/>')
+        else:
+            svg.append(f'<circle {d} cx="{cx:.1f}" cy="{cy:.1f}" r="7" fill="#fff" fill-opacity=".75" stroke="{col}" stroke-width="2.5"/>')
+    svg.append(f'<polygon points="{X(-.7):.1f},{h-14} {X(.7):.1f},{h-14} {X(.7):.1f},{h-24} {X(0):.1f},{h-32} {X(-.7):.1f},{h-24}" fill="#fff" stroke="#9aa5ab" stroke-width="1.5"/>')
+    svg.append('</svg>')
+    return ''.join(svg), n
+
+
+def why_attr(j):
+    from html import escape
+    return escape(j[4] or '')
+
+
 def _ev_color(v):
     """60 mph (cool) -> 105 mph (hot). Returns (background, text color)."""
     t = max(0.0, min(1.0, (v - 60) / 45))
