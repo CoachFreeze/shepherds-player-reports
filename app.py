@@ -539,6 +539,26 @@ def team_appearance(program):
                                   wm_url=_wm_url(program), kind=src[0] if src else None, msg=request.args.get('msg'), err=bool(request.args.get('err')))
 
 
+def _clean_logo(raw):
+    """Image bytes -> transparent PNG bytes (max 900px, a solid white box around the logo removed). Raises on a bad image."""
+    import io
+    from PIL import Image, ImageDraw
+    im = Image.open(io.BytesIO(raw))
+    if im.format not in ('PNG', 'JPEG', 'WEBP'):
+        raise ValueError('format')
+    im = im.convert('RGBA')
+    im.thumbnail((900, 900))
+    w, h = im.size
+    px = im.load()
+    for seed in ((0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)):
+        r, g_, b, al = px[seed]
+        if al > 200 and min(r, g_, b) > 235:
+            ImageDraw.floodfill(im, seed, (255, 255, 255, 0), thresh=40)
+    buf = io.BytesIO()
+    im.save(buf, 'PNG')
+    return buf.getvalue()
+
+
 @app.route('/team/<program>/appearance/logo', methods=['POST'])
 @login_required
 def team_logo(program):
@@ -557,27 +577,13 @@ def team_logo(program):
     if len(raw) > 3 * 1024 * 1024:
         return back('That image is over 3 MB. Please use a smaller one.', True)
     try:
-        import io
-        from PIL import Image, ImageDraw
-        im = Image.open(io.BytesIO(raw))
-        if im.format not in ('PNG', 'JPEG', 'WEBP'):
-            raise ValueError('format')
-        im = im.convert('RGBA')
-        im.thumbnail((900, 900))
-        w, h = im.size
-        px = im.load()
-        for seed in ((0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)):
-            r, g_, b, al = px[seed]
-            if al > 200 and min(r, g_, b) > 235:
-                ImageDraw.floodfill(im, seed, (255, 255, 255, 0), thresh=40)
-        buf = io.BytesIO()
-        im.save(buf, 'PNG')
+        data = _clean_logo(raw)
     except Exception:
         return back('That file could not be read as a PNG, JPG or WebP image.', True)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'wb') as out:
-        out.write(buf.getvalue())
-    github_sync.put_file(f'data/logos/{program}.png', buf.getvalue())
+        out.write(data)
+    github_sync.put_file(f'data/logos/{program}.png', data)
     return back('Logo saved.')
 
 
@@ -705,6 +711,9 @@ def team_scouting(program):
     if blocked:
         return blocked
     opps = sorted(scouting.opponents(program).values(), key=lambda s: (s['dates'][-1] if s['dates'] else ''), reverse=True)
+    for o in opps:
+        o['logo'] = _opp_logo_url(program, o['slug'], o['label'])
+        o['initials'] = ''.join(w[0] for w in o['label'].split()[:3]).upper()
     return render_template('scouting.html', program=program, team_label=store.program_label(program), opps=opps, opp=None)
 
 
@@ -717,7 +726,69 @@ def team_scouting_opp(program, opp):
     o = scouting.opponents(program).get(opp)
     if not o:
         abort(404)
+    o['logo'] = _opp_logo_url(program, o['slug'], o['label'])
+    o['custom'] = os.path.exists(_opp_logo_path(program, o['slug']))
     return render_template('scouting.html', program=program, team_label=store.program_label(program), opps=[], opp=o)
+
+
+def _opp_logo_path(program, opp):
+    return os.path.join(store.DATA_DIR, 'logos', 'opp', f'{program}--{opp}.png')
+
+
+def _opp_logo_url(program, opp_slug, label):
+    """URL of the opponent's logo (a coach's upload, else the school library), or None."""
+    p = _opp_logo_path(program, opp_slug)
+    if os.path.exists(p):
+        return url_for('scouting_logo', program=program, opp=opp_slug, v=int(os.path.getmtime(p)))
+    if pipeline.school_badge_file(label, None):
+        return url_for('scouting_logo', program=program, opp=opp_slug, label=label)
+    return None
+
+
+@app.route('/team/<program>/scouting/<opp>/logo')
+@login_required
+def scouting_logo(program, opp):
+    blocked = _scouting_ok(program)
+    if blocked:
+        return blocked
+    p = _opp_logo_path(program, opp)
+    if os.path.exists(p):
+        resp = send_file(p, mimetype='image/png')
+        resp.headers['Cache-Control'] = 'private, max-age=3600'
+        return resp
+    o = scouting.opponents(program).get(opp)
+    b = pipeline.school_badge_file((o or {}).get('label') or request.args.get('label', ''), None)
+    if not b:
+        abort(404)
+    return school_mark(b[0]) if request.args.get('mark') else school_logo(b[0])
+
+
+@app.route('/team/<program>/scouting/<opp>/logo', methods=['POST'])
+@login_required
+def scouting_logo_save(program, opp):
+    blocked = _scouting_ok(program)
+    if blocked:
+        return blocked
+    back = redirect(url_for('team_scouting_opp', program=program, opp=opp))
+    p = _opp_logo_path(program, opp)
+    if request.form.get('remove'):
+        if os.path.exists(p):
+            os.remove(p)
+            github_sync.delete_file(f'data/logos/opp/{program}--{opp}.png')
+        return back
+    f = request.files.get('logo')
+    raw = f.read(3 * 1024 * 1024 + 1) if f and f.filename else b''
+    if not raw or len(raw) > 3 * 1024 * 1024:
+        return back
+    try:
+        data = _clean_logo(raw)
+    except Exception:
+        return back
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    with open(p, 'wb') as out:
+        out.write(data)
+    github_sync.put_file(f'data/logos/opp/{program}--{opp}.png', data)
+    return back
 
 
 @app.route('/scouting/pitcher/<slug>')
