@@ -19,6 +19,7 @@ import glossary
 import overview
 import outings as outings_mod
 import fullswing
+import uploadlog
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-only-change-me')
@@ -235,7 +236,7 @@ def inject_me():
                    'badge': {'file': _b[0], 'bg': _b[1]} if _b else None}}
 
 
-_MENU_PAGES = {'edit_profile', 'admin_status', 'admin_old_reports', 'admin_coaches', 'view_report', 'intake', 'intake_bulk', 'intake_bulk_run',
+_MENU_PAGES = {'edit_profile', 'admin_status', 'admin_old_reports', 'upload_log_page', 'admin_coaches', 'view_report', 'intake', 'intake_bulk', 'intake_bulk_run',
                'intake_lbsu', 'intake_lbsu_confirm', 'edit_comps'}
 
 
@@ -956,6 +957,36 @@ def admin_status():
     return render_template_string(STATUS_PAGE, on=github_sync.enabled(), repo=github_sync.GITHUB_REPO, branch=github_sync.GITHUB_BRANCH, log=github_sync.LOG)
 
 
+UPLOADS_PAGE = """
+<title>Upload log</title><h1>Upload log</h1>
+<p>Every CSV uploaded{% if not admin %} for {{ prog_label }}{% endif %}, newest first.</p>
+{% if admin %}<form method="get" style="margin:0 0 12px;"><select name="program" onchange="this.form.submit()"><option value="">All programs</option>{% for slug, lab in programs %}<option value="{{ slug }}" {{ 'selected' if slug == sel }}>{{ lab }}</option>{% endfor %}</select></form>{% endif %}
+{% if rows %}<div class="card" style="overflow-x:auto;"><table style="border-collapse:collapse;width:100%;font-size:14px;">
+<tr style="text-align:left;color:#6b7680;"><th style="padding:6px 10px;">Uploaded</th><th style="padding:6px 10px;">File</th><th style="padding:6px 10px;">Type</th>{% if admin %}<th style="padding:6px 10px;">Program</th>{% endif %}<th style="padding:6px 10px;">By</th><th style="padding:6px 10px;">Rows</th><th style="padding:6px 10px;">Players</th></tr>
+{% for e in rows %}<tr style="border-top:1px solid #eceeed;vertical-align:top;"><td style="padding:6px 10px;white-space:nowrap;">{{ e.when }}</td><td style="padding:6px 10px;">{{ e.file }}</td><td style="padding:6px 10px;">{{ e.source }}</td>{% if admin %}<td style="padding:6px 10px;">{{ e.plabel }}</td>{% endif %}<td style="padding:6px 10px;">{{ e.user }}</td><td style="padding:6px 10px;">{{ e.rows }}</td><td style="padding:6px 10px;">{{ e.players|join(', ') }}</td></tr>{% endfor %}
+</table></div>{% else %}<div class="card">No uploads logged yet. Uploads from now on will appear here.</div>{% endif %}
+<p><a href="{{ home }}">Back to the dashboard</a></p>
+"""
+
+
+@app.route('/uploads')
+@login_required
+def upload_log_page():
+    import datetime
+    admin = is_admin()
+    sel = request.args.get('program') if admin else None
+    prog = None if (admin and not sel) else (sel if admin else my_program())
+    if not admin and not prog:
+        abort(403)
+    rows = []
+    for e in uploadlog.entries(prog):
+        t = datetime.datetime.fromtimestamp(e['t'], datetime.timezone(datetime.timedelta(hours=-7))).strftime('%b %-d, %Y %-I:%M %p')
+        rows.append({**e, 'when': t, 'plabel': store.program_label(e.get('program')) if e.get('program') else ''})
+    progs = [(p, store.program_label(p)) for p in sorted({e.get('program') for e in uploadlog.entries() if e.get('program')})]
+    return render_template_string(BULK_STYLE + UPLOADS_PAGE, rows=rows, admin=admin, programs=progs, sel=sel or '', home=home_url(),
+                                  prog_label=store.program_label(prog) if prog else '')
+
+
 OLD_REPORTS_PAGE = """
 <title>Old Shepherds reports</title><h1>Old Shepherds reports</h1>
 <p>Shepherds players now get the same live dashboards and outing reports as every other team, built from their uploaded sessions. These are the original static report files made before that, and nothing links to them anymore.</p>
@@ -1424,6 +1455,9 @@ def intake_bulk_run():
             except Exception:
                 _n = 0
             plans.track('upload', session.get('coach') or '', prog, players=sum(1 for _, _, o in results if o), rows=_n)
+            _bn = os.path.basename(path)
+            uploadlog.record(session.get('coach') or '', prog, _bn[5:] if _bn.startswith('bulk_') else _bn,
+                             'Full Swing' if fullswing.is_converted(path) else 'Trackman', _n, [n for n, _, o in results if o])
         for name, slug, out in results:
             if out and name in photos:
                 try:

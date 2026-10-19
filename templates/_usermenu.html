@@ -16,6 +16,7 @@
     {% if nav_program %}<a href="{{ url_for('team_dashboard', program=nav_program) }}">Team Dashboard</a><a href="{{ url_for('team_pitchers', program=nav_program) }}">Pitcher Dashboard</a><a href="{{ url_for('team_hitters', program=nav_program) }}">Hitter Dashboard</a>{% endif %}
     <a href="{{ url_for('account') }}">Account settings</a>
     <a href="{{ url_for('roster_page') }}">Team roster</a>
+    <a href="{{ url_for('upload_log_page') }}">Upload log</a>
     <a href="{{ url_for('glossary_page') }}">Stats glossary</a>
     {% if request.endpoint == 'dashboard' %}<a href="#" onclick="document.getElementById('um').classList.remove('open');openTour();return false;">Take the tour</a>{% else %}<a href="{{ url_for('dashboard') }}?tour=dash">Take the tour</a>{% endif %}
     {% if me.is_admin %}<div class="um-lbl">Admin</div><a href="{{ url_for('beta_hitters') }}">Hitting</a><a href="{{ url_for('admin_plans') }}">Plans &amp; usage</a><a href="{{ url_for('admin_coaches') }}">Coach logins</a><a href="{{ url_for('admin_status') }}">Save status</a>{% endif %}
