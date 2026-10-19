@@ -541,7 +541,7 @@ def _all_pitch_files():
     return [(s, False) for s in real], [(s, True) for s in demo]
 
 
-def _collect(include_demo):
+def _collect(include_demo, include_hidden=False):
     """{batter slug: {'name', 'program', 'demo', 'pitches': [...]}}"""
     real, demo = _all_pitch_files()
     out = {}
@@ -566,6 +566,18 @@ def _collect(include_demo):
                     h = out[key] = {'name': p['batter'], 'program': hit[0] if hit else prog, 'demo': is_demo, 'pitches': [],
                                     'roster': hit[1] if hit else None, 'on_roster': bool(hit)}
                 h['pitches'].append(p)
+    import cleanup                                   # hitters the coach moved to another team, or hid (opposing hitters)
+    for key, ov in cleanup.hitter_overrides().items():
+        h = out.get(key)
+        if not h:
+            continue
+        h['auto_program'] = h['program']
+        if ov == cleanup.HIDDEN:
+            h['hidden'] = True
+            if not include_hidden:
+                del out[key]
+        else:
+            h['program'] = ov
     return out
 
 

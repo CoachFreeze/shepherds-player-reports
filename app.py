@@ -20,6 +20,8 @@ import overview
 import outings as outings_mod
 import fullswing
 import uploadlog
+import cleanup
+import uuid
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-only-change-me')
@@ -236,7 +238,7 @@ def inject_me():
                    'badge': {'file': _b[0], 'bg': _b[1]} if _b else None}}
 
 
-_MENU_PAGES = {'edit_profile', 'admin_status', 'admin_old_reports', 'upload_log_page', 'admin_coaches', 'view_report', 'intake', 'intake_bulk', 'intake_bulk_run',
+_MENU_PAGES = {'edit_profile', 'admin_status', 'admin_old_reports', 'upload_log_page', 'hitters_sort', 'admin_coaches', 'view_report', 'intake', 'intake_bulk', 'intake_bulk_run',
                'intake_lbsu', 'intake_lbsu_confirm', 'edit_comps'}
 
 
@@ -972,11 +974,148 @@ UPLOADS_PAGE = """
 <p>Every CSV uploaded{% if not admin %} for {{ prog_label }}{% endif %}, newest first.</p>
 {% if admin %}<form method="get" style="margin:0 0 12px;"><select name="program" onchange="this.form.submit()"><option value="">All programs</option>{% for slug, lab in programs %}<option value="{{ slug }}" {{ 'selected' if slug == sel }}>{{ lab }}</option>{% endfor %}</select></form>{% endif %}
 {% if rows %}<div class="card" style="overflow-x:auto;"><table style="border-collapse:collapse;width:100%;font-size:14px;">
-<tr style="text-align:left;color:#6b7680;"><th style="padding:6px 10px;">Uploaded</th><th style="padding:6px 10px;">File</th><th style="padding:6px 10px;">Type</th>{% if admin %}<th style="padding:6px 10px;">Program</th>{% endif %}<th style="padding:6px 10px;">By</th><th style="padding:6px 10px;">Rows</th><th style="padding:6px 10px;">Players</th></tr>
-{% for e in rows %}<tr style="border-top:1px solid #eceeed;vertical-align:top;"><td style="padding:6px 10px;white-space:nowrap;">{{ e.when }}</td><td style="padding:6px 10px;">{{ e.file }}</td><td style="padding:6px 10px;">{{ e.source }}</td>{% if admin %}<td style="padding:6px 10px;">{{ e.plabel }}</td>{% endif %}<td style="padding:6px 10px;">{{ e.user }}</td><td style="padding:6px 10px;">{{ e.rows }}</td><td style="padding:6px 10px;">{{ e.players|join(', ') }}</td></tr>{% endfor %}
+<tr style="text-align:left;color:#6b7680;"><th style="padding:6px 10px;">Uploaded</th><th style="padding:6px 10px;">File</th><th style="padding:6px 10px;">Type</th>{% if admin %}<th style="padding:6px 10px;">Program</th>{% endif %}<th style="padding:6px 10px;">By</th><th style="padding:6px 10px;">Rows</th><th style="padding:6px 10px;">Players</th><th></th></tr>
+{% for e in rows %}<tr style="border-top:1px solid #eceeed;vertical-align:top;"><td style="padding:6px 10px;white-space:nowrap;">{{ e.when }}</td><td style="padding:6px 10px;">{{ e.file }}</td><td style="padding:6px 10px;">{{ e.source }}</td>{% if admin %}<td style="padding:6px 10px;">{{ e.plabel }}</td>{% endif %}<td style="padding:6px 10px;">{{ e.user }}</td><td style="padding:6px 10px;">{{ e.rows }}</td><td style="padding:6px 10px;">{{ e.players|join(', ') }}</td>
+<td style="padding:6px 10px;white-space:nowrap;">{% if e.removed %}<span style="color:#98a3a9;">Removed</span>{% elif e.id %}<form method="post" action="{{ url_for('upload_remove') }}" onsubmit="return confirm('Remove every pitch from {{ e.file }}? This cannot be undone.');" style="margin:0;"><input type="hidden" name="id" value="{{ e.id }}"><button style="background:none;border:0;color:#a63a2c;font:600 13px Barlow,sans-serif;cursor:pointer;padding:0;">Remove data</button></form>{% endif %}</td></tr>{% endfor %}
 </table></div>{% else %}<div class="card">No uploads logged yet. Uploads from now on will appear here.</div>{% endif %}
+{% if message %}<div class="card" style="color:#2a7a4b;">{{ message }}</div>{% endif %}
+<div class="card"><b>Remove a CSV that isn't listed above</b>
+<p style="font-size:13px;color:#6b7680;">For files uploaded before this log existed: choose the same CSV again and every pitch it contributed is taken back out. Pitchers left with no data are removed too. Nothing else is touched.</p>
+<form method="post" action="{{ url_for('upload_remove_file') }}" enctype="multipart/form-data" onsubmit="return confirm('Remove every pitch in this file from the data? This cannot be undone.');"><input type="file" name="csv" accept=".csv" required> <button type="submit" style="background:#a63a2c;">Remove this file's data</button></form></div>
 <p><a href="{{ home }}">Back to the dashboard</a></p>
 """
+
+
+def _own_pitcher(slug):
+    """Admins may touch any pitcher's data; a program coach only his own program's."""
+    if is_admin():
+        return True
+    p = store.get_real_player(slug)
+    return bool(p) and p.get('program') == my_program()
+
+
+def _removal_message(res, gone):
+    msg = f"Removed {res['rows']} pitch{'es' if res['rows'] != 1 else ''}"
+    if gone:
+        msg += ' and the pitcher record' + ('s' if len(gone) > 1 else '') + ' for ' + ', '.join(gone)
+    return msg + '.' if res['rows'] else 'No matching pitches were found, so nothing changed.'
+
+
+@app.route('/uploads/remove', methods=['POST'])
+@login_required
+def upload_remove():
+    uid = request.form.get('id', '')
+    entry = next((e for e in uploadlog.entries() if e.get('id') == uid), None) if uid else None
+    if not entry or (not is_admin() and entry.get('program') != my_program()):
+        abort(404)
+    with github_sync.batch('Remove an uploaded CSV'):
+        res = cleanup.remove_upload(uid, allowed=_own_pitcher)
+        gone = cleanup.drop_empty_players([s for s in entry.get('new_players') or [] if s in res['pitchers']] if res['rows'] else [])
+        uploadlog.mark_removed(uid)
+    return redirect(url_for('upload_log_page', msg=_removal_message(res, gone)))
+
+
+@app.route('/uploads/remove-file', methods=['POST'])
+@login_required
+def upload_remove_file():
+    f = request.files.get('csv')
+    if not f or not f.filename:
+        return redirect(url_for('upload_log_page', msg='Choose a CSV file first.'))
+    path = os.path.join(UPLOAD_DIR, 'rm_' + os.path.basename(f.filename))
+    f.save(path)
+    try:
+        uids = cleanup.csv_uids(path)
+    except Exception as exc:
+        return redirect(url_for('upload_log_page', msg=f"Couldn't read that file: {exc}"))
+    finally:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+    with github_sync.batch('Remove a CSV from the data'):
+        res = cleanup.remove_uids(uids, allowed=_own_pitcher)
+        gone = cleanup.drop_empty_players(res['emptied'])
+    return redirect(url_for('upload_log_page', msg=_removal_message(res, gone)))
+
+
+SORT_PAGE = """
+<title>Sort hitters</title><h1>Sort hitters</h1>
+<p>Hitters are picked up from the pitches your pitchers faced, so an opposing team's hitters can land on your dashboard. Move each one to the right team, or hide opponents so they stay out of every dashboard. Their pitch data is kept.</p>
+{% if message %}<div class="card" style="color:#2a7a4b;">{{ message }}</div>{% endif %}
+<form method="get" style="margin:0 0 10px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+{% if admin %}<select name="program" onchange="this.form.submit()"><option value="">All teams</option>{% for slug, lab in programs %}<option value="{{ slug }}" {{ 'selected' if slug == sel }}>{{ lab }}</option>{% endfor %}</select>{% endif %}
+<label style="font-size:14px;"><input type="checkbox" name="offroster" value="1" {{ 'checked' if offroster }} onchange="this.form.submit()"> Only hitters not on the team roster</label>
+<input id="q" type="search" placeholder="Search hitters…" style="padding:8px 12px;border:1px solid #dde2e5;border-radius:999px;" oninput="var v=this.value.toLowerCase();document.querySelectorAll('tr.h').forEach(function(r){r.style.display=r.dataset.n.indexOf(v)>-1?'':'none';});"></form>
+<form method="post" action="{{ url_for('hitters_sort_save') }}"><input type="hidden" name="back" value="{{ request.full_path }}">
+<div class="card" style="overflow-x:auto;"><table style="border-collapse:collapse;width:100%;font-size:14px;">
+<tr style="text-align:left;color:#6b7680;"><th style="padding:6px 10px;">Hitter</th><th style="padding:6px 10px;">Pitches</th><th style="padding:6px 10px;">Now on</th><th style="padding:6px 10px;">On roster</th><th style="padding:6px 10px;">Move to</th></tr>
+{% for r in rows %}<tr class="h" data-n="{{ r.name|lower }}" style="border-top:1px solid #eceeed;{{ 'background:#faf6ee;' if r.hidden }}">
+<td style="padding:6px 10px;font-weight:600;">{{ r.name }}</td><td style="padding:6px 10px;">{{ r.n }}</td>
+<td style="padding:6px 10px;">{{ 'Hidden' if r.hidden else r.plabel }}</td>
+<td style="padding:6px 10px;">{{ 'Yes' if r.on_roster else 'No' }}</td>
+<td style="padding:6px 10px;"><input type="hidden" name="cur_{{ r.key }}" value="{{ r.cur }}"><select name="to_{{ r.key }}">
+<option value="" {{ 'selected' if not r.cur }}>Automatic ({{ r.auto_label }})</option>
+{% for slug, lab in r.options %}<option value="{{ slug }}" {{ 'selected' if r.cur == slug }}>{{ lab }}</option>{% endfor %}
+<option value="_hidden" {{ 'selected' if r.cur == '_hidden' }}>Hide (opponent / not ours)</option></select></td></tr>{% endfor %}
+</table>{% if not rows %}<p>No hitters to sort.</p>{% endif %}</div>
+{% if rows %}<button type="submit">Save changes</button>{% endif %}</form>
+<p><a href="{{ home }}">Back to the dashboard</a></p>
+"""
+
+
+@app.route('/hitters/sort')
+@login_required
+def hitters_sort():
+    admin = is_admin()
+    sel = request.args.get('program') if admin else my_program()
+    if not admin and not sel:
+        abort(403)
+    offroster = bool(request.args.get('offroster'))
+    progs = store.list_programs()
+    if admin:
+        progs = progs + [('shepherds', store.program_label('shepherds'))]
+    rows = []
+    for key, h in hitting._collect(False, include_hidden=True).items():
+        auto = h.get('auto_program') or h['program']
+        eff = None if h.get('hidden') else h['program']
+        if sel and sel not in (eff, auto):
+            continue
+        if offroster and h.get('on_roster'):
+            continue
+        cur = cleanup.hitter_overrides().get(key, '')
+        rows.append({'key': key, 'name': hitting.display_name(h['name']), 'n': len(h['pitches']), 'hidden': bool(h.get('hidden')),
+                     'plabel': store.program_label(eff) if eff else '', 'on_roster': h.get('on_roster'), 'cur': cur,
+                     'auto_label': store.program_label(auto), 'options': progs if admin else []})
+    rows.sort(key=lambda r: (r['on_roster'] or False, r['hidden'], r['name'].split()[-1].lower()))
+    return render_template_string(BULK_STYLE + SORT_PAGE, rows=rows, admin=admin, programs=progs, sel=sel or '', offroster=offroster,
+                                  home=home_url(), message=request.args.get('msg'))
+
+
+@app.route('/hitters/sort', methods=['POST'])
+@login_required
+def hitters_sort_save():
+    admin = is_admin()
+    allowed_keys = {k for k, h in hitting._collect(False, include_hidden=True).items()
+                    if admin or (h.get('auto_program') or h['program']) == my_program()}
+    valid = {s for s, _ in store.list_programs()} | {'shepherds', cleanup.HIDDEN, ''}
+    changes = {}
+    for k, v in request.form.items():
+        if not k.startswith('to_'):
+            continue
+        key = k[3:]
+        if key not in allowed_keys or v == request.form.get('cur_' + key, ''):
+            continue
+        if v not in valid or (not admin and v not in ('', cleanup.HIDDEN)):
+            continue
+        changes[key] = v
+    if changes:
+        with github_sync.batch('Sort hitters'):
+            cleanup.set_hitter_overrides(changes)
+    back = request.form.get('back', '')
+    base = url_for('hitters_sort')
+    q = back.split('?', 1)[1].rstrip('?') if '?' in back else ''
+    q = '&'.join(x for x in q.split('&') if x and not x.startswith('msg='))
+    return redirect(base + '?' + (q + '&' if q else '') + 'msg=' + (f'Saved {len(changes)} change{"s" if len(changes) != 1 else ""}.' if changes else 'Nothing to change.'))
 
 
 @app.route('/uploads')
@@ -993,7 +1132,7 @@ def upload_log_page():
         t = datetime.datetime.fromtimestamp(e['t'], datetime.timezone(datetime.timedelta(hours=-7))).strftime('%b %-d, %Y %-I:%M %p')
         rows.append({**e, 'when': t, 'plabel': store.program_label(e.get('program')) if e.get('program') else ''})
     progs = [(p, store.program_label(p)) for p in sorted({e.get('program') for e in uploadlog.entries() if e.get('program')})]
-    return render_template_string(BULK_STYLE + UPLOADS_PAGE, rows=rows, admin=admin, programs=progs, sel=sel or '', home=home_url(),
+    return render_template_string(BULK_STYLE + UPLOADS_PAGE, rows=rows, admin=admin, programs=progs, sel=sel or '', home=home_url(), message=request.args.get('msg'),
                                   prog_label=store.program_label(prog) if prog else '')
 
 
@@ -1451,7 +1590,13 @@ def intake_bulk_run():
         return _upgrade('max_players', _msg)
     _was_first = store.needs_first_upload(session.get('coach'))
     with github_sync.batch(f'Upload to {store.program_label(prog)}'):      # one commit for the whole upload (a commit per file restarted the site mid-request)
-        results = pipeline.process_trackman_bulk(path, specs, live_ab=bool(f.get('live_ab')) or fullswing.is_converted(path), reassign=reassign, program=prog)
+        _upload_id = uuid.uuid4().hex[:10]
+        _before = set(store.list_players())
+        outings_mod.CURRENT_UPLOAD = _upload_id
+        try:
+            results = pipeline.process_trackman_bulk(path, specs, live_ab=bool(f.get('live_ab')) or fullswing.is_converted(path), reassign=reassign, program=prog)
+        finally:
+            outings_mod.CURRENT_UPLOAD = None
         try:
             _ros = roster_mod.load(prog)
             if _ros and roster_mod.apply_to_players(prog, _ros['players'], store.list_players()):
@@ -1467,7 +1612,8 @@ def intake_bulk_run():
             plans.track('upload', session.get('coach') or '', prog, players=sum(1 for _, _, o in results if o), rows=_n)
             _bn = os.path.basename(path)
             uploadlog.record(session.get('coach') or '', prog, _bn[5:] if _bn.startswith('bulk_') else _bn,
-                             'Full Swing' if fullswing.is_converted(path) else 'Trackman', _n, [n for n, _, o in results if o])
+                             'Full Swing' if fullswing.is_converted(path) else 'Trackman', _n, [n for n, _, o in results if o],
+                             upload_id=_upload_id, new_players=[s_ for _, s_, o in results if o and s_ not in _before])
         for name, slug, out in results:
             if out and name in photos:
                 try:

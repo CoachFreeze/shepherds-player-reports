@@ -19,12 +19,12 @@ def _load():
         return []
 
 
-def record(user, program, filename, source, rows, players):
+def record(user, program, filename, source, rows, players, upload_id='', new_players=()):
     """Never raises: logging must not be able to break an upload."""
     try:
         d = _load()
         d.append({'t': int(time.time()), 'user': user or '', 'program': program or '', 'file': filename, 'source': source,
-                  'rows': rows, 'players': sorted(players)})
+                  'rows': rows, 'players': sorted(players), 'id': upload_id, 'new_players': sorted(new_players)})
         d = d[-MAX_ENTRIES:]
         text = json.dumps(d, separators=(',', ':'))
         os.makedirs(os.path.dirname(PATH), exist_ok=True)
@@ -39,3 +39,14 @@ def entries(program=None):
     """Newest first; program=None means everyone's."""
     d = [e for e in _load() if program is None or e.get('program') == program]
     return list(reversed(d))
+
+
+def mark_removed(upload_id):
+    d = _load()
+    for e in d:
+        if e.get('id') == upload_id:
+            e['removed'] = int(time.time())
+    text = json.dumps(d, separators=(',', ':'))
+    with open(PATH, 'w', encoding='utf-8') as f:
+        f.write(text)
+    github_sync.put_file('data/upload_log.json', text.encode('utf-8'))

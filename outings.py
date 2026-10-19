@@ -15,6 +15,7 @@ import github_sync
 import store
 
 OUTINGS_DIR = os.path.join(store.DATA_DIR, 'outings')
+CURRENT_UPLOAD = None     # set by the upload route so every new pitch row remembers which upload added it
 MAX_OUTINGS = 10          # the player overview aggregates this many most recent outings
 
 
@@ -61,7 +62,10 @@ def add_rows(slug, rows, live_ab=False, push=True):
             data['outings'].append(o)
         have = {_uid(x) for x in o['rows']}
         if _uid(r) not in have:
-            o['rows'].append(dict(r))
+            nr = dict(r)
+            if CURRENT_UPLOAD:
+                nr['_upload'] = CURRENT_UPLOAD
+            o['rows'].append(nr)
         if oid not in touched:
             touched.append(oid)
     for oid in touched:                               # a later upload of the same date can flag it Live AB

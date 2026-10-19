@@ -17,7 +17,7 @@
 <div class="hero"><div class="wrap"><div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>
   <p class="eyebrow">{{ team_label }}</p><h1>Hitter Dashboard</h1><p class="sub">Tap a hitter to see their profile, swing decisions, spray chart and exit velocity.</p></div></div>
 <div class="wrap">
-  <div class="bar"><a class="back" href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Dashboard</a><input id="q" type="search" placeholder="Search hitters…" autocomplete="off"></div>
+  <div class="bar"><a class="back" href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Dashboard</a><input id="q" type="search" placeholder="Search hitters…" autocomplete="off"><a class="back" style="margin-left:auto;" href="{{ url_for('hitters_sort', program=program) }}">Sort hitters &rsaquo;</a></div>
   {% if not rows %}<p style="color:var(--muted);margin-top:24px;">No hitters tracked for this team yet. Hitters appear here automatically once a session with batter data is uploaded.</p>{% endif %}
   <div class="grid">
   {% for r in rows %}{% set bio = r.bio %}{% set parts = r.name.split() %}{% set badge = sbadge(bio.program, bio.school) %}{% set photo = hphoto(bio) %}
