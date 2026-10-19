@@ -58,6 +58,16 @@ SCHOOL_BADGES = [
     (('west texas', 'wtamu'), 'west_texas_am.png', '#FFFFFF'),
     (('northwest nazarene', 'nnu'), 'northwest_nazarene.png', '#FFFFFF'),
     (('ventura college', 'ventura'), 'ventura_college.png', '#FFFFFF'),
+    (('utah valley', 'uvu'), 'utah_valley.png', '#FFFFFF'),
+    (('santa barbara', 'ucsb'), 'uc_santa_barbara.png', '#FFFFFF'),
+    (('san diego', 'ucsd'), 'uc_san_diego.png', '#FFFFFF'),
+    (('sacramento', 'sac state'), 'sacramento_state.png', '#FFFFFF'),
+    (('northridge', 'csun'), 'cal_state_northridge.png', '#FFFFFF'),
+    (('fullerton', 'csuf'), 'cal_state_fullerton.png', '#FFFFFF'),
+    (('bakersfield', 'csub'), 'cal_state_bakersfield.png', '#FFFFFF'),
+    (('california baptist', 'cal baptist', 'cbu'), 'california_baptist.png', '#FFFFFF'),
+    (('cal poly', 'san luis obispo'), 'cal_poly.png', '#FFFFFF'),
+    (('riverside', 'ucr'), 'uc_riverside.png', '#FFFFFF'),
 ]
 
 
