@@ -122,3 +122,52 @@ def store_opponent_rows(path, program, our_names, exclude=()):
         outings._save(slug, data)
         n += len(rows)
     return n
+
+
+# ------------------------------------------------------------ which team code is ours
+TEAMCODE_PATH = os.path.join(store.DATA_DIR, 'team_codes.json')
+
+
+def team_code(program):
+    """The team code Trackman writes for this program (e.g. LON_DIR), learned from an earlier Game / Scrimmage upload."""
+    try:
+        with open(TEAMCODE_PATH, encoding='utf-8') as f:
+            return (json.load(f) or {}).get(program)
+    except Exception:
+        return None
+
+
+def set_team_code(program, code):
+    try:
+        with open(TEAMCODE_PATH, encoding='utf-8') as f:
+            d = json.load(f) or {}
+    except Exception:
+        d = {}
+    if not code or d.get(program) == code:
+        return
+    d[program] = code
+    text = json.dumps(d, separators=(',', ':'), sort_keys=True)
+    os.makedirs(os.path.dirname(TEAMCODE_PATH), exist_ok=True)
+    with open(TEAMCODE_PATH, 'w', encoding='utf-8') as f:
+        f.write(text)
+    github_sync.put_file('data/team_codes.json', text.encode('utf-8'))
+
+
+def guess_my_team(program, pitchers):
+    """Which team code in this file is the program's? Saved code first, then whichever team's pitchers are already on the
+    roster or already players of the program. Returns (code or None, {code: pitcher count})."""
+    codes = {}
+    for p in pitchers:
+        if p.get('team'):
+            codes[p['team']] = codes.get(p['team'], 0) + 1
+    saved = team_code(program)
+    if saved in codes:
+        return saved, codes
+    votes = {}
+    for p in pitchers:
+        if p.get('team') and (p.get('on_roster') is True or p.get('known')):
+            votes[p['team']] = votes.get(p['team'], 0) + 1
+    ranked = sorted(votes.items(), key=lambda kv: -kv[1])
+    if ranked and (len(ranked) == 1 or ranked[0][1] > ranked[1][1]):
+        return ranked[0][0], codes
+    return None, codes

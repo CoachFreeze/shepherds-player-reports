@@ -463,7 +463,7 @@ def pitchers_in_trackman(trackman_path, program=None):
         disp = f'{first} {last}'.strip() if first else csv_name
         rm = roster_mod.match_name(disp, rcands) if rcands else None
         throws = (rs[0].get('PitcherThrows') or '')[:1].upper()
-        out.append({'csv_name': csv_name, 'name': disp, 'throws': throws, 'n': len(rs),
+        out.append({'csv_name': csv_name, 'name': disp, 'throws': throws, 'n': len(rs), 'team': (rs[0].get('PitcherTeam') or '').strip(),
                     'known': store.slugify(disp) in existing and (program is None or existing[store.slugify(disp)].get('program') == program),
                     'bio': (existing.get(store.slugify(disp), {}) if program is None or existing.get(store.slugify(disp), {}).get('program') == program else {}),
                     'flagged': e.detect_anomalies(rows, csv_name),

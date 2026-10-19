@@ -1533,11 +1533,16 @@ BULK_REVIEW_PAGE = BULK_STYLE + """
 <p>{{ pitchers|length }} pitchers found. Fill in height/weight for the arm-angle badge (optional), uncheck anyone to skip, and review any flagged pitches.</p>
 <form method="post" enctype="multipart/form-data" action="{{ url_for('intake_bulk_run') }}">
 <input type="hidden" name="path" value="{{ path }}"><input type="hidden" name="program" value="{{ prog }}">
-<input type="hidden" name="session_type" value="{{ session_type }}"><input type="hidden" name="opponent" value="{{ opponent }}"><p style="font-weight:600;margin:0 0 8px;">Session type: {{ session_type }}{% if opponent %} vs {{ opponent }}{% endif %}{% if session_type in ('Scrimmage', 'Game') %} <span style="font-weight:400;color:#6b7680;">&mdash; check only your own pitchers. Everyone else is treated as the opponent.</span>{% endif %}</p>
+<input type="hidden" name="session_type" value="{{ session_type }}"><p style="font-weight:600;margin:0 0 8px;">Session type: {{ session_type }}{% if session_type in ('Scrimmage', 'Game') %} <span style="font-weight:400;color:#6b7680;">&mdash; check only your own pitchers. Everyone else is treated as the opponent.</span>{% endif %}</p>
+{% if session_type in ('Scrimmage', 'Game') %}<div class="card" style="margin-top:10px;"><div class="row">
+  {% if codes %}<div><label>Which team is yours in this file?</label><select id="myteam" name="my_team"><option value="" {{ 'selected' if not my_team }} disabled>Choose…</option>{% for code, n in codes.items() %}<option value="{{ code }}" {{ 'selected' if code == my_team }}>{{ code }} ({{ n }} pitchers)</option>{% endfor %}</select></div>{% endif %}
+  <div><label>Opponent</label><input type="text" name="opponent" value="{{ opponent }}" placeholder="e.g. UCLA" style="width:220px;"></div></div>
+  {% if codes %}<p style="font-size:13px;color:#6b7680;margin:8px 0 0;">Pitchers on your team are checked below and the other team's are left out. Your choice is remembered for next time.</p>{% endif %}</div>
+{% else %}<input type="hidden" name="opponent" value="">{% endif %}
 <div class="row" style="margin-top:10px;"><div><label>School</label><input type="text" name="school" value="{{ prog_label }}"></div></div>
 {% for p in pitchers %}{% set i = loop.index0 %}
 <div class="card">
-  <label style="font-weight:700;font-size:16px;"><input type="checkbox" name="inc_{{ i }}" value="1" {{ '' if p.on_roster is sameas false else 'checked' }}> <input type="text" name="name_{{ i }}" value="{{ p.name }}" style="font-weight:600;"> {{ p.throws }}HP &middot; {{ p.n }} pitches{% if p.known %}<span class="tag">already on roster</span>{% endif %}{% if p.on_roster is sameas true %}<span class="tag" style="background:#e4f2ea;color:#2a7a4b;">on team roster</span>{% elif p.on_roster is sameas false %}<span class="tag" style="background:#fbf0d9;color:#8a6212;">not on team roster</span>{% endif %}</label>
+  <label style="font-weight:700;font-size:16px;"><input type="checkbox" name="inc_{{ i }}" value="1" data-team="{{ p.team }}" {% if my_team and p.team %}{{ 'checked' if p.team == my_team else '' }}{% else %}{{ '' if p.on_roster is sameas false else 'checked' }}{% endif %}> <input type="text" name="name_{{ i }}" value="{{ p.name }}" style="font-weight:600;"> {{ p.throws }}HP &middot; {{ p.n }} pitches{% if p.known %}<span class="tag">already on roster</span>{% endif %}{% if p.on_roster is sameas true %}<span class="tag" style="background:#e4f2ea;color:#2a7a4b;">on team roster</span>{% elif p.on_roster is sameas false %}<span class="tag" style="background:#fbf0d9;color:#8a6212;">not on team roster</span>{% endif %}</label>
   <input type="hidden" name="csv_{{ i }}" value="{{ p.csv_name }}"><input type="hidden" name="throws_{{ i }}" value="{{ p.throws }}">
   <div class="row" style="margin-top:8px;">
     <div><label>Class of</label><input type="number" name="grad_{{ i }}" value="{{ p.bio.get('grad_year') or '' }}" style="width:80px;"></div>
@@ -1552,7 +1557,8 @@ BULK_REVIEW_PAGE = BULK_STYLE + """
       {% for q in pitchers if q.csv_name != p.csv_name %}<option value="move:{{ q.csv_name }}">Move to {{ q.name }}</option>{% endfor %}
     </select></div>{% endfor %}
 </div>{% endfor %}
-<button type="submit">Generate all reports</button></form>"""
+<button type="submit">Generate all reports</button></form>
+<script>(function(){var s=document.getElementById('myteam');if(!s)return;s.addEventListener('change',function(){document.querySelectorAll('input[data-team]').forEach(function(b){if(b.dataset.team)b.checked=(b.dataset.team===s.value);});var o=document.querySelector('input[name=opponent]'),codes=[].slice.call(s.options).map(function(x){return x.value;}).filter(Boolean),other=codes.filter(function(x){return x!==s.value;});if(o&&other.length===1&&(!o.value||codes.indexOf(o.value)>-1))o.value=other[0];});})();</script>"""
 
 
 def _target_program():
@@ -1642,7 +1648,12 @@ def intake_bulk():
         return render_template_string(BULK_UPLOAD_PAGE, message=f"Couldn't read that file: {exc}", **_bulk_ctx(_target_program()))
     if not pitchers:
         return render_template_string(BULK_UPLOAD_PAGE, message='No pitchers found in that file.', **_bulk_ctx(_target_program()))
-    return render_template_string(BULK_REVIEW_PAGE, pitchers=pitchers, path=fname, session_type=_session_type(), opponent=_opponent(), **_bulk_ctx(prog))
+    _st = _session_type()
+    my_team, codes = cleanup.guess_my_team(prog, pitchers) if _st in ('Scrimmage', 'Game') else (None, {})
+    _others = [k for k in codes if k != my_team]
+    _opp = _opponent() or (_others[0] if my_team and len(_others) == 1 else '')
+    return render_template_string(BULK_REVIEW_PAGE, pitchers=pitchers, path=fname, session_type=_st, opponent=_opp,
+                                  codes=codes if len(codes) >= 2 else {}, my_team=my_team, **_bulk_ctx(prog))
 
 
 @app.route('/intake/bulk/run', methods=['GET', 'POST'])
@@ -1691,6 +1702,8 @@ def intake_bulk_run():
         _upload_id = uuid.uuid4().hex[:10]
         _before = set(store.list_players())
         _stype = _session_type()
+        if _stype in ('Scrimmage', 'Game') and (request.form.get('my_team') or '').strip():
+            cleanup.set_team_code(prog, request.form['my_team'].strip())
         outings_mod.CURRENT_UPLOAD, outings_mod.CURRENT_SESSION, outings_mod.CURRENT_OPPONENT = _upload_id, _stype, _opponent()
         try:
             results = pipeline.process_trackman_bulk(path, specs, live_ab=(_stype != 'Bullpen') or fullswing.is_converted(path), reassign=reassign, program=prog)
