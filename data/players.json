@@ -376,6 +376,19 @@
     "school": "Shepherds",
     "weight_lbs": 170.0
   },
+  "hayden_george": {
+    "comps": {},
+    "grad_year": null,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_2.csv",
+    "name": "Hayden George",
+    "program": "ucla",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "UCLA"
+  },
   "hayden_vanderhoof": {
     "comps": {},
     "grad_year": 2030,
@@ -390,6 +403,19 @@
     },
     "school": "Long Beach State",
     "weight_lbs": 170.0
+  },
+  "ian_fisher": {
+    "comps": {},
+    "grad_year": null,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_2.csv",
+    "name": "Ian Fisher",
+    "program": "ucla",
+    "roles": {
+      "pitch": {
+        "position": "LHP"
+      }
+    },
+    "school": "UCLA"
   },
   "jackson_orr": {
     "comps": {
@@ -907,6 +933,19 @@
     },
     "school": "Biola University",
     "weight_lbs": 210.0
+  },
+  "taden_krogsgaard": {
+    "comps": {},
+    "grad_year": null,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_2.csv",
+    "name": "Taden Krogsgaard",
+    "program": "ucla",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "UCLA"
   },
   "tristan_ramos": {
     "comps": {},
