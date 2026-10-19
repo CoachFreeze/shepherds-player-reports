@@ -550,13 +550,18 @@ def _collect(include_demo, include_hidden=False):
         if is_demo and any(s == slug for s, _ in real):
             continue
         pl = store.get_player(slug) or {}
-        prog = pl.get('program') or ('demo_university' if is_demo else 'shepherds')
+        is_opp = slug.startswith('opp-')
+        prog = outings_mod.load(slug, real_only=True).get('program') if is_opp else None
+        prog = prog or pl.get('program') or ('demo_university' if is_demo else 'shepherds')
         _pp = ((pl.get('roles') or {}).get('pitch') or {}).get('position')          # fallback for the pitcher's hand
         _hand = 'R' if _pp == 'RHP' else ('L' if _pp == 'LHP' else None)
         for o in outings_mod.load(slug)['outings']:
-            for p in normalize(o['rows']):
+            for r_, p in ((r_, ps[0]) for r_ in o['rows'] for ps in [normalize([r_])] if ps):
                 if not p['batter']:
                     continue
+                st = r_.get('SessionType')
+                if st == 'Bullpen' or (st in ('Scrimmage', 'Game') and not is_opp):
+                    continue          # bullpens have no hitters; our pitchers' hitters in a game are the opponent's
                 if not p.get('p_throws'):
                     p['p_throws'] = _hand
                 key = _slug(p['batter']) + ('--demo' if is_demo else '')

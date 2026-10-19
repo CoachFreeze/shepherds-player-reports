@@ -15,6 +15,7 @@ import github_sync
 import store
 
 OUTINGS_DIR = os.path.join(store.DATA_DIR, 'outings')
+CURRENT_SESSION = None    # Bullpen / Intrasquad / Scrimmage / Game, stamped on new rows the same way
 CURRENT_UPLOAD = None     # set by the upload route so every new pitch row remembers which upload added it
 MAX_OUTINGS = 10          # the player overview aggregates this many most recent outings
 
@@ -65,6 +66,8 @@ def add_rows(slug, rows, live_ab=False, push=True):
             nr = dict(r)
             if CURRENT_UPLOAD:
                 nr['_upload'] = CURRENT_UPLOAD
+            if CURRENT_SESSION:
+                nr['SessionType'] = CURRENT_SESSION
             o['rows'].append(nr)
         if oid not in touched:
             touched.append(oid)

@@ -9,6 +9,7 @@ import store
 
 HITTER_PATH = os.path.join(store.DATA_DIR, 'hitter_overrides.json')
 HIDDEN = '_hidden'
+OPP_PREFIX = 'opp-'     # outing files for opposing pitchers: kept only so our own hitters' at-bats count; never shown as players
 
 
 # ------------------------------------------------------------ hitter placement
@@ -96,3 +97,28 @@ def drop_empty_players(slugs):
             names.append(p.get('name') or s)
             store.delete_player(s)
     return names
+
+
+def store_opponent_rows(path, program, our_names, exclude=()):
+    """Scrimmage / Game: every pitch thrown by someone who is not one of our checked pitchers is stored under an
+    'opp-<name>' file tagged with our program. Those rows hold our hitters' at-bats; the pitcher never becomes a player."""
+    import extract as e
+    ours = {store.slugify(n) for n in our_names}
+    ex = set(exclude)
+    by = {}
+    for r in e.load_trackman_rows(path):
+        nm = (r.get('Pitcher') or '').strip()
+        last, _, first = nm.partition(', ')
+        disp = f'{first} {last}'.strip() if first else nm
+        if not nm or store.slugify(disp) in ours or outings._uid(r) in ex or (r.get('PitchUID') or r.get('PitchNo')) in ex:
+            continue
+        by.setdefault(store.slugify(disp), []).append(r)
+    n = 0
+    for s, rows in by.items():
+        slug = OPP_PREFIX + s
+        outings.add_rows(slug, rows, live_ab=True)
+        data = outings.load(slug, real_only=True)
+        data['program'] = program
+        outings._save(slug, data)
+        n += len(rows)
+    return n

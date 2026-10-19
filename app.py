@@ -990,6 +990,8 @@ def _own_pitcher(slug):
     """Admins may touch any pitcher's data; a program coach only his own program's."""
     if is_admin():
         return True
+    if slug.startswith(cleanup.OPP_PREFIX):
+        return outings_mod.load(slug, real_only=True).get('program') == my_program()
     p = store.get_real_player(slug)
     return bool(p) and p.get('program') == my_program()
 
@@ -1435,6 +1437,9 @@ BULK_UPLOAD_PAGE = BULK_STYLE + """
 <p>Pick the box that matches the system your file came from. Everyone in the file is picked up automatically.</p>
 {% if message %}<div class="card" style="color:#9c3a3a;">{{ message }}</div>{% endif %}
 <form method="post" enctype="multipart/form-data">{% if programs %}<p><label style="font-weight:600;">Upload to: <select name="program">{% for s, l in programs %}<option value="{{ s }}" {{ 'selected' if s == prog }}>{{ l }}</option>{% endfor %}</select></label></p>{% endif %}
+<div class="card"><label style="font-weight:700;font-size:16px;display:block;margin-bottom:6px;">What kind of session is this?</label>
+<select name="session_type" required style="padding:9px 12px;border:1px solid #dde2e5;border-radius:10px;font:600 15px Barlow,sans-serif;"><option value="" disabled selected>Choose one…</option><option>Bullpen</option><option>Intrasquad</option><option>Scrimmage</option><option>Game</option></select>
+<div style="color:#6b7680;font-size:13px;margin-top:8px;line-height:1.5;"><b>Bullpen</b>: pitching only, no hitters are added. <b>Intrasquad</b>: everyone in the file is on your team. <b>Scrimmage / Game</b>: you pick your pitchers on the next screen. Hitters facing them are treated as the opponent and left out, and your own hitters are picked up from the opposing pitchers' pitches.</div></div>
 {% for sid, lab, note in sources %}<div class="card"><label style="font-weight:700;font-size:16px;display:block;margin-bottom:6px;">{{ lab }} CSV</label><input type="file" name="file_{{ sid }}" accept=".csv"><div style="color:#6b7680;font-size:13px;margin-top:6px;">{{ note }}</div></div>{% endfor %}
 <button type="submit">Read file</button></form>
 <p><a href="{{ home_url }}">&larr; {{ home_label|capitalize }}</a></p>"""
@@ -1450,7 +1455,7 @@ BULK_REVIEW_PAGE = BULK_STYLE + """
 <p>{{ pitchers|length }} pitchers found. Fill in height/weight for the arm-angle badge (optional), uncheck anyone to skip, and review any flagged pitches.</p>
 <form method="post" enctype="multipart/form-data" action="{{ url_for('intake_bulk_run') }}">
 <input type="hidden" name="path" value="{{ path }}"><input type="hidden" name="program" value="{{ prog }}">
-<label style="font-weight:600;"><input type="checkbox" name="live_ab" value="1"> Game / Live AB session (adds the Outing Summary; leave unchecked for bullpens)</label>
+<input type="hidden" name="session_type" value="{{ session_type }}"><p style="font-weight:600;margin:0 0 8px;">Session type: {{ session_type }}{% if session_type in ('Scrimmage', 'Game') %} <span style="font-weight:400;color:#6b7680;">&mdash; check only your own pitchers. Everyone else is treated as the opponent.</span>{% endif %}</p>
 <div class="row" style="margin-top:10px;"><div><label>School</label><input type="text" name="school" value="{{ prog_label }}"></div></div>
 {% for p in pitchers %}{% set i = loop.index0 %}
 <div class="card">
@@ -1511,6 +1516,14 @@ def _archive_csv(path, prog):
         print(f'WARNING: could not archive CSV: {exc}')
 
 
+SESSION_TYPES = ('Bullpen', 'Intrasquad', 'Scrimmage', 'Game')
+
+
+def _session_type():
+    v = (request.form.get('session_type') or '').strip().title()
+    return v if v in SESSION_TYPES else 'Intrasquad'
+
+
 @app.route('/intake/bulk', methods=['GET', 'POST'])
 @login_required
 def intake_bulk():
@@ -1524,6 +1537,8 @@ def intake_bulk():
         if _f and _f.filename:
             src, f = sid, _f
             break
+    if request.form.get('session_type', '') not in SESSION_TYPES:
+        return render_template_string(BULK_UPLOAD_PAGE, message='Choose the session type (Bullpen, Intrasquad, Scrimmage or Game) first.', **_bulk_ctx(_target_program()))
     if f is None:
         f = request.files.get('trackman_file')
         src = 'trackman' if f and f.filename else None
@@ -1544,7 +1559,7 @@ def intake_bulk():
         return render_template_string(BULK_UPLOAD_PAGE, message=f"Couldn't read that file: {exc}", **_bulk_ctx(_target_program()))
     if not pitchers:
         return render_template_string(BULK_UPLOAD_PAGE, message='No pitchers found in that file.', **_bulk_ctx(_target_program()))
-    return render_template_string(BULK_REVIEW_PAGE, pitchers=pitchers, path=fname, **_bulk_ctx(prog))
+    return render_template_string(BULK_REVIEW_PAGE, pitchers=pitchers, path=fname, session_type=_session_type(), **_bulk_ctx(prog))
 
 
 @app.route('/intake/bulk/run', methods=['GET', 'POST'])
@@ -1592,11 +1607,14 @@ def intake_bulk_run():
     with github_sync.batch(f'Upload to {store.program_label(prog)}'):      # one commit for the whole upload (a commit per file restarted the site mid-request)
         _upload_id = uuid.uuid4().hex[:10]
         _before = set(store.list_players())
-        outings_mod.CURRENT_UPLOAD = _upload_id
+        _stype = _session_type()
+        outings_mod.CURRENT_UPLOAD, outings_mod.CURRENT_SESSION = _upload_id, _stype
         try:
-            results = pipeline.process_trackman_bulk(path, specs, live_ab=bool(f.get('live_ab')) or fullswing.is_converted(path), reassign=reassign, program=prog)
+            results = pipeline.process_trackman_bulk(path, specs, live_ab=(_stype != 'Bullpen') or fullswing.is_converted(path), reassign=reassign, program=prog)
+            if _stype in ('Scrimmage', 'Game'):          # the opposing pitchers' pitches carry your hitters' at-bats
+                cleanup.store_opponent_rows(path, prog, {s_['name'] for s_ in specs}, exclude=drop)
         finally:
-            outings_mod.CURRENT_UPLOAD = None
+            outings_mod.CURRENT_UPLOAD = outings_mod.CURRENT_SESSION = None
         try:
             _ros = roster_mod.load(prog)
             if _ros and roster_mod.apply_to_players(prog, _ros['players'], store.list_players()):
@@ -1612,7 +1630,7 @@ def intake_bulk_run():
             plans.track('upload', session.get('coach') or '', prog, players=sum(1 for _, _, o in results if o), rows=_n)
             _bn = os.path.basename(path)
             uploadlog.record(session.get('coach') or '', prog, _bn[5:] if _bn.startswith('bulk_') else _bn,
-                             'Full Swing' if fullswing.is_converted(path) else 'Trackman', _n, [n for n, _, o in results if o],
+                             ('Full Swing' if fullswing.is_converted(path) else 'Trackman') + ' · ' + _stype, _n, [n for n, _, o in results if o],
                              upload_id=_upload_id, new_players=[s_ for _, s_, o in results if o and s_ not in _before])
         for name, slug, out in results:
             if out and name in photos:
