@@ -632,6 +632,13 @@
       }
     },
     "school": "Long Beach State",
+    "stat_ids": [
+      "strike_pct",
+      "whiff_pct",
+      "zone_pct",
+      "chase_pct",
+      "csw_pct"
+    ],
     "weight_lbs": 205.0
   },
   "mack_edwards": {
