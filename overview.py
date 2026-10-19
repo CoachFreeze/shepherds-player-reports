@@ -154,7 +154,10 @@ def build(slug, bio):
         _, otm = e.pitcher_trackman_summary(o['rows'], name)
         top = max((t['top_velo'] for t in otm if t.get('top_velo')), default=None)
         os_ = e.outing_summary(o['rows']) or {}
+        _st = [r.get('SessionType') for r in o['rows'] if r.get('SessionType')]
+        _op = [r.get('Opponent') for r in o['rows'] if r.get('Opponent')]
         log.append({'id': o['id'], 'label': _long_date(o['date']), 'live_ab': o.get('live_ab'), 'n': len(o['rows']),
+                    'stype': max(set(_st), key=_st.count) if _st else None, 'opp': _op[0] if _op else None,
                     'top': top, 'strike': os_.get('strike_pct'), 'whiff': os_.get('whiff_pct'),
                     'ip': os_.get('ip') if o.get('live_ab') else None,
                     'types': ', '.join(t['type'] for t in otm)})

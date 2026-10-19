@@ -19,12 +19,12 @@ def _load():
         return []
 
 
-def record(user, program, filename, source, rows, players, upload_id='', new_players=()):
+def record(user, program, filename, source, rows, players, upload_id='', new_players=(), opponent=''):
     """Never raises: logging must not be able to break an upload."""
     try:
         d = _load()
         d.append({'t': int(time.time()), 'user': user or '', 'program': program or '', 'file': filename, 'source': source,
-                  'rows': rows, 'players': sorted(players), 'id': upload_id, 'new_players': sorted(new_players)})
+                  'rows': rows, 'players': sorted(players), 'id': upload_id, 'opponent': opponent, 'new_players': sorted(new_players)})
         d = d[-MAX_ENTRIES:]
         text = json.dumps(d, separators=(',', ':'))
         os.makedirs(os.path.dirname(PATH), exist_ok=True)
