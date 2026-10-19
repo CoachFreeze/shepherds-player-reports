@@ -284,6 +284,19 @@
     },
     "school": "Long Beach State"
   },
+  "cj_bott": {
+    "comps": {},
+    "grad_year": null,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_1.csv",
+    "name": "CJ Bott",
+    "program": "ucla",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "UCLA"
+  },
   "derek_valdez": {
     "comps": {},
     "grad_year": 2027,
@@ -334,6 +347,19 @@
     },
     "school": "Biola University",
     "weight_lbs": 230.0
+  },
+  "elai_iwanaga": {
+    "comps": {},
+    "grad_year": null,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_1.csv",
+    "name": "Elai Iwanaga",
+    "program": "ucla",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "UCLA"
   },
   "gabriel_esteban": {
     "comps": {},
@@ -440,6 +466,19 @@
     },
     "school": "Shepherds",
     "weight_lbs": 205.0
+  },
+  "jacob_swenson": {
+    "comps": {},
+    "grad_year": null,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_1.csv",
+    "name": "Jacob Swenson",
+    "program": "ucla",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "UCLA"
   },
   "jacob_talbott": {
     "comps": {},
@@ -564,6 +603,19 @@
     },
     "school": "Long Beach State",
     "weight_lbs": 205.0
+  },
+  "mack_edwards": {
+    "comps": {},
+    "grad_year": null,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_1.csv",
+    "name": "Mack Edwards",
+    "program": "ucla",
+    "roles": {
+      "pitch": {
+        "position": "LHP"
+      }
+    },
+    "school": "UCLA"
   },
   "mason_tymick": {
     "comps": {},
@@ -811,6 +863,19 @@
     "school": "Shepherds",
     "weight_lbs": 185.0
   },
+  "seddrick_henderson": {
+    "comps": {},
+    "grad_year": null,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_1.csv",
+    "name": "Seddrick Henderson",
+    "program": "ucla",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "UCLA"
+  },
   "shane_piester": {
     "comps": {},
     "grad_year": 2030,
@@ -853,6 +918,32 @@
     },
     "school": "Long Beach State",
     "weight_lbs": 210.0
+  },
+  "wylan_moss": {
+    "comps": {},
+    "grad_year": null,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_1.csv",
+    "name": "Wylan Moss",
+    "program": "ucla",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "UCLA"
+  },
+  "zach_strickland": {
+    "comps": {},
+    "grad_year": null,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_1.csv",
+    "name": "Zach Strickland",
+    "program": "ucla",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "UCLA"
   },
   "zachary_berntsen": {
     "comps": {},
