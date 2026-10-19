@@ -455,6 +455,7 @@ def team_dashboard(program):
     sessions = sorted(set(P['sessions']) | set(H['sessions'] if H else []))
     return render_template('team_dashboard.html', program=program, team_label=store.program_label(program), halves=halves,
                            last_session=sessions[-1] if sessions else None, is_coach=True, is_admin=is_admin(),
+                           mark=(pipeline.school_badge_file(store.program_label(program), program) or [None])[0],
                            coach_key=session.get('coach') or '', th=theme.for_program(program), th_default=theme.default_pair(program))
 
 
@@ -771,6 +772,34 @@ def school_logo(fname):
     if not os.path.exists(path):
         abort(404)
     resp = send_file(path)
+    resp.headers['Cache-Control'] = 'public, max-age=86400'
+    return resp
+
+
+_MARKS = {}
+
+
+@app.route('/school-mark/<fname>')
+def school_mark(fname):
+    """The school logo with any solid white/near-white backing keyed out, so it can sit on a coloured header at low opacity."""
+    fname = os.path.basename(fname)
+    if fname not in _MARKS:
+        path = os.path.join(pipeline.APP_DIR, 'assets', 'schools', fname)
+        if not os.path.exists(path):
+            abort(404)
+        import io
+        from PIL import Image, ImageDraw
+        im = Image.open(path).convert('RGBA')
+        w, h = im.size
+        px = im.load()
+        for seed in ((0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)):
+            r, g, b, al = px[seed]
+            if al > 200 and min(r, g, b) > 235:          # opaque white corner = a backing, not part of the mark
+                ImageDraw.floodfill(im, seed, (255, 255, 255, 0), thresh=40)
+        buf = io.BytesIO()
+        im.save(buf, 'PNG')
+        _MARKS[fname] = buf.getvalue()
+    resp = Response(_MARKS[fname], mimetype='image/png')
     resp.headers['Cache-Control'] = 'public, max-age=86400'
     return resp
 

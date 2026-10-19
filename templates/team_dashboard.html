@@ -6,6 +6,8 @@
   :root{ --ink:#22303a; --teal:var(--accent,#5c97a8); --muted:#6b7680; --line:#dde2e5; --good:#2f9e6b; --bad:#d0503f; --card:#fff; }
   *{box-sizing:border-box;} body{background:#f7f6f2;color:var(--ink);font-family:'Barlow',sans-serif;margin:0;padding-bottom:60px;}
   .hero{background:var(--brand,#22303a);padding:34px 16px 24px;border-bottom:3px solid var(--teal);} .wrap{max-width:1280px;margin:0 auto;padding:0 16px;} .hero .wrap{padding:0;position:relative;}
+  .hero{position:relative;overflow:hidden;} .hero .wrap>*:not(.wm){position:relative;z-index:1;} .hero .wm{position:absolute;right:0;top:50%;transform:translateY(-50%);height:118%;max-height:140px;max-width:300px;width:auto;opacity:.2;pointer-events:none;z-index:0;object-fit:contain;}
+  @media (max-width:640px){.hero .wm{max-height:96px;max-width:160px;}}
   .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-on-dark,#5c97a8);margin:0 0 8px;}
   h1{font:700 40px 'Oswald',sans-serif;margin:0 0 6px;color:#fff;} .sub{color:#c9d3d8;font-size:14.5px;margin:0;}
   .jump{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;} .jump a{font:600 13px 'Barlow',sans-serif;color:#fff;text-decoration:none;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 14px;} .jump a:hover{background:rgba(255,255,255,.12);} .jump a.up{background:var(--accent,#5c97a8);border-color:transparent;color:var(--on-accent,#fff);} .jump a.up:hover{background:var(--accent-dark,#4e8798);}
@@ -45,7 +47,7 @@
   .tile.has-plus{position:relative;overflow:hidden;} .tile .plus{position:absolute;right:0;bottom:0;width:42px;height:42px;background:var(--accent,#5c97a8);color:var(--on-accent,#fff);clip-path:polygon(100% 0,100% 100%,0 100%);font:600 20px/1 'Barlow',sans-serif;text-decoration:none;display:flex;align-items:flex-end;justify-content:flex-end;padding:0 7px 5px 0;transition:filter .15s;} .tile .plus:hover{filter:brightness(1.12);}
   @media (max-width:520px){h1{font-size:32px;} .half-head h2{font-size:25px;}}
 </style></head><body>
-<div class="hero"><div class="wrap"><div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>
+<div class="hero"><div class="wrap">{% if mark %}<img class="wm" src="{{ url_for('school_mark', fname=mark) }}" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
   <p class="eyebrow">{{ team_label }}</p><h1>Team Dashboard</h1>
   <p class="sub">{% set P = halves[0].D %}{{ P.n_players }} pitcher{{ 's' if P.n_players != 1 }}{% if halves|length > 1 %} &middot; {{ halves[1].D.n_players }} hitter{{ 's' if halves[1].D.n_players != 1 }}{% endif %}{% if last_session %} &middot; last session {{ last_session }}{% endif %}</p>
   <div class="jump"><a href="{{ url_for('intake_bulk', program=program) }}" class="up">+ Upload a .CSV</a><a href="{{ url_for('team_scouting', program=program) }}">Scouting</a>{% if is_admin %}<a href="{{ url_for('dashboard') }}">&larr; All teams</a>{% endif %}</div></div></div>
