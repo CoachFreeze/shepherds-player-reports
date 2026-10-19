@@ -42,7 +42,7 @@
   .lnk{background:none;border:0;padding:0;color:var(--teal);font:600 12.5px 'Barlow',sans-serif;cursor:pointer;} .lnk.del{color:#a63a2c;}
   .gform{display:none;margin-top:12px;gap:10px;flex-wrap:wrap;align-items:flex-end;} .gform.open{display:flex;} .gform label{display:flex;flex-direction:column;font:600 11px 'Barlow',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#98a3a9;gap:4px;}
   .gform input,.gform select{padding:8px 10px;border:1px solid var(--line);border-radius:10px;font:500 14px 'Barlow',sans-serif;background:#fff;color:var(--ink);} .gform input[name=title]{min-width:220px;}
-  .tile .plus{position:absolute;right:8px;bottom:8px;width:22px;height:22px;border-radius:50%;background:var(--teal);color:var(--on-accent,#fff);font:700 16px/22px 'Barlow',sans-serif;text-align:center;text-decoration:none;} .tile .plus:hover{filter:brightness(1.12);transform:scale(1.1);}
+  .tile.has-plus{position:relative;overflow:hidden;} .tile .plus{position:absolute;right:0;bottom:0;width:42px;height:42px;background:var(--accent,#5c97a8);color:var(--on-accent,#fff);clip-path:polygon(100% 0,100% 100%,0 100%);font:600 20px/1 'Barlow',sans-serif;text-decoration:none;display:flex;align-items:flex-end;justify-content:flex-end;padding:0 7px 5px 0;transition:filter .15s;} .tile .plus:hover{filter:brightness(1.12);}
   @media (max-width:520px){h1{font-size:32px;} .half-head h2{font-size:25px;}}
 </style></head><body>
 <div class="hero"><div class="wrap"><div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>
@@ -65,7 +65,7 @@
   {% else %}
 <div class="blk">
   <h3>Team stats <button type="button" class="btn ghost act" data-pk="pk-{{ side }}">Customize</button></h3>
-  {% if H.tiles %}<div class="tiles">{% for t in H.tiles %}{% if t.id == 'score' %}<div class="tile" style="position:relative;" title="{{ t.definition }}"><div class="v">{{ t.value }}</div><div class="l">{{ t.label }}</div><a class="plus" href="{{ url_for('team_swing_decisions', program=program) }}" title="See every swing and take on a large plate view" aria-label="Open swing decision plate view">+</a></div>{% else %}<div class="tile" title="{{ t.definition }}"><div class="v">{{ t.value }}</div><div class="l">{{ t.label }}</div></div>{% endif %}{% endfor %}</div>
+  {% if H.tiles %}<div class="tiles">{% for t in H.tiles %}{% if t.id == 'score' %}<div class="tile has-plus" title="{{ t.definition }}"><div class="v">{{ t.value }}</div><div class="l">{{ t.label }}</div><a class="plus" href="{{ url_for('team_swing_decisions', program=program) }}" title="See every swing and take on a large plate view" aria-label="Open swing decision plate view">+</a></div>{% else %}<div class="tile" title="{{ t.definition }}"><div class="v">{{ t.value }}</div><div class="l">{{ t.label }}</div></div>{% endif %}{% endfor %}</div>
   {% else %}<div class="card"><div class="empty">None of the selected stats have data yet. Use Customize to pick others.</div></div>{% endif %}
   <form class="card picker" id="pk-{{ side }}" method="post" action="{{ url_for('team_customize', program=program) }}"><input type="hidden" name="side" value="{{ side }}">
     <p class="hint">Choose which team stats appear on your dashboard. They show in the order listed below. Team numbers are pooled across every tracked {{ 'pitch' if side == 'pitching' else 'pitch seen' }}.</p>
