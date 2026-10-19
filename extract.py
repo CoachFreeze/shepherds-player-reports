@@ -969,9 +969,10 @@ def _outcome(r):
     pcall = r.get('PitchCall')
     if pcall == 'HitByPitch':
         return 'hbp'
-    if pcall == 'FoulBall' or 'HC_FOUL' in t:
+    pc = str(pcall or '').strip().lower().replace(' ', '').replace('_', '')
+    if pc.startswith('foulball') or pc == 'foul' or 'HC_FOUL' in t:
         return 'foul'
-    if 'PC_InPlay' in t or pcall == 'InPlay':
+    if 'PC_InPlay' in t or pc == 'inplay':
         return 'inplay'
     if 'PC_StSw' in t:
         return 'whiff'
@@ -979,7 +980,9 @@ def _outcome(r):
         return 'cs'
     if 'PC_BALL' in t:
         return 'ball'
-    return {'BallCalled': 'ball', 'StrikeCalled': 'cs'}.get(pcall, 'unk')
+    # exports with no operator tags: fall back on Trackman's own call, every variant it writes
+    return {'ballcalled': 'ball', 'ballindirt': 'ball', 'ballintheDirt'.lower(): 'ball', 'intentionalball': 'ball', 'ball': 'ball',
+            'strikecalled': 'cs', 'calledstrike': 'cs', 'strikeswinging': 'whiff', 'swingingstrike': 'whiff'}.get(pc, 'unk')
 
 
 def outing_summary(rows):
