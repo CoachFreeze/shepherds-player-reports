@@ -69,6 +69,7 @@ def _save(path, data):
 PUBLIC_PROGRAMS = set()                  # nothing is public: every program is private to its own coaches (and admins)
 DEMO_PROGRAMS = {'demo_university'}      # bundled sample program (demo/ folder): visible to admins only, never written to data/
 ADMIN_ONLY_PROGRAMS = {'shepherds'}      # Shepherds reports: only admins can see or be assigned to them
+TEAMS_PATH = os.path.join(DATA_DIR, 'teams.json')      # teams an admin added by hand, before they have any players or coaches
 _KNOWN_LABELS = {'shepherds': 'Shepherds', 'long_beach_state': 'Long Beach State', 'demo_university': 'Demo University (sample)'}
 
 
@@ -76,16 +77,41 @@ def program_slug(label):
     return re.sub(r'[^a-z0-9]+', '_', (label or '').lower()).strip('_')
 
 
+def list_teams():
+    """{slug: label} for the teams added by hand from the All Teams page."""
+    d = _load(TEAMS_PATH, {})
+    return d if isinstance(d, dict) else {}
+
+
+def add_team(label):
+    """Registers an empty team. Returns (slug, error); error is a plain-language reason it wasn't added."""
+    label = re.sub(r'\s+', ' ', (label or '').strip())[:60]
+    slug = program_slug(label)
+    if not slug:
+        return None, 'Enter a team name.'
+    if slug in {s for s, _ in list_programs()} or slug in _KNOWN_LABELS or slug in list_teams():
+        return slug, f'{program_label(slug)} already exists.'
+    teams = list_teams()
+    teams[slug] = label
+    _save(TEAMS_PATH, teams)
+    try:
+        with open(TEAMS_PATH, 'rb') as f:
+            github_sync.put_file('data/teams.json', f.read())
+    except Exception as exc:
+        print(f'WARNING: could not push teams.json: {exc}')
+    return slug, None
+
+
 def program_label(slug):
     for c in _load(COACHES_PATH, {}).values():
         if c.get('program') == slug and c.get('program_label'):
             return c['program_label']
-    return _KNOWN_LABELS.get(slug) or (slug or '').replace('_', ' ').title()
+    return list_teams().get(slug) or _KNOWN_LABELS.get(slug) or (slug or '').replace('_', ' ').title()
 
 
 def list_programs():
     """Private programs known to the app: [(slug, label)]."""
-    slugs = {p.get('program') for p in list_players().values() if p.get('program')} | {c.get('program') for c in list_coaches().values() if c.get('program')}
+    slugs = {p.get('program') for p in list_players().values() if p.get('program')} | {c.get('program') for c in list_coaches().values() if c.get('program')} | set(list_teams())
     return sorted(((x, program_label(x)) for x in slugs if x and x not in ADMIN_ONLY_PROGRAMS and x not in DEMO_PROGRAMS), key=lambda t: t[1])
 
 

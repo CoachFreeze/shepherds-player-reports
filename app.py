@@ -336,6 +336,9 @@ def _build_groups():
         priv.setdefault(p.get('program', 'shepherds'), []).append((slug, p, url_for('player_overview', slug=slug), last, first, pos))   # Shepherds is built exactly like every other team; can_view() keeps it admin-only
     key = lambda t: (t[3].lower(), t[4].lower())
     groups = [(k, store.program_label(k), sorted(v, key=key)) for k, v in sorted(priv.items(), key=lambda kv: store.program_label(kv[0]))]
+    for tk in store.list_teams():                      # teams added by hand that have no players yet
+        if tk not in priv and is_admin():
+            groups.append((tk, store.program_label(tk), []))
     if 'shepherds' not in priv:
         groups.append(('shepherds', 'Shepherds', []))
     return groups
@@ -366,13 +369,22 @@ def _team_tiles(groups):
     return tiles
 
 
+@app.route('/admin/teams/add', methods=['POST'])
+@admin_required
+def admin_add_team():
+    slug, err = store.add_team(request.form.get('name'))
+    if err:
+        return redirect(url_for('dashboard', team_msg=err))
+    return redirect(url_for('team_dashboard', program=slug))
+
+
 @app.route('/')
 def dashboard():
     if not session.get('coach'):
         return redirect(url_for('login'))
     groups = _build_groups()
     if is_admin():
-        return render_template('dashboard.html', mode='teams', tiles=_team_tiles(groups), groups=[], team_label=None,
+        return render_template('dashboard.html', mode='teams', tiles=_team_tiles(groups), groups=[], team_label=None, team_msg=request.args.get('team_msg'),
                                is_coach=True, is_admin=True, coach_key=session.get('coach') or '', tour_next=_tour_next_player(groups))
     if my_program() and not store.needs_first_upload(session.get('coach')) and not request.args.get('tour'):
         return redirect(url_for('team_dashboard', program=my_program()))
