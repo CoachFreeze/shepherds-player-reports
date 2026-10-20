@@ -50,7 +50,7 @@
 <div class="hero"><div class="wrap">{% if wm_url %}<img class="wm" src="{{ wm_url }}" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
   <p class="eyebrow">{{ team_label }}</p><h1>Team Dashboard</h1>
   <p class="sub">{% set P = halves[0].D %}{{ P.n_players }} pitcher{{ 's' if P.n_players != 1 }}{% if halves|length > 1 %} &middot; {{ halves[1].D.n_players }} hitter{{ 's' if halves[1].D.n_players != 1 }}{% endif %}{% if last_session %} &middot; last session {{ last_session }}{% endif %}</p>
-  <div class="jump"><a href="{{ url_for('intake_bulk', program=program) }}" class="up">+ Upload a .CSV</a><a href="{{ url_for('team_scouting', program=program) }}">Scouting</a>{% if is_admin %}<a href="{{ url_for('dashboard') }}">&larr; All teams</a>{% endif %}</div></div></div>
+  <div class="jump"><a href="{{ url_for('intake_bulk', program=program) }}" class="up">+ Upload a .CSV</a><a href="{{ url_for('team_scouting', program=program) }}">Scouting</a><a href="{{ url_for('team_games', program=program) }}">Game Reports</a>{% if is_admin %}<a href="{{ url_for('dashboard') }}">&larr; All teams</a>{% endif %}</div></div></div>
 
 <div class="wrap">
 <div class="cols{{ ' one' if halves|length == 1 }}">

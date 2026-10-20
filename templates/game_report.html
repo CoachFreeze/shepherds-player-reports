@@ -1,0 +1,57 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ team_label }} vs {{ opp }} · Game Report (Beta)</title><style>{{ theme_css|safe }}</style>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#22303a;--muted:#6b7680;--line:#dde2e5;--accent-c:var(--accent,#5c97a8);}
+*{box-sizing:border-box;} body{margin:0;background:#f7f6f2;color:var(--ink);font-family:'Barlow',sans-serif;padding:18px 16px 50px;}
+.w{max-width:1100px;margin:0 auto;} .top{display:flex;gap:10px;align-items:center;margin-bottom:12px;} .top a,.top button{font:700 13px Barlow,sans-serif;background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 14px;color:var(--ink);text-decoration:none;cursor:pointer;} .top .sp{margin-left:auto;}
+.hd{background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);padding:18px 22px;border-top:4px solid var(--accent-c);display:flex;gap:18px;align-items:center;flex-wrap:wrap;}
+.hd img{height:62px;width:62px;object-fit:contain;} .hd h1{font:700 30px/1.05 Oswald,sans-serif;margin:0;} .hd p{margin:4px 0 0;color:var(--muted);font-size:13.5px;} .beta{font:700 10.5px Barlow,sans-serif;letter-spacing:.12em;background:#fff3cf;color:#8a5d00;border-radius:999px;padding:3px 9px;vertical-align:middle;margin-left:8px;}
+.fin{margin-left:auto;text-align:right;} .fin b{font:700 40px Oswald,sans-serif;} .fin span{display:block;font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;}
+h2{font:700 13px Oswald,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:26px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line);}
+.card{background:#fff;border-radius:14px;box-shadow:0 1px 3px rgba(26,31,36,.08);padding:12px 14px;margin-bottom:12px;overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;} th{font:700 10.5px Barlow,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:center;padding:6px 6px;border-bottom:1px solid var(--line);white-space:nowrap;} td{padding:6px;text-align:center;border-bottom:1px solid #eef1f2;} th.l,td.l{text-align:left;}
+td.nm{text-align:left;font-weight:700;white-space:nowrap;} td.nm small{font-weight:500;color:var(--muted);margin-left:6px;} tr.sub td.nm{padding-left:26px;font-weight:600;} .tag{font:700 9.5px Barlow,sans-serif;letter-spacing:.08em;background:#e8f0f3;color:#3f7184;border-radius:4px;padding:2px 5px;margin-right:6px;}
+.pa{display:inline-flex;flex-direction:column;align-items:center;min-width:44px;line-height:1.15;} .pa i{font-style:normal;font-size:10px;color:var(--muted);} .pa b{font-size:12px;}
+.g{display:inline-block;min-width:30px;border-radius:6px;padding:2px 5px;font:700 12px Barlow,sans-serif;color:#fff;} .gA{background:#2f8a57;} .gB{background:#4a93a8;} .gC{background:#d9a028;} .gD{background:#d9702c;} .gF{background:#c0443c;} .gN{background:#b8c0c4;}
+.ar{margin:6px 0 14px;} .ar h4{font:700 15px Oswald,sans-serif;margin:0 0 2px;} .ar small{color:var(--muted);font-size:12px;} .lg{font-size:12px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;margin:4px 0 8px;align-items:center;} .lg i{display:inline-block;width:26px;height:8px;border-radius:4px;vertical-align:middle;margin-right:5px;}
+.meth{font-size:12.5px;color:var(--muted);line-height:1.55;margin-top:22px;} .why{text-align:left;color:var(--muted);font-size:12px;}
+.warn{background:#fff8e6;border-left:3px solid #e0a82e;padding:8px 12px;font-size:13px;margin:10px 0;border-radius:4px;}
+@media print{body{background:#fff;padding:0;} .top{display:none;} .card,.hd{box-shadow:none;border:1px solid #ccc;} h2{break-after:avoid;} .card,.ar{break-inside:avoid;} .pb{break-before:page;} @page{size:landscape;margin:.45in;}}
+</style></head><body><div class="w">
+<div class="top"><a href="{{ back_url }}">&larr; All games</a><span class="sp"></span><button onclick="window.print()">Print</button></div>
+<div class="hd">{% if logo %}<img src="{{ logo }}" alt="">{% endif %}<div><h1>{{ team_label }} vs {{ opp }}<span class="beta">BETA</span></h1><p>{{ date_pretty }} &middot; {{ m.pas|length }} plate appearances tracked &middot; {{ n_pitches }} pitches</p></div>
+  <div class="fin"><b>{{ m.score.us }}&ndash;{{ m.score.opp }}</b><span>{{ 'Final' if complete else 'Tracked portion' }}</span></div></div>
+{% if not complete %}<div class="warn">Some half-innings are missing pitches, so the score, lineups and pitching lines cover only what was tracked. Upload both teams' pitchers for the full game.</div>{% endif %}
+<h2>Linescore</h2><div class="card"><table><tr><th class="l"></th>{% for i in range(m.innings) %}<th>{{ i + 1 }}</th>{% endfor %}<th>R</th></tr>
+  {% for side, nm in order %}<tr><td class="nm">{{ nm }}</td>{% for v in m.linescore[side] %}<td>{{ v if v is not none else '–' }}</td>{% endfor %}<td><b>{{ m.score[side] }}</b></td></tr>{% endfor %}</table></div>
+
+{% for side, nm in order %}
+<h2 class="{{ 'pb' if loop.index0 }}">{{ nm }} lineup card</h2>
+<div class="card">{% set t = m.teams[side] %}{% if not t.slots %}<p class="why">No at-bats tracked for this team.</p>{% else %}
+<table><tr><th>#</th><th class="l">Hitter</th>{% for i in range(maxpa[side]) %}<th>PA {{ i + 1 }}</th>{% endfor %}<th>AB</th><th>H</th><th>RBI</th><th>BB</th><th>K</th><th>xBA</th><th>Avg EV</th><th>Grade</th></tr>
+{% for s in t.slots %}<tr class="{{ 'sub' if s.is_sub }}"><td>{{ '' if s.is_sub else s.slot }}</td>
+  <td class="nm">{% if s.is_sub %}<span class="tag">{{ 'PH/SUB' }}</span>{% endif %}{{ s.display }}<small>{% if s.side %}{{ s.side }}{% endif %}{% if s.is_sub %} for {{ s.sub_for_display }} &middot; inn {{ s.first_inn }}{% endif %}</small></td>
+  {% for i in range(maxpa[side]) %}<td>{% if i < s.pas|length %}{% set p = s.pas[i] %}<span class="pa"><i>inn {{ p.inn }}</i><b>{{ abbr.get(p.result, '–') if p.result else '–' }}</b><span class="g g{{ p.grade[0] if p.grade else 'N' }}">{{ p.grade or '–' }}</span></span>{% endif %}</td>{% endfor %}
+  <td>{{ s.ab }}</td><td>{{ s.h }}</td><td>{{ s.rbi }}</td><td>{{ s.bb }}</td><td>{{ s.k }}</td><td>{{ ('%.3f'|format(s.xba))[1:] if s.xba is not none else '—' }}</td><td>{{ '%.0f'|format(s.ev) if s.ev is not none else '—' }}</td><td><span class="g g{{ s.avg_grade[0] if s.avg_grade else 'N' }}">{{ s.avg_grade or '–' }}</span></td></tr>{% endfor %}</table>
+<p class="why" style="margin:8px 0 0">Order is rebuilt from the order each hitter first came to the plate. A new hitter takes the spot whose turn it was and is shown as PH/SUB.</p>{% endif %}</div>
+{% endfor %}
+
+{% for side, nm in order %}
+<h2 class="pb">{{ nm }} pitching, in order of appearance</h2>
+<div class="card">{% if not m.pitchers[side] %}<p class="why">No pitchers tracked for this team.</p>{% else %}
+<table><tr><th>#</th><th class="l">Pitcher</th><th>Inn in</th><th>IP</th><th>BF</th><th>NP</th><th>Strike %</th><th>H</th><th>R</th><th>BB/HBP</th><th>K</th><th>HR</th><th>FB avg</th><th>Top</th></tr>
+{% for p in m.pitchers[side] %}<tr><td>{{ loop.index }}</td><td class="nm">{{ p.name }}<small>{{ p.throws + 'HP' if p.throws else '' }}</small></td><td>{{ p.first_inn }}</td><td>{{ p.ip }}</td><td>{{ p.bf }}</td><td>{{ p.np }}</td><td>{{ p.strike_pct }}%</td><td>{{ p.h }}</td><td>{{ p.r }}</td><td>{{ p.bb }}</td><td>{{ p.k }}</td><td>{{ p.hr }}</td><td>{{ '%.1f'|format(p.fb_avg) if p.fb_avg else '—' }}</td><td>{{ '%.1f'|format(p.top) if p.top else '—' }}</td></tr>{% endfor %}</table>{% endif %}</div>
+{% endfor %}
+
+<h2>Arsenal today vs. earlier data</h2>
+<div class="lg"><span><i style="background:#d5dadd"></i>earlier velo range (tick = average)</span><span><i style="background:#4a93a8"></i>this game range (ring = average)</span><span>Usage and whiff % show earlier in grey</span></div>
+{% for side, nm in order %}{% for p in m.pitchers[side] %}{% if p.ars is not none %}<div class="card ar"><h4>{{ p.name }} <small>{{ nm }} &middot; {{ p.np }} pitches today &middot; {% if p.prev_n %}{{ p.prev_n }} earlier pitches on file{% else %}no earlier data on file{% endif %}</small></h4>{{ p.ars|safe }}</div>{% endif %}{% endfor %}{% endfor %}
+
+{% for side, nm in order %}
+<h2 class="pb">{{ nm }} at-bat grades</h2>
+<div class="card">{% set t = m.teams[side] %}<table><tr><th>Inn</th><th class="l">Hitter</th><th class="l">vs</th><th>Pitches</th><th>Final count</th><th>Result</th><th>EV / LA</th><th>xBA</th><th>Grade</th><th class="l">Notes</th></tr>
+{% for p in t.pas %}<tr><td>{{ 'T' if p.tb == 0 else 'B' }}{{ p.inn }}</td><td class="nm">{{ p.display }}</td><td class="l">{{ p.pitcher_display }}</td><td>{{ p.n_pitches }}</td><td>{{ p.count }}</td><td><b>{{ abbr.get(p.result, '–') if p.result else '–' }}</b></td><td>{% if p.ev is not none %}{{ '%.0f'|format(p.ev) }}{% if p.la is not none %} / {{ '%.0f'|format(p.la) }}&deg;{% endif %}{% else %}—{% endif %}</td><td>{{ ('%.3f'|format(p.xba))[1:] if p.xba is not none else '—' }}</td><td><span class="g g{{ p.grade[0] if p.grade else 'N' }}">{{ p.grade or '–' }}</span></td><td class="why">{{ p.why }}</td></tr>{% endfor %}</table></div>
+{% endfor %}
+<div class="meth"><b>How at-bats are graded.</b> Half from the result (HR 100, 3B 95, 2B 90, 1B 78, BB 68, HBP 62, sac 60, ROE 50, FC 40, out 22, strikeout 4&ndash;8) and half from contact quality (xBA from exit velocity and launch angle) when the ball was put in play, so a hard-hit out grades well above a weak single. Added on top: long at-bats (6+ pitches), RBI, two-strike success. Late and close games (7th inning on, within 2 runs) stretch the grade up or down. Baserunners are not in the data, so base-state leverage is not counted. Pinch hitters and substitutes are inferred from batting order. Beta: grades are a starting point for the coaching conversation.</div>
+</div></body></html>

@@ -724,6 +724,69 @@ def _scouting_ok(program):
     return None
 
 
+def _game_decorate(m, program):
+    """Adds display names and arsenal graphics to a built game model."""
+    import gamereport as gr
+    flip = gr._flip
+    for p in m['pas']:
+        p['display'] = flip(p['batter'])
+        p['pitcher_display'] = flip(p['pitcher'])
+    for side in ('us', 'opp'):
+        for s in m['teams'][side]['slots']:
+            s['display'] = flip(s['name'])
+            s['sub_for_display'] = flip(s['sub_for']) if s.get('sub_for') else ''
+    return m
+
+
+@app.route('/team/<program>/games')
+@login_required
+def team_games(program):
+    _team_ok(program)
+    if not plans.allowed(program, 'hitting'):
+        return _upgrade('hitting')
+    import gamereport as gr
+    import datetime as _dt
+    g.theme_program = program
+    out = []
+    for gid, gm in gr.collect(program).items():
+        m = gr.build(gm['rows'])
+        d = _dt.date.fromisoformat(gm['date'])
+        out.append({'gid': gid, 'opp': gm['opp'], 'date': gm['date'], 'date_pretty': d.strftime('%a %b %-d, %Y'), 'n': gm['n'],
+                    'us': m['score']['us'], 'them': m['score']['opp'], 'partial': not (m['pitchers']['us'] and m['pitchers']['opp']),
+                    'logo': _opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp'])})
+    out.sort(key=lambda x: x['date'], reverse=True)
+    return render_template('games.html', program=program, team_label=store.program_label(program), games=out)
+
+
+@app.route('/team/<program>/game/<gid>')
+@login_required
+def team_game(program, gid):
+    _team_ok(program)
+    if not plans.allowed(program, 'hitting'):
+        return _upgrade('hitting')
+    import gamereport as gr
+    import datetime as _dt
+    gm = gr.collect(program).get(gid)
+    if not gm:
+        abort(404)
+    g.theme_program = program
+    m = _game_decorate(gr.build(gm['rows']), program)
+    for side in ('us', 'opp'):
+        for p in m['pitchers'][side]:
+            p['ars'], p['prev_n'] = None, 0
+            if p['np'] >= 8:
+                ars, pn = gr.arsenal(p, gm['date'], program, 'us' if side == 'us' else 'opp')
+                p['ars'], p['prev_n'] = gr.arsenal_svg(ars), pn
+    d = _dt.date.fromisoformat(gm['date'])
+    tl = store.program_label(program)
+    complete = bool(m['pitchers']['us'] and m['pitchers']['opp']) and all(v is not None for v in m['linescore']['us'] + m['linescore']['opp'])
+    return render_template('game_report.html', m=m, program=program, team_label=tl, opp=gm['opp'], date_pretty=d.strftime('%A, %B %-d, %Y'),
+                           n_pitches=gm['n'], complete=complete, abbr=gr.ABBR, logo=_opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp']),
+                           order=[('us', tl), ('opp', gm['opp'])], maxpa={s: max([x['pa_n'] for x in m['teams'][s]['slots']] or [1]) for s in ('us', 'opp')},
+                           back_url=url_for('team_games', program=program))
+
+
+
 @app.route('/team/<program>/scouting')
 @login_required
 def team_scouting(program):
