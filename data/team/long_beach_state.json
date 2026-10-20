@@ -1,1 +1,1 @@
-{"hitting_stats":["avg_ev","hard_hit_pct","xba","score","chase_pct","whiff_pct"],"pitching_stats":["fb_velo","strike_pct","fps_pct","whiff_pct","csw_pct","chase_pct"],"goals":[],"theme":{"brand":"#16191c","accent":"#ffb81c"}}
+{"hitting_stats":["avg_ev","hard_hit_pct","xba","score","chase_pct","whiff_pct"],"pitching_stats":["fb_velo","fb_spin","strike_pct","fps_pct","zone_pct","ahead_pct","whiff_pct","csw_pct","chase_pct"],"goals":[],"theme":{"brand":"#16191c","accent":"#ffb81c"}}
