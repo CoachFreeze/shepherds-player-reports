@@ -1,0 +1,10 @@
+{# Scouting notes under the bio: shown (and printed) as text; coaches edit them in place. Needs: program, note_key, note (dict or none), back_url #}
+<div class="note" id="scout-note"><h3>Scouting notes</h3>
+  <div class="nv{{ '' if note else ' empty noprint' }}" id="nv">{{ note.t if note else 'No notes yet.' }}</div>
+  {% if note %}<div class="meta">Last updated {{ note.at }}{% if note.by %} by {{ note.by }}{% endif %}</div>{% endif %}
+  <form class="edit noprint" id="nf" method="post" action="{{ url_for('scout_notes_save') }}" style="display:none;flex-direction:column;align-items:stretch;">
+    <input type="hidden" name="program" value="{{ program }}"><input type="hidden" name="key" value="{{ note_key }}"><input type="hidden" name="back" value="{{ back_url }}">
+    <textarea name="text" maxlength="4000" placeholder="Tendencies you've seen, signs, how you want to play him...">{{ note.t if note else '' }}</textarea>
+    <div class="edit"><button class="btn" type="submit">Save notes</button><button class="btn ghost" type="button" onclick="document.getElementById('nf').style.display='none';document.getElementById('nb').style.display='';document.getElementById('nv').style.display='';">Cancel</button></div></form>
+  <div class="edit noprint"><button class="btn ghost" id="nb" type="button" onclick="document.getElementById('nf').style.display='flex';this.style.display='none';document.getElementById('nv').style.display='none';">{{ 'Edit notes' if note else 'Add notes' }}</button></div>
+</div>

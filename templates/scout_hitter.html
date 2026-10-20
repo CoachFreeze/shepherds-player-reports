@@ -1,0 +1,48 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ h.name }} · Scouting</title>
+<style>{{ theme_css|safe }}</style>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+{% include '_scout_css.html' %}
+</head><body><div class="ov">
+<div class="top"><a class="bk" href="{{ back_url }}">&larr; {{ h.opponent }}</a><span class="acts"><button class="btn ghost" type="button" onclick="window.print()">Print scouting sheet</button>{% include '_usermenu.html' %}</span></div>
+{% set s = r.stats %}{% set sp = r.spray %}
+<div class="head">
+  <div class="hs">{% if logo %}<img src="{{ logo }}" alt="">{% else %}<span>{{ initials }}</span>{% endif %}</div>
+  <div><h1>{{ h.name }}</h1>
+    <div class="sub"><b>Hitter</b> &middot; {{ h.opponent }}{% if h.bio.bats %} &middot; Bats {{ 'Switch' if h.bio.bats == 'S' else h.bio.bats }}{% endif %}</div>
+    <div class="sub" style="font-size:13px;">{{ r.n }} pitches seen{% if h.dates %} &middot; {{ h.dates|length }} session{{ 's' if h.dates|length != 1 }} ({{ h.dates[0] }}{% if h.dates|length > 1 %} to {{ h.dates[-1] }}{% endif %}){% endif %}</div></div>
+  <div class="chips">
+    <div class="chip2"><b>{{ '%.0f%%'|format(r.all.swing) if r.all.swing is not none else '—' }}</b><span>Swing %</span></div>
+    <div class="chip2"><b>{{ '%.0f%%'|format(r.all.whiff) if r.all.whiff is not none else '—' }}</b><span>Whiff %</span></div>
+    <div class="chip2"><b>{{ '%.0f%%'|format(r.all.chase) if r.all.chase is not none else '—' }}</b><span>Chase %</span></div>
+    <div class="chip2"><b>{{ '%.0f'|format(r.all.ev) if r.all.ev is not none else '—' }}</b><span>Avg exit velo</span></div>
+  </div>
+</div>
+{% include '_scout_notes.html' %}
+{% if r.small %}<div class="small-warn">Small sample ({{ r.n }} pitches). Read this as a first look; it gets sharper with every game you upload.</div>{% endif %}
+<div class="cols">
+<div>
+  <div class="pn"><div class="pn-t">How to pitch him</div>
+    {% if r.go or r.stop or r.info %}<ul class="plan">{% for t, x in r.go %}<li class="go"><b>{{ t }}</b>{{ x }}</li>{% endfor %}{% for t, x in r.stop %}<li class="stop"><b>{{ t }}</b>{{ x }}</li>{% endfor %}{% for t, x in r.info %}<li class="info"><b>{{ t }}</b>{{ x }}</li>{% endfor %}</ul>
+    {% else %}<p class="empty-s">Not enough pitches yet to say where to attack him. Patterns show up as his sample grows.</p>{% endif %}</div>
+  <div class="pn"><div class="pn-t">Where to attack</div><div class="pn-s">Catcher's view &middot; inside is on his side of the plate &middot; the box is the strike zone</div>
+    <div class="seg noprint" id="zmtabs"><button type="button" class="on" data-m="swing">Swing %</button><button type="button" data-m="miss">Miss %</button><button type="button" data-m="ev">Exit velo</button><button type="button" data-m="seen">Pitches seen</button></div>
+    {{ zone_svg|safe }}
+    <p class="pn-s" id="zmleg" style="margin-top:8px;">Share of pitches he swings at. Spots with fewer than 3 pitches stay blank.</p></div>
+  <div class="pn"><div class="pn-t">Pitch types</div><div class="tw"><table class="tbl"><tr><th>Pitch</th><th>Seen</th><th>Swing %</th><th>Whiff %</th><th>Chase %</th><th>Avg EV</th><th>xBA</th></tr>
+    {% for t in r.types %}<tr class="{{ 'sm' if t.n < 6 }}"><td class="ty">{{ t.type }}</td><td>{{ t.n }}</td><td>{{ '%.0f%%'|format(t.swing) if t.swing is not none else '—' }}</td><td>{{ '%.0f%%'|format(t.whiff) if t.whiff is not none and t.sw >= 3 else '—' }}</td><td>{{ '%.0f%%'|format(t.chase) if t.chase is not none and t.n_out >= 3 else '—' }}</td><td>{{ '%.0f'|format(t.ev) if t.ev is not none else '—' }}</td><td>{{ ('%.3f'|format(t.xba_v))[1:] if t.xba_v is not none else '—' }}</td></tr>{% endfor %}</table></div></div>
+</div>
+<div>
+  <div class="pn"><div class="pn-t">How to defend him</div>
+    {% if r.defend %}<ul class="plan">{% for t, x in r.defend %}<li class="info"><b>{{ t }}</b>{{ x }}</li>{% endfor %}</ul>{% else %}<p class="empty-s">Not enough tracked batted balls yet to position around him{% if sp.n == 0 %} (none with a direction){% endif %}.</p>{% endif %}</div>
+  <div class="pn"><div class="pn-t">Spray chart</div><div class="pn-s">Approximate: built from the batted balls Trackman tracked{% if sp.n %} ({{ sp.n }}){% endif %}</div><div style="display:flex;justify-content:center;overflow-x:auto;"><div>{{ h.spray|safe }}</div></div></div>
+  <div class="pn"><div class="pn-t">Swing decisions</div><div class="pn-s">Catcher's view &middot; filled = swing, ring = take &middot; green good, red bad</div><div style="max-width:380px;margin:0 auto;">{{ h.decision_svg|safe }}</div></div>
+  <div class="pn"><div class="pn-t">By count</div><div class="tw"><table class="tbl"><tr><th>Count</th><th>Pitches</th><th>Swing %</th><th>Whiff %</th><th>Chase %</th></tr>
+    {% for c in r.counts %}<tr><td class="ty">{{ c.label }}</td><td>{{ c.n }}</td><td>{{ '%.0f%%'|format(c.swing) if c.swing is not none else '—' }}</td><td>{{ '%.0f%%'|format(c.whiff) if c.whiff is not none and c.sw >= 3 else '—' }}</td><td>{{ '%.0f%%'|format(c.chase) if c.chase is not none and c.n_out >= 3 else '—' }}</td></tr>{% endfor %}</table></div></div>
+</div>
+</div>
+</div>
+{% include '_mvtip.html' %}
+<script>(function(){var t=document.getElementById('zmtabs');if(!t)return;var leg={swing:'Share of pitches he swings at. Spots with fewer than 3 pitches stay blank.',miss:'Share of his swings that miss (green = he misses a lot, attack here). Needs 3 swings.',ev:'Average exit velocity on balls in play (green = soft, red = hard). Needs 2 balls in play.',seen:'How many pitches he has seen in each spot.'};
+t.querySelectorAll('button').forEach(function(b){b.onclick=function(){t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b);});document.querySelectorAll('.zm-l').forEach(function(g){g.style.display=g.dataset.m===b.dataset.m?'':'none';});document.getElementById('zmleg').textContent=leg[b.dataset.m];};});})();</script>
+</body></html>

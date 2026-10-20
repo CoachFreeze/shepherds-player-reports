@@ -45,7 +45,7 @@ def opponents(program):
             s = slot(opp)
             name = _flip(rows[0].get('Pitcher'))
             velos = [float(r['RelSpeed']) for r in rows if str(r.get('RelSpeed') or '').replace('.', '', 1).isdigit()]
-            s['pitchers'].append({'slug': slug, 'name': name, 'n': len(rows), 'top': max(velos) if velos else None,
+            s['pitchers'].append({'slug': slug, 'opp': s['slug'], 'name': name, 'n': len(rows), 'top': max(velos) if velos else None,
                                   'throws': (rows[0].get('PitcherThrows') or '')[:1].upper()})
             s['dates'] |= {(r.get('Date') or '')[:10] for r in rows if r.get('Date')}
     for s in out.values():

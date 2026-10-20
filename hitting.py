@@ -536,8 +536,27 @@ def collect_scouting(program=None):
     {key: {'name','program','demo','pitches','opponent','school_override',...}}; key = scout--<program>--<opponent>--<batter>."""
     real, _ = _all_pitch_files()
     out = {}
+
+    def add(prog, opp, p):
+        key = f"{SCOUT}{prog}--{store.slugify(opp) or 'unlabeled'}--{_slug(p['batter'])}"
+        h = out.get(key)
+        if h is None:
+            h = out[key] = {'name': p['batter'], 'program': prog, 'demo': False, 'pitches': [], 'roster': None, 'on_roster': False,
+                            'opponent': opp, 'opp_slug': store.slugify(opp) or 'unlabeled', 'school_override': opp, 'scouting': True}
+        h['pitches'].append(p)
+
     for slug, _d in real:
-        if slug.startswith('opp-'):
+        if slug.startswith('opp-'):               # scouting-only uploads: both teams are opponents, so these pitchers' batters are scouted too
+            od = outings_mod.load(slug, real_only=True)
+            if not od.get('program') or (program and od.get('program') != program):
+                continue
+            for o in od['outings']:
+                for r_ in o['rows']:
+                    if r_.get('SessionType') != 'Scouting' or not r_.get('BatterTeamLabel'):
+                        continue
+                    ps = normalize([r_])
+                    if ps and ps[0]['batter']:
+                        add(od['program'], r_['BatterTeamLabel'], ps[0])
             continue
         pl = store.get_real_player(slug)
         if not pl or (program and pl.get('program') != program):
@@ -555,13 +574,7 @@ def collect_scouting(program=None):
                 p = ps[0]
                 if not p.get('p_throws'):
                     p['p_throws'] = _hand
-                opp = r_.get('Opponent') or 'Unlabeled opponent'
-                key = f"{SCOUT}{prog}--{store.slugify(opp) or 'unlabeled'}--{_slug(p['batter'])}"
-                h = out.get(key)
-                if h is None:
-                    h = out[key] = {'name': p['batter'], 'program': prog, 'demo': False, 'pitches': [], 'roster': None, 'on_roster': False,
-                                    'opponent': opp, 'opp_slug': store.slugify(opp) or 'unlabeled', 'school_override': opp, 'scouting': True}
-                h['pitches'].append(p)
+                add(prog, r_.get('Opponent') or 'Unlabeled opponent', p)
     return out
 
 
@@ -597,7 +610,7 @@ def _collect(include_demo, include_hidden=False):
                 if not p['batter']:
                     continue
                 st = r_.get('SessionType')
-                if st == 'Bullpen' or (st in ('Scrimmage', 'Game') and not is_opp):
+                if st in ('Bullpen', 'Scouting') or (st in ('Scrimmage', 'Game') and not is_opp):
                     continue          # bullpens have no hitters; our pitchers' hitters in a game are the opponent's
                 if not p.get('p_throws'):
                     p['p_throws'] = _hand

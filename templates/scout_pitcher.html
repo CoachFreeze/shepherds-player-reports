@@ -1,0 +1,50 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ name }} · Scouting</title>
+<style>{{ theme_css|safe }}</style>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>{{ css }}</style>
+{% include '_scout_css.html' %}
+<style>.loc-wrap svg{max-width:100%;height:auto;}</style>
+</head><body><div class="ov">
+<div class="top"><a class="bk" href="{{ back_url }}">&larr; {{ opp }}</a><span class="acts"><button class="btn ghost" type="button" onclick="window.print()">Print scouting sheet</button>{% include '_usermenu.html' %}</span></div>
+<div class="head">
+  <div class="hs">{% if logo %}<img src="{{ logo }}" alt="">{% else %}<span>{{ initials }}</span>{% endif %}</div>
+  <div><h1>{{ name }}</h1>
+    <div class="sub"><b>{{ 'RHP' if throws == 'R' else 'LHP' if throws == 'L' else 'Pitcher' }}</b> &middot; {{ opp }}</div>
+    <div class="sub" style="font-size:13px;">{{ r.n }} pitches tracked{% if dates %} &middot; {{ dates|length }} session{{ 's' if dates|length != 1 }} ({{ dates[0] }}{% if dates|length > 1 %} to {{ dates[-1] }}{% endif %}){% endif %}</div></div>
+  <div class="chips">
+    <div class="chip2"><b>{{ '%.1f'|format(fb_velo) if fb_velo else '—' }}</b><span>Fastball avg</span></div>
+    <div class="chip2"><b>{{ '%.1f'|format(top_velo) if top_velo else '—' }}</b><span>Top velo</span></div>
+    <div class="chip2"><b>{{ '%.0f%%'|format(r.zone_pct) if r.zone_pct is not none else '—' }}</b><span>In zone</span></div>
+    <div class="chip2"><b>{{ '%.0f%%'|format(r.whiff) if r.whiff is not none else '—' }}</b><span>Whiff %</span></div>
+  </div>
+</div>
+{% include '_scout_notes.html' %}
+{% if r.small %}<div class="small-warn">Small sample ({{ r.n }} pitches). Read this as a first look; it gets sharper with every game you upload.</div>{% endif %}
+<div class="cols">
+<div>
+  <div class="pn"><div class="pn-t">How to attack him</div>
+    {% if r.go or r.stop or r.info %}<ul class="plan">{% for t, x in r.go %}<li class="go"><b>{{ t }}</b>{{ x }}</li>{% endfor %}{% for t, x in r.stop %}<li class="stop"><b>{{ t }}</b>{{ x }}</li>{% endfor %}{% for t, x in r.info %}<li class="info"><b>{{ t }}</b>{{ x }}</li>{% endfor %}</ul>
+    {% else %}<p class="empty-s">Not enough pitches yet to see his patterns. They show up as his sample grows.</p>{% endif %}
+    <p class="pn-s" style="margin-top:10px;"><span style="color:#1f7a50;font-weight:700;">Green</span> = what to look for &middot; <span style="color:#a63a2c;font-weight:700;">Red</span> = what to respect</p></div>
+  <div class="pn"><div class="pn-t">Arsenal</div><div class="tw"><table class="tbl"><tr><th>Pitch</th><th>Usage</th><th>Avg velo</th><th>Top</th><th>IVB</th><th>HB</th><th>Spin</th></tr>
+    {% for t in arsenal %}<tr><td class="ty"><i style="display:inline-block;width:11px;height:11px;border-radius:50%;background:{{ t.color }};margin-right:7px;vertical-align:-1px;"></i>{{ t.type }}</td><td>{{ '%.1f%%'|format(t.pct) }}</td><td>{{ '%.1f'|format(t.velo) if t.velo else '—' }}</td><td>{{ '%.1f'|format(t.top_velo) if t.top_velo else '—' }}</td><td>{{ ('%.1f'|format(t.ivb) ~ '″') if t.ivb is not none else '—' }}</td><td>{{ ('%.1f'|format(t.hb) ~ '″') if t.hb is not none else '—' }}</td><td>{{ '{:,.0f}'.format(t.spin_avg) if t.spin_avg else '—' }}</td></tr>{% endfor %}</table></div></div>
+  <div class="pn"><div class="pn-t">What he throws, by count</div><div class="pn-s">Share of his pitches in each situation</div>
+    <div class="mixkey">{% for t in arsenal %}<span><i style="background:{{ t.color }}"></i>{{ t.type }}</span>{% endfor %}</div>
+    <div class="tw"><table class="tbl"><tr><th>Situation</th><th>Pitches</th><th style="width:55%">Mix</th></tr>
+    {% for m in r.mixes %}<tr><td class="ty">{{ m.label }}</td><td>{{ m.n }}</td><td><div class="mixbar" title="{% for t, v in m.mix.items() %}{{ t }} {{ '%.0f'|format(v or 0) }}%  {% endfor %}">{% for t in arsenal %}{% set v = m.mix.get(t.type) or 0 %}{% if v %}<i style="width:{{ v }}%;background:{{ t.color }}" title="{{ t.type }} {{ '%.0f'|format(v) }}%"></i>{% endif %}{% endfor %}</div>
+      <div style="font-size:11.5px;color:#6b7680;margin-top:3px;text-align:left;">{% for t in arsenal %}{% set v = m.mix.get(t.type) or 0 %}{% if v >= 8 %}{{ t.type }} {{ '%.0f'|format(v) }}%{{ ' · ' if not loop.last }}{% endif %}{% endfor %}</div></td></tr>{% endfor %}</table></div></div>
+</div>
+<div>
+  {% if location_html %}<div class="pn loc-wrap"><div class="pn-t">Pitch Location</div><div class="pn-s">Catcher's view &middot; vs left- and right-handed batters</div>{{ location_html|safe }}</div>{% endif %}
+  {% if effect %}<div class="pn"><div class="pn-t">Pitch Effectiveness</div><div class="pn-s">How hitters did against each pitch, split by batter side &middot; grey rows are under 10 pitches</div>
+    {% for s in effect %}<div style="font:700 20px 'Oswald',sans-serif;margin:14px 4px 0;">{{ s.title }}<small style="font:600 12px 'Barlow',sans-serif;color:#8a959b;margin-left:6px;">{{ s.n }} pitches</small></div>
+    {% if s.n %}<div class="tw"><table class="tbl"><tr><th>Pitch</th><th>Avg Velo</th><th>Usage %</th><th>In Zone %</th><th>Whiff %</th><th>Chase %</th><th>Avg Exit Velo</th><th>xBA</th></tr>
+      {% for x in s.rows %}<tr class="{{ 'sm' if x.n < 10 }}"><td class="ty" title="{{ x.n }} pitches"><i style="display:inline-block;width:11px;height:11px;border-radius:50%;background:{{ x.color }};margin-right:7px;vertical-align:-1px;"></i>{{ x.type }}</td>
+        <td>{{ '%.1f'|format(x.velo) if x.velo is not none else '—' }}</td><td>{{ '%.1f%%'|format(x.usage) if x.n else '—' }}</td><td>{{ '%.1f%%'|format(x.zone) if x.zone is not none else '—' }}</td><td>{{ '%.1f%%'|format(x.whiff) if x.whiff is not none else '—' }}</td><td>{{ '%.1f%%'|format(x.chase) if x.chase is not none else '—' }}</td><td>{{ '%.1f'|format(x.ev) if x.ev is not none else '—' }}</td><td>{{ ('%.3f'|format(x.xba))[1:] if x.xba is not none else '—' }}</td></tr>{% endfor %}</table></div>
+    {% else %}<p class="empty-s">No pitches to {{ 'right' if s.side == 'R' else 'left' }}-handed batters yet.</p>{% endif %}{% endfor %}</div>{% endif %}
+</div>
+</div>
+</div>
+{% include '_mvtip.html' %}
+</body></html>

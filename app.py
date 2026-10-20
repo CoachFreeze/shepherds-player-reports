@@ -22,6 +22,10 @@ import fullswing
 import uploadlog
 import cleanup
 import scouting
+import scoutnotes
+import scoutplan
+import pitchfx
+import savant_components as sc_mod
 import uuid
 
 app = Flask(__name__)
@@ -744,7 +748,53 @@ def team_scouting_opp(program, opp):
         abort(404)
     o['logo'] = _opp_logo_url(program, o['slug'], o['label'])
     o['custom'] = os.path.exists(_opp_logo_path(program, o['slug']))
+    _nt = scoutnotes.all_for(program)
+    for x in o['hitters']:
+        x['noted'] = bool((_nt.get(x['key']) or {}).get('t'))
+    for x in o['pitchers']:
+        x['noted'] = bool((_nt.get('p--' + x['slug']) or {}).get('t'))
     return render_template('scouting.html', program=program, team_label=store.program_label(program), opps=[], opp=o)
+
+
+@app.route('/team/<program>/scouting/<opp>/print')
+@login_required
+def team_scouting_print(program, opp):
+    blocked = _scouting_ok(program)
+    if blocked:
+        return blocked
+    o = scouting.opponents(program).get(opp)
+    if not o:
+        abort(404)
+    import stats as stats_mod
+    g.theme_program = program
+    notes = scoutnotes.all_for(program)
+    hit = []
+    raw_all = hitting.collect_scouting(program)
+    for x in o['hitters']:
+        raw = raw_all.get(x['key'])
+        if not raw:
+            continue
+        ps = raw['pitches']
+        for p in ps:
+            p['label'] = stats_mod._pt_label(p['pitch_type']) if p.get('pitch_type') else 'Unknown'
+        bats = {p['side'] for p in ps if p.get('side')}
+        bt = next(iter(bats)) if len(bats) == 1 else None
+        rep = scoutplan.hitter_report(ps, bats=bt if bt in ('L', 'R') else None)
+        hit.append({'name': x['name'], 'bats': bt, 'r': rep, 'note': (notes.get(x['key']) or {}).get('t')})
+    pit = []
+    for x in o['pitchers']:
+        data = outings_mod.load(x['slug'], real_only=True)
+        rows = [r for oo in data.get('outings', []) for r in oo['rows'] if (store.slugify(r.get('Opponent') or '') or 'unlabeled') == opp]
+        if not rows:
+            continue
+        for r in rows:
+            r['Pitcher'] = x['name']
+        rep = scoutplan.pitcher_report(scoutplan.prep_pitcher(rows))
+        pit.append({'name': x['name'], 'throws': x['throws'], 'r': rep, 'n': x['n'], 'note': (notes.get('p--' + x['slug']) or {}).get('t')})
+    return render_template('scout_book.html', program=program, team_label=store.program_label(program), opp=o,
+                           logo=_opp_logo_url(program, o['slug'], o['label']), hit=hit, pit=pit,
+                           back_url=url_for('team_scouting_opp', program=program, opp=opp))
+
 
 
 def _opp_logo_path(program, opp):
@@ -807,6 +857,27 @@ def scouting_logo_save(program, opp):
     return back
 
 
+@app.route('/scouting/notes', methods=['POST'])
+@login_required
+def scout_notes_save():
+    prog = request.form.get('program', '')
+    blocked = _scouting_ok(prog)
+    if blocked:
+        return blocked
+    key = request.form.get('key', '')
+    ok = key.startswith(f'scout--{prog}--') or (key.startswith('p--') and outings_mod.load(key[3:], real_only=True).get('program') == prog)
+    if not ok:
+        abort(400)
+    scoutnotes.save(prog, key, request.form.get('text', ''), (current_coach() or {}).get('display_name') or session.get('coach') or '')
+    back = request.form.get('back', '')
+    return redirect(back if back.startswith('/') and not back.startswith('//') else url_for('team_scouting', program=prog))
+
+
+def _initials(name):
+    w = [x for x in re.split(r'\s+', name or '') if x]
+    return ((w[0][:1] + w[-1][:1]) if len(w) > 1 else (w[0][:2] if w else '')).upper()
+
+
 @app.route('/scouting/pitcher/<slug>')
 @login_required
 def scouting_pitcher(slug):
@@ -819,21 +890,48 @@ def scouting_pitcher(slug):
     blocked = _scouting_ok(prog)
     if blocked:
         return blocked
-    rows = [r for o in data['outings'] for r in o['rows']]
+    want = request.args.get('opp')
+    rows = [r for o in data['outings'] for r in o['rows'] if not want or (store.slugify(r.get('Opponent') or '') or 'unlabeled') == want]
+    if not rows:
+        abort(404)
     nm = scouting._flip(rows[0].get('Pitcher')) if rows else slug
     opp = next((r.get('Opponent') for r in rows if r.get('Opponent')), 'Unlabeled opponent')
-    bio = {'name': nm, 'program': prog, 'school': opp, 'roles': {}, 'stat_ids': None}
-    b = overview.build(slug, bio)
-    if not b:
-        abort(404)
-    b['log'] = []                       # outing reports are for your own pitchers
-    last, first = _split_name(nm)
+    opp_slug = store.slugify(opp) or 'unlabeled'
+    for r in rows:
+        r['Pitcher'] = nm
+    meta, tm = e_mod.pitcher_trackman_summary(rows, nm)
+    for t_ in tm:
+        t_['color'] = e_mod.MINI_PITCH_COLORS.get(t_['type'], '#555')
+    ps = scoutplan.prep_pitcher(rows)
+    rep = scoutplan.pitcher_report(ps)
+    colors = {t_['type']: t_['color'] for t_ in tm}
+    fb = next((t_ for t_ in tm if any(k in t_['type'].lower() for k in ('seam', 'sinker'))), None)
     css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
     g.theme_program = prog
-    return render_template('player_overview.html', b=b, bio=bio, slug=slug, css=css, hitter_url=None, has_photo=False, badge=None, photo_v=0,
-                           initials=(first[:1] + last[:1]).upper(), pos=None, is_coach=bool(session.get('coach')), can_edit=False, is_demo=False,
-                           tour_next='', scouting=True,
-                           pitchers_url=url_for('team_scouting_opp', program=prog, opp=store.slugify(opp) or 'unlabeled'))
+    return render_template('scout_pitcher.html', name=nm, opp=opp, r=rep, css=css, initials=_initials(nm), logo=_opp_logo_url(prog, opp_slug, opp),
+                           throws=(meta.get('throws') or '')[:1].upper(), arsenal=tm, fb_velo=(fb or {}).get('velo'),
+                           top_velo=max([t_['top_velo'] for t_ in tm if t_.get('top_velo')] or [0]) or None,
+                           dates=sorted({(r.get('Date') or '')[:10] for r in rows if r.get('Date')}),
+                           location_html=sc_mod.location_heatmap_html(tm, width=340, uid='loc'),
+                           effect=pitchfx.effectiveness(rows, [t_['type'] for t_ in tm], colors),
+                           program=prog, note_key='p--' + slug, note=scoutnotes.get(prog, 'p--' + slug), back_url=url_for('team_scouting_opp', program=prog, opp=opp_slug))
+
+
+def _scout_hitter_page(key, h):
+    prog = h['program']
+    raw = hitting.collect_scouting(prog).get(key)
+    if not raw:
+        abort(404)
+    ps = raw['pitches']
+    import stats as stats_mod
+    for p in ps:
+        p['label'] = stats_mod._pt_label(p['pitch_type']) if p.get('pitch_type') else 'Unknown'
+    bats = h['bio'].get('bats')
+    rep = scoutplan.hitter_report(ps, bats=bats if bats in ('L', 'R') else None)
+    opp = h['opponent']
+    return render_template('scout_hitter.html', h=h, r=rep, zone_svg=scoutplan.zone_map_svg(rep['cells'], bats=bats if bats in ('L', 'R') else None),
+                           initials=_initials(h['name']), logo=_opp_logo_url(prog, h['opp_slug'], opp), program=prog, note_key=key,
+                           note=scoutnotes.get(prog, key), back_url=url_for('team_scouting_opp', program=prog, opp=h['opp_slug']))
 
 
 @app.route('/hitter/<key>')
@@ -847,6 +945,8 @@ def beta_hitter(key):
     if h.get('opp_slug') and not plans.allowed(h['program'], 'scouting'):
         return _upgrade('scouting')
     g.theme_program = h['program']
+    if h.get('opp_slug'):
+        return _scout_hitter_page(key, h)
     css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
     _ps = h['bio']['photo_slug']
     return render_template('beta_hitter.html', h=h, css=css, can_edit=(not h['demo'] and not h.get('opp_slug') and (is_admin() or h['program'] == my_program())),
@@ -1747,10 +1847,10 @@ BULK_UPLOAD_PAGE = BULK_STYLE + """
 {% if message %}<div class="card" style="color:#9c3a3a;">{{ message }}</div>{% endif %}
 <form method="post" enctype="multipart/form-data">{% if programs %}<p><label style="font-weight:600;">Upload to: <select name="program">{% for s, l in programs %}<option value="{{ s }}" {{ 'selected' if s == prog }}>{{ l }}</option>{% endfor %}</select></label></p>{% endif %}
 <div class="card"><label style="font-weight:700;font-size:16px;display:block;margin-bottom:6px;">What kind of session is this?</label>
-<select name="session_type" required style="padding:9px 12px;border:1px solid #dde2e5;border-radius:10px;font:600 15px Barlow,sans-serif;"><option value="" disabled selected>Choose one…</option><option>Bullpen</option><option>Intrasquad</option><option>Scrimmage</option><option>Game</option></select>
+<select name="session_type" required style="padding:9px 12px;border:1px solid #dde2e5;border-radius:10px;font:600 15px Barlow,sans-serif;"><option value="" disabled selected>Choose one…</option><option>Bullpen</option><option>Intrasquad</option><option>Scrimmage</option><option>Game</option><option value="Scouting">Scouting only (two other teams)</option></select>
 <div id="opp-row" style="display:none;margin-top:12px;"><label style="font-weight:600;font-size:14px;">Opponent <span style="font-weight:400;color:#6b7680;">(optional)</span><br><input type="text" name="opponent" list="opp-list" placeholder="e.g. UCLA" autocomplete="off" style="margin-top:4px;padding:9px 12px;border:1px solid #dde2e5;border-radius:10px;font:500 15px Barlow,sans-serif;width:260px;max-width:100%;"></label><datalist id="opp-list">{% for o in opponents %}<option value="{{ o }}">{% endfor %}</datalist></div>
 <script>(function(){var s=document.querySelector('select[name=session_type]'),r=document.getElementById('opp-row');function f(){r.style.display=(s.value==='Scrimmage'||s.value==='Game')?'block':'none';}s.addEventListener('change',f);f();})();</script>
-<div style="color:#6b7680;font-size:13px;margin-top:8px;line-height:1.5;"><b>Bullpen</b>: pitching only, no hitters are added. <b>Intrasquad</b>: everyone in the file is on your team. <b>Scrimmage / Game</b>: you pick your pitchers on the next screen. Hitters facing them are treated as the opponent and left out, and your own hitters are picked up from the opposing pitchers' pitches.</div></div>
+<div style="color:#6b7680;font-size:13px;margin-top:8px;line-height:1.5;"><b>Bullpen</b>: pitching only, no hitters are added. <b>Intrasquad</b>: everyone in the file is on your team. <b>Scouting only</b>: a file between two other programs; both teams go into Scouting and nothing is added to your dashboards. <b>Scrimmage / Game</b>: you pick your pitchers on the next screen. Hitters facing them are treated as the opponent and left out, and your own hitters are picked up from the opposing pitchers' pitches.</div></div>
 {% for sid, lab, note in sources %}<div class="card"><label style="font-weight:700;font-size:16px;display:block;margin-bottom:6px;">{{ lab }} CSV</label><input type="file" name="file_{{ sid }}" accept=".csv"><div style="color:#6b7680;font-size:13px;margin-top:6px;">{{ note }}</div></div>{% endfor %}
 <button type="submit">Read file</button></form>
 <p><a href="{{ home_url }}">&larr; {{ home_label|capitalize }}</a></p>"""
@@ -1794,6 +1894,22 @@ BULK_REVIEW_PAGE = BULK_STYLE + """
 <script>(function(){var s=document.getElementById('myteam');if(!s)return;s.addEventListener('change',function(){document.querySelectorAll('input[data-team]').forEach(function(b){if(b.dataset.team)b.checked=(b.dataset.team===s.value);});var o=document.querySelector('input[name=opponent]'),codes=[].slice.call(s.options).map(function(x){return x.value;}).filter(Boolean),other=codes.filter(function(x){return x!==s.value;});if(o&&other.length===1&&(!o.value||codes.indexOf(o.value)>-1))o.value=other[0];});})();</script>"""
 
 
+SCOUT_REVIEW_PAGE = BULK_STYLE + """
+<title>Scouting upload</title><h1>Scouting only</h1>
+<p>Name the teams in this file. Both teams' hitters and pitchers go into Scouting, private to {{ prog_label }}. Nothing is added to your own dashboards.</p>
+<form method="post" action="{{ url_for('intake_bulk_run') }}">
+<input type="hidden" name="path" value="{{ path }}"><input type="hidden" name="program" value="{{ prog }}"><input type="hidden" name="session_type" value="Scouting">
+{% for code, c in codes %}<div class="card"><div class="row"><div><label>Team code in the file</label><input type="text" name="tcode_{{ loop.index0 }}" value="{{ code }}" readonly style="width:160px;background:#f2f4f3;"></div>
+<div><label>Team name</label><input type="text" name="tname_{{ loop.index0 }}" value="{{ pretty(code) }}" required style="width:260px;"></div></div>
+<p style="font-size:13px;color:#6b7680;margin:8px 0 0;">{{ c.pitchers }} pitches thrown by this team &middot; {{ c.batters }} swings and takes by its hitters</p></div>{% endfor %}
+<button type="submit">Add to Scouting</button></form><p><a href="{{ url_for('intake_bulk') }}">&larr; Back</a></p>"""
+
+
+def _pretty_team(code):
+    s = (code or '').replace('_', ' ').strip()
+    return s.upper() if len(s) <= 5 else s.title()
+
+
 def _target_program():
     """A program coach always uploads to his own program; an admin picks one (default Long Beach State)."""
     if is_admin():
@@ -1834,7 +1950,7 @@ def _archive_csv(path, prog):
         print(f'WARNING: could not archive CSV: {exc}')
 
 
-SESSION_TYPES = ('Bullpen', 'Intrasquad', 'Scrimmage', 'Game')
+SESSION_TYPES = ('Bullpen', 'Intrasquad', 'Scrimmage', 'Game', 'Scouting')
 
 
 def _session_type():
@@ -1882,11 +1998,50 @@ def intake_bulk():
     if not pitchers:
         return render_template_string(BULK_UPLOAD_PAGE, message='No pitchers found in that file.', **_bulk_ctx(_target_program()))
     _st = _session_type()
+    if _st == 'Scouting':
+        if not plans.allowed(prog, 'scouting'):
+            return _upgrade('scouting')
+        tc = cleanup.scouting_teams(path)
+        if len(tc) < 2:
+            return render_template_string(BULK_UPLOAD_PAGE, message="That file doesn't name two teams (PitcherTeam / BatterTeam), so it can't be used for scouting. Trackman files do; Full Swing files don't.", **_bulk_ctx(prog))
+        return render_template_string(SCOUT_REVIEW_PAGE, codes=sorted(tc.items(), key=lambda kv: -(kv[1]['pitchers'] + kv[1]['batters']))[:2], path=fname, pretty=_pretty_team, **_bulk_ctx(prog))
     my_team, codes = cleanup.guess_my_team(prog, pitchers) if _st in ('Scrimmage', 'Game') else (None, {})
     _others = [k for k in codes if k != my_team]
     _opp = _opponent() or (_others[0] if my_team and len(_others) == 1 else '')
     return render_template_string(BULK_REVIEW_PAGE, pitchers=pitchers, path=fname, session_type=_st, opponent=_opp,
                                   codes=codes if len(codes) >= 2 else {}, my_team=my_team, **_bulk_ctx(prog))
+
+
+def _scouting_run(path, f):
+    prog = _target_program()
+    if not prog:
+        abort(403)
+    if not plans.allowed(prog, 'scouting'):
+        return _upgrade('scouting')
+    names, i = {}, 0
+    while f'tcode_{i}' in f:
+        nm = re.sub(r'\s+', ' ', (f.get(f'tname_{i}') or '').strip())[:60]
+        if nm:
+            names[f[f'tcode_{i}']] = nm
+        i += 1
+    if len(set(names.values())) < 2:
+        return BULK_STYLE + '<h1>Name both teams</h1><div class="card">Each team needs its own name.</div><p><a href="' + url_for('intake_bulk') + '">Back</a></p>'
+    with github_sync.batch(f'Scouting upload for {store.program_label(prog)}'):
+        _upload_id = uuid.uuid4().hex[:10]
+        outings_mod.CURRENT_UPLOAD, outings_mod.CURRENT_SESSION = _upload_id, 'Scouting'
+        try:
+            n, seen = cleanup.store_scouting_rows(path, prog, names)
+        finally:
+            outings_mod.CURRENT_UPLOAD = outings_mod.CURRENT_SESSION = None
+        if n:
+            _archive_csv(path, prog)
+            _bn = os.path.basename(path)
+            uploadlog.record(session.get('coach') or '', prog, _bn[5:] if _bn.startswith('bulk_') else _bn, 'Trackman · Scouting', n,
+                             [p for ps in seen.values() for p in ps], upload_id=_upload_id, opponent=' vs '.join(sorted(set(names.values()))))
+            plans.track('upload', session.get('coach') or '', prog, players=0, rows=n)
+    if not n:
+        return BULK_STYLE + '<h1>Nothing added</h1><div class="card">No pitches with those team names were found.</div><p><a href="' + url_for('intake_bulk') + '">Back</a></p>'
+    return redirect(url_for('team_scouting', program=prog))
 
 
 @app.route('/intake/bulk/run', methods=['GET', 'POST'])
@@ -1898,6 +2053,8 @@ def intake_bulk_run():
     path = os.path.join(UPLOAD_DIR, os.path.basename(f.get('path', '')))
     if not os.path.exists(path):
         abort(400)
+    if _session_type() == 'Scouting':
+        return _scouting_run(path, f)
     reassign, drop = {}, set()
     for k, v in f.items():
         if k.startswith('fl_'):

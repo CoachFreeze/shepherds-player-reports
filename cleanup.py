@@ -124,6 +124,51 @@ def store_opponent_rows(path, program, our_names, exclude=()):
     return n
 
 
+def scouting_teams(path):
+    """Team codes in a Trackman file for a scouting-only upload: {code: {'pitchers': n, 'batters': n}} (rows per side)."""
+    import extract as e
+    out = {}
+    for r in e.load_trackman_rows(path):
+        for col, k in (('PitcherTeam', 'pitchers'), ('BatterTeam', 'batters')):
+            code = (r.get(col) or '').strip()
+            if code:
+                out.setdefault(code, {'pitchers': 0, 'batters': 0})[k] += 1
+    return out
+
+
+def store_scouting_rows(path, program, names):
+    """Scouting-only upload: neither team is ours. names = {team code: team name}. Every pitcher goes into an 'opp-<name>' file tagged
+    with our program (Opponent = his team); each row also records the batter's team (BatterTeamLabel) so those hitters are scouted too.
+    Returns (rows stored, {team name: pitchers})."""
+    import extract as e
+    by, seen = {}, {}
+    for r in e.load_trackman_rows(path):
+        nm = (r.get('Pitcher') or '').strip()
+        px = names.get((r.get('PitcherTeam') or '').strip())
+        if not nm or not px:
+            continue
+        last, _, first = nm.partition(', ')
+        disp = f'{first} {last}'.strip() if first else nm
+        r = dict(r)
+        r['BatterTeamLabel'] = names.get((r.get('BatterTeam') or '').strip(), '')
+        by.setdefault((store.slugify(disp), px), []).append(r)
+        seen.setdefault(px, set()).add(disp)
+    n = 0
+    prev = outings.CURRENT_OPPONENT
+    try:
+        for (s, px), rows in by.items():
+            slug = OPP_PREFIX + s
+            outings.CURRENT_OPPONENT = px
+            outings.add_rows(slug, rows, live_ab=True)
+            data = outings.load(slug, real_only=True)
+            data['program'] = program
+            outings._save(slug, data)
+            n += len(rows)
+    finally:
+        outings.CURRENT_OPPONENT = prev
+    return n, {k: sorted(v) for k, v in seen.items()}
+
+
 # ------------------------------------------------------------ which team code is ours
 TEAMCODE_PATH = os.path.join(store.DATA_DIR, 'team_codes.json')
 

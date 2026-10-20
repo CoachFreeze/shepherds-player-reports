@@ -1,0 +1,30 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ opp.label }} scouting book</title><style>{{ theme_css|safe }}</style>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;} body{font-family:'Barlow',sans-serif;color:#22303a;background:#f7f6f2;margin:0;padding:20px 16px 40px;}
+.w{max-width:960px;margin:0 auto;} .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;} .top a,.top button{font:700 13px Barlow,sans-serif;background:#fff;border:1px solid #dde2e5;border-radius:999px;padding:7px 14px;color:#22303a;text-decoration:none;cursor:pointer;}
+.hd{display:flex;align-items:center;gap:14px;border-bottom:3px solid var(--accent,#5c97a8);padding-bottom:10px;margin-bottom:6px;} .hd img{height:54px;width:54px;object-fit:contain;} .hd h1{font:700 30px Oswald,sans-serif;margin:0;} .hd p{margin:2px 0 0;color:#6b7680;font-size:13px;}
+h2{font:700 13px Oswald,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:#6b7680;margin:22px 0 8px;}
+.pl{background:#fff;border:1px solid #dde2e5;border-radius:12px;padding:12px 14px;margin-bottom:10px;break-inside:avoid;}
+.pl h3{font:700 19px Oswald,sans-serif;margin:0 0 2px;} .pl h3 small{font:500 12.5px Barlow,sans-serif;color:#6b7680;margin-left:8px;}
+.nt{background:#fff8e6;border-left:3px solid #e0a82e;padding:6px 10px;margin:6px 0;font-size:13.5px;white-space:pre-wrap;}
+.sm{font-size:12px;color:#9a6b00;margin:2px 0;} ul{margin:6px 0 0;padding:0;list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;} li{font-size:13px;line-height:1.35;padding-left:8px;border-left:3px solid #c7d0d3;} li b{display:block;font:700 10.5px Barlow,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#6b7680;} li.go{border-color:#3d9a6a;} li.stop{border-color:#c0443c;}
+.lb{font:700 10.5px Barlow,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#6b7680;margin-top:8px;}
+@media (max-width:640px){ul{grid-template-columns:1fr;}}
+@media print{body{background:#fff;padding:0;} .top{display:none;} .pl{border-color:#bbb;} @page{margin:.5in;}}
+</style></head><body><div class="w">
+<div class="top"><a href="{{ back_url }}">&larr; {{ opp.label }}</a><button onclick="window.print()">Print</button></div>
+<div class="hd">{% if logo %}<img src="{{ logo }}" alt="">{% endif %}<div><h1>{{ opp.label }} scouting book</h1><p>{{ team_label }} &middot; {{ hit|length }} hitters &middot; {{ pit|length }} pitchers{% if opp.dates %} &middot; through {{ opp.dates[-1] }}{% endif %}</p></div></div>
+<h2>Pitchers</h2>
+{% for p in pit %}<div class="pl"><h3>{{ p.name }}<small>{{ 'RHP' if p.throws == 'R' else 'LHP' if p.throws == 'L' else 'P' }} &middot; {{ p.n }} pitches</small></h3>
+  {% if p.note %}<div class="nt">{{ p.note }}</div>{% endif %}{% if p.r.small %}<div class="sm">Small sample, treat as a first look.</div>{% endif %}
+  <ul>{% for t, x in p.r.go[:6] %}<li class="go"><b>{{ t }}</b>{{ x }}</li>{% endfor %}{% for t, x in p.r.stop[:2] %}<li class="stop"><b>{{ t }}</b>{{ x }}</li>{% endfor %}</ul></div>
+{% else %}<p>No pitchers.</p>{% endfor %}
+<h2>Hitters</h2>
+{% for h in hit %}<div class="pl"><h3>{{ h.name }}<small>{% if h.bats %}Bats {{ h.bats }} &middot; {% endif %}{{ h.r.n }} pitches seen</small></h3>
+  {% if h.note %}<div class="nt">{{ h.note }}</div>{% endif %}{% if h.r.small %}<div class="sm">Small sample, treat as a first look.</div>{% endif %}
+  {% if h.r.go or h.r.stop %}<div class="lb">How to pitch him</div><ul>{% for t, x in h.r.go[:4] %}<li class="go"><b>{{ t }}</b>{{ x }}</li>{% endfor %}{% for t, x in h.r.stop[:2] %}<li class="stop"><b>{{ t }}</b>{{ x }}</li>{% endfor %}</ul>{% endif %}
+  {% if h.r.defend %}<div class="lb">How to defend him</div><ul>{% for t, x in h.r.defend[:4] %}<li><b>{{ t }}</b>{{ x }}</li>{% endfor %}</ul>{% endif %}</div>
+{% else %}<p>No hitters.</p>{% endfor %}
+</div></body></html>

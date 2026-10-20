@@ -11,10 +11,10 @@
   .mg{position:absolute;top:8px;right:8px;display:none;gap:4px;} .sq:hover .mg{display:flex;} .mg form{margin:0;} .mg button{font:600 11px 'Barlow',sans-serif;border:none;background:rgba(255,255,255,.92);color:#6b7680;border-radius:999px;padding:4px 9px;cursor:pointer;} .mg button.del{color:#9c3a3a;}
   @media (hover:none){.mg{display:flex;}} @media (max-width:520px){.nm{font-size:15px;} .ph span{font-size:42px;}}
 {% endmacro %}
-{% macro card(href, last, first, school, cls, pos, ht, wt, tag, search, photo=none, badge=none, initials='') %}
+{% macro card(href, last, first, school, cls, pos, ht, wt, tag, search, photo=none, badge=none, initials='', logo=none) %}
 <div class="sq" data-s="{{ search }}">
   <a class="ca" href="{{ href }}">
-    <div class="ph">{% if photo %}<img src="{{ photo }}" alt="" loading="lazy">{% elif badge %}<div class="bdg" style="background:{{ badge.bg }}"><img src="{{ url_for('school_logo', fname=badge.file) }}" alt="" loading="lazy"></div>{% else %}<span>{{ initials }}</span>{% endif %}</div>
+    <div class="ph">{% if photo %}<img src="{{ photo }}" alt="" loading="lazy">{% elif logo %}<div class="bdg" style="background:#fff"><img src="{{ logo }}" alt="" loading="lazy"></div>{% elif badge %}<div class="bdg" style="background:{{ badge.bg }}"><img src="{{ url_for('school_logo', fname=badge.file) }}" alt="" loading="lazy"></div>{% else %}<span>{{ initials }}</span>{% endif %}</div>
     <div class="info"><div class="nm">{{ last }}<small>{{ first }}</small></div>
       <div class="row2"><span>{{ school or '' }}</span></div>
       <div class="row2"><span>{{ cls or '' }}</span><span class="pos">{{ pos or '' }}</span></div>
