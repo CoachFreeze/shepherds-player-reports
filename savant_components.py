@@ -867,6 +867,11 @@ def _mlb_head(pid, w=64):
             f'q_auto:best,f_auto/v1/people/{pid}/headshot/67/current')
 
 
+def _hb_short(v):
+    """'17.7\u2033 A' (arm-side) or '1.4\u2033 G' (glove-side)."""
+    return f'{abs(v):.1f}\u2033 {"A" if v >= 0 else "G"}'
+
+
 def arsenal_comps_html(comps, ours, throws, colors):
     """comps: arsenal_comps.find_arsenal_comps(); ours: [{'type','velo','ivb','hb'(Trackman sign),...}]."""
     if not comps:
@@ -881,32 +886,41 @@ def arsenal_comps_html(comps, ours, throws, colors):
             col = colors.get(m['ours'], '#555')
             if not o:
                 continue
-            rows += (f'<tr><td style="color:{col};font-weight:700;text-align:left;">{m["ours"]}</td>'
-                     f'<td>{o["velo"]:.1f}</td><td>{o["ivb"]:.1f}\u2033</td><td>{_hb_txt(sgn * o["hb"])}</td></tr>'
-                     f'<tr style="color:#5c7585;"><td style="text-align:left;">&nbsp;&nbsp;{c["name"].split()[-1]}\u2019s {m["theirs"]}</td>'
-                     f'<td>{(t["velo"] or 0):.1f}</td><td>{t["ivb"]:.1f}\u2033</td><td>{_hb_txt(t["hb"])}</td></tr>')
-        ang = f' &middot; {c["arm_angle"]:.0f}\u00b0 arm angle' if c.get('arm_angle') is not None else ''
+            same = m['theirs'] == m['ours']
+            rows += (f'<tr class="ac-me"><td class="ac-pt"><i style="background:{col}"></i>{m["ours"]}</td>'
+                     f'<td>{o["velo"]:.1f}</td><td>{o["ivb"]:.1f}\u2033</td><td>{_hb_short(sgn * o["hb"])}</td></tr>'
+                     f'<tr class="ac-them"><td class="ac-pt">\u21b3 {c["name"].split()[-1] if same else m["theirs"]}</td>'
+                     f'<td>{(t["velo"] or 0):.1f}</td><td>{t["ivb"]:.1f}\u2033</td><td>{_hb_short(t["hb"])}</td></tr>')
         vc = c.get('velo_ctx')
         if vc:
             d = vc['diff']
             vline = ('Similar fastball velocity' if abs(d) < 2.5 else
-                     f'His fastball is {abs(d):.0f} mph {"faster" if d > 0 else "slower"} than yours')
+                     f'Fastball {abs(d):.0f} mph {"faster" if d > 0 else "slower"} than yours')
             vline = f'<div class="ac-vc">{vline} ({vc["theirs"]:.1f} vs {vc["ours"]:.1f})</div>'
         else:
             vline = ''
+        ang = f'<div class="ac-sub">{c["arm_angle"]:.0f}\u00b0 arm angle</div>' if c.get('arm_angle') is not None else ''
         cards.append(
             f'<a class="ac-card" href="https://baseballsavant.mlb.com/savant-player/{c["id"]}" target="_blank" rel="noopener">'
             f'<div class="ac-head"><img src="{_mlb_head(c["id"])}" alt="" onerror="this.style.visibility=\'hidden\'">'
-            f'<div><div class="ac-name">{c["name"]}</div><div class="ac-sub">{c.get("quality", "Match")} ({c["match"]}){ang}</div></div></div>{vline}'
-            f'<table class="ac-tbl"><tr><th style="text-align:left;">Pitch</th><th>Velo</th><th>IVB</th><th>HB</th></tr>{rows}</table></a>')
-    css = ('<style>.ac-row{display:flex;gap:10px;flex-wrap:wrap;} .ac-card{flex:1 1 200px;min-width:200px;border:1px solid #d3dee6;border-radius:8px;padding:10px;text-decoration:none;color:#26343b;background:#fff;}'
-           '.ac-head{display:flex;gap:10px;align-items:center;margin-bottom:6px;} .ac-head img{width:52px;height:52px;border-radius:50%;object-fit:cover;background:#e8eef2;}'
-           '.ac-vc{font:600 10.5px/1.3 var(--f-heading);color:var(--accent-teal);margin:0 0 5px;} .ac-name{font:700 14px/1.15 var(--f-heading);} .ac-sub{font:500 11px/1.3 var(--f-heading);color:var(--muted);margin-top:2px;}'
-           '.ac-tbl{width:100%;border-collapse:collapse;font:600 11px/1.5 var(--f-heading);} .ac-tbl th{font-size:10px;color:var(--muted);text-align:center;font-weight:700;}'
-           '.ac-tbl td{text-align:center;padding:1px 2px;white-space:nowrap;}</style>')
+            f'<div><div class="ac-name">{c["name"]}</div><div class="ac-sub"><b>{c.get("quality", "Match")}</b> &middot; {c["match"]}</div>{ang}</div></div>{vline}'
+            f'<table class="ac-tbl"><colgroup><col style="width:37%"><col style="width:20%"><col style="width:20%"><col style="width:23%"></colgroup>'
+            f'<tr><th style="text-align:left;">Pitch</th><th>Velo</th><th>IVB</th><th>HB</th></tr>{rows}</table></a>')
+    css = ('<style>.ac-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;} '
+           '.ac-card{border:1px solid #d3dee6;border-radius:12px;padding:14px;text-decoration:none;color:#26343b;background:#fff;min-width:0;}'
+           '.ac-card:hover{border-color:var(--accent-teal);}'
+           '.ac-head{display:flex;gap:12px;align-items:center;margin-bottom:8px;} .ac-head img{width:56px;height:56px;border-radius:50%;object-fit:cover;background:#e8eef2;flex:none;}'
+           '.ac-name{font:700 16px/1.15 var(--f-heading);} .ac-sub{font:500 12px/1.3 var(--f-heading);color:var(--muted);margin-top:2px;} .ac-sub b{color:#26343b;}'
+           '.ac-vc{font:600 12px/1.3 var(--f-heading);color:var(--accent-teal);margin:0 0 8px;padding:6px 9px;background:#f1f6f8;border-radius:6px;}'
+           '.ac-tbl{width:100%;table-layout:fixed;border-collapse:collapse;font:600 13px/1.3 var(--f-heading);} .ac-tbl th{font:700 10.5px var(--f-heading);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center;padding:2px 0 5px;}'
+           '.ac-tbl td{text-align:center;padding:4px 2px;white-space:nowrap;} .ac-tbl td.ac-pt{text-align:left;overflow:hidden;text-overflow:ellipsis;}'
+           '.ac-me td{border-top:1px solid #e3e8ea;font-weight:700;} .ac-me td.ac-pt i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:0;}'
+           '.ac-them td{color:#5c7585;font-weight:500;font-size:12px;padding-top:0;padding-bottom:6px;}'
+           '.ac-note{font:400 12px/1.5 var(--f-heading);color:var(--muted);margin-top:12px;}</style>')
     return (css + '<div class="ac-row">' + ''.join(cards) + '</div>'
-            '<div style="font:400 10.5px/1.4 var(--f-heading);color:var(--muted);margin-top:8px;">Matched on pitch shape (induced vertical break and horizontal break, with spin counting less) '
-            'against 2026 MLB pitch-arsenal data, weighted by how often each pitch is thrown. Absolute velocity is not part of the match: it compares shape and how far each pitch sits off the fastball, so a comp can throw harder and still be the right model for the movement. HB is shown arm-side / glove-side so lefties and righties compare directly.'
+            '<div class="ac-note">Matched on pitch shape: induced vertical break and horizontal break, with spin counting less, against 2026 MLB pitch-arsenal data and weighted by how often each pitch is thrown. '
+            'Velocity is not part of the match, so a comp can throw harder and still be the right model for the movement. '
+            'HB: A = arm-side, G = glove-side, so lefties and righties compare directly.'
             + ('<br><b>Heads up:</b> none of these are a close match, so read them as the nearest shape family, not a true comp.' if comps and comps[0].get('match', 100) < 40 else '') + '</div>')
 
 
