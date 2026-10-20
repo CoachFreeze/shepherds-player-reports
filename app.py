@@ -758,7 +758,7 @@ def team_games(program):
     return render_template('games.html', program=program, team_label=store.program_label(program), games=out)
 
 
-@app.route('/team/<program>/game/<gid>')
+@app.route('/team/<program>/game/<gid>/analysis')
 @login_required
 def team_game(program, gid):
     _team_ok(program)
@@ -787,7 +787,7 @@ def team_game(program, gid):
 
 
 
-@app.route('/team/<program>/game/<gid>/scorebook')
+@app.route('/team/<program>/game/<gid>')
 @login_required
 def team_game_scorebook(program, gid):
     _team_ok(program)
@@ -822,7 +822,7 @@ def team_game_scorebook(program, gid):
                        'bb': sum(r['bb'] for r in sb['rows']), 'k': sum(r['k'] for r in sb['rows'])})
     d = _dt.date.fromisoformat(gm['date'])
     return render_template('game_scorebook.html', m=m, sheets=sheets, program=program, team_label=tl, opp=gm['opp'], date_pretty=d.strftime('%A, %B %-d, %Y'),
-                           back_url=url_for('team_game', program=program, gid=gid), order=[('us', tl), ('opp', gm['opp'])])
+                           back_url=url_for('team_games', program=program), analysis_url=url_for('team_game', program=program, gid=gid), order=[('us', tl), ('opp', gm['opp'])])
 
 
 

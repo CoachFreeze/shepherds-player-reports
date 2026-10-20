@@ -18,7 +18,7 @@ table.ls{border-collapse:collapse;font-size:12.5px;} .ls th{font:700 10px Barlow
 @media (max-width:900px){.bot{grid-template-columns:1fr;}}
 @media print{body{background:#fff;padding:0;zoom:.62;} .top{display:none;} .sheet{box-shadow:none;border:1px solid #bbb;break-after:page;margin:0;max-width:none;overflow:visible;} @page{size:landscape;margin:.35in;}}
 </style></head><body>
-<div class="top"><a href="{{ back_url }}">&larr; Game report</a><span class="sp"></span><button onclick="window.print()">Print</button></div>
+<div class="top"><a href="{{ back_url }}">&larr; All games</a><span class="sp"></span><a href="{{ analysis_url }}">Full analysis</a><button onclick="window.print()">Print</button></div>
 {% for sh in sheets %}{% set sb = sh.sb %}
 <div class="sheet">
   <div class="hdr"><div class="half">{{ sh.half }}</div><div class="tm"><small>Batting</small>{{ sh.team }}<span class="beta">BETA</span></div><div class="tm"><small>Opponent</small>{{ sh.vs }}</div><div class="r">{{ date_pretty }}<br><b style="color:var(--ink);font-size:18px">{{ m.score.us }}&ndash;{{ m.score.opp }}</b> &nbsp;{{ team_label }} vs {{ opp }}</div></div>
