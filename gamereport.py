@@ -375,3 +375,140 @@ def arsenal_svg(rows, uid='ar'):
             s.append(f'<text x="{L + R + 170}" y="{y + 4:.1f}" font-size="12" fill="#8a949b">—</text>')
     s.append('</svg>')
     return ''.join(s)
+
+
+# ----------------------------------------------------------------- scorebook
+_BALLS = ('BallCalled', 'BallinDirt', 'BallIntentional', 'Ball')
+
+
+def _pos(direction, dist, hit_type):
+    """Rough fielder from the batted-ball direction (negative = third-base side) and distance. Approximate by design."""
+    if direction is None:
+        return None
+    infield = (dist is not None and dist < 140) or hit_type in ('GroundBall', 'Bunt')
+    if infield:
+        return '5' if direction < -18 else '6' if direction < -2 else '4' if direction < 18 else '3'
+    return '7' if direction < -15 else '8' if direction < 15 else '9'
+
+
+def notation(pa):
+    """Scorebook shorthand for the plate appearance, e.g. K, 6-3, F8, 1B."""
+    res = pa['result']
+    last = pa['rows'][-1]
+    ht = (last.get('TaggedHitType') or last.get('AutoHitType') or '').strip()
+    pos = _pos(e._fnum(last.get('Direction')), e._fnum(last.get('Distance')), ht)
+    short = {'HomeRun': 'HR', 'Triple': '3B', 'Double': '2B', 'Single': '1B', 'Walk': 'BB', 'HBP': 'HBP', 'K swinging': 'K', 'K looking': 'K'}
+    if res in short:
+        return short[res]
+    if res is None:
+        return ''
+    pre = {'GroundBall': 'G', 'LineDrive': 'L', 'FlyBall': 'F', 'Popup': 'P'}.get(ht, '')
+    if res == 'Out':
+        if ht == 'GroundBall':
+            return ('3U' if pos == '3' else f'{pos}-3') if pos else 'GO'
+        return f'{pre}{pos}' if (pre and pos) else 'Out'
+    if res == 'Sacrifice':
+        return 'SH' if ht == 'Bunt' else (f'SF{pos}' if pos else 'SAC')
+    if res == 'Error':
+        return f'E{pos}' if pos else 'E'
+    if res == 'FieldersChoice':
+        return f'FC{pos}' if pos and ht == 'GroundBall' else 'FC'
+    return 'BIP'
+
+
+def _tally(pa):
+    b = s = 0
+    for r in pa['rows']:
+        c = (r.get('PitchCall') or '')
+        if c in _BALLS:
+            b += 1
+        elif c in ('StrikeCalled', 'StrikeSwinging') or c.startswith('Foul'):
+            if c.startswith('Foul') and s >= 2:
+                continue
+            s += 1
+    if pa['result'] == 'K swinging' or pa['result'] == 'K looking':
+        s = 2
+    if pa['result'] == 'Walk':
+        b = 3
+    return min(b, 3), min(s, 2)
+
+
+_BASES = {'Single': 1, 'Walk': 1, 'HBP': 1, 'Error': 1, 'FieldersChoice': 1, 'Double': 2, 'Triple': 3, 'HomeRun': 4}
+
+
+def cell_svg(pa, ink='#2a2118', gold='#b5763a'):
+    """One scorebook cell: diamond with the base path, notation, ball / strike boxes, out circle, grade."""
+    W, Hh = 70, 62
+    cx, cy, r = 35, 33, 17
+    pts = {'h': (cx, cy + r), 'f': (cx + r, cy), 's': (cx, cy - r), 't': (cx - r, cy)}
+    o = [f'<svg viewBox="0 0 {W} {Hh}" width="{W}" height="{Hh}" xmlns="http://www.w3.org/2000/svg" style="display:block">']
+    o.append(f'<path d="M{pts["h"][0]} {pts["h"][1]} L{pts["f"][0]} {pts["f"][1]} L{pts["s"][0]} {pts["s"][1]} L{pts["t"][0]} {pts["t"][1]} Z" fill="none" stroke="#c9bfae" stroke-width="1.2"/>')
+    res = pa['result']
+    nb = _BASES.get(res, 0)
+    if nb == 4:
+        o.append(f'<path d="M{pts["h"][0]} {pts["h"][1]} L{pts["f"][0]} {pts["f"][1]} L{pts["s"][0]} {pts["s"][1]} L{pts["t"][0]} {pts["t"][1]} Z" fill="{ink}" opacity=".85"/>')
+    elif nb:
+        seq = [pts['h'], pts['f'], pts['s'], pts['t']][:nb + 1]
+        o.append('<path d="M' + ' L'.join(f'{x} {y}' for x, y in seq) + f'" fill="none" stroke="{ink}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>')
+    elif pa['runs'] and res not in (None,):
+        pass
+    nt = notation(pa)
+    big = len(nt) <= 3
+    if nt:
+        col = '#fff' if nb == 4 else ink
+        if nt == 'K' and res == 'K looking':
+            o.append(f'<text x="{cx}" y="{cy + 6}" text-anchor="middle" font-size="19" font-weight="800" fill="{col}" transform="translate({2 * cx} 0) scale(-1 1)" font-family="Barlow,Arial,sans-serif">K</text>')
+        else:
+            fs = 17 if big else 12
+            o.append(f'<text x="{cx}" y="{cy + 6}" text-anchor="middle" font-size="{fs}" font-weight="800" fill="{col}" font-family="Barlow,Arial,sans-serif">{html.escape(nt)}</text>')
+    b, s = _tally(pa)
+    for i in range(3):
+        o.append(f'<rect x="{W - 29 + i * 8}" y="3" width="6" height="6" fill="{ink if i < b else "none"}" stroke="#a79c8a" stroke-width=".8"/>')
+    for i in range(2):
+        o.append(f'<rect x="{W - 21 + i * 8}" y="11" width="6" height="6" fill="{ink if i < s else "none"}" stroke="#a79c8a" stroke-width=".8"/>')
+    o.append(f'<text x="3" y="11" font-size="9" fill="#8a7f6e" font-family="Barlow,Arial,sans-serif">{pa["n_pitches"]}p</text>')
+    if pa['outs_made']:
+        n = min(3, pa['outs'] + pa['outs_made'])
+        o.append(f'<circle cx="{W - 10}" cy="{Hh - 10}" r="7.5" fill="none" stroke="{ink}" stroke-width="1.4"/><text x="{W - 10}" y="{Hh - 6.6}" text-anchor="middle" font-size="10" font-weight="800" fill="{ink}" font-family="Barlow,Arial,sans-serif">{n}</text>')
+    if pa.get('grade'):
+        gc = {'A': '#2f8a57', 'B': '#4a93a8', 'C': '#d9a028', 'D': '#d9702c', 'F': '#c0443c'}[pa['grade'][0]]
+        o.append(f'<rect x="3" y="{Hh - 15}" width="22" height="12" rx="3" fill="{gc}"/><text x="14" y="{Hh - 6}" text-anchor="middle" font-size="9" font-weight="800" fill="#fff" font-family="Barlow,Arial,sans-serif">{pa["grade"]}</text>')
+    if pa['runs'] and pa['result'] not in ('K swinging', 'K looking', 'Out', None):
+        o.append(f'<text x="3" y="22" font-size="8.5" font-weight="700" fill="{gold}" font-family="Barlow,Arial,sans-serif">{pa["runs"]} RBI</text>')
+    if pa['result'] and pa['outs'] + pa['outs_made'] >= 3:
+        o.append(f'<line x1="0" y1="{Hh - .5}" x2="{W}" y2="{Hh - .5}" stroke="{ink}" stroke-width="2.4"/>')
+    o.append('</svg>')
+    return ''.join(o)
+
+
+def scorebook(m, side):
+    """Grid for one team batting: rows = lineup spots (substitutes share the spot), columns = innings (extra columns when a spot bats twice)."""
+    pas = m['teams'][side]['pas']
+    for i, p in enumerate(pas):
+        p['seq'] = i
+    slots = {}
+    for ent in m['teams'][side]['slots']:
+        slots.setdefault(ent['slot'], []).append(ent)
+    cols = []                                     # (inning, k)
+    cell = {}
+    for sl, ents in slots.items():
+        per = {}
+        for ent in ents:
+            for p in ent['pas']:
+                per.setdefault(p['inn'], []).append(p)
+        for inn, ps in per.items():
+            ps.sort(key=lambda p: p['seq'])
+            for k, p in enumerate(ps):
+                cell[(sl, inn, k)] = p
+    inns = sorted({inn for (_, inn, _) in cell} | set(range(1, max(m['innings'], 9) + 1)))
+    for inn in inns:
+        ks = max([k for (_, i, k) in cell if i == inn] + [-1]) + 1
+        for k in range(max(ks, 1)):
+            cols.append((inn, k))
+    rows = []
+    for sl in sorted(slots):
+        ents = slots[sl]
+        rows.append({'slot': sl, 'ents': ents, 'cells': [cell.get((sl, inn, k)) for inn, k in cols],
+                     'ab': sum(x['ab'] for x in ents), 'h': sum(x['h'] for x in ents), 'rbi': sum(x['rbi'] for x in ents),
+                     'bb': sum(x['bb'] for x in ents), 'k': sum(x['k'] for x in ents)})
+    return {'cols': cols, 'rows': rows, 'inns': inns}

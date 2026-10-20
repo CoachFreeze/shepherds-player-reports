@@ -1,0 +1,39 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ team_label }} vs {{ opp }} · Scorebook (Beta)</title><style>{{ theme_css|safe }}</style>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#2a2118;--paper:#fdfbf6;--rule:#d8cfbf;--brown:#6b4a2b;--muted:#8a7f6e;}
+*{box-sizing:border-box;} body{margin:0;background:#e9e3d6;color:var(--ink);font-family:'Barlow',sans-serif;padding:18px 14px 50px;}
+.top{max-width:1500px;margin:0 auto 12px;display:flex;gap:10px;} .top a,.top button{font:700 13px Barlow,sans-serif;background:#fff;border:1px solid var(--rule);border-radius:999px;padding:7px 14px;color:var(--ink);text-decoration:none;cursor:pointer;} .top .sp{margin-left:auto;}
+.sheet{max-width:1500px;margin:0 auto 26px;background:var(--paper);border-radius:6px;box-shadow:0 2px 4px rgba(0,0,0,.12),0 12px 30px rgba(60,40,10,.15);padding:16px 18px 20px;overflow-x:auto;position:relative;}
+.sheet:before{content:'';position:absolute;left:0;right:0;top:0;height:10px;background:repeating-linear-gradient(90deg,#8b6b3d 0 6px,transparent 6px 16px);opacity:.55;}
+.hdr{display:flex;align-items:flex-end;gap:22px;border-bottom:2px solid var(--brown);padding:10px 0 8px;margin-bottom:6px;flex-wrap:wrap;} .hdr .half{font:700 34px Oswald,sans-serif;color:var(--brown);letter-spacing:.04em;line-height:1;} .hdr .tm{font:700 22px Oswald,sans-serif;} .hdr small{display:block;color:var(--muted);font:600 11px Barlow,sans-serif;letter-spacing:.1em;text-transform:uppercase;} .hdr .r{margin-left:auto;text-align:right;font-size:13px;color:var(--muted);} .beta{font:700 10px Barlow,sans-serif;letter-spacing:.12em;background:#fff3cf;color:#8a5d00;border-radius:999px;padding:2px 8px;margin-left:8px;vertical-align:middle;}
+table.sb{border-collapse:collapse;width:max-content;min-width:100%;} .sb th{font:700 10.5px Barlow,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--brown);padding:4px 0;border-bottom:2px solid var(--brown);text-align:center;} .sb td{padding:0;border:1px solid var(--rule);vertical-align:top;background:var(--paper);}
+.sb td.pl{min-width:170px;max-width:200px;padding:5px 8px;background:#f5efe3;} .pl .n{font:700 13.5px Barlow,sans-serif;line-height:1.2;} .pl .s{font-size:11px;color:var(--muted);} .pl .sub{margin-top:3px;padding-top:3px;border-top:1px dashed var(--rule);} .pl .sub .n{font-size:12.5px;} .pl .no{display:inline-block;width:16px;color:var(--brown);font:700 12px Oswald,sans-serif;}
+.sb td.tt{min-width:34px;text-align:center;font:700 14px Barlow,sans-serif;vertical-align:middle;background:#f5efe3;} .sb th.tt{min-width:34px;}
+.sb tr.tot td{background:#f5efe3;text-align:center;font:700 12px Barlow,sans-serif;padding:4px 0;} .sb tr.tot td.pl{text-align:left;font:700 11px Barlow,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--brown);}
+.bot{display:grid;grid-template-columns:1.6fr 1fr;gap:26px;margin-top:16px;align-items:start;} table.pt{border-collapse:collapse;width:100%;font-size:12.5px;} .pt th{font:700 10px Barlow,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--brown);border-bottom:2px solid var(--brown);padding:4px 6px;text-align:center;} .pt th.l,.pt td.l{text-align:left;} .pt td{border-bottom:1px solid var(--rule);padding:5px 6px;text-align:center;} .pt td.l{font-weight:700;}
+table.ls{border-collapse:collapse;font-size:12.5px;} .ls th{font:700 10px Barlow,sans-serif;color:var(--brown);padding:3px 7px;border-bottom:2px solid var(--brown);} .ls td{padding:4px 7px;text-align:center;border-bottom:1px solid var(--rule);} .ls td.l{text-align:left;font-weight:700;}
+.key{font-size:11.5px;color:var(--muted);line-height:1.55;margin-top:10px;} .key b{color:var(--ink);}
+@media (max-width:900px){.bot{grid-template-columns:1fr;}}
+@media print{body{background:#fff;padding:0;zoom:.62;} .top{display:none;} .sheet{box-shadow:none;border:1px solid #bbb;break-after:page;margin:0;max-width:none;overflow:visible;} @page{size:landscape;margin:.35in;}}
+</style></head><body>
+<div class="top"><a href="{{ back_url }}">&larr; Game report</a><span class="sp"></span><button onclick="window.print()">Print</button></div>
+{% for sh in sheets %}{% set sb = sh.sb %}
+<div class="sheet">
+  <div class="hdr"><div class="half">{{ sh.half }}</div><div class="tm"><small>Batting</small>{{ sh.team }}<span class="beta">BETA</span></div><div class="tm"><small>Opponent</small>{{ sh.vs }}</div><div class="r">{{ date_pretty }}<br><b style="color:var(--ink);font-size:18px">{{ m.score.us }}&ndash;{{ m.score.opp }}</b> &nbsp;{{ team_label }} vs {{ opp }}</div></div>
+  <table class="sb"><tr><th style="text-align:left;padding-left:8px">Player</th>
+    {% for inn in sb.inns %}{% set n = sb.cols|selectattr(0, 'equalto', inn)|list|length %}<th colspan="{{ n }}">{{ inn }}</th>{% endfor %}
+    <th class="tt">AB</th><th class="tt">H</th><th class="tt">RBI</th><th class="tt">BB</th><th class="tt">K</th></tr>
+  {% for r in sb.rows %}<tr><td class="pl">{% for e in r.ents %}<div class="{{ 'sub' if not loop.first }}"><div class="n">{% if loop.first %}<span class="no">{{ r.slot }}</span>{% else %}<span class="no" style="font-size:9px">PH</span>{% endif %}{{ e.display }}</div><div class="s">{{ e.side or '' }}{% if not loop.first %} &middot; in {{ e.first_inn }}{% endif %}</div></div>{% endfor %}</td>
+    {% for c in r.cells %}<td>{{ c|safe }}</td>{% endfor %}
+    <td class="tt">{{ r.ab }}</td><td class="tt">{{ r.h }}</td><td class="tt">{{ r.rbi }}</td><td class="tt">{{ r.bb }}</td><td class="tt">{{ r.k }}</td></tr>{% endfor %}
+  <tr class="tot"><td class="pl">Runs / Hits</td>{% for t in sh.tot %}<td>{% if t and t.on %}{{ t.r }} / {{ t.h }}{% endif %}</td>{% endfor %}<td>{{ sh.ab }}</td><td>{{ sh.h }}</td><td>{{ sh.rbi }}</td><td>{{ sh.bb }}</td><td>{{ sh.k }}</td></tr></table>
+  <div class="bot"><div><table class="pt"><tr><th class="l">Pitcher</th><th>IP</th><th>BF</th><th>NP</th><th>Str%</th><th>H</th><th>R</th><th>BB</th><th>K</th><th>Top</th></tr>
+    {% for p in sh.pitchers %}<tr><td class="l">{{ p.name }} <span style="color:var(--muted);font-weight:500;font-size:11px">in {{ p.first_inn }}</span></td><td>{{ p.ip }}</td><td>{{ p.bf }}</td><td>{{ p.np }}</td><td>{{ p.strike_pct }}</td><td>{{ p.h }}</td><td>{{ p.r }}</td><td>{{ p.bb }}</td><td>{{ p.k }}</td><td>{{ '%.1f'|format(p.top) if p.top else '—' }}</td></tr>{% else %}<tr><td class="l" colspan="10">No pitchers tracked.</td></tr>{% endfor %}</table></div>
+    <div><table class="ls"><tr><th></th>{% for i in range(m.innings) %}<th>{{ i + 1 }}</th>{% endfor %}<th>R</th></tr>
+    {% for s2, nm in order %}<tr><td class="l">{{ nm[:12] }}</td>{% for v in m.linescore[s2] %}<td>{{ v if v is not none else '–' }}</td>{% endfor %}<td><b>{{ m.score[s2] }}</b></td></tr>{% endfor %}</table></div></div>
+  <div class="key"><b>Key.</b> Shaded diamond path = bases reached (full diamond = home run). Circled number = out of the inning. Boxes top right = balls (3) and strikes (2). Backward K = called third strike. Small letter = grade of the at-bat. Fielders (6-3, F8) are estimated from batted-ball direction and distance, and baserunning (runs, steals) isn't in the data.</div>
+</div>
+{% endfor %}
+</body></html>

@@ -781,9 +781,48 @@ def team_game(program, gid):
     tl = store.program_label(program)
     complete = bool(m['pitchers']['us'] and m['pitchers']['opp']) and all(v is not None for v in m['linescore']['us'] + m['linescore']['opp'])
     return render_template('game_report.html', m=m, program=program, team_label=tl, opp=gm['opp'], date_pretty=d.strftime('%A, %B %-d, %Y'),
-                           n_pitches=gm['n'], complete=complete, abbr=gr.ABBR, logo=_opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp']),
+                           n_pitches=gm['n'], complete=complete, gid=gid, abbr=gr.ABBR, logo=_opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp']),
                            order=[('us', tl), ('opp', gm['opp'])], maxpa={s: max([x['pa_n'] for x in m['teams'][s]['slots']] or [1]) for s in ('us', 'opp')},
                            back_url=url_for('team_games', program=program))
+
+
+
+@app.route('/team/<program>/game/<gid>/scorebook')
+@login_required
+def team_game_scorebook(program, gid):
+    _team_ok(program)
+    if not plans.allowed(program, 'hitting'):
+        return _upgrade('hitting')
+    import gamereport as gr
+    import datetime as _dt
+    gm = gr.collect(program).get(gid)
+    if not gm:
+        abort(404)
+    g.theme_program = program
+    m = _game_decorate(gr.build(gm['rows']), program)
+    tl = store.program_label(program)
+    sheets = []
+    for side, nm, other in (('us', tl, gm['opp']), ('opp', gm['opp'], tl)):
+        sb = gr.scorebook(m, side)
+        for r in sb['rows']:
+            r['cells'] = [(gr.cell_svg(p) if p else '') for p in r['cells']]
+        pas = m['teams'][side]['pas']
+        tot = []
+        for inn, k in sb['cols']:
+            if k == 0:
+                ps = [p for p in pas if p['inn'] == inn]
+                tot.append({'r': sum(p['runs'] for p in ps), 'h': sum(1 for p in ps if p['result'] in gr.HITS), 'on': bool(ps)})
+            else:
+                tot.append(None)
+        # which half: top if the visiting team
+        home = m['us_home'] if side == 'us' else not m['us_home']
+        sheets.append({'side': side, 'team': nm, 'vs': other, 'half': 'BOTTOM' if home else 'TOP', 'sb': sb, 'tot': tot,
+                       'pitchers': m['pitchers'][side], 'runs': m['score'][side],
+                       'ab': sum(r['ab'] for r in sb['rows']), 'h': sum(r['h'] for r in sb['rows']), 'rbi': sum(r['rbi'] for r in sb['rows']),
+                       'bb': sum(r['bb'] for r in sb['rows']), 'k': sum(r['k'] for r in sb['rows'])})
+    d = _dt.date.fromisoformat(gm['date'])
+    return render_template('game_scorebook.html', m=m, sheets=sheets, program=program, team_label=tl, opp=gm['opp'], date_pretty=d.strftime('%A, %B %-d, %Y'),
+                           back_url=url_for('team_game', program=program, gid=gid), order=[('us', tl), ('opp', gm['opp'])])
 
 
 

@@ -19,7 +19,7 @@ td.nm{text-align:left;font-weight:700;white-space:nowrap;} td.nm small{font-weig
 .warn{background:#fff8e6;border-left:3px solid #e0a82e;padding:8px 12px;font-size:13px;margin:10px 0;border-radius:4px;}
 @media print{body{background:#fff;padding:0;} .top{display:none;} .card,.hd{box-shadow:none;border:1px solid #ccc;} h2{break-after:avoid;} .card,.ar{break-inside:avoid;} .pb{break-before:page;} @page{size:landscape;margin:.45in;}}
 </style></head><body><div class="w">
-<div class="top"><a href="{{ back_url }}">&larr; All games</a><span class="sp"></span><button onclick="window.print()">Print</button></div>
+<div class="top"><a href="{{ back_url }}">&larr; All games</a><span class="sp"></span><a href="{{ url_for('team_game_scorebook', program=program, gid=gid) }}">Scorebook view</a><button onclick="window.print()">Print</button></div>
 <div class="hd">{% if logo %}<img src="{{ logo }}" alt="">{% endif %}<div><h1>{{ team_label }} vs {{ opp }}<span class="beta">BETA</span></h1><p>{{ date_pretty }} &middot; {{ m.pas|length }} plate appearances tracked &middot; {{ n_pitches }} pitches</p></div>
   <div class="fin"><b>{{ m.score.us }}&ndash;{{ m.score.opp }}</b><span>{{ 'Final' if complete else 'Tracked portion' }}</span></div></div>
 {% if not complete %}<div class="warn">Some half-innings are missing pitches, so the score, lineups and pitching lines cover only what was tracked. Upload both teams' pitchers for the full game.</div>{% endif %}
