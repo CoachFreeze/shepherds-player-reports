@@ -656,6 +656,22 @@ def player_overview(slug):
                            tour_next=(url_for('view_outing', slug=slug, date=b['log'][0]['id']) + '?tour=report') if b.get('log') else '')
 
 
+@app.route('/player/<slug>/outings')
+def player_outings(slug):
+    if not session.get('coach'):
+        return redirect(url_for('login', next=request.path))
+    bio = store.get_player(slug)
+    if not bio or not can_view(slug):
+        abort(404)
+    log = overview.all_outings_log(slug, bio)
+    if not log:
+        abort(404)
+    _b = pipeline.school_badge_file(bio.get('school'), bio.get('program'))
+    return render_template('player_outings.html', bio=bio, slug=slug, log=log, can_edit=can_manage(slug), is_demo=store.is_demo(slug),
+                           is_coach=bool(session.get('coach')), has_photo=headshots.exists(slug),
+                           badge={'file': _b[0], 'bg': _b[1]} if _b else None, g_prog=bio.get('program'))
+
+
 @app.route('/report/<slug>/outing/<date>')
 def view_outing(slug, date):
     if not session.get('coach'):

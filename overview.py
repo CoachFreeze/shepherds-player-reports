@@ -105,6 +105,23 @@ def _trend_note(series, label='velo', unit=' mph', dec=1, flat=0.3):
     return {'dir': 'up' if d > 0 else 'down', 'head': f"{'Up' if d > 0 else 'Down'} {abs(d):.{dec}f}{unit}", 'sub': sub}
 
 
+def outing_log(outs, name):
+    """One summary dict per outing, in the order given (see the Outing Reports lists)."""
+    log = []
+    for o in outs:
+        _, otm = e.pitcher_trackman_summary(o['rows'], name)
+        top = max((t['top_velo'] for t in otm if t.get('top_velo')), default=None)
+        os_ = e.outing_summary(o['rows']) or {}
+        _st = [r.get('SessionType') for r in o['rows'] if r.get('SessionType')]
+        _op = [r.get('Opponent') for r in o['rows'] if r.get('Opponent')]
+        log.append({'id': o['id'], 'label': _long_date(o['date']), 'live_ab': o.get('live_ab'), 'n': len(o['rows']),
+                    'stype': max(set(_st), key=_st.count) if _st else None, 'opp': _op[0] if _op else None,
+                    'top': top, 'strike': os_.get('strike_pct'), 'whiff': os_.get('whiff_pct'),
+                    'ip': os_.get('ip') if o.get('live_ab') else None,
+                    'types': ', '.join(t['type'] for t in otm)})
+    return log
+
+
 def build(slug, bio):
     name = bio['name']
     recent = _stamp(outings_mod.recent(slug, plans_mod.limit(bio.get('program'), 'history')), name)
@@ -166,28 +183,24 @@ def build(slug, bio):
     order = [t['type'] for t in tm]
     series = {k: series[k] for k in order if k in series}
     spin_series = {k: spin_series[k] for k in order if k in spin_series}
-    trend_html = trend_svg(series, dates)
-    spin_html = trend_svg(spin_series, dates, ylabel='Avg spin rate (rpm)', unit='rpm', dec=0, nice=[50, 100, 200, 250, 500])
+    trend_html = trend_svg(series, dates, height=250)
+    spin_html = trend_svg(spin_series, dates, height=250, ylabel='Avg spin rate (rpm)', unit='rpm', dec=0, nice=[50, 100, 200, 250, 500])
     legend = [{'type': k, 'color': v['color']} for k, v in series.items()]
     spin_legend = [{'type': k, 'color': v['color']} for k, v in spin_series.items()]
     trend_note = _trend_note(series)
     spin_note = _trend_note(spin_series, label='spin', unit=' rpm', dec=0, flat=15)
 
-    log = []
-    for o in recent:
-        _, otm = e.pitcher_trackman_summary(o['rows'], name)
-        top = max((t['top_velo'] for t in otm if t.get('top_velo')), default=None)
-        os_ = e.outing_summary(o['rows']) or {}
-        _st = [r.get('SessionType') for r in o['rows'] if r.get('SessionType')]
-        _op = [r.get('Opponent') for r in o['rows'] if r.get('Opponent')]
-        log.append({'id': o['id'], 'label': _long_date(o['date']), 'live_ab': o.get('live_ab'), 'n': len(o['rows']),
-                    'stype': max(set(_st), key=_st.count) if _st else None, 'opp': _op[0] if _op else None,
-                    'top': top, 'strike': os_.get('strike_pct'), 'whiff': os_.get('whiff_pct'),
-                    'ip': os_.get('ip') if o.get('live_ab') else None,
-                    'types': ', '.join(t['type'] for t in otm)})
+    log = outing_log(recent, name)
     return {'name': name, 'meta': meta, 'trend_note': trend_note, 'summary': summ, 'stat_tiles': stat_tiles, 'stat_catalog': stat_catalog, 'movement_html': movement_html, 'movement_views': movement_views, 'effect': effect, 'comps_html': comps_html, 'ideas_html': ideas_html, 'location_html': location_html,
             'trend_html': trend_html, 'legend': legend, 'spin_html': spin_html, 'spin_legend': spin_legend, 'spin_note': spin_note, 'log': log, 'n_outings': len(recent), 'n_pitches': len(rows),
             'range': (_long_date(recent[-1]['date']) + ' – ' + _long_date(recent[0]['date'])) if len(recent) > 1 else _long_date(recent[0]['date'])}
+
+
+def all_outings_log(slug, bio):
+    """Every outing on file, most recent first."""
+    outs = _stamp(outings_mod.outings(slug), bio['name'])
+    outs.sort(key=lambda x: x['id'], reverse=True)
+    return outing_log(outs, bio['name'])
 
 
 def outing_report_html(slug, date, bio):
