@@ -115,12 +115,6 @@
 {% if b.comps_html %}<div class="pn"><div class="pn-t">Closest MLB Arsenals</div><div class="pn-s">Built from all {{ b.n_pitches }} tracked pitches across his last {{ b.n_outings }} outing{{ 's' if b.n_outings != 1 }}</div>{{ b.comps_html|safe }}</div>{% endif %}
 
 
-<div class="pn olog"><div class="pn-t">Outing Reports</div><div class="pn-s">Most recent first &middot; tap one to open the full report</div>
-  <div class="olist">{% for o in b.log %}<div class="orow"><a class="main" href="{{ url_for('view_outing', slug=slug, date=o.id) }}">
-    <div><div class="d">{{ o.label }}<span class="tag2 {{ 'live' if (o.live_ab and o.stype != 'Bullpen') else 'bp' }}">{{ o.stype or ('Live AB' if o.live_ab else 'Bullpen') }}</span></div><div class="m">{% if o.opp %}vs {{ o.opp }} &middot; {% endif %}{{ o.types }}</div></div>
-    <div class="st"><span><b>{{ o.n }}</b>Pitches</span><span><b>{{ '%.1f'|format(o.top) if o.top else '—' }}</b>Top Velo</span><span><b>{{ o.strike }}</b>Strike %</span>{% if o.ip %}<span><b>{{ o.ip }}</b>IP</span>{% endif %}</div></a>
-    <div class="dlrow"><a class="dl" href="{{ url_for('view_outing', slug=slug, date=o.id) }}?download=1">&#8681; Download to send to {{ bio.name.split()[0] }}</a>{% if can_edit and not is_demo %} <a class="dl" style="margin-left:12px;" href="{{ url_for('retag_pitches', slug=slug, date=o.id) }}">&#9998; Retag pitches</a>{% endif %}</div></div>{% endfor %}</div>
-</div>
 </div><div id="mv-tip"></div>
 <script>(function(){var tip=document.getElementById('mv-tip');function lum(h){var n=parseInt(h.slice(1),16),r=n>>16,g=(n>>8)&255,b=n&255;return(.299*r+.587*g+.114*b)/255;}
 function build(el){var ty=el.getAttribute('data-ptype');if(!ty){tip.className='';tip.textContent=el.getAttribute('data-tip');return;}var c=el.getAttribute('data-pcolor'),v=el.getAttribute('data-pvelo');var fg=lum(c)>.62?'#1a1a1a':'#fff';tip.className='card';tip.innerHTML='<div class="tt-h" style="background:'+c+';color:'+fg+'">'+ty+'</div><div class="tt-b">'+(v?'<div class="tt-v">'+v+'</div>':'')+'<div class="tt-m">'+(el.getAttribute('data-psub')||('('+el.getAttribute('data-pivb')+'″, '+el.getAttribute('data-phb')+'″)'))+'</div></div>';}
