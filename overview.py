@@ -8,6 +8,8 @@ import plans as plans_mod
 import savant_components as sc
 import outings as outings_mod
 import pipeline
+import pitchfx
+import arsenal_comps as ac
 
 
 def _colored(tm):
@@ -114,12 +116,34 @@ def build(slug, bio):
     slot = e.arm_slot_stats(meta.get('release'), bio.get('height_in'))
     arm_badge = {'angle': slot['angle'], 'throws': meta.get('throws') or 'R'} if slot else None
 
-    mv = [{'type': t['type'], 'color': t['color'], 'hb': t['hb'], 'vb': t['ivb'], 'points': [(h, v, ve) for h, v, ve in t['points']]}
-          for t in tm if t['points']]
-    movement_html = (sc.movement_plot_caption_html() + sc.movement_plot_svg(
-        mv, width=680, height=680, all_pitches=True, r24_frac=0.80, font_scale=1.3, pt_r=9, arm_badge=arm_badge)
-        + sc.pitch_usage_legend_html(tm)) if mv else ''
+    def _pmp(sub_rows):
+        _, st = e.pitcher_trackman_summary(sub_rows, name)
+        _colored(st)
+        pts = [{'type': t['type'], 'color': t['color'], 'hb': t['hb'], 'vb': t['ivb'], 'points': [(h, v, ve) for h, v, ve in t['points']]}
+               for t in st if t['points']]
+        return (sc.movement_plot_caption_html() + sc.movement_plot_svg(
+            pts, width=680, height=680, all_pitches=True, r24_frac=0.80, font_scale=1.3, pt_r=9, arm_badge=arm_badge)
+            + sc.pitch_usage_legend_html(st)) if pts else ''
+
+    movement_html = _pmp(rows)
+    movement_views = [{'key': 'all', 'label': 'All pitches', 'n': len(rows), 'html': movement_html}]
+    for k, lab in (('L', 'vs LHB'), ('R', 'vs RHB')):
+        sub = pitchfx.by_side(rows, k)
+        h = _pmp(sub) if sub else ''
+        if h:
+            movement_views.append({'key': k, 'label': lab, 'n': len(sub), 'html': h})
+    if len(movement_views) < 2 or not movement_html:
+        movement_views = []
     location_html = sc.location_heatmap_html(tm, width=340, uid='loc')
+
+    colors = {t['type']: t['color'] for t in tm}
+    effect = pitchfx.effectiveness(rows, [t['type'] for t in tm], colors)
+    throws = meta.get('throws') or 'R'
+    ars = [{'type': t['type'], 'pct': t['pct'], 'velo': t['velo'], 'spin': t['spin_avg'], 'hb': t['hb'], 'ivb': t['ivb']}
+           for t in tm if t.get('hb') is not None and t.get('ivb') is not None]
+    ang = slot['angle'] if slot else None
+    comps_html = sc.arsenal_comps_html(ac.find_arsenal_comps(ars, throws, ang, n=3), ars, throws, colors) if ars else ''
+    ideas_html = sc.arsenal_ideas_html(ac.suggest_pitches(ars, throws, ang, n=3), {**e.MINI_PITCH_COLORS, **colors}, throws=throws) if ars else ''
 
     summ = e.outing_summary(rows) or {}
     stat_vals = stats_mod.compute(rows)
@@ -161,7 +185,7 @@ def build(slug, bio):
                     'top': top, 'strike': os_.get('strike_pct'), 'whiff': os_.get('whiff_pct'),
                     'ip': os_.get('ip') if o.get('live_ab') else None,
                     'types': ', '.join(t['type'] for t in otm)})
-    return {'name': name, 'meta': meta, 'trend_note': trend_note, 'summary': summ, 'stat_tiles': stat_tiles, 'stat_catalog': stat_catalog, 'movement_html': movement_html, 'location_html': location_html,
+    return {'name': name, 'meta': meta, 'trend_note': trend_note, 'summary': summ, 'stat_tiles': stat_tiles, 'stat_catalog': stat_catalog, 'movement_html': movement_html, 'movement_views': movement_views, 'effect': effect, 'comps_html': comps_html, 'ideas_html': ideas_html, 'location_html': location_html,
             'trend_html': trend_html, 'legend': legend, 'spin_html': spin_html, 'spin_legend': spin_legend, 'spin_note': spin_note, 'log': log, 'n_outings': len(recent), 'n_pitches': len(rows),
             'range': (_long_date(recent[-1]['date']) + ' – ' + _long_date(recent[0]['date'])) if len(recent) > 1 else _long_date(recent[0]['date'])}
 

@@ -295,14 +295,6 @@ def render_trackman_mini(name, trackman_rows, bio=None, summary_rows=None, write
 
     arm_html = ''   # superseded by the arm-angle badge drawn inside the Pitch Movement Profile
 
-    ars = [{'type': t['type'], 'pct': t['pct'], 'velo': t['velo'], 'spin': t['spin_avg'], 'hb': t['hb'], 'ivb': t['ivb']}
-           for t in tm_pitches if t.get('hb') is not None and t.get('ivb') is not None]
-    ang = slot['angle'] if slot else None
-    cols = {t['type']: t['color'] for t in tm_pitches}
-    mlb_comps = ac.find_arsenal_comps(ars, meta.get('throws') or 'R', ang, n=3) if ars else []
-    comps_html = sc.arsenal_comps_html(mlb_comps, ars, meta.get('throws') or 'R', cols)
-    ideas_html = sc.arsenal_ideas_html(ac.suggest_pitches(ars, meta.get('throws') or 'R', ang, n=3), {**e.MINI_PITCH_COLORS, **cols}, throws=meta.get('throws') or 'R') if ars else ''
-
     p = {
         'name': name,
         'position': bio['roles'].get('pitch', {}).get('position') if bio else None,
@@ -323,7 +315,7 @@ def render_trackman_mini(name, trackman_rows, bio=None, summary_rows=None, write
             css = CSS + '\n' + theme.css(theme.for_program(prog))
         except Exception:
             pass
-    html = tm_mini_tpl.render(p=p, css=css, movement_html=movement_html, location_html=location_html, arm_html=arm_html, comps_html=comps_html, ideas_html=ideas_html, spin_html=spin_html, brand=BRAND)
+    html = tm_mini_tpl.render(p=p, css=css, movement_html=movement_html, location_html=location_html, arm_html=arm_html, spin_html=spin_html, brand=BRAND)
     if not write:
         return html
     out_path = os.path.join(REPORTS_DIR, f'{slug}_trackman_mini.html')

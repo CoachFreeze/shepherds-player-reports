@@ -146,20 +146,6 @@
     </div>
     {% endif %}
 
-    {% if comps_html %}
-    <div class="panel">
-      <div class="chart-title chart-title-center">Closest MLB Arsenals</div>
-      {{ comps_html|safe }}
-    </div>
-    {% endif %}
-
-    {% if ideas_html %}
-    <div class="panel">
-      <div class="chart-title chart-title-center">Pitches to Consider Adding</div>
-      {{ ideas_html|safe }}
-    </div>
-    {% endif %}
-
     <div class="footer-note">Source: Trackman session export ({{ p.date or 'date unknown' }}). Generated automatically.</div>
 
   </div>
