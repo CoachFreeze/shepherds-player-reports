@@ -5,6 +5,8 @@
 <a href="{{ url_for('admin_plans') }}">&larr; Plans &amp; usage</a><h1>Activity &amp; Flags</h1>
 <h2>Flags</h2>
 {% for f in flags %}<div class="card flag"><b>{{ f.kind }}</b>: {{ f.user }} {% if coaches.get(f.user) and coaches[f.user].get('program_label') %}<small>({{ coaches[f.user].program_label }})</small>{% endif %}<br><small>{{ f.detail }}</small></div>{% else %}<div class="card"><small>Nothing to flag right now.</small></div>{% endfor %}
+<h2>Trial sign-ups</h2>
+{% for u, c in signups %}<div class="card"><b>{{ c.display_name }}</b> <small>({{ u }})</small> &middot; {{ c.program_label }}<br><small>{{ c.email }} &middot; signed up {{ c.created }} &middot; {% if plans_expired(c.program) %}trial ended{% else %}trial until {{ trials.get(c.program) }}{% endif %}</small></div>{% else %}<div class="card"><small>No one has signed up yet.</small></div>{% endfor %}
 <h2>Recent activity <small>(last 14 days)</small></h2>
 <div class="card">{% for x in log %}<div class="row"><b>{{ x.u }}</b> &middot; {{ x.e|replace('_',' ') }}{% if x.p %} <small>&middot; {{ x.p }}</small>{% endif %} <small>&middot; {{ x.when }}</small></div>{% else %}<small>No activity yet.</small>{% endfor %}</div>
 </body></html>

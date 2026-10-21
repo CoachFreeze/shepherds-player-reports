@@ -271,3 +271,36 @@ def set_flag(program, name, on):
     e['flag_' + name] = bool(on)
     d[program] = e
     _save(PLANS_PATH, d, 'data/plans.json')
+
+
+TRIAL_DAYS = 7
+
+
+def start_trial(program, label=None):
+    """A self-signup program gets everything for 7 days, then it pauses (this holds even while plan enforcement is off)."""
+    end = (datetime.date.today() + datetime.timedelta(days=TRIAL_DAYS)).isoformat()
+    set_plan(program, 'pilot', end, 'Self-signup trial')
+    set_flag(program, 'trial', True)
+    return end
+
+
+def trial_expired(program):
+    """True for a self-signup trial whose days are used up and that the admin has not moved to a real plan."""
+    if not program or not flag(program, 'trial'):
+        return False
+    info = plan_info(program)
+    if info['plan'] != 'pilot' or not info['trial_ends']:
+        return False
+    try:
+        return datetime.date.fromisoformat(info['trial_ends']) < datetime.date.today()
+    except ValueError:
+        return False
+
+
+def trial_days_left(program):
+    if not program or not flag(program, 'trial') or plan_info(program)['plan'] != 'pilot':
+        return None
+    try:
+        return max(0, (datetime.date.fromisoformat(plan_info(program)['trial_ends']) - datetime.date.today()).days)
+    except ValueError:
+        return None

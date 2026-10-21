@@ -1,0 +1,19 @@
+{% extends 'site_base.html' %}
+{% block title %}Start your free trial | {{ brand }}{% endblock %}
+{% block body %}
+<section class="s" style="padding:48px 0 70px;"><div class="wrap"><div class="head" style="text-align:center;margin:0 auto 26px;"><p class="eyebrow">Free trial</p><h2>Start your {{ trial_days }}-day free trial</h2><p>Every feature, on your own data. No card needed.</p></div>
+<form class="su" method="post" autocomplete="off">
+  {% if error %}<div class="err">{{ error }}</div>{% endif %}
+  <label for="name" style="margin-top:0;">Your name</label><input id="name" type="text" name="name" value="{{ f.name }}" required maxlength="60">
+  <label for="email">Email</label><input id="email" type="email" name="email" value="{{ f.email }}" required maxlength="120">
+  <label for="school">School or program</label><input id="school" type="text" name="school" value="{{ f.school }}" required maxlength="60" placeholder="e.g. Long Beach State">
+  <div class="hint">This names your team. Everyone you add later joins the same team.</div>
+  <label for="username">Username</label><input id="username" type="text" name="username" value="{{ f.username }}" required minlength="3" maxlength="30" autocapitalize="none">
+  <div class="row"><div><label for="password">Password</label><input id="password" type="password" name="password" required minlength="8" autocomplete="new-password"></div>
+    <div><label for="confirm">Confirm password</label><input id="confirm" type="password" name="confirm" required minlength="8" autocomplete="new-password"></div></div>
+  <div class="hint">At least 8 characters.</div>
+  <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+  <label style="font-weight:500;display:flex;gap:10px;align-items:flex-start;"><input type="checkbox" name="agree" value="1" required style="margin-top:4px;"> <span>I am a coach or staff member, and I agree to keep my login private. Sign-ins and report downloads are logged.</span></label>
+  <button class="btn" type="submit" style="width:100%;margin-top:22px;">Create my account</button>
+  <p style="text-align:center;color:var(--muted);font-size:14px;margin:16px 0 0;">Already have an account? <a href="{{ url_for('login') }}">Log in</a></p></form></div></section>
+{% endblock %}

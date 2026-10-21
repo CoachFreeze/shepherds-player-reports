@@ -1,0 +1,12 @@
+{% extends 'site_base.html' %}{% from 'site_macros.html' import shot %}
+{% block title %}Features | {{ brand }}{% endblock %}
+{% block body %}
+<section class="hero" style="padding:56px 0;"><div class="wrap"><p class="eyebrow" style="color:#7fb3c4;">Features</p><h1>Everything your staff needs, from one upload.</h1>
+  <p class="lead">Pitching, hitting, scouting and game reports, all built from the CSV your tracking system already makes.</p>
+  <div class="cta"><a class="btn" href="{{ url_for('welcome_signup') }}">Start {{ trial_days }}-day free trial</a><a class="btn alt" href="{{ url_for('welcome_plans') }}">See plans</a></div></div></section>
+<section class="s"><div class="wrap">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">{% for f in features %}<a class="tag" style="text-decoration:none;margin:0;" href="#{{ f.slug }}">{{ f.title }}</a>{% endfor %}</div>
+  {% for f in features %}<div class="feat {{ 'flip' if loop.index is even }}" id="{{ f.slug }}"><div class="txt"><h3 style="font-size:30px;">{{ f.title }}</h3><p style="color:var(--muted);margin:8px 0 0;font-size:17px;">{{ f.pitch }}</p>
+    <ul>{% for b in f.bullets %}<li>{{ b }}</li>{% endfor %}</ul><span class="tag">{{ f.plan }}</span></div><div>{{ shot(f.img, f.title) }}</div></div>{% endfor %}</div></section>
+<section class="band"><h2>See it with your own data</h2><p>Your {{ trial_days }}-day trial includes every feature on this page.</p><a class="btn" href="{{ url_for('welcome_signup') }}">Start free trial</a></section>
+{% endblock %}

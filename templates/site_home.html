@@ -1,0 +1,30 @@
+{% extends 'site_base.html' %}{% from 'site_macros.html' import shot, plan_cards %}
+{% block title %}{{ brand }}: pitcher and hitter reports from your tracking data{% endblock %}
+{% block body %}
+<section class="hero"><div class="wrap grid"><div>
+  <p class="eyebrow" style="color:#7fb3c4;">For baseball programs</p>
+  <h1>Turn your tracking data into reports your players will read.</h1>
+  <p class="lead">Upload a session and get clear pitcher and hitter profiles, a team dashboard and opponent scouting, without the spreadsheets.</p>
+  <div class="cta"><a class="btn" href="{{ url_for('welcome_signup') }}">Start {{ trial_days }}-day free trial</a><a class="btn alt" href="{{ url_for('welcome_features') }}">See the features</a></div>
+  <small>No card needed. Already a coach here? <a href="{{ url_for('login') }}" style="color:#c9d3d8;">Log in</a></small></div>
+  <div class="shot"><img src="{{ url_for('static', filename='site/team.jpg') }}" alt="Team dashboard"></div></div></section>
+
+<section class="s"><div class="wrap"><div class="head"><p class="eyebrow">Why coaches use it</p><h2>Less time in spreadsheets. More time coaching.</h2></div>
+  <div class="cards">{% for t, d in benefits %}<div class="card"><h3>{{ t }}</h3><p>{{ d }}</p></div>{% endfor %}</div></div></section>
+
+<section class="s alt"><div class="wrap"><div class="head"><p class="eyebrow">How it works</p><h2>From CSV to coaching in minutes</h2></div>
+  <div class="cards">{% for t, d in steps %}<div class="card"><div class="num">{{ loop.index }}</div><h3>{{ t }}</h3><p>{{ d }}</p></div>{% endfor %}</div></div></section>
+
+<section class="s"><div class="wrap"><div class="head"><p class="eyebrow">Features</p><h2>Everything in one place</h2><p>Pitching, hitting, scouting and game reports, built from the same files.</p></div>
+  {% for f in features[:3] %}<div class="feat {{ 'flip' if loop.index is even }}"><div class="txt"><h3>{{ f.title }}</h3><p style="color:var(--muted);margin:8px 0 0;font-size:17px;">{{ f.pitch }}</p>
+    <ul>{% for b in f.bullets[:3] %}<li>{{ b }}</li>{% endfor %}</ul></div><div>{{ shot(f.img, f.title) }}</div></div>{% endfor %}
+  <p style="margin-top:20px;"><a class="btn line" href="{{ url_for('welcome_features') }}">See every feature</a></p></div></section>
+
+<section class="s alt"><div class="wrap"><div class="head"><p class="eyebrow">Plans</p><h2>Pick the size that fits your staff</h2><p>Every account starts with a {{ trial_days }}-day free trial of everything.</p></div>
+  {{ plan_cards(cards, bullets, trial_days) }}<p style="margin-top:18px;"><a href="{{ url_for('welcome_plans') }}">Compare plans in detail</a></p></div></section>
+
+<section class="s"><div class="wrap"><div class="head"><p class="eyebrow">Questions</p><h2>Quick answers</h2></div>
+  {% for q, a in faq %}<details><summary>{{ q }}</summary><p>{{ a }}</p></details>{% endfor %}</div></section>
+
+<section class="band"><h2>Ready to see your own data?</h2><p>Start your {{ trial_days }}-day free trial and upload your first session today.</p><a class="btn" href="{{ url_for('welcome_signup') }}">Start free trial</a></section>
+{% endblock %}

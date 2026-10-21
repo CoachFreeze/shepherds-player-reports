@@ -12,7 +12,7 @@
 <span class="um" id="um"><button class="um-btn" type="button" aria-label="Account menu" aria-haspopup="true" onclick="document.getElementById('um').classList.toggle('open');event.stopPropagation();">
   {% if me.badge %}<span class="um-av" style="background:{{ me.badge.bg }}"><img src="{{ url_for('school_logo', fname=me.badge.file) }}" alt=""></span>{% else %}<span class="um-av"><b>{{ me.initials }}</b></span>{% endif %}</button>
   <div class="um-pop" role="menu">
-    <div class="um-who"><b>{{ me.name }}</b><span>{{ me.label or ('Administrator' if me.is_admin else '') }}{% if me.is_assistant %} &middot; Assistant{% endif %}{% if me.is_player %} &middot; Player{% endif %}</span></div>
+    <div class="um-who"><b>{{ me.name }}</b><span>{{ me.label or ('Administrator' if me.is_admin else '') }}{% if me.is_assistant %} &middot; Assistant{% endif %}{% if me.is_player %} &middot; Player{% endif %}{% if me.trial_left is not none and me.trial_left is defined %} &middot; Trial: {{ me.trial_left }} day{{ '' if me.trial_left == 1 else 's' }} left{% endif %}</span></div>
     {% if me.is_player %}<a href="{{ home_url }}">My profile</a><a href="{{ url_for('glossary_page') }}">Stats glossary</a>
     <div class="um-sep"></div><a href="{{ url_for('account') }}">My account</a><a href="{{ url_for('logout') }}">Log out</a>
     {% else %}

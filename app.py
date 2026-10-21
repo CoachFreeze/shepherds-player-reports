@@ -1,6 +1,7 @@
 import functools
 import json
 import os
+import datetime
 import re
 from flask import g, Flask, Response, render_template, request, session, redirect, url_for, render_template_string, send_file, jsonify, abort
 
@@ -197,6 +198,7 @@ LOGIN_PAGE = """
   <input name="username" placeholder="Username" autofocus>
   <input name="password" type="password" placeholder="Password">
   <button type="submit">Log in</button>
+  {% if site_public %}<div style="text-align:center;margin-top:12px;font-size:13px;">New here? <a href="{{ url_for('welcome_signup') }}">Start a free trial</a> &middot; <a href="{{ url_for('welcome') }}">About</a></div>{% endif %}
   <div style="font-size:11.5px;color:#76828a;margin-top:12px;line-height:1.45;">For authorized coaches and players only. Sign-ins and report downloads are logged, and printed or saved reports are marked with the name of the person they were prepared for.</div>
 </form>
 """
@@ -256,6 +258,8 @@ def staff_checks():
         return redirect(url_for('login'))
     if c.get('must_change') and request.endpoint not in _OPEN_ENDPOINTS:
         return redirect(url_for('account'))
+    if c.get('role') != 'admin' and c.get('program') and plans.trial_expired(c['program']) and request.endpoint not in (_OPEN_ENDPOINTS | {'trial_ended'}):
+        return redirect(url_for('trial_ended'))
     if c.get('role') == 'player':
         return _player_gate(c)
     return None
@@ -306,7 +310,7 @@ def login():
             _fail(_key)
             plans.track('login_fail', username[:40], _prog)
             error = 'Incorrect username or password.'
-    return render_template_string(LOGIN_PAGE, error=error)
+    return render_template_string(LOGIN_PAGE, error=error, site_public=marketing.is_public())
 
 
 ACCOUNT_PAGE = """
@@ -405,7 +409,8 @@ def inject_me():
     return {'me': {'name': name, 'key': session.get('coach'), 'label': label, 'is_admin': is_admin(), 'initials': initials, 'program': c.get('program') if c.get('role', 'admin') != 'admin' else None,
                    'badge': {'file': _b[0], 'bg': _b[1]} if _b else None,
                    'is_head': c.get('role', 'admin') not in ('assistant', 'player'), 'is_player': c.get('role') == 'player', 'is_assistant': c.get('role') == 'assistant', 'can_upload': can_upload(),
-                   'must_change': bool(c.get('must_change'))}}
+                   'must_change': bool(c.get('must_change')),
+                   'trial_left': plans.trial_days_left(c.get('program')) if c.get('role', 'admin') != 'admin' else None}}
 
 
 _MENU_PAGES = {'edit_profile', 'admin_status', 'admin_old_reports', 'hitters_sort', 'admin_coaches', 'view_report', 'intake', 'intake_bulk', 'intake_bulk_run',
@@ -552,7 +557,7 @@ def admin_add_team():
 @app.route('/')
 def dashboard():
     if not session.get('coach'):
-        return redirect(url_for('login'))
+        return redirect(url_for('welcome') if marketing.is_public() else url_for('login'))
     groups = _build_groups()
     if is_admin():
         return render_template('dashboard.html', mode='teams', tiles=_team_tiles(groups), groups=[], team_label=None, team_msg=request.args.get('team_msg'),
@@ -1751,6 +1756,94 @@ def join(token):
     return render_template_string(JOIN_PAGE, name=inv['name'].split()[0] if inv['name'] else '', team=store.program_label(inv['program']), until=until, error=error, username=username)
 
 
+# --- Public website (/welcome): admin-only until SHEPSAVANT_SITE_PUBLIC=on --------------------------------------------------
+import marketing
+
+_SIGNUPS = {}      # ip -> [timestamps]; per worker, best effort
+
+
+def _site_gate():
+    """Only administrators can open the site until it is switched on for everyone."""
+    if marketing.is_public() or (session.get('coach') and is_admin()):
+        return None
+    return redirect(url_for('login'))
+
+
+@app.route('/welcome')
+def welcome():
+    return _site_gate() or render_template('site_home.html', **marketing.context('home'))
+
+
+@app.route('/welcome/features')
+def welcome_features():
+    return _site_gate() or render_template('site_features.html', **marketing.context('features'))
+
+
+@app.route('/welcome/plans')
+def welcome_plans():
+    return _site_gate() or render_template('site_plans.html', **marketing.context('plans'))
+
+
+@app.route('/welcome/signup', methods=['GET', 'POST'])
+def welcome_signup():
+    blocked = _site_gate()
+    if blocked:
+        return blocked
+    if session.get('coach') and not is_admin():
+        return redirect(home_url())
+    f = {k: ' '.join(request.form.get(k, '').split()) for k in ('name', 'email', 'school', 'username')}
+    error = None
+    if request.method == 'POST':
+        import time as _t
+        now = _t.time()
+        ip = request.remote_addr or '?'
+        recent = [t for t in _SIGNUPS.get(ip, []) if now - t < 3600]
+        _SIGNUPS[ip] = recent
+        u = re.sub(r'[^A-Za-z0-9_.-]', '', f['username'])
+        pslug = store.program_slug(f['school'])
+        pw = request.form.get('password', '')
+        existing = store.list_coaches()
+        if request.form.get('website'):                                   # hidden field: only bots fill it
+            return redirect(url_for('welcome'))
+        if len(recent) >= 5:
+            error = 'Too many sign-ups from this connection. Try again later.'
+        elif not f['name'] or not f['school'] or not pslug:
+            error = 'Enter your name and your school or program.'
+        elif not re.match(r'^[^@\s]+@[^@\s]+\.[^@\s]+$', f['email']):
+            error = 'Enter a valid email address.'
+        elif len(u) < 3 or u != f['username']:
+            error = 'Pick a username of at least 3 letters or numbers (no spaces).'
+        elif u.lower() in {x.lower() for x in existing}:
+            error = 'That username is taken. Try another.'
+        elif any((c.get('email') or '').lower() == f['email'].lower() for c in existing.values()):
+            error = 'That email already has an account. Log in instead.'
+        elif len(pw) < 8:
+            error = 'Use a password of at least 8 characters.'
+        elif pw != request.form.get('confirm', ''):
+            error = 'The passwords do not match.'
+        elif not request.form.get('agree'):
+            error = 'Please confirm the checkbox to continue.'
+        elif pslug in store.ADMIN_ONLY_PROGRAMS or pslug in store.DEMO_PROGRAMS or any(c.get('program') == pslug for c in existing.values()) \
+                or pslug in {p for p, _ in store.list_programs()}:
+            error = 'A team with that name already exists. Ask your head coach to add you as an assistant, or use a more specific name.'
+        else:
+            _SIGNUPS.setdefault(ip, []).append(now)
+            store.add_coach(u, f['name'], pw, role='program', program=pslug, program_label=f['school'], push=False)
+            store.update_coach(u, email=f['email'], signup=True, created=datetime.date.today().isoformat())
+            end = plans.start_trial(pslug)
+            plans.track('signup', u, pslug, email=f['email'])
+            session.clear()
+            session['coach'] = u
+            return redirect(url_for('intake_bulk') + '?welcome=1')
+    return render_template('site_signup.html', f=f, error=error, **marketing.context('signup'))
+
+
+@app.route('/trial-ended')
+@login_required
+def trial_ended():
+    return render_template('site_trial_ended.html', **marketing.context('plans'))
+
+
 @app.route('/team/<program>/coaches', methods=['GET', 'POST'])
 @login_required
 @head_required
@@ -1880,7 +1973,9 @@ def admin_activity():
     log = plans.events(None, 14, None, 150)
     for x in log:
         x['when'] = _t.strftime('%b %d %H:%M', _t.gmtime(x['t'])) + ' UTC'
-    return render_template('admin_activity.html', flags=plans.flags(), log=log, coaches=store.list_coaches())
+    signups = sorted(((u, c) for u, c in store.list_coaches().items() if c.get('signup')), key=lambda t: t[1].get('created', ''), reverse=True)
+    trials = {c.get('program'): plans.plan_info(c.get('program'))['trial_ends'] for _u, c in signups}
+    return render_template('admin_activity.html', flags=plans.flags(), log=log, coaches=store.list_coaches(), signups=signups, trials=trials, plans_expired=plans.trial_expired)
 
 
 @app.route('/admin/status')

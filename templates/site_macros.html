@@ -1,0 +1,6 @@
+{% macro shot(img, label) %}{% if img %}<div class="shot"><img src="{{ url_for('static', filename='site/' ~ img) }}" alt="{{ label }}" loading="lazy"></div>{% else %}<div class="frame">Screenshot: {{ label }}</div>{% endif %}{% endmacro %}
+{% macro plan_cards(cards, bullets, trial_days, ended=False) %}<div class="plans">{% for c in cards %}<div class="plan {{ 'feat1' if c.featured }}">{% if c.featured %}<span class="pop">Most popular</span>{% endif %}
+  <h3>{{ c.name }}</h3><div style="color:var(--muted);font-size:15px;margin-top:6px;">{{ c.tagline }}</div>
+  {% if c.price %}<div class="price">{{ c.price }} <small>{{ c.per }}</small></div>{% else %}<div class="soon">Pricing coming soon</div>{% endif %}
+  <ul>{% for b in bullets[c.key] %}<li>{{ b }}</li>{% endfor %}</ul>
+  {% if not ended %}<a class="btn" href="{{ url_for('welcome_signup') }}?plan={{ c.key }}">Start {{ trial_days }}-day free trial</a>{% endif %}</div>{% endfor %}</div>{% endmacro %}

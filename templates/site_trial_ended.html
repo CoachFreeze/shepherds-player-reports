@@ -1,0 +1,6 @@
+{% extends 'site_base.html' %}{% from 'site_macros.html' import plan_cards %}
+{% block title %}Your trial has ended | {{ brand }}{% endblock %}
+{% block body %}
+<section class="s"><div class="wrap"><div class="head"><p class="eyebrow">Trial ended</p><h2>Your {{ trial_days }}-day trial has ended</h2><p>Your players and uploads are safe. Choose a plan to pick up where you left off, and contact the administrator to switch it on.</p></div>
+  {{ plan_cards(cards, bullets, trial_days, true) }}<p style="margin-top:24px;"><a href="{{ url_for('logout') }}">Log out</a></p></div></section>
+{% endblock %}
