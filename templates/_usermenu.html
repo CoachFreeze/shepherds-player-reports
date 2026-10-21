@@ -6,21 +6,21 @@
 .um-pop{display:none;position:absolute;right:0;top:48px;min-width:220px;background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(26,31,36,.22);padding:6px;z-index:60;text-align:left;}
 .um.open .um-pop{display:block;}
 .um-who{padding:10px 12px 8px;border-bottom:1px solid #eceeed;margin-bottom:4px;} .um-who b{display:block;font:700 15px 'Barlow',sans-serif;color:#22303a;} .um-who span{font-size:12px;color:#76828a;}
-.um-pop a{display:block;padding:9px 12px;border-radius:8px;color:#22303a !important;font:600 14px 'Barlow',sans-serif;text-decoration:none;margin:0 !important;} .um-pop a:hover{background:#f2f4f3;}
+.um-pop a{display:block;padding:7px 12px;border-radius:8px;color:#22303a !important;font:600 14px 'Barlow',sans-serif;text-decoration:none;margin:0 !important;} .um-pop a:hover{background:#f2f4f3;}
 .um-sep{height:1px;background:#eceeed;margin:4px 0;} .um-lbl{font:600 10.5px 'Barlow',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#98a3a9;padding:8px 12px 2px;}
 </style>
 <span class="um" id="um"><button class="um-btn" type="button" aria-label="Account menu" aria-haspopup="true" onclick="document.getElementById('um').classList.toggle('open');event.stopPropagation();">
   {% if me.badge %}<span class="um-av" style="background:{{ me.badge.bg }}"><img src="{{ url_for('school_logo', fname=me.badge.file) }}" alt=""></span>{% else %}<span class="um-av"><b>{{ me.initials }}</b></span>{% endif %}</button>
   <div class="um-pop" role="menu">
     <div class="um-who"><b>{{ me.name }}</b><span>{{ me.label or ('Administrator' if me.is_admin else '') }}{% if me.is_assistant %} &middot; Assistant{% endif %}{% if me.is_player %} &middot; Player{% endif %}</span></div>
-    {% if me.is_player %}<a href="{{ home_url }}">My profile</a><a href="{{ url_for('account') }}">Account settings</a><a href="{{ url_for('glossary_page') }}">Stats glossary</a><div class="um-sep"></div><a href="{{ url_for('logout') }}">Log out</a>{% else %}{% if nav_program %}<a href="{{ url_for('team_dashboard', program=nav_program) }}">Team Dashboard</a><a href="{{ url_for('team_pitchers', program=nav_program) }}">Pitchers</a><a href="{{ url_for('team_hitters', program=nav_program) }}">Hitters</a><a href="{{ url_for('team_scouting', program=nav_program) }}">Scouting</a>{% if not me.is_assistant %}<a href="{{ url_for('team_coaches', program=nav_program) }}">Coaches</a><a href="{{ url_for('team_appearance', program=nav_program) }}">Appearance settings</a>{% endif %}{% endif %}
-    <a href="{{ url_for('account') }}">Account settings</a>
-    {% if me.can_upload %}<a href="{{ url_for('roster_page') }}">Team roster</a>{% endif %}
-    <a href="{{ url_for('upload_log_page') }}">Upload log</a>
-    <a href="{{ url_for('hitters_sort') }}">Sort hitters</a>
-    <a href="{{ url_for('glossary_page') }}">Stats glossary</a>
-    {% if request.endpoint == 'dashboard' %}<a href="#" onclick="document.getElementById('um').classList.remove('open');openTour();return false;">Take the tour</a>{% else %}<a href="{{ url_for('dashboard') }}?tour=dash">Take the tour</a>{% endif %}
-    {% if me.is_admin %}<div class="um-lbl">Admin</div><a href="{{ url_for('beta_hitters') }}">Hitting</a><a href="{{ url_for('admin_plans') }}">Plans &amp; usage</a><a href="{{ url_for('admin_activity') }}">Activity &amp; flags</a><a href="{{ url_for('admin_coaches') }}">Coach logins</a><a href="{{ url_for('admin_status') }}">Save status</a>{% endif %}
-    <div class="um-sep"></div><a href="{{ url_for('logout') }}">Log out</a>{% endif %}
+    {% if me.is_player %}<a href="{{ home_url }}">My profile</a><a href="{{ url_for('glossary_page') }}">Stats glossary</a>
+    <div class="um-sep"></div><a href="{{ url_for('account') }}">My account</a><a href="{{ url_for('logout') }}">Log out</a>
+    {% else %}
+    {% if nav_program %}<div class="um-lbl">Team</div><a href="{{ url_for('team_dashboard', program=nav_program) }}">Team Dashboard</a><a href="{{ url_for('team_pitchers', program=nav_program) }}">Pitchers</a><a href="{{ url_for('team_hitters', program=nav_program) }}">Hitters</a><a href="{{ url_for('team_scouting', program=nav_program) }}">Scouting</a><a href="{{ url_for('team_games', program=nav_program) }}">Game Reports</a>{% endif %}
+    <div class="um-lbl">Data</div>{% if me.can_upload %}<a href="{{ url_for('roster_page') }}">Team roster</a>{% endif %}<a href="{{ url_for('upload_log_page') }}">Upload log</a><a href="{{ url_for('hitters_sort') }}">Sort hitters</a>
+    {% if nav_program and not me.is_assistant %}<div class="um-lbl">Manage</div><a href="{{ url_for('team_coaches', program=nav_program) }}">Coaches &amp; players</a><a href="{{ url_for('team_appearance', program=nav_program) }}">Appearance</a>{% endif %}
+    <div class="um-lbl">Help</div><a href="{{ url_for('glossary_page') }}">Stats glossary</a>{% if request.endpoint == 'dashboard' %}<a href="#" onclick="document.getElementById('um').classList.remove('open');openTour();return false;">Take the tour</a>{% else %}<a href="{{ url_for('dashboard') }}?tour=dash">Take the tour</a>{% endif %}
+    {% if me.is_admin %}<div class="um-lbl">Admin</div><a href="{{ url_for('admin_plans') }}">Plans &amp; usage</a><a href="{{ url_for('admin_activity') }}">Activity &amp; flags</a><a href="{{ url_for('admin_coaches') }}">All coach logins</a><a href="{{ url_for('beta_hitters') }}">Hitting (beta)</a><a href="{{ url_for('admin_status') }}">Save status</a>{% endif %}
+    <div class="um-sep"></div><a href="{{ url_for('account') }}">My account</a><a href="{{ url_for('logout') }}">Log out</a>{% endif %}
   </div></span>
 <script>document.addEventListener('click',function(e){var m=document.getElementById('um');if(m&&!m.contains(e.target))m.classList.remove('open');});document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=document.getElementById('um');if(m)m.classList.remove('open');}});</script>
