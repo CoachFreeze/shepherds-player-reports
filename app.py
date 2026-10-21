@@ -1989,7 +1989,7 @@ SORT_PAGE = """
 
 
 @app.route('/hitters/sort')
-@login_required
+@admin_required
 def hitters_sort():
     admin = is_admin()
     sel = request.args.get('program') if admin else my_program()
@@ -2017,7 +2017,7 @@ def hitters_sort():
 
 
 @app.route('/hitters/sort', methods=['POST'])
-@login_required
+@admin_required
 def hitters_sort_save():
     admin = is_admin()
     allowed_keys = {k for k, h in hitting._collect(False, include_hidden=True).items()
