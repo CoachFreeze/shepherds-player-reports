@@ -279,7 +279,7 @@ def _pitchers(pas, side):
                     'k': sum(1 for p in ps if p['result'].startswith('K ')), 'r': sum(p['runs'] for p in d['pas']),
                     'hr': sum(1 for p in ps if p['result'] == 'HomeRun'),
                     'fb_avg': (sum(fb) / len(fb)) if fb else None, 'top': max(velos) if velos else None, 'rows': rows,
-                    'throws': ((rows[0].get('PitcherThrows') or '')[:1].upper() if rows else '')})
+                    'throws': ((rows[0].get('PitcherThrows') or '')[:1].upper() if rows else ''), 'pas': d['pas']})
     return out
 
 
@@ -512,3 +512,160 @@ def scorebook(m, side):
                      'ab': sum(x['ab'] for x in ents), 'h': sum(x['h'] for x in ents), 'rbi': sum(x['rbi'] for x in ents),
                      'bb': sum(x['bb'] for x in ents), 'k': sum(x['k'] for x in ents)})
     return {'cols': cols, 'rows': rows, 'inns': inns}
+
+
+# ------------------------------------------------- scorebook, paper-style layout
+def pitch_letter(r):
+    t = (pitchfx._label(r) or '').lower()
+    if any(k in t for k in ('seam', 'fastball', 'sinker')):
+        return 'F'
+    if 'slider' in t or 'sweeper' in t:
+        return 'S'
+    if 'curve' in t or 'slurve' in t:
+        return 'C'
+    if 'cutter' in t:
+        return 'O'
+    if 'change' in t or 'split' in t:
+        return 'X'
+    return '?'
+
+
+def pitch_kind(r):
+    c = r.get('PitchCall') or ''
+    if c in _BALLS:
+        return 'ball'
+    if c == 'HitByPitch':
+        return 'hbp'
+    if c == 'StrikeCalled':
+        return 'called'
+    if c == 'StrikeSwinging':
+        return 'swing'
+    if c.startswith('Foul'):
+        return 'foul'
+    if c == 'InPlay':
+        return 'inplay'
+    return 'ball'
+
+
+def pa_strikes(pa):
+    return sum(1 for r in pa['rows'] if pitch_kind(r) in ('called', 'swing', 'foul'))
+
+
+def cell2(pa, new_pitcher='', end_inning=False, ink='#2a2118', gold='#b5763a', gray='#ddd3c2'):
+    """One at-bat cell in the paper-scorebook layout: pitch sequence on top (B row / S row), field diagram, out circle, result box."""
+    W, Hh = 148, 100
+    o = [f'<svg viewBox="0 0 {W} {Hh}" width="{W}" height="{Hh}" xmlns="http://www.w3.org/2000/svg" style="display:block;font-family:Barlow,Arial,sans-serif">']
+    # pitch grid
+    gx, cw, rh = 16, 16.5, 13
+    o.append(f'<text x="4" y="12" font-size="9" fill="#a79c8a" font-weight="700">B</text><text x="4" y="25" font-size="9" fill="#a79c8a" font-weight="700">S</text>')
+    for r_ in range(2):
+        for c_ in range(8):
+            o.append(f'<rect x="{gx + c_ * cw:.1f}" y="{2 + r_ * rh}" width="{cw}" height="{rh}" fill="none" stroke="#d3c9b8" stroke-width=".8"/>')
+    seq = [r for r in pa['rows'] if pitch_kind(r) != 'hbp'][-8:]
+    for i, r in enumerate(seq):
+        k = pitch_kind(r)
+        L = pitch_letter(r)
+        row = 0 if k == 'ball' else 1
+        cx = gx + i * cw + cw / 2
+        cy = 2 + row * rh + rh / 2
+        if k in ('foul', 'inplay'):
+            o.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="5.8" fill="none" stroke="{ink}" stroke-width="1.3"/>')
+        elif k == 'swing':
+            o.append(f'<rect x="{cx - 5.5:.1f}" y="{cy - 5.5:.1f}" width="11" height="11" fill="none" stroke="{ink}" stroke-width="1.3"/>')
+        o.append(f'<text x="{cx:.1f}" y="{cy + 3.4:.1f}" text-anchor="middle" font-size="9.5" font-weight="800" fill="{ink}">{L}</text>')
+    # field
+    hx, hy, rad = 38, 90, 22
+    P = {'h': (hx, hy), 'f': (hx + rad, hy - rad), 's': (hx, hy - 2 * rad), 't': (hx - rad, hy - rad)}
+    o.append(f'<path d="M{P["h"][0]} {P["h"][1]} L{P["f"][0]} {P["f"][1]} L{P["s"][0]} {P["s"][1]} L{P["t"][0]} {P["t"][1]} Z" fill="none" stroke="#c9bfae" stroke-width="1.2"/>')
+    for k_, (x, y) in P.items():
+        o.append(f'<rect x="{x - 3.5}" y="{y - 3.5}" width="7" height="7" fill="#fdfbf6" stroke="#9c917f" stroke-width="1"/>')
+    res = pa['result']
+    nb = _BASES.get(res, 0)
+    order_ = ['h', 'f', 's', 't', 'h']
+    if nb == 4:
+        o.append(f'<path d="M{P["h"][0]} {P["h"][1]} L{P["f"][0]} {P["f"][1]} L{P["s"][0]} {P["s"][1]} L{P["t"][0]} {P["t"][1]} Z" fill="{ink}"/>')
+    elif nb:
+        o.append('<path d="M' + ' L'.join(f'{P[k_][0]} {P[k_][1]}' for k_ in order_[:nb + 1]) + f'" fill="none" stroke="{ink}" stroke-width="4" stroke-linecap="square" stroke-linejoin="miter"/>')
+    # batted ball path
+    last = pa['rows'][-1]
+    d_ = e._fnum(last.get('Direction'))
+    dist = e._fnum(last.get('Distance'))
+    ht = (last.get('TaggedHitType') or last.get('AutoHitType') or '').strip()
+    if d_ is not None and last.get('PitchCall') == 'InPlay':
+        import math
+        Ln = min(58, 16 + (dist or 120) * 0.15)
+        ang = math.radians(max(-60, min(60, d_)))
+        ex, ey = hx + math.sin(ang) * Ln * 1.15, hy - 6 - math.cos(ang) * Ln
+        ey = max(ey, 34)
+        if ht == 'GroundBall':
+            o.append(f'<path d="M{hx} {hy - 4} L{ex:.1f} {ey:.1f}" stroke="{ink}" stroke-width="1.5" stroke-dasharray="3 2.4" fill="none"/>')
+        elif ht == 'LineDrive':
+            o.append(f'<path d="M{hx} {hy - 4} L{ex:.1f} {ey:.1f}" stroke="{ink}" stroke-width="1.7" fill="none"/>')
+        else:
+            mx, my = (hx + ex) / 2, (hy + ey) / 2 - 14
+            o.append(f'<path d="M{hx} {hy - 4} Q{mx:.1f} {my:.1f} {ex:.1f} {ey:.1f}" stroke="{ink}" stroke-width="1.7" fill="none"/>')
+    # out circle
+    o.append(f'<circle cx="96" cy="82" r="9" fill="none" stroke="{ink}" stroke-width="1.3"/>')
+    if pa['outs_made']:
+        n = min(3, pa['outs'] + pa['outs_made'])
+        o.append(f'<text x="96" y="86" text-anchor="middle" font-size="11" font-weight="800" fill="{ink}">{n}</text>')
+    # result box
+    o.append(f'<rect x="108" y="44" width="38" height="54" fill="{gray}"/>')
+    nt = notation(pa)
+    if nt:
+        fs = 21 if len(nt) <= 2 else 15 if len(nt) == 3 else 11.5
+        if res == 'K looking':
+            o.append(f'<text x="127" y="77" text-anchor="middle" font-size="22" font-weight="800" fill="{ink}" transform="translate(254 0) scale(-1 1)">K</text>')
+        else:
+            o.append(f'<text x="127" y="{76 if len(nt) <= 3 else 74}" text-anchor="middle" font-size="{fs}" font-weight="800" fill="{ink}">{html.escape(nt)}</text>')
+    note = ''
+    if new_pitcher:
+        note = new_pitcher.split(',')[0][:9].upper()
+    elif pa['runs'] and res not in ('K swinging', 'K looking', 'Out', None):
+        note = f"{pa['runs']} RBI"
+    if note:
+        o.append(f'<text x="127" y="92" text-anchor="middle" font-size="7.5" font-weight="700" fill="#5b4a33">{html.escape(note)}</text>')
+    if new_pitcher:
+        o.append(f'<line x1="0" y1="33" x2="9" y2="26" stroke="{ink}" stroke-width="1.8"/>')
+    if pa.get('grade'):
+        gc = {'A': '#2f8a57', 'B': '#4a93a8', 'C': '#d9a028', 'D': '#d9702c', 'F': '#c0443c'}[pa['grade'][0]]
+        o.append(f'<rect x="110" y="46" width="20" height="11" rx="3" fill="{gc}"/><text x="120" y="54.6" text-anchor="middle" font-size="8.5" font-weight="800" fill="#fff">{pa["grade"]}</text>')
+    if end_inning:
+        o.append(f'<line x1="0" y1="{Hh - .8}" x2="{W}" y2="{Hh - .8}" stroke="{ink}" stroke-width="3"/>')
+    o.append('</svg>')
+    return ''.join(o)
+
+
+def split_box(top, bottom, w=34, h=26, ink='#2a2118'):
+    return (f'<svg viewBox="0 0 {w} {h}" width="{w}" height="{h}" xmlns="http://www.w3.org/2000/svg" style="display:block;font-family:Barlow,Arial,sans-serif">'
+            f'<rect x=".5" y=".5" width="{w - 1}" height="{h - 1}" fill="none" stroke="#c9bfae"/><line x1="{w - 1}" y1="1" x2="1" y2="{h - 1}" stroke="#c9bfae"/>'
+            f'<text x="4" y="11" font-size="10" font-weight="700" fill="#5b4a33">{top}</text><text x="{w - 4}" y="{h - 4}" text-anchor="end" font-size="11" font-weight="800" fill="{ink}">{bottom}</text></svg>')
+
+
+def staff_table(m, bat_side):
+    """The opposing pitchers who faced this lineup, with the paper-sheet columns: IP H R ER BB K HBP HR, pitch types (strikes / total), B S TP."""
+    opp = 'opp' if bat_side == 'us' else 'us'
+    out, letters = [], []
+    for p in m['pitchers'][opp]:
+        by = {}
+        for r in p['rows']:
+            L = pitch_letter(r)
+            d = by.setdefault(L, {'n': 0, 's': 0, 'v': []})
+            d['n'] += 1
+            d['s'] += 1 if pitch_kind(r) in ('called', 'swing', 'foul') else 0
+            v = e._fnum(r.get('RelSpeed'))
+            if v:
+                d['v'].append(v)
+        balls = sum(1 for r in p['rows'] if pitch_kind(r) in ('ball', 'hbp'))
+        strikes = sum(1 for r in p['rows'] if pitch_kind(r) in ('called', 'swing', 'foul'))
+        for L in by:
+            if L not in letters:
+                letters.append(L)
+        pas = p['pas']
+        out.append({'p': p, 'by': by, 'balls': balls, 'strikes': strikes, 'tp': len(p['rows']),
+                    'hbp': sum(1 for x in pas if x['result'] == 'HBP'), 'bb': sum(1 for x in pas if x['result'] == 'Walk')})
+    letters = [L for L in 'FSCOX?' if L in letters]
+    for row in out:
+        row['split'] = {L: (split_box(row['by'][L]['s'], row['by'][L]['n'], 40, 26) if L in row['by'] else '') for L in letters}
+        row['ranges'] = ' · '.join(f"{L} {int(min(d['v']))}-{int(max(d['v']))}" for L, d in sorted(row['by'].items()) if d['v'])
+    return out, letters

@@ -23,6 +23,7 @@ import uploadlog
 import cleanup
 import scouting
 import scoutnotes
+import gamenotes
 import scoutplan
 import pitchfx
 import savant_components as sc_mod
@@ -758,6 +759,20 @@ def team_games(program):
     return render_template('games.html', program=program, team_label=store.program_label(program), games=out)
 
 
+@app.route('/team/<program>/game/<gid>/notes', methods=['POST'])
+@login_required
+def team_game_notes(program, gid):
+    _team_ok(program)
+    side = request.form.get('side', '')
+    if side not in ('us', 'opp'):
+        abort(400)
+    gamenotes.save(program, f'{gid}--{side}', request.form.get('text', ''), (current_coach() or {}).get('display_name') or session.get('coach') or '')
+    if request.headers.get('X-Requested-With') == 'fetch':
+        return ('', 204)
+    return redirect(url_for('team_game_scorebook', program=program, gid=gid) + f'#notes-{side}')
+
+
+
 @app.route('/team/<program>/game/<gid>/analysis')
 @login_required
 def team_game(program, gid):
@@ -802,26 +817,31 @@ def team_game_scorebook(program, gid):
     m = _game_decorate(gr.build(gm['rows']), program)
     tl = store.program_label(program)
     sheets = []
+    hits = {s: sum(1 for p in m['teams'][s]['pas'] if p['result'] in gr.HITS) for s in ('us', 'opp')}
+    errs = {s: sum(1 for p in m['teams']['opp' if s == 'us' else 'us']['pas'] if p['result'] == 'Error') for s in ('us', 'opp')}
+    names = {'us': tl, 'opp': gm['opp']}
     for side, nm, other in (('us', tl, gm['opp']), ('opp', gm['opp'], tl)):
         sb = gr.scorebook(m, side)
-        for r in sb['rows']:
-            r['cells'] = [(gr.cell_svg(p) if p else '') for p in r['cells']]
         pas = m['teams'][side]['pas']
-        tot = []
-        for inn, k in sb['cols']:
-            if k == 0:
-                ps = [p for p in pas if p['inn'] == inn]
-                tot.append({'r': sum(p['runs'] for p in ps), 'h': sum(1 for p in ps if p['result'] in gr.HITS), 'on': bool(ps)})
-            else:
-                tot.append(None)
-        # which half: top if the visiting team
+        newp, prev = {}, None
+        for p in pas:
+            if prev is not None and p['pitcher'] != prev:
+                newp[p['seq']] = p['pitcher']
+            prev = p['pitcher']
+        for r in sb['rows']:
+            r['cells'] = [(gr.cell2(p, gr._flip(newp[p['seq']]) if p['seq'] in newp else '', p['result'] is not None and p['outs'] + p['outs_made'] >= 3) if p else '') for p in r['cells']]
+            for ent in r['ents']:
+                sides = {p['side'] for p in ent['pas'] if p['side']}
+                ent['hand'] = 'S' if len(sides) > 1 else (next(iter(sides)) if sides else '')
+        staff, letters = gr.staff_table(m, side)
         home = m['us_home'] if side == 'us' else not m['us_home']
-        sheets.append({'side': side, 'team': nm, 'vs': other, 'half': 'BOTTOM' if home else 'TOP', 'sb': sb, 'tot': tot,
-                       'pitchers': m['pitchers'][side], 'runs': m['score'][side],
+        sheets.append({'side': side, 'team': nm, 'vs': other, 'half': 'HOME' if home else 'AWAY', 'sb': sb, 'staff': staff, 'note': gamenotes.get(program, f'{gid}--{side}'), 'note_key': f'{gid}--{side}', 'letters': letters,
+                       'runs': m['score'][side],
                        'ab': sum(r['ab'] for r in sb['rows']), 'h': sum(r['h'] for r in sb['rows']), 'rbi': sum(r['rbi'] for r in sb['rows']),
                        'bb': sum(r['bb'] for r in sb['rows']), 'k': sum(r['k'] for r in sb['rows'])})
+    m['hits'], m['errs'] = hits, errs
     d = _dt.date.fromisoformat(gm['date'])
-    return render_template('game_scorebook.html', m=m, sheets=sheets, program=program, team_label=tl, opp=gm['opp'], date_pretty=d.strftime('%A, %B %-d, %Y'),
+    return render_template('game_scorebook.html', m=m, sheets=sheets, gid=gid, program=program, team_label=tl, opp=gm['opp'], date_pretty=d.strftime('%A, %B %-d, %Y'),
                            back_url=url_for('team_games', program=program), analysis_url=url_for('team_game', program=program, gid=gid), order=[('us', tl), ('opp', gm['opp'])])
 
 
