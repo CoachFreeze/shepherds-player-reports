@@ -12,15 +12,15 @@
 <span class="um" id="um"><button class="um-btn" type="button" aria-label="Account menu" aria-haspopup="true" onclick="document.getElementById('um').classList.toggle('open');event.stopPropagation();">
   {% if me.badge %}<span class="um-av" style="background:{{ me.badge.bg }}"><img src="{{ url_for('school_logo', fname=me.badge.file) }}" alt=""></span>{% else %}<span class="um-av"><b>{{ me.initials }}</b></span>{% endif %}</button>
   <div class="um-pop" role="menu">
-    <div class="um-who"><b>{{ me.name }}</b><span>{{ me.label or ('Administrator' if me.is_admin else '') }}</span></div>
-    {% if nav_program %}<a href="{{ url_for('team_dashboard', program=nav_program) }}">Team Dashboard</a><a href="{{ url_for('team_pitchers', program=nav_program) }}">Pitchers</a><a href="{{ url_for('team_hitters', program=nav_program) }}">Hitters</a><a href="{{ url_for('team_scouting', program=nav_program) }}">Scouting</a><a href="{{ url_for('team_appearance', program=nav_program) }}">Appearance settings</a>{% endif %}
+    <div class="um-who"><b>{{ me.name }}</b><span>{{ me.label or ('Administrator' if me.is_admin else '') }}{% if me.is_assistant %} &middot; Assistant{% endif %}</span></div>
+    {% if nav_program %}<a href="{{ url_for('team_dashboard', program=nav_program) }}">Team Dashboard</a><a href="{{ url_for('team_pitchers', program=nav_program) }}">Pitchers</a><a href="{{ url_for('team_hitters', program=nav_program) }}">Hitters</a><a href="{{ url_for('team_scouting', program=nav_program) }}">Scouting</a>{% if not me.is_assistant %}<a href="{{ url_for('team_coaches', program=nav_program) }}">Coaches</a><a href="{{ url_for('team_appearance', program=nav_program) }}">Appearance settings</a>{% endif %}{% endif %}
     <a href="{{ url_for('account') }}">Account settings</a>
-    <a href="{{ url_for('roster_page') }}">Team roster</a>
+    {% if me.can_upload %}<a href="{{ url_for('roster_page') }}">Team roster</a>{% endif %}
     <a href="{{ url_for('upload_log_page') }}">Upload log</a>
     <a href="{{ url_for('hitters_sort') }}">Sort hitters</a>
     <a href="{{ url_for('glossary_page') }}">Stats glossary</a>
     {% if request.endpoint == 'dashboard' %}<a href="#" onclick="document.getElementById('um').classList.remove('open');openTour();return false;">Take the tour</a>{% else %}<a href="{{ url_for('dashboard') }}?tour=dash">Take the tour</a>{% endif %}
-    {% if me.is_admin %}<div class="um-lbl">Admin</div><a href="{{ url_for('beta_hitters') }}">Hitting</a><a href="{{ url_for('admin_plans') }}">Plans &amp; usage</a><a href="{{ url_for('admin_coaches') }}">Coach logins</a><a href="{{ url_for('admin_status') }}">Save status</a>{% endif %}
+    {% if me.is_admin %}<div class="um-lbl">Admin</div><a href="{{ url_for('beta_hitters') }}">Hitting</a><a href="{{ url_for('admin_plans') }}">Plans &amp; usage</a><a href="{{ url_for('admin_activity') }}">Activity &amp; flags</a><a href="{{ url_for('admin_coaches') }}">Coach logins</a><a href="{{ url_for('admin_status') }}">Save status</a>{% endif %}
     <div class="um-sep"></div><a href="{{ url_for('logout') }}">Log out</a>
   </div></span>
 <script>document.addEventListener('click',function(e){var m=document.getElementById('um');if(m&&!m.contains(e.target))m.classList.remove('open');});document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=document.getElementById('um');if(m)m.classList.remove('open');}});</script>

@@ -1,0 +1,47 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Coaches</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{font-family:'Barlow',Arial,sans-serif;background:#f7f6f2;color:#22303a;max-width:720px;margin:0 auto;padding:22px 16px 60px;}
+h1{font:700 32px 'Oswald',sans-serif;margin:8px 0 4px;} h2{font:600 20px 'Oswald',sans-serif;margin:26px 0 8px;} a{color:#5c97a8;font-weight:600;font-size:13px;text-decoration:none;}
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(26,31,36,.1);padding:14px 16px;margin:10px 0;} small,.sub{color:#6b7680;font-size:13px;}
+.row{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;} .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;} .acts form{margin:0;display:flex;gap:6px;}
+label{display:block;font-weight:600;font-size:13px;margin:12px 0 4px;} input[type=text],input[type=password]{width:100%;padding:9px 10px;border:1px solid #dcdfdc;border-radius:7px;box-sizing:border-box;font:inherit;}
+button{padding:8px 16px;border:none;border-radius:999px;background:#5c97a8;color:#fff;font-weight:600;cursor:pointer;font-size:13px;} button.alt{background:#fff;color:#22303a;border:1px solid #dcdfdc;} button.del{background:#fff;color:#9c3a3a;border:1px solid #dcdfdc;}
+.msg{background:#e3ecdf;color:#3f6b42;padding:10px 14px;border-radius:8px;margin:10px 0;} .msg.err{background:#f6dede;color:#9c3a3a;}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#e3ecdf;color:#3f6b42;} .pill.off{background:#eee;color:#76828a;}
+.log div{padding:6px 0;border-bottom:1px solid #eceeed;font-size:13px;} .log div:last-child{border:0;}
+</style></head><body>
+<a href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Dashboard</a>
+<h1>Coaches</h1><div class="sub">{{ team_label }} &middot; {{ count }} of {{ cap }} assistant coach{{ '' if cap == 1 else 'es' }} in use</div>
+{% if msg %}<div class="msg {{ 'err' if err }}">{{ msg }}</div>{% endif %}
+
+<h2>Head coach</h2>
+{% for u, c in heads.items() %}<div class="card"><b>{{ c.display_name }}</b> <small>({{ u }})</small><br><small>Full access, including logins, appearance, and removing data.</small></div>{% endfor %}
+
+<h2>Assistant coaches</h2>
+<div class="sub">Assistants can view the team, hitters, pitchers, games and scouting, and download or print reports. They cannot manage logins, change appearance, delete players or remove uploads.</div>
+{% for u, c in assistants.items() %}
+<div class="card"><div class="row"><div><b>{{ c.display_name }}</b> <small>({{ u }})</small>
+  <span class="pill {{ '' if c.get('active', True) else 'off' }}">{{ 'Active' if c.get('active', True) else 'Turned off' }}</span>
+  {% if c.get('must_change') %}<span class="pill off">Hasn't set a password yet</span>{% endif %}<br>
+  <small>Last login: {% if last.get(u) %}{{ ((now - last[u]) // 86400)|int }} day(s) ago{% else %}never{% endif %} &middot; Uploading {{ 'on' if c.get('can_upload', True) else 'off' }}</small></div></div>
+  <div class="acts">
+    <form method="post"><input type="hidden" name="action" value="uploads"><input type="hidden" name="username" value="{{ u }}"><input type="hidden" name="value" value="{{ '0' if c.get('can_upload', True) else '1' }}"><button class="alt">{{ 'Turn uploading off' if c.get('can_upload', True) else 'Turn uploading on' }}</button></form>
+    <form method="post"><input type="hidden" name="action" value="active"><input type="hidden" name="username" value="{{ u }}"><input type="hidden" name="value" value="{{ '0' if c.get('active', True) else '1' }}"><button class="alt">{{ 'Turn off login' if c.get('active', True) else 'Turn login back on' }}</button></form>
+    <form method="post"><input type="hidden" name="action" value="reset"><input type="hidden" name="username" value="{{ u }}"><input type="text" name="password" placeholder="New temporary password" minlength="8" required style="width:190px;padding:6px 10px;"><button class="alt">Reset password</button></form>
+    <form method="post" onsubmit="return confirm('Remove this assistant coach?');"><input type="hidden" name="action" value="remove"><input type="hidden" name="username" value="{{ u }}"><button class="del">Remove</button></form>
+  </div></div>
+{% else %}<div class="card"><small>No assistant coaches yet.</small></div>{% endfor %}
+
+<h2>Add an assistant coach</h2>
+{% if can_add %}<div class="card"><form method="post"><input type="hidden" name="action" value="add">
+  <label>Name</label><input type="text" name="display_name" required maxlength="60">
+  <label>Username <small>(letters, numbers, . _ -, at least 3)</small></label><input type="text" name="username" required autocomplete="off" minlength="3">
+  <label>Temporary password <small>(they choose their own at first login)</small></label><input type="text" name="password" required autocomplete="off" minlength="8">
+  <label style="font-weight:500;"><input type="checkbox" name="can_upload" value="1" checked> Allow this coach to upload data</label>
+  <div style="margin-top:14px;"><button type="submit">Add assistant</button></div></form></div>
+{% else %}<div class="card"><small>{{ why }}</small></div>{% endif %}
+
+<h2>Recent activity</h2>
+<div class="card log">{% for x in log %}<div><b>{{ x.u }}</b> &middot; {{ x.e|replace('_',' ') }} <small>&middot; {{ ((now - x.t) // 3600)|int }}h ago</small></div>{% else %}<small>Nothing in the last 30 days.</small>{% endfor %}</div>
+</body></html>

@@ -6,6 +6,7 @@ few dozen players. Swap for a real database later if the roster/coach count
 ever grows enough to need it; nothing calling into this module would need to
 change.
 """
+import datetime
 import json
 import os
 import re
@@ -160,6 +161,52 @@ def verify_coach(username, password):
     if not entry:
         return False
     return check_password_hash(entry['password_hash'], password)
+
+
+def coach_active(username):
+    """False for a login the head coach has turned off (a missing 'active' flag means on)."""
+    return (list_coaches().get(username) or {}).get('active') is not False
+
+
+def add_assistant(username, display_name, password, program, program_label, head, can_upload=True):
+    """An assistant coach: sees and works in one program like its head coach, except for the things the head coach keeps
+    (managing logins, appearance, deleting players or uploads). Must choose their own password at first login."""
+    coaches = list_coaches()
+    coaches[username] = {'display_name': display_name, 'password_hash': generate_password_hash(password), 'role': 'assistant',
+                         'program': program, 'program_label': program_label, 'head': head, 'can_upload': bool(can_upload),
+                         'active': True, 'must_change': True, 'created': datetime.date.today().isoformat()}
+    _save(COACHES_PATH, coaches)
+    _push_coaches()
+
+
+def update_coach(username, **fields):
+    coaches = list_coaches()
+    if username not in coaches:
+        return False
+    coaches[username].update(fields)
+    _save(COACHES_PATH, coaches)
+    _push_coaches()
+    return True
+
+
+def reset_password(username, new):
+    """Sets a temporary password; the person must choose their own at the next login."""
+    coaches = list_coaches()
+    if username not in coaches:
+        return False
+    coaches[username]['password_hash'] = generate_password_hash(new)
+    coaches[username]['must_change'] = True
+    _save(COACHES_PATH, coaches)
+    _push_coaches()
+    return True
+
+
+def program_assistants(program):
+    return {u: c for u, c in list_coaches().items() if c.get('program') == program and c.get('role') == 'assistant'}
+
+
+def program_heads(program):
+    return {u: c for u, c in list_coaches().items() if c.get('program') == program and c.get('role') != 'assistant'}
 
 
 def coach_display_name(username):
@@ -529,6 +576,7 @@ def change_password(username, current, new):
         return 'New password must be at least 8 characters.'
     coaches = list_coaches()
     coaches[username]['password_hash'] = generate_password_hash(new)
+    coaches[username].pop('must_change', None)
     _save(COACHES_PATH, coaches)
     _push_coaches()
     return None

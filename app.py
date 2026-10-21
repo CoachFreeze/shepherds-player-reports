@@ -116,6 +116,39 @@ def admin_required(view):
     return wrapped
 
 
+def is_assistant():
+    c = current_coach()
+    return bool(c) and c.get('role') == 'assistant'
+
+
+def can_upload():
+    """Admins and head coaches always; an assistant coach only while the head coach leaves uploading on."""
+    c = current_coach()
+    if not c:
+        return False
+    return c.get('role') != 'assistant' or c.get('can_upload', True)
+
+
+def head_required(view):
+    """Head coach (or admin) only: managing logins, appearance, and removing data. Assistants get a plain 403."""
+    @functools.wraps(view)
+    def wrapped(*args, **kwargs):
+        if is_assistant():
+            abort(403)
+        return view(*args, **kwargs)
+    return wrapped
+
+
+def upload_required(view):
+    @functools.wraps(view)
+    def wrapped(*args, **kwargs):
+        if session.get('coach') and not can_upload():
+            return (BULK_STYLE + '<h1>Uploads are turned off</h1><div class="card">Your head coach has turned off uploading for assistant coaches. '
+                    'Ask them to switch it back on from the Coaches page.</div><p><a href="' + home_url() + '">Back to the dashboard</a></p>'), 403
+        return view(*args, **kwargs)
+    return wrapped
+
+
 LOGIN_PAGE = """
 <!doctype html><title>Coach Login</title>
 <style>
@@ -137,19 +170,64 @@ LOGIN_PAGE = """
 """
 
 
+_FAILS = {}      # (username, ip) -> [timestamps of recent wrong passwords]; per worker, best effort
+_LOCK_AFTER, _LOCK_WINDOW = 6, 600
+
+
+def _locked(key):
+    import time
+    now = time.time()
+    recent = [t for t in _FAILS.get(key, []) if now - t < _LOCK_WINDOW]
+    _FAILS[key] = recent
+    return len(recent) >= _LOCK_AFTER
+
+
+def _fail(key):
+    import time
+    _FAILS.setdefault(key, []).append(time.time())
+
+
+_OPEN_ENDPOINTS = {'login', 'logout', 'account', 'static', 'school_logo', 'school_mark', 'brand_logo', 'watermark'}
+
+
+@app.before_request
+def staff_checks():
+    """A login that was removed or turned off stops working at once, and a new or reset login must choose its own password first."""
+    name = session.get('coach')
+    if not name:
+        return None
+    c = store.list_coaches().get(name)
+    if not c or c.get('active') is False:
+        session.pop('coach', None)
+        return redirect(url_for('login'))
+    if c.get('must_change') and request.endpoint not in _OPEN_ENDPOINTS:
+        return redirect(url_for('account'))
+    return None
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
-        if store.verify_coach(username, password):
+        _prog = (store.list_coaches().get(username) or {}).get('program')
+        _key = (username.lower(), request.remote_addr)
+        if _locked(_key):
+            error = 'Too many wrong passwords. Wait a few minutes and try again.'
+        elif store.verify_coach(username, password) and not store.coach_active(username):
+            error = 'This login has been turned off. Ask your head coach.'
+        elif store.verify_coach(username, password):
+            _FAILS.pop(_key, None)
             session['coach'] = username
-            plans.track('login', username, (store.list_coaches().get(username) or {}).get('program'))
+            plans.track('login', username, _prog)
             if not request.args.get('next') and store.needs_first_upload(username):
                 return redirect(url_for('intake_bulk') + '?welcome=1')
             return redirect(request.args.get('next') or url_for('dashboard'))
-        error = 'Incorrect username or password.'
+        else:
+            _fail(_key)
+            plans.track('login_fail', username[:40], _prog)
+            error = 'Incorrect username or password.'
     return render_template_string(LOGIN_PAGE, error=error)
 
 
@@ -180,6 +258,7 @@ ACCOUNT_PAGE = """
     <form method="post"><input type="hidden" name="form" value="name">
       <label>Display name</label><input type="text" name="display_name" value="{{ me.name }}" maxlength="60" required>
       <button type="submit">Save name</button></form></div>
+  {% if first_login %}<div class="msg err" style="font-weight:600;">Welcome. Before you continue, choose your own password below. The one you were given is temporary.</div>{% endif %}
   <div class="card"><h2>Change password</h2>
     {% if pw_msg %}<div class="msg {{ 'ok' if pw_ok else 'err' }}">{{ pw_msg }}</div>{% endif %}
     <form method="post"><input type="hidden" name="form" value="password">
@@ -241,7 +320,9 @@ def inject_me():
     parts = [w for w in name.split() if w]
     initials = (parts[0][:1] + (parts[-1][:1] if len(parts) > 1 else '')).upper() or '?'
     return {'me': {'name': name, 'key': session.get('coach'), 'label': label, 'is_admin': is_admin(), 'initials': initials, 'program': c.get('program') if c.get('role', 'admin') != 'admin' else None,
-                   'badge': {'file': _b[0], 'bg': _b[1]} if _b else None}}
+                   'badge': {'file': _b[0], 'bg': _b[1]} if _b else None,
+                   'is_head': c.get('role', 'admin') != 'assistant', 'is_assistant': c.get('role') == 'assistant', 'can_upload': can_upload(),
+                   'must_change': bool(c.get('must_change'))}}
 
 
 _MENU_PAGES = {'edit_profile', 'admin_status', 'admin_old_reports', 'upload_log_page', 'hitters_sort', 'admin_coaches', 'view_report', 'intake', 'intake_bulk', 'intake_bulk_run',
@@ -284,6 +365,7 @@ def account():
                 err = store.change_password(session['coach'], request.form.get('current', ''), new)
             ctx.update(pw_msg=err or 'Password updated.', pw_ok=not err)
     _c = current_coach() or {}
+    ctx['first_login'] = bool(_c.get('must_change'))
     ctx['plan_line'] = plans.trial_note(_c['program']) if _c.get('program') else ''
     return render_template_string(ACCOUNT_PAGE, **ctx, **inject_me())
 
@@ -536,6 +618,7 @@ APPEARANCE_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name
 
 @app.route('/team/<program>/appearance')
 @login_required
+@head_required
 def team_appearance(program):
     _team_ok(program)
     src = theme.watermark_source(program)
@@ -566,6 +649,7 @@ def _clean_logo(raw):
 
 @app.route('/team/<program>/appearance/logo', methods=['POST'])
 @login_required
+@head_required
 def team_logo(program):
     _team_ok(program)
     back = lambda m, err=False: redirect(url_for('team_appearance', program=program, msg=m, **({'err': 1} if err else {})))
@@ -594,6 +678,7 @@ def team_logo(program):
 
 @app.route('/team/<program>/theme', methods=['POST'])
 @login_required
+@head_required
 def team_theme(program):
     _team_ok(program)
     d = team.load(program)
@@ -1159,6 +1244,7 @@ def _roster_matches(prog, players):
 
 @app.route('/roster', methods=['GET', 'POST'])
 @login_required
+@upload_required
 def roster_page():
     prog = _roster_program()
     if not prog:
@@ -1191,6 +1277,7 @@ def roster_page():
 
 @app.route('/roster/save', methods=['POST'])
 @login_required
+@upload_required
 def roster_save():
     prog = _roster_program()
     if not prog or not plans.allowed(prog, 'roster_upload'):
@@ -1505,7 +1592,7 @@ button{padding:10px 22px;border:none;border-radius:999px;background:#5c97a8;colo
 .msg{background:#e3ecdf;color:#3f6b42;padding:10px 14px;border-radius:8px;margin:10px 0;} .err{background:#f6dede;color:#9c3a3a;}</style></head><body>
 <a href="{{ url_for('dashboard') }}">&larr; Dashboard</a><h1>Coach Logins</h1>
 {% if msg %}<div class="msg {{ 'err' if err }}">{{ msg }}</div>{% endif %}
-{% for u, c in coaches.items() %}<div class="card"><div><b>{{ c.display_name }}</b> <small>({{ u }})</small><br><small>{{ 'Admin -- full access' if c.get('role','admin') == 'admin' else (c.get('program_label') or c.get('program')) ~ ' coach -- only sees and edits their own program' }}</small></div>
+{% for u, c in coaches.items() %}<div class="card"><div><b>{{ c.display_name }}</b> <small>({{ u }})</small><br><small>{{ 'Admin -- full access' if c.get('role','admin') == 'admin' else ('Assistant coach -- ' ~ (c.get('program_label') or c.get('program')) if c.get('role') == 'assistant' else (c.get('program_label') or c.get('program')) ~ ' coach -- only sees and edits their own program') }}</small></div>
 {% if u != me %}<form method="post" action="{{ url_for('admin_coach_delete', username=u) }}" onsubmit="return confirm('Remove this login?');" style="margin:0;"><button class="del">Remove</button></form>{% endif %}</div>{% endfor %}
 <h2 style="font-family:Oswald,Arial,sans-serif;margin-top:28px;">Add a login <small>(or reset a password: reuse the username)</small></h2>
 <form method="post"><label>Username</label><input name="username" required autocomplete="off"><label>Display name</label><input name="display_name" required>
@@ -1536,6 +1623,83 @@ def admin_plans():
         err = plans.set_plan(prog, request.form.get('plan', ''), request.form.get('trial_ends', ''), request.form.get('note', ''))
         msg = err or f'Saved plan for {store.program_label(prog)}.'
     return render_template('admin_plans.html', rows=plans.summary(30), plans=plans.PLANS, enforcing=plans.enforcing(), msg=msg)
+
+
+@app.route('/team/<program>/coaches', methods=['GET', 'POST'])
+@login_required
+@head_required
+def team_coaches(program):
+    _team_ok(program)
+    c = current_coach() or {}
+    head = session['coach'] if c.get('role', 'admin') != 'admin' else None
+    msg, err = None, False
+    f = request.form
+    if request.method == 'POST':
+        act = f.get('action', '')
+        target = f.get('username', '')
+        t = store.list_coaches().get(target)
+        if act == 'add':
+            u = re.sub(r'[^A-Za-z0-9_.-]', '', f.get('username', '').strip())
+            name = ' '.join(f.get('display_name', '').split())
+            ok, why = plans.can_add_assistant(program)
+            if not ok:
+                msg, err = why, True
+            elif len(u) < 3 or not name or len(f.get('password', '')) < 8:
+                msg, err = 'A username (3+ characters), a name and a temporary password of 8+ characters are required.', True
+            elif u in store.list_coaches():
+                msg, err = 'That username is already taken. Pick another.', True
+            else:
+                store.add_assistant(u, name, f['password'], program, store.program_label(program), head or session['coach'], can_upload=bool(f.get('can_upload')))
+                plans.track('coach_add', session['coach'], program, target=u)
+                msg = f'Added {name}. Give them the username "{u}" and the temporary password. They choose their own at first login.'
+        elif not t or t.get('role') != 'assistant' or t.get('program') != program:
+            msg, err = 'That assistant was not found.', True
+        elif act == 'uploads':
+            on = f.get('value') == '1'
+            store.update_coach(target, can_upload=on)
+            plans.track('coach_uploads', session['coach'], program, target=target, on=on)
+            msg = f'Uploading turned {"on" if on else "off"} for {t["display_name"]}.'
+        elif act == 'active':
+            on = f.get('value') == '1'
+            if on and not t.get('active', True) and not plans.can_add_assistant(program)[0] and plans.assistant_count(program) > plans.assistant_cap(program):
+                msg, err = 'Your plan has no room for another active assistant.', True
+            else:
+                store.update_coach(target, active=on)
+                plans.track('coach_active', session['coach'], program, target=target, on=on)
+                msg = f'{t["display_name"]} {"can log in again" if on else "has been turned off"}.'
+        elif act == 'reset':
+            if len(f.get('password', '')) < 8:
+                msg, err = 'The temporary password needs 8+ characters.', True
+            else:
+                store.reset_password(target, f['password'])
+                plans.track('coach_reset', session['coach'], program, target=target)
+                msg = f'Temporary password set for {t["display_name"]}. They will choose a new one at next login.'
+        elif act == 'remove':
+            store.delete_coach(target)
+            plans.track('coach_remove', session['coach'], program, target=target)
+            msg = f'Removed {t["display_name"]}.'
+    assistants = store.program_assistants(program)
+    names = set(assistants) | set(store.program_heads(program))
+    import time as _t
+    last = {}
+    for x in plans.events(program, 90, names, 2000):
+        if x['e'] == 'login':
+            last.setdefault(x['u'], x['t'])
+    log = plans.events(program, 30, names, 40)
+    ok_add, why_add = plans.can_add_assistant(program)
+    return render_template('team_coaches.html', program=program, team_label=store.program_label(program), heads=store.program_heads(program), assistants=assistants,
+                           cap=plans.assistant_cap(program), count=plans.assistant_count(program), can_add=ok_add, why=why_add, last=last, log=log,
+                           msg=msg, err=err, now=_t.time())
+
+
+@app.route('/admin/activity')
+@admin_required
+def admin_activity():
+    import time as _t
+    log = plans.events(None, 14, None, 150)
+    for x in log:
+        x['when'] = _t.strftime('%b %d %H:%M', _t.gmtime(x['t'])) + ' UTC'
+    return render_template('admin_activity.html', flags=plans.flags(), log=log, coaches=store.list_coaches())
 
 
 @app.route('/admin/status')
@@ -1581,6 +1745,7 @@ def _removal_message(res, gone):
 
 @app.route('/uploads/remove', methods=['POST'])
 @login_required
+@head_required
 def upload_remove():
     uid = request.form.get('id', '')
     entry = next((e for e in uploadlog.entries() if e.get('id') == uid), None) if uid else None
@@ -1595,6 +1760,7 @@ def upload_remove():
 
 @app.route('/uploads/remove-file', methods=['POST'])
 @login_required
+@head_required
 def upload_remove_file():
     f = request.files.get('csv')
     if not f or not f.filename:
@@ -1792,6 +1958,7 @@ def upload_headshot(slug):
 
 @app.route('/player/<slug>/delete', methods=['POST'])
 @login_required
+@head_required
 def delete_player_route(slug):
     if not can_manage(slug) or store.is_demo(slug):
         abort(403)
@@ -2131,6 +2298,7 @@ def _opponent():
 
 @app.route('/intake/bulk', methods=['GET', 'POST'])
 @login_required
+@upload_required
 def intake_bulk():
     if request.method == 'GET':
         _wel = bool(request.args.get('welcome')) or store.needs_first_upload(session.get('coach'))
@@ -2213,6 +2381,7 @@ def _scouting_run(path, f):
 
 @app.route('/intake/bulk/run', methods=['GET', 'POST'])
 @login_required
+@upload_required
 def intake_bulk_run():
     if request.method == 'GET':
         return redirect(url_for('intake_bulk'))
@@ -2316,6 +2485,7 @@ button{margin:8px 8px 0 0;padding:11px 22px;border:none;border-radius:999px;back
 
 @app.route('/intake/lbsu/confirm', methods=['GET', 'POST'])
 @login_required
+@upload_required
 def intake_lbsu_confirm():
     if request.method == 'GET':
         return redirect(url_for('intake_lbsu'))
@@ -2334,6 +2504,7 @@ def intake_lbsu_confirm():
 
 @app.route('/intake/lbsu', methods=['GET', 'POST'])
 @login_required
+@upload_required
 def intake_lbsu():
     return redirect(url_for('intake_bulk'))
 

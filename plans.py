@@ -22,10 +22,10 @@ USAGE_PATH = os.path.join(store.DATA_DIR, 'usage.json')
 
 # None = unlimited. history = how many recent outings feed the player profile.
 PLANS = {
-    'pilot':   {'label': 'Pilot (free trial)', 'max_players': None, 'max_coaches': None, 'history': 10, 'download': True,  'custom_stats': True,  'roster_upload': True, 'hitting': True, 'scouting': True},
-    'free':    {'label': 'Free',               'max_players': 5,    'max_coaches': 1,    'history': 3,  'download': False, 'custom_stats': False, 'roster_upload': False, 'hitting': False, 'scouting': False},
-    'team':    {'label': 'Team',               'max_players': None, 'max_coaches': 3,    'history': 10, 'download': True,  'custom_stats': True,  'roster_upload': False, 'hitting': True, 'scouting': False},
-    'program': {'label': 'Program',            'max_players': None, 'max_coaches': 10,   'history': 10, 'download': True,  'custom_stats': True,  'roster_upload': True, 'hitting': True, 'scouting': True},
+    'pilot':   {'label': 'Pilot (free trial)', 'max_players': None, 'max_coaches': None, 'max_assistants': 5, 'history': 10, 'download': True,  'custom_stats': True,  'roster_upload': True, 'hitting': True, 'scouting': True},
+    'free':    {'label': 'Free',               'max_players': 5,    'max_coaches': 1, 'max_assistants': 0,    'history': 3,  'download': False, 'custom_stats': False, 'roster_upload': False, 'hitting': False, 'scouting': False},
+    'team':    {'label': 'Team',               'max_players': None, 'max_coaches': 3, 'max_assistants': 1,    'history': 10, 'download': True,  'custom_stats': True,  'roster_upload': False, 'hitting': True, 'scouting': False},
+    'program': {'label': 'Program',            'max_players': None, 'max_coaches': 10, 'max_assistants': 5,   'history': 10, 'download': True,  'custom_stats': True,  'roster_upload': True, 'hitting': True, 'scouting': True},
 }
 DEFAULT_PLAN = 'pilot'
 FEATURE_NAMES = {'download': 'Download-to-send outing reports', 'custom_stats': 'Customizable player stats',
@@ -108,11 +108,30 @@ def can_add_players(program, new_count):
 
 
 def can_add_coach(program):
+    """Head-coach logins for a program (assistants are counted separately, see can_add_assistant)."""
     cap = limit(program, 'max_coaches')
     if cap is None:
         return True, ''
-    have = sum(1 for c in store.list_coaches().values() if c.get('program') == program)
+    have = sum(1 for c in store.list_coaches().values() if c.get('program') == program and c.get('role') != 'assistant')
     return (have < cap), f'Your plan includes up to {cap} coach login{"s" if cap != 1 else ""}.'
+
+
+def assistant_cap(program):
+    return limit(program, 'max_assistants') or 0
+
+
+def assistant_count(program):
+    return sum(1 for c in store.list_coaches().values() if c.get('program') == program and c.get('role') == 'assistant')
+
+
+def can_add_assistant(program):
+    """-> (ok, message). Assistant coaches are the head coach's helpers: none on the lowest plan, one on the middle, five on the top."""
+    cap = assistant_cap(program)
+    if cap <= 0:
+        return False, 'Your plan includes the head coach login only. Contact the ShepSavant admin to add assistant coaches.'
+    if assistant_count(program) >= cap:
+        return False, f'Your plan includes up to {cap} assistant coach{"es" if cap != 1 else ""}, and all are in use. Remove one to add another.'
+    return True, ''
 
 
 def trial_note(program):
@@ -160,7 +179,7 @@ def summary(days=30):
     coaches = store.list_coaches()
     progs = {}
     def row(p):
-        return progs.setdefault(p, {'program': p, 'label': store.program_label(p), 'coaches': 0, 'players': 0, 'last_login': 0,
+        return progs.setdefault(p, {'program': p, 'label': store.program_label(p), 'coaches': 0, 'assistants': 0, 'players': 0, 'last_login': 0,
                                     'logins': 0, 'uploads': 0, 'views': 0, 'downloads': 0, 'customized': 0, 'active_users': set()})
     for p, _l in store.list_programs():
         row(p)
@@ -169,7 +188,8 @@ def summary(days=30):
             row(k)
     for c in coaches.values():
         if c.get('program'):
-            row(c['program'])['coaches'] += 1
+            r_ = row(c['program'])
+            r_['assistants' if c.get('role') == 'assistant' else 'coaches'] += 1
     for pl in players.values():
         if pl.get('program') and pl['program'] not in store.DEMO_PROGRAMS:
             row(pl['program'])['players'] += 1
@@ -192,3 +212,49 @@ def summary(days=30):
         r['plan'] = plan_info(r['program'])
         out.append(r)
     return sorted(out, key=lambda r: r['label'].lower())
+
+
+def events(program=None, days=30, users=None, limit=200):
+    """Recent usage events, newest first, optionally limited to one program or a set of usernames."""
+    ev = (_load(USAGE_PATH) or {}).get('events', [])
+    cutoff = time.time() - days * 86400
+    out = [x for x in ev if x.get('t', 0) >= cutoff and (not program or x.get('p') == program) and (users is None or x.get('u') in users)]
+    out.sort(key=lambda x: -x.get('t', 0))
+    return out[:limit]
+
+
+def flags():
+    """Things worth a look: failed-login bursts, heavy downloading, and logins nobody has used in 60 days."""
+    now = time.time()
+    ev = (_load(USAGE_PATH) or {}).get('events', [])
+    fails, dls, last = {}, {}, {}
+    for x in ev:
+        u = x.get('u')
+        if x['e'] == 'login':
+            last[u] = max(last.get(u, 0), x['t'])
+        if now - x['t'] <= 86400:
+            if x['e'] == 'login_fail':
+                fails[u] = fails.get(u, 0) + 1
+            elif x['e'] == 'download':
+                dls[u] = dls.get(u, 0) + 1
+    out = []
+    for u, n in fails.items():
+        if n >= 5:
+            out.append({'kind': 'Failed logins', 'user': u, 'detail': f'{n} wrong passwords in the last 24 hours'})
+    for u, n in dls.items():
+        if n >= 15:
+            out.append({'kind': 'Heavy downloading', 'user': u, 'detail': f'{n} downloads in the last 24 hours'})
+    for u, c in store.list_coaches().items():
+        if c.get('active') is False:
+            continue
+        seen = last.get(u, 0)
+        if (now - seen > 60 * 86400) if seen else (now - _created_ts(c) > 60 * 86400):
+            out.append({'kind': 'Inactive login', 'user': u, 'detail': 'no login in 60+ days' if seen else 'has never logged in'})
+    return out
+
+
+def _created_ts(c):
+    try:
+        return datetime.datetime.fromisoformat(c.get('created', '')).timestamp()
+    except ValueError:
+        return time.time()
