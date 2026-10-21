@@ -828,8 +828,9 @@ def team_game_scorebook(program, gid):
             if prev is not None and p['pitcher'] != prev:
                 newp[p['seq']] = p['pitcher']
             prev = p['pitcher']
+        phs = {e['pas'][0]['seq'] for r in sb['rows'] for e in r['ents'][1:] if e['pas']}
         for r in sb['rows']:
-            r['cells'] = [(gr.cell2(p, gr._flip(newp[p['seq']]) if p['seq'] in newp else '', p['result'] is not None and p['outs'] + p['outs_made'] >= 3) if p else '') for p in r['cells']]
+            r['cells'] = [(gr.cell2(p, newp[p['seq']] if p['seq'] in newp else '', p['result'] is not None and p['outs'] + p['outs_made'] >= 3, p['seq'] in phs) if p else '') for p in r['cells']]
             for ent in r['ents']:
                 sides = {p['side'] for p in ent['pas'] if p['side']}
                 ent['hand'] = 'S' if len(sides) > 1 else (next(iter(sides)) if sides else '')

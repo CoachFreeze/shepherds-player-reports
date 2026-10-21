@@ -551,10 +551,14 @@ def pa_strikes(pa):
     return sum(1 for r in pa['rows'] if pitch_kind(r) in ('called', 'swing', 'foul', 'inplay'))
 
 
-def cell2(pa, new_pitcher='', end_inning=False, ink='#2a2118', gold='#b5763a', gray='#ddd3c2'):
+def cell2(pa, new_pitcher='', end_inning=False, new_batter=False, ink='#2a2118', gold='#b5763a', gray='#ddd3c2'):
     """One at-bat cell in the paper-scorebook layout: pitch sequence on top (B row / S row), field diagram, out circle, result box."""
     W, Hh = 148, 100
-    o = [f'<svg viewBox="0 0 {W} {Hh}" width="{W}" height="{Hh}" xmlns="http://www.w3.org/2000/svg" style="display:block;font-family:Barlow,Arial,sans-serif">']
+    o = [f'<svg viewBox="0 0 {W} {Hh + 10}" width="{W}" height="{Hh + 10}" xmlns="http://www.w3.org/2000/svg" style="display:block;font-family:Barlow,Arial,sans-serif">']
+    if new_pitcher:
+        nm = new_pitcher.split(',')[0] if ',' in new_pitcher else new_pitcher.split()[-1]
+        o.append(f'<text x="4" y="8.5" font-size="8.5" font-weight="800" letter-spacing=".06em" fill="#8b6b3d">P: {html.escape(nm.strip().upper()[:16])}</text>')
+    o.append('<g transform="translate(0 10)">')
     # pitch grid
     gx, cw, rh = 16, 16.5, 13
     o.append(f'<text x="4" y="12" font-size="9" fill="#a79c8a" font-weight="700">B</text><text x="4" y="25" font-size="9" fill="#a79c8a" font-weight="700">S</text>')
@@ -619,9 +623,7 @@ def cell2(pa, new_pitcher='', end_inning=False, ink='#2a2118', gold='#b5763a', g
         else:
             o.append(f'<text x="127" y="{76 if len(nt) <= 3 else 74}" text-anchor="middle" font-size="{fs}" font-weight="800" fill="{ink}">{html.escape(nt)}</text>')
     note = ''
-    if new_pitcher:
-        note = new_pitcher.split(',')[0][:9].upper()
-    elif pa['runs'] and res not in ('K swinging', 'K looking', 'Out', None):
+    if pa['runs'] and res not in ('K swinging', 'K looking', 'Out', None):
         note = f"{pa['runs']} RBI"
     if note:
         o.append(f'<text x="127" y="92" text-anchor="middle" font-size="7.5" font-weight="700" fill="#5b4a33">{html.escape(note)}</text>')
@@ -630,9 +632,11 @@ def cell2(pa, new_pitcher='', end_inning=False, ink='#2a2118', gold='#b5763a', g
     if pa.get('grade'):
         gc = {'A': '#2f8a57', 'B': '#4a93a8', 'C': '#d9a028', 'D': '#d9702c', 'F': '#c0443c'}[pa['grade'][0]]
         o.append(f'<rect x="110" y="46" width="20" height="11" rx="3" fill="{gc}"/><text x="120" y="54.6" text-anchor="middle" font-size="8.5" font-weight="800" fill="#fff">{pa["grade"]}</text>')
+    if new_batter:
+        o.append(f'<line x1="1.5" y1="0" x2="1.5" y2="{Hh}" stroke="{ink}" stroke-width="3"/>')
     if end_inning:
         o.append(f'<line x1="0" y1="{Hh - .8}" x2="{W}" y2="{Hh - .8}" stroke="{ink}" stroke-width="3"/>')
-    o.append('</svg>')
+    o.append('</g></svg>')
     return ''.join(o)
 
 
