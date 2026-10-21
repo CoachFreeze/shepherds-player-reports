@@ -204,7 +204,11 @@ def _pitch_session_series(outs):
 
 
 def pitching_data(program):
-    ps = _pitchers(program)
+    return pitching_from(_pitchers(program))
+
+
+def pitching_from(ps):
+    """Team pitching numbers for [(key, bio {'name'}, [outings newest first])]: used for a program's own pitchers and for scouting an opponent."""
     all_rows = [r for _, _, outs in ps for o in outs for r in o['rows']]
     vals = stats_mod.compute(all_rows) if all_rows else {}
     tiles_all = {}
@@ -264,7 +268,11 @@ def _hit_session_series(pitches):
 
 
 def hitting_data(program, include_demo):
-    hs = _hitters(program, include_demo)
+    return hitting_from(_hitters(program, include_demo))
+
+
+def hitting_from(hs):
+    """Team hitting numbers for {key: {'name', 'pitches': [...]}}: a program's own hitters, or the hitters of an opponent being scouted."""
     all_p = [p for h in hs.values() for p in h['pitches']]
     s_all = hitting.hitter_stats(all_p) if all_p else None
     tiles_all = {}

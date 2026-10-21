@@ -52,3 +52,24 @@ def opponents(program):
         s['pitchers'].sort(key=lambda x: x['name'].split()[-1].lower())
         s['dates'] = sorted(s['dates'])
     return out
+
+
+def team_data(program, opp_slug):
+    """Team-dashboard numbers for one opponent: {'pitching': ..., 'hitting': ...} in the same shape as team.pitching_data / hitting_data.
+    Pitching = the opposing pitchers we tracked; hitting = the opposing hitters our pitchers faced."""
+    import team
+    ps = []
+    for slug in _opp_pitcher_files(program):
+        data = outings.load(slug, real_only=True)
+        if data.get('program') != program:
+            continue
+        outs = []
+        for o in data['outings']:
+            rows = [r for r in o['rows'] if (store.slugify(r.get('Opponent') or '') or 'unlabeled') == opp_slug]
+            if rows:
+                outs.append({'date': o['date'], 'rows': rows})
+        if outs:
+            outs.sort(key=lambda x: x['date'], reverse=True)
+            ps.append((slug, {'name': _flip(outs[0]['rows'][0].get('Pitcher')) or slug}, outs))
+    hs = {k: h for k, h in hitting.collect_scouting(program).items() if h['opp_slug'] == opp_slug}
+    return {'pitching': team.pitching_from(ps), 'hitting': team.hitting_from(hs), 'cfg': team.load(program)}

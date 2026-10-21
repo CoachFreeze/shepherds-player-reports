@@ -1,5 +1,5 @@
 {% from '_card.html' import card, css as card_css with context %}<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Hitter Dashboard</title>
+<title>Hitters</title>
 <style>{{ theme_css|safe }}</style>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -15,7 +15,7 @@
   @media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr);gap:10px;} h1{font-size:32px;}}
 </style><style>{{ card_css() }}</style></head><body>
 <div class="hero"><div class="wrap"><div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>
-  <p class="eyebrow">{{ team_label }}</p><h1>Hitter Dashboard</h1><p class="sub">Tap a hitter to see their profile, swing decisions, spray chart and exit velocity.</p></div></div>
+  <p class="eyebrow">{{ team_label }}</p><h1>Hitters</h1><p class="sub">Tap a hitter to see their profile, swing decisions, spray chart and exit velocity.</p></div></div>
 <div class="wrap">
   <div class="bar"><a class="back" href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Dashboard</a><input id="q" type="search" placeholder="Search hitters…" autocomplete="off"><a class="back" style="margin-left:auto;" href="{{ url_for('hitters_sort', program=program) }}">Sort hitters &rsaquo;</a></div>
   {% if not rows %}<p style="color:var(--muted);margin-top:24px;">No hitters tracked for this team yet. Hitters appear here automatically once a session with batter data is uploaded.</p>{% endif %}

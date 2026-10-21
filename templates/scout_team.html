@@ -1,0 +1,87 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ opp.label }} &middot; Scouting</title>
+<style>{{ theme_css|safe }}</style>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#22303a; --teal:var(--accent,#5c97a8); --muted:#6b7680; --line:#dde2e5; --good:#2f9e6b; --bad:#d0503f; --card:#fff; }
+  *{box-sizing:border-box;} body{background:#f7f6f2;color:var(--ink);font-family:'Barlow',sans-serif;margin:0;padding-bottom:60px;}
+  .hero{background:var(--brand,#22303a);padding:34px 16px 24px;border-bottom:3px solid var(--teal);} .wrap{max-width:1280px;margin:0 auto;padding:0 16px;} .hero .wrap{padding:0;position:relative;}
+  .hero{position:relative;overflow:hidden;} .hero .wrap>*:not(.wm){position:relative;z-index:1;} .hero .wm{position:absolute;right:0;top:50%;transform:translateY(-50%);height:118%;max-height:140px;max-width:300px;width:auto;opacity:.2;pointer-events:none;z-index:0;object-fit:contain;}
+  @media (max-width:640px){.hero .wm{max-height:96px;max-width:160px;}}
+  .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-on-dark,#5c97a8);margin:0 0 8px;}
+  h1{font:700 40px 'Oswald',sans-serif;margin:0 0 6px;color:#fff;} .sub{color:#c9d3d8;font-size:14.5px;margin:0;}
+  .jump{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;} .jump a{font:600 13px 'Barlow',sans-serif;color:#fff;text-decoration:none;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:6px 14px;} .jump a:hover{background:rgba(255,255,255,.12);} .jump a.up{background:var(--accent,#5c97a8);border-color:transparent;color:var(--on-accent,#fff);} .jump a.up:hover{background:var(--accent-dark,#4e8798);}
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 34px;align-items:start;} .cols.one{grid-template-columns:minmax(0,1040px);justify-content:center;}
+  .cols .half{min-width:0;} .cols:not(.one) .trend{grid-template-columns:1fr;} .cols:not(.one) .tiles{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));} .cols:not(.one) .boards{grid-template-columns:repeat(2,minmax(0,1fr));}
+  @media (max-width:980px){.cols{grid-template-columns:minmax(0,1fr);}}
+  /* Pitching and hitting sit side by side: let the two halves share row tracks so each section (stats, leaderboard, movement, goals) starts at the same height in both columns. */
+  @supports (grid-template-rows: subgrid){@media (min-width:981px){.cols:not(.one) .half[id]{display:grid;grid-template-rows:subgrid;grid-row:span 3;}}}
+  .half{margin-top:34px;} .half-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:6px;}
+  .half-head h2{font:700 30px 'Oswald',sans-serif;letter-spacing:.02em;margin:0;text-transform:uppercase;} .half-head h2 small{font:600 11px 'Barlow',sans-serif;letter-spacing:.08em;color:#b3791f;border:1px solid #e3c88f;background:#fbf3e0;border-radius:999px;padding:3px 9px;margin-left:10px;vertical-align:middle;}
+  .half-meta{color:var(--muted);font-size:13.5px;margin:0 0 4px;}
+  .btn{display:inline-block;font:700 14px 'Barlow',sans-serif;color:#fff;background:var(--teal);border:none;border-radius:999px;padding:10px 20px;text-decoration:none;cursor:pointer;box-shadow:0 1px 3px rgba(26,31,36,.15);} .btn:hover{background:var(--accent-dark,#4e8798);}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none;padding:7px 14px;font-size:13px;} .btn.ghost:hover{background:#f2f4f3;}
+  h3{font:600 14px 'Oswald',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);margin:28px 0 12px;display:flex;align-items:center;gap:12px;} h3:after{content:'';flex:1;height:1px;background:#dcdfdc;} h3 .act{order:3;}
+  .card{background:var(--card);border-radius:16px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);padding:16px 18px;}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+  .tile{text-align:center;display:flex;flex-direction:column;justify-content:center;align-items:center;background:var(--card);border-radius:14px;box-shadow:0 1px 3px rgba(26,31,36,.08);padding:14px 14px 12px;} .tile .v{font:700 30px 'Oswald',sans-serif;line-height:1;} .tile .l{font:600 12px 'Barlow',sans-serif;color:var(--muted);margin-top:6px;letter-spacing:.02em;} .tile .d{font-size:11.5px;color:#98a3a9;margin-top:2px;}
+  .empty{color:var(--muted);font-size:14px;padding:6px 0;}
+  .picker{display:none;margin-top:12px;} .picker.open{display:block;} .picker fieldset{border:0;margin:0 0 12px;padding:0;} .picker legend{font:700 11px 'Barlow',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#98a3a9;margin-bottom:6px;}
+  .picker label{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;margin:0 14px 6px 0;cursor:pointer;} .picker .hint{font-size:12.5px;color:var(--muted);margin:0 0 12px;}
+  .boards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;} .board{aspect-ratio:1/1;padding:14px 14px 10px;display:flex;flex-direction:column;} .board h4{font-size:17px;} .board li{padding:5px 0;font-size:13.5px;gap:8px;} .board .val{font-size:17px;} .board .ex{width:auto;min-width:34px;} .board a.nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} @media (max-width:520px){.cols:not(.one) .boards{grid-template-columns:minmax(0,1fr);}.board{aspect-ratio:auto;}}
+  .board h4{font:700 18px 'Oswald',sans-serif;margin:0;} .board .s{font-size:12px;color:var(--muted);margin:2px 0 10px;}
+  .board ol{list-style:none;margin:0;padding:0;} .board li{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid #eef0ef;font-size:14.5px;} .board li:first-child{border-top:0;}
+  .rk{width:22px;height:22px;border-radius:50%;background:#eef2f3;color:var(--muted);font:700 12px/22px 'Barlow',sans-serif;text-align:center;flex:none;} li:first-child .rk{background:var(--ink);color:#fff;}
+  .board a.nm{color:var(--ink);text-decoration:none;font-weight:600;flex:1;} .board a.nm:hover{color:var(--teal);} .board .val{font:700 18px 'Oswald',sans-serif;} .board .ex{font-size:11.5px;color:#98a3a9;width:58px;text-align:right;}
+  .trend{display:grid;grid-template-columns:1fr 1fr;gap:14px;} @media (max-width:720px){.cols.one .trend{grid-template-columns:1fr;}}
+  .tcol h4{font:700 13px 'Barlow',sans-serif;letter-spacing:.08em;text-transform:uppercase;margin:0 0 8px;} .tcol.up h4{color:var(--good);} .tcol.down h4{color:var(--bad);}
+  .tc{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #eef0ef;} .tc:first-of-type{border-top:0;} .tc .who{flex:1;min-width:0;} .tc a{color:var(--ink);font-weight:700;text-decoration:none;font-size:15.5px;} .tc a:hover{color:var(--teal);}
+  .tc .m{font-size:12.5px;color:var(--muted);margin-top:2px;} .chip{font:700 13px 'Barlow',sans-serif;border-radius:999px;padding:4px 10px;white-space:nowrap;} .chip.up{background:#e4f4ec;color:#1f7a50;} .chip.down{background:#fbe8e5;color:#a63a2c;}
+  .goal{padding:12px 0;border-top:1px solid #eef0ef;} .goal:first-child{border-top:0;} .g-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;} .g-t{font-weight:700;font-size:15.5px;flex:1;min-width:150px;}
+  .tag{font:700 10.5px 'Barlow',sans-serif;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:3px 8px;background:#eef2f3;color:var(--muted);} .tag.result{background:#e7eef6;color:#35597e;} .tag.process{background:#efe9f6;color:#5f4685;} .tag.met{background:#e4f4ec;color:#1f7a50;} .tag.late{background:#fbe8e5;color:#a63a2c;}
+  .bar{height:8px;border-radius:4px;background:#e8edee;margin:8px 0 5px;overflow:hidden;} .bar i{display:block;height:100%;background:var(--teal);border-radius:4px;} .bar i.met{background:var(--good);}
+  .g-s{font-size:12.5px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap;align-items:center;} .g-s form{display:inline-flex;gap:6px;align-items:center;margin:0;} .g-s input[type=number]{width:84px;padding:4px 8px;border:1px solid var(--line);border-radius:8px;font:500 13px 'Barlow',sans-serif;}
+  .lnk{background:none;border:0;padding:0;color:var(--teal);font:600 12.5px 'Barlow',sans-serif;cursor:pointer;} .lnk.del{color:#a63a2c;}
+  .gform{display:none;margin-top:12px;gap:10px;flex-wrap:wrap;align-items:flex-end;} .gform.open{display:flex;} .gform label{display:flex;flex-direction:column;font:600 11px 'Barlow',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#98a3a9;gap:4px;}
+  .gform input,.gform select{padding:8px 10px;border:1px solid var(--line);border-radius:10px;font:500 14px 'Barlow',sans-serif;background:#fff;color:var(--ink);} .gform input[name=title]{min-width:220px;}
+  .tile.has-plus{position:relative;overflow:hidden;} .tile .plus{position:absolute;right:0;bottom:0;width:42px;height:42px;background:var(--accent,#5c97a8);color:var(--on-accent,#fff);clip-path:polygon(100% 0,100% 100%,0 100%);font:600 20px/1 'Barlow',sans-serif;text-decoration:none;display:flex;align-items:flex-end;justify-content:flex-end;padding:0 7px 5px 0;transition:filter .15s;} .tile .plus:hover{filter:brightness(1.12);}
+  @media (max-width:520px){h1{font-size:32px;} .half-head h2{font-size:25px;}}
+
+  .lg{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0 0;font-size:13px;color:var(--muted);} .lg button{border:0;background:#eef1f0;border-radius:999px;padding:7px 14px;font:700 12.5px Barlow,sans-serif;cursor:pointer;color:var(--ink);}
+  .nolist{display:none;}
+</style></head><body>
+<div class="hero"><div class="wrap">{% if opp.logo %}<img class="wm" src="{{ opp.logo }}{{ '&' if '?' in opp.logo else '?' }}mark=1" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
+  <p class="eyebrow">{{ team_label }} &middot; Scouting</p><h1>{{ opp.label }}</h1>
+  <p class="sub">{{ opp.pitchers|length }} pitcher{{ 's' if opp.pitchers|length != 1 }} &middot; {{ opp.hitters|length }} hitter{{ 's' if opp.hitters|length != 1 }} seen{% if opp.dates %} &middot; {{ opp.dates|length }} session{{ 's' if opp.dates|length != 1 }}{% endif %}{% if last_session %} &middot; last session {{ last_session }}{% endif %}</p>
+  <div class="jump"><a href="{{ url_for('team_scouting', program=program) }}">&larr; All opponents</a></div></div></div>
+
+<div class="wrap">
+{% if not opp.logo or opp.custom %}<form class="lg" method="post" action="{{ url_for('scouting_logo_save', program=program, opp=opp.slug) }}" enctype="multipart/form-data">{{ 'Logo for ' ~ opp.label ~ ':' if not opp.logo else 'Custom logo in use.' }}<input type="file" name="logo" accept="image/png,image/jpeg,image/webp" required><button type="submit">{{ 'Replace logo' if opp.custom else 'Add logo' }}</button>{% if opp.custom %}<button type="submit" name="remove" value="1" formnovalidate>Remove</button>{% endif %}</form>{% endif %}
+<div class="cols">
+{% for H in halves %}{% set side = H.side %}{% set D = H.D %}
+<section class="half" id="{{ side }}">
+<div class="blk">
+  <div class="half-head"><h2>{{ 'Pitching' if side == 'pitching' else 'Hitting' }}</h2>
+    {% if side == 'pitching' %}<a class="btn" href="{{ url_for('team_scouting_pitchers', program=program, opp=opp.slug) }}">See Pitchers &rarr;</a>
+    {% else %}<a class="btn" href="{{ url_for('team_scouting_hitters', program=program, opp=opp.slug) }}">See Hitters &rarr;</a>{% endif %}</div>
+  <p class="half-meta">{{ D.n_players }} {{ 'pitcher' if side == 'pitching' else 'hitter' }}{{ 's' if D.n_players != 1 }} &middot; {{ '{:,}'.format(D.n_pitches) }} pitches &middot; {{ D.sessions|length }} session{{ 's' if D.sessions|length != 1 }}</p>
+</div>
+  {% if not D.n_players %}<div class="blk"><div class="card" style="margin-top:14px;"><div class="empty">No {{ 'pitching' if side == 'pitching' else 'hitting' }} data on {{ opp.label }} yet.</div></div></div><div class="blk"></div>
+  {% else %}
+<div class="blk">
+  <h3>Team stats</h3>
+  {% if H.tiles %}<div class="tiles">{% for t in H.tiles %}<div class="tile" title="{{ t.definition }}"><div class="v">{{ t.value }}</div><div class="l">{{ t.label }}</div></div>{% endfor %}</div>
+  {% else %}<div class="card"><div class="empty">None of the selected stats have data yet.</div></div>{% endif %}
+</div>
+<div class="blk">
+  <h3>Leaderboard</h3>
+  <div class="boards">{% for b in D.boards %}<div class="card board"><h4>{{ b.title }}</h4><div class="s">{{ b.sub }}</div>
+    {% if b.rows %}<ol>{% for r in b.rows %}<li><span class="rk">{{ loop.index }}</span><a class="nm" href="{{ url_for('scouting_pitcher', slug=r.key, opp=opp.slug) if side == 'pitching' else url_for('beta_hitter', key=r.key) }}">{{ r.name }}</a><span class="ex">{{ r.extra }}</span><span class="val">{{ r.value }}</span></li>{% endfor %}</ol>
+    {% else %}<div class="empty">Not enough tracked data yet.</div>{% endif %}</div>{% endfor %}</div>
+</div>
+  {% endif %}
+</section>
+{% endfor %}
+</div>
+</div>
+</body></html>

@@ -411,7 +411,7 @@ def _team_players_page(program, page_title, pitchers_only=False):
     groups = [g for g in _build_groups() if g[0] == program]
     if not groups:
         abort(404)
-    if pitchers_only:      # hitters who never pitched belong on the Hitter Dashboard only
+    if pitchers_only:      # hitters who never pitched belong on the Hitters page only
         groups = [(k, l, [t for t in pl if not t[1].get('roles') or (t[1].get('roles') or {}).get('pitch')]) for k, l, pl in groups]
     return render_template('dashboard.html', mode='players', groups=[(l, p) for _, l, p in groups], team_label=groups[0][1], tiles=[],
                            is_coach=True, is_admin=is_admin(), coach_key=session.get('coach') or '', tour_next=_tour_next_player(groups),
@@ -429,7 +429,7 @@ def team_view(program):
 @login_required
 def team_pitchers(program):
     _team_ok(program)
-    return _team_players_page(program, 'Pitcher Dashboard', pitchers_only=True)
+    return _team_players_page(program, 'Pitchers', pitchers_only=True)
 
 
 @app.route('/team/<program>/hitters')
@@ -860,12 +860,8 @@ def team_scouting(program):
     return render_template('scouting.html', program=program, team_label=store.program_label(program), opps=opps, opp=None)
 
 
-@app.route('/team/<program>/scouting/<opp>')
-@login_required
-def team_scouting_opp(program, opp):
-    blocked = _scouting_ok(program)
-    if blocked:
-        return blocked
+def _scout_opp(program, opp):
+    """The opponent dict for the scouting pages (None -> 404), with logo and note flags filled in."""
     o = scouting.opponents(program).get(opp)
     if not o:
         abort(404)
@@ -876,7 +872,44 @@ def team_scouting_opp(program, opp):
         x['noted'] = bool((_nt.get(x['key']) or {}).get('t'))
     for x in o['pitchers']:
         x['noted'] = bool((_nt.get('p--' + x['slug']) or {}).get('t'))
-    return render_template('scouting.html', program=program, team_label=store.program_label(program), opps=[], opp=o)
+    return o
+
+
+@app.route('/team/<program>/scouting/<opp>')
+@login_required
+def team_scouting_opp(program, opp):
+    """Scouting Team Dashboard for one opponent: their pitchers and hitters side by side, like a team's own dashboard."""
+    blocked = _scouting_ok(program)
+    if blocked:
+        return blocked
+    o = _scout_opp(program, opp)
+    D = scouting.team_data(program, opp)
+    cfg = D['cfg']
+    halves = []
+    for side, ids in (('pitching', cfg['pitching_stats']), ('hitting', cfg['hitting_stats'])):
+        d = D[side]
+        halves.append({'side': side, 'D': d, 'tiles': [d['tiles'][i] for i in ids if i in d['tiles']]})
+    sessions = sorted(set(D['pitching']['sessions']) | set(D['hitting']['sessions']))
+    return render_template('scout_team.html', program=program, team_label=store.program_label(program), opp=o, halves=halves,
+                           last_session=sessions[-1] if sessions else None)
+
+
+@app.route('/team/<program>/scouting/<opp>/pitchers')
+@login_required
+def team_scouting_pitchers(program, opp):
+    blocked = _scouting_ok(program)
+    if blocked:
+        return blocked
+    return render_template('scouting.html', program=program, team_label=store.program_label(program), opps=[], opp=_scout_opp(program, opp), view='pitchers')
+
+
+@app.route('/team/<program>/scouting/<opp>/hitters')
+@login_required
+def team_scouting_hitters(program, opp):
+    blocked = _scouting_ok(program)
+    if blocked:
+        return blocked
+    return render_template('scouting.html', program=program, team_label=store.program_label(program), opps=[], opp=_scout_opp(program, opp), view='hitters')
 
 
 @app.route('/team/<program>/scouting/<opp>/print')
@@ -1037,7 +1070,7 @@ def scouting_pitcher(slug):
                            dates=sorted({(r.get('Date') or '')[:10] for r in rows if r.get('Date')}),
                            location_html=sc_mod.location_heatmap_html(tm, width=340, uid='loc'),
                            effect=pitchfx.effectiveness(rows, [t_['type'] for t_ in tm], colors),
-                           program=prog, note_key='p--' + slug, note=scoutnotes.get(prog, 'p--' + slug), back_url=url_for('team_scouting_opp', program=prog, opp=opp_slug))
+                           program=prog, note_key='p--' + slug, note=scoutnotes.get(prog, 'p--' + slug), back_url=url_for('team_scouting_pitchers', program=prog, opp=opp_slug))
 
 
 def _scout_hitter_page(key, h):
@@ -1054,7 +1087,7 @@ def _scout_hitter_page(key, h):
     opp = h['opponent']
     return render_template('scout_hitter.html', h=h, r=rep, zone_svg=scoutplan.zone_map_svg(rep['cells'], bats=bats if bats in ('L', 'R') else None),
                            initials=_initials(h['name']), logo=_opp_logo_url(prog, h['opp_slug'], opp), program=prog, note_key=key,
-                           note=scoutnotes.get(prog, key), back_url=url_for('team_scouting_opp', program=prog, opp=h['opp_slug']))
+                           note=scoutnotes.get(prog, key), back_url=url_for('team_scouting_hitters', program=prog, opp=h['opp_slug']))
 
 
 @app.route('/hitter/<key>')

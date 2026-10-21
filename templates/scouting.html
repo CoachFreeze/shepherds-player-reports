@@ -18,22 +18,24 @@
   @media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr);gap:10px;} h1{font-size:32px;}}
 </style><style>{{ card_css() }}</style></head><body>
 <div class="hero"><div class="wrap">{% if opp and opp.logo %}<img class="wm" src="{{ opp.logo }}{{ '&' if '?' in opp.logo else '?' }}mark=1" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>
-  <p class="eyebrow">{{ team_label }} &middot; Scouting</p><h1>{{ opp.label if opp else 'Scouting' }}</h1>
+  <p class="eyebrow">{{ team_label }} &middot; Scouting{% if view %} &middot; {{ 'Pitchers' if view == 'pitchers' else 'Hitters' }}{% endif %}</p><h1>{{ opp.label if opp else 'Scouting' }}</h1>
   <p class="sub">{% if opp %}{{ opp.hitters|length }} hitter{{ 's' if opp.hitters|length != 1 }} &middot; {{ opp.pitchers|length }} pitcher{{ 's' if opp.pitchers|length != 1 }} seen{% if opp.dates %} &middot; {{ opp.dates|length }} session{{ 's' if opp.dates|length != 1 }}{% endif %}{% else %}Opponents from your games and scrimmages. Private to {{ team_label }}.{% endif %}</p></div></div>
 <div class="wrap">
-  <div class="bar"><a class="back" href="{{ url_for('team_scouting', program=program) if opp else url_for('team_dashboard', program=program) }}">&larr; {{ 'All opponents' if opp else 'Team Dashboard' }}</a>{% if opp and (opp.hitters or opp.pitchers) %}<a class="pbtn" style="margin-left:auto" href="{{ url_for('team_scouting_print', program=program, opp=opp.slug) }}">Printable scouting book</a>{% endif %}</div>
+  <div class="bar"><a class="back" href="{{ url_for('team_scouting_opp', program=program, opp=opp.slug) if opp else url_for('team_dashboard', program=program) }}">&larr; Team Dashboard</a></div>
   {% if opp and (not opp.logo or opp.custom) %}<form class="lg" method="post" action="{{ url_for('scouting_logo_save', program=program, opp=opp.slug) }}" enctype="multipart/form-data">{{ 'Logo for ' ~ opp.label ~ ':' if not opp.logo else 'Custom logo in use.' }}<input type="file" name="logo" accept="image/png,image/jpeg,image/webp" required><button type="submit">{{ 'Replace logo' if opp.custom else 'Add logo' }}</button>{% if opp.custom %}<button type="submit" name="remove" value="1" formnovalidate>Remove</button>{% endif %}</form>{% endif %}
   {% if not opp %}
     {% if not opps %}<p class="empty">No scouting data yet. Upload a <b>Scrimmage</b> or <b>Game</b> CSV and enter the opponent. The hitters your pitchers faced and the pitchers your hitters faced will collect here by team.</p>{% endif %}
     <div class="grid">{% for o in opps %}<a class="opp" href="{{ url_for('team_scouting_opp', program=program, opp=o.slug) }}"><div class="chip">{% if o.logo %}<img src="{{ o.logo }}" alt="">{% else %}{{ o.initials }}{% endif %}</div><b>{{ o.label }}</b><span>{{ o.hitters|length }} hitter{{ 's' if o.hitters|length != 1 }} &middot; {{ o.pitchers|length }} pitcher{{ 's' if o.pitchers|length != 1 }}{% if o.dates %}<br>Last seen {{ o.dates[-1] }}{% endif %}</span></a>{% endfor %}</div>
   {% else %}
-    <h2>Hitters<small>{{ opp.hitters|length }}</small></h2>
+    {% if view != 'pitchers' %}<h2>Hitters<small>{{ opp.hitters|length }}</small></h2>
     {% if not opp.hitters %}<p class="empty">No hitters yet. They come from your pitchers' pitches in games and scrimmages, or a scouting-only upload.</p>{% endif %}
     <div class="grid">{% for x in opp.hitters %}{% set parts = x.name.split() %}
       {{ card(url_for('beta_hitter', key=x.key), parts[-1], parts[:-1]|join(' '), opp.label, None, None, None, None, x.n ~ ' pitches seen' ~ (' · notes' if x.noted else ''), (x.name ~ ' ' ~ opp.label)|lower, None, None, (parts[0][:1] ~ parts[-1][:1])|upper, opp.logo) }}{% endfor %}</div>
-    <h2>Pitchers<small>{{ opp.pitchers|length }}</small></h2>
+    {% endif %}
+    {% if view != 'hitters' %}<h2>Pitchers<small>{{ opp.pitchers|length }}</small></h2>
     {% if not opp.pitchers %}<p class="empty">No pitchers yet. When you upload a Game or Scrimmage, the other team's pitchers are kept here, so don't check them on the review screen.</p>{% endif %}
     <div class="grid">{% for x in opp.pitchers %}{% set parts = x.name.split() %}
       {{ card(url_for('scouting_pitcher', slug=x.slug, opp=x.opp), parts[-1], parts[:-1]|join(' '), opp.label, None, ('RHP' if x.throws == 'R' else 'LHP' if x.throws == 'L' else None), None, None, (x.n ~ ' pitches' ~ (' · top ' ~ ('%.1f'|format(x.top)) ~ ' mph' if x.top else '') ~ (' · notes' if x.noted else '')), x.name|lower, None, None, (parts[0][:1] ~ parts[-1][:1])|upper, opp.logo) }}{% endfor %}</div>
+    {% endif %}
   {% endif %}
 </div></body></html>

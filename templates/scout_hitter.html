@@ -4,7 +4,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 {% include '_scout_css.html' %}
 </head><body><div class="ov">
-<div class="top"><a class="bk" href="{{ back_url }}">&larr; {{ h.opponent }}</a><span class="acts"><button class="btn ghost" type="button" onclick="window.print()">Print scouting sheet</button>{% include '_usermenu.html' %}</span></div>
+<div class="top"><a class="bk" href="{{ back_url }}">&larr; Hitters</a><span class="acts"><button class="btn ghost" type="button" onclick="window.print()">Print scouting sheet</button>{% include '_usermenu.html' %}</span></div>
 {% set s = r.stats %}{% set sp = r.spray %}
 <div class="head">
   <div class="hs">{% if logo %}<img src="{{ logo }}" alt="">{% else %}<span>{{ initials }}</span>{% endif %}</div>
