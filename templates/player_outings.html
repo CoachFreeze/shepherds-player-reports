@@ -20,7 +20,7 @@
   .dlrow{text-align:right;margin:3px 2px 0;} .olog a.dl{font:600 12.5px 'Barlow',sans-serif;color:var(--accent-ink,var(--accent,#5c97a8));text-decoration:none;} .olog a.dl:hover{text-decoration:underline;}
   @media (max-width:560px){.olog .st{width:100%;justify-content:space-between;}}
 </style></head><body><div class="ov">
-<div class="top"><a href="{{ url_for('player_overview', slug=slug) }}">&larr; {{ bio.name }}</a>{% if is_coach %}<span style="display:flex;align-items:center;gap:12px;"><a class="upl" href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a>{% include '_usermenu.html' %}</span>{% endif %}</div>
+<div class="top"><a href="{{ url_for('player_overview', slug=slug) }}">&larr; {{ bio.name }}</a>{% if is_coach %}<span style="display:flex;align-items:center;gap:12px;">{% if me.can_upload %}<a class="upl" href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a>{% endif %}{% include '_usermenu.html' %}</span>{% elif me and me.is_player %}{% include '_usermenu.html' %}{% endif %}</div>
 <div class="head">
   <div class="hs">{% if has_photo %}<img src="{{ url_for('headshot', slug=slug) }}" alt="">{% elif badge %}<img src="{{ url_for('school_logo', fname=badge.file) }}" alt="" style="object-fit:contain;padding:16%;background:{{ badge.bg }};">{% endif %}</div>
   <div><h1>{{ bio.name }}</h1><div class="sub">Outing Reports &middot; {{ log|length }} outing{{ 's' if log|length != 1 }}</div></div>
@@ -29,5 +29,5 @@
   {% for o in log %}<div class="orow"><a class="main" href="{{ url_for('view_outing', slug=slug, date=o.id) }}">
     <div><div class="d">{{ o.label }}<span class="tag2 {{ 'live' if (o.live_ab and o.stype != 'Bullpen') else 'bp' }}">{{ o.stype or ('Live AB' if o.live_ab else 'Bullpen') }}</span></div><div class="m">{% if o.opp %}vs {{ o.opp }} &middot; {% endif %}{{ o.types }}</div></div>
     <div class="st"><span><b>{{ o.n }}</b>Pitches</span><span><b>{{ '%.1f'|format(o.top) if o.top else '—' }}</b>Top Velo</span><span><b>{{ o.strike }}</b>Strike %</span>{% if o.ip %}<span><b>{{ o.ip }}</b>IP</span>{% endif %}</div></a>
-    <div class="dlrow"><a class="dl" href="{{ url_for('view_outing', slug=slug, date=o.id) }}?download=1">&#8681; Download to send to {{ bio.name.split()[0] }}</a>{% if can_edit and not is_demo %} <a class="dl" style="margin-left:12px;" href="{{ url_for('retag_pitches', slug=slug, date=o.id) }}">&#9998; Retag pitches</a>{% endif %}</div></div>{% endfor %}
+    <div class="dlrow"><a class="dl" href="{{ url_for('view_outing', slug=slug, date=o.id) }}?download=1">&#8681; {% if me and me.is_player %}Download report{% else %}Download to send to {{ bio.name.split()[0] }}{% endif %}</a>{% if can_edit and not is_demo %} <a class="dl" style="margin-left:12px;" href="{{ url_for('retag_pitches', slug=slug, date=o.id) }}">&#9998; Retag pitches</a>{% endif %}</div></div>{% endfor %}
 </div></div></body></html>

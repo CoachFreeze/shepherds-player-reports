@@ -68,7 +68,8 @@ def set_plan(program, plan, trial_ends='', note=''):
     if plan not in PLANS:
         return 'Unknown plan.'
     d = all_plans()
-    d[program] = {'plan': plan, 'trial_ends': (trial_ends or '').strip(), 'note': (note or '').strip()[:200]}
+    d[program] = {**{k: v for k, v in (d.get(program) or {}).items() if k.startswith('flag_')},
+                  'plan': plan, 'trial_ends': (trial_ends or '').strip(), 'note': (note or '').strip()[:200]}
     _save(PLANS_PATH, d, 'data/plans.json')
     return None
 
@@ -258,3 +259,15 @@ def _created_ts(c):
         return datetime.datetime.fromisoformat(c.get('created', '')).timestamp()
     except ValueError:
         return time.time()
+
+
+def flag(program, name):
+    return bool((all_plans().get(program) or {}).get('flag_' + name))
+
+
+def set_flag(program, name, on):
+    d = all_plans()
+    e = dict(d.get(program) or {'plan': plan_info(program)['plan'], 'trial_ends': '', 'note': ''})
+    e['flag_' + name] = bool(on)
+    d[program] = e
+    _save(PLANS_PATH, d, 'data/plans.json')

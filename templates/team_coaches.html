@@ -13,7 +13,7 @@ button{padding:8px 16px;border:none;border-radius:999px;background:#5c97a8;color
 </style></head><body>
 <a href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Dashboard</a>
 <h1>Coaches</h1><div class="sub">{{ team_label }} &middot; {{ count }} of {{ cap }} assistant coach{{ '' if cap == 1 else 'es' }} in use</div>
-{% if msg %}<div class="msg {{ 'err' if err }}">{{ msg }}</div>{% endif %}
+{% if msg and not invite_url %}<div class="msg {{ 'err' if err }}">{{ msg }}</div>{% endif %}
 
 <h2>Head coach</h2>
 {% for u, c in heads.items() %}<div class="card"><b>{{ c.display_name }}</b> <small>({{ u }})</small><br><small>Full access, including logins, appearance, and removing data.</small></div>{% endfor %}
@@ -41,6 +41,28 @@ button{padding:8px 16px;border:none;border-radius:999px;background:#5c97a8;color
   <label style="font-weight:500;"><input type="checkbox" name="can_upload" value="1" checked> Allow this coach to upload data</label>
   <div style="margin-top:14px;"><button type="submit">Add assistant</button></div></form></div>
 {% else %}<div class="card"><small>{{ why }}</small></div>{% endif %}
+
+{% if is_admin %}<h2>Player logins (beta)</h2><div class="card"><div class="row"><small>Admin switch. {{ 'Currently ON for this program.' if players_on else 'Currently OFF: head coaches do not see the player section.' }}</small>
+<form method="post" style="margin:0;"><input type="hidden" name="action" value="players_switch"><input type="hidden" name="value" value="{{ '0' if players_on else '1' }}"><button class="alt">{{ 'Turn off' if players_on else 'Turn on' }}</button></form></div></div>{% endif %}
+{% if players_on %}
+<h2>Players <small style="font:600 11px Barlow;background:#f3e3c8;color:#8a5a14;border-radius:999px;padding:2px 8px;vertical-align:middle;">BETA</small></h2>
+<div class="sub">A player sees only his own profile and reports: no team pages, no scouting, no other players, and no editing or uploading. His login stops working on the season-end date.</div>
+{% if invite_url %}<div class="msg"><b>{{ msg }}</b><br><input type="text" readonly value="{{ invite_url }}" onclick="this.select()" style="margin-top:8px;"><br><small>Copy it now and send it to the player. It is not shown again.</small></div>{% endif %}
+{% for u, c in players.items() %}
+<div class="card"><div class="row"><div><b>{{ c.display_name }}</b> <small>({{ u }})</small>
+  <span class="pill {{ '' if c.get('active', True) else 'off' }}">{{ 'Active' if c.get('active', True) else 'Turned off' }}</span><br>
+  <small>Last login: {% if last.get(u) %}{{ ((now - last[u]) // 86400)|int }} day(s) ago{% else %}never{% endif %} &middot; Access until {{ c.get('expires') }}</small></div></div>
+  <div class="acts">
+    <form method="post"><input type="hidden" name="action" value="p_active"><input type="hidden" name="username" value="{{ u }}"><input type="hidden" name="value" value="{{ '0' if c.get('active', True) else '1' }}"><button class="alt">{{ 'Turn off login' if c.get('active', True) else 'Turn login back on' }}</button></form>
+    <form method="post"><input type="hidden" name="action" value="p_extend"><input type="hidden" name="username" value="{{ u }}"><input type="date" name="season_end" value="{{ season_end }}" style="padding:5px;"><button class="alt">Set access end date</button></form>
+    <form method="post" onsubmit="return confirm('Remove this player login?');"><input type="hidden" name="action" value="p_remove"><input type="hidden" name="username" value="{{ u }}"><button class="del">Remove</button></form>
+  </div></div>
+{% else %}<div class="card"><small>No player logins yet.</small></div>{% endfor %}
+<div class="card"><form method="post"><input type="hidden" name="action" value="p_invite"><label>Invite a player</label>
+  <select name="who" required style="width:100%;padding:9px;border:1px solid #dcdfdc;border-radius:7px;"><option value="">Choose a player...</option>{% for v, n in choices %}<option value="{{ v }}">{{ n }}</option>{% endfor %}</select>
+  <label>Access ends</label><input type="date" name="season_end" value="{{ season_end }}" style="padding:8px;border:1px solid #dcdfdc;border-radius:7px;">
+  <div style="margin-top:14px;"><button type="submit">Create invite link</button></div></form></div>
+{% endif %}
 
 <h2>Recent activity</h2>
 <div class="card log">{% for x in log %}<div><b>{{ x.u }}</b> &middot; {{ x.e|replace('_',' ') }} <small>&middot; {{ ((now - x.t) // 3600)|int }}h ago</small></div>{% else %}<small>Nothing in the last 30 days.</small>{% endfor %}</div>

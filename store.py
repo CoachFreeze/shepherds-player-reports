@@ -164,8 +164,17 @@ def verify_coach(username, password):
 
 
 def coach_active(username):
-    """False for a login the head coach has turned off (a missing 'active' flag means on)."""
-    return (list_coaches().get(username) or {}).get('active') is not False
+    """False for a turned-off login, and for a player login whose season has ended."""
+    c = list_coaches().get(username) or {}
+    if c.get('active') is False:
+        return False
+    if c.get('role') == 'player' and c.get('expires'):
+        try:
+            if datetime.date.fromisoformat(c['expires']) < datetime.date.today():
+                return False
+        except ValueError:
+            pass
+    return True
 
 
 def add_assistant(username, display_name, password, program, program_label, head, can_upload=True):
@@ -612,3 +621,73 @@ def needs_first_upload(username):
     if c.get('role', 'admin') != 'program' or c.get('uploaded_first'):
         return False
     return not any(p.get('program') == c.get('program') for p in list_players().values())
+
+
+
+# --- Player logins (beta) ------------------------------------------------------
+# A player gets a read-only login to see only his own profile. The head coach creates a one-time invite link; the player
+# opens it and picks his own username and password. Only a hash of the link's token is stored.
+INVITES_PATH = os.path.join(DATA_DIR, 'invites.json')
+INVITE_DAYS = 7
+
+
+def _hash_token(token):
+    import hashlib
+    return hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+
+def _save_invites(d):
+    _save(INVITES_PATH, d)
+    try:
+        with open(INVITES_PATH, 'rb') as f:
+            github_sync.put_file('data/invites.json', f.read())
+    except Exception as exc:
+        print(f'WARNING: could not push invites.json: {exc}')
+
+
+def default_season_end():
+    """Next June 30 (a player login stops working then unless the head coach extends it)."""
+    t = datetime.date.today()
+    y = t.year if t <= datetime.date(t.year, 6, 30) else t.year + 1
+    return datetime.date(y, 6, 30).isoformat()
+
+
+def create_invite(program, name, slug, hkey, head, season_end=None):
+    import secrets
+    token = secrets.token_urlsafe(18)
+    d = _load(INVITES_PATH, {})
+    now = datetime.date.today()
+    for k in [k for k, v in d.items() if v.get('used') or v.get('invite_expires', '') < now.isoformat()]:
+        del d[k]                                  # tidy old links
+    d[_hash_token(token)] = {'program': program, 'name': name, 'slug': slug, 'hkey': hkey, 'head': head,
+                             'season_end': season_end or default_season_end(), 'created': now.isoformat(),
+                             'invite_expires': (now + datetime.timedelta(days=INVITE_DAYS)).isoformat()}
+    _save_invites(d)
+    return token
+
+
+def get_invite(token):
+    v = _load(INVITES_PATH, {}).get(_hash_token(token or ''))
+    if not v or v.get('invite_expires', '') < datetime.date.today().isoformat():
+        return None
+    return v
+
+
+def use_invite(token):
+    d = _load(INVITES_PATH, {})
+    d.pop(_hash_token(token or ''), None)
+    _save_invites(d)
+
+
+def add_player_login(username, display_name, password, inv):
+    coaches = list_coaches()
+    coaches[username] = {'display_name': display_name, 'password_hash': generate_password_hash(password), 'role': 'player',
+                         'program': inv['program'], 'program_label': program_label(inv['program']), 'head': inv.get('head'),
+                         'player_slug': inv.get('slug'), 'hitter_key': inv.get('hkey'), 'player_name': inv['name'],
+                         'expires': inv['season_end'], 'active': True, 'created': datetime.date.today().isoformat()}
+    _save(COACHES_PATH, coaches)
+    _push_coaches()
+
+
+def program_players(program):
+    return {u: c for u, c in list_coaches().items() if c.get('program') == program and c.get('role') == 'player'}

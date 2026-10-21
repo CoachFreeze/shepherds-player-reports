@@ -69,6 +69,8 @@ def can_manage(slug):
         return False
     if c.get('role', 'admin') == 'admin':
         return True
+    if c.get('role') == 'player':
+        return False
     p = store.get_player(slug)
     return bool(p) and p.get('program', 'shepherds') == c.get('program')
 
@@ -81,6 +83,8 @@ def can_view(slug):
     c = current_coach()
     if p.get('program') in store.DEMO_PROGRAMS:          # the bundled sample program is for admins only
         return is_admin()
+    if c and c.get('role') == 'player':                  # a player sees only himself
+        return slug == c.get('player_slug')
     if c and c.get('role', 'admin') != 'admin':          # a signed-in program coach sees only his own program
         return can_manage(slug)
     if p.get('program', 'shepherds') in store.PUBLIC_PROGRAMS:
@@ -126,14 +130,39 @@ def can_upload():
     c = current_coach()
     if not c:
         return False
+    if c.get('role') == 'player':
+        return False
     return c.get('role') != 'assistant' or c.get('can_upload', True)
+
+
+def is_player():
+    c = current_coach()
+    return bool(c) and c.get('role') == 'player'
+
+
+def player_home():
+    """The one page a player lands on: his pitcher profile, else his hitter profile."""
+    c = current_coach() or {}
+    if c.get('player_slug') and store.get_player(c['player_slug']):
+        return url_for('player_overview', slug=c['player_slug'])
+    hk = _player_hkey(c)
+    return url_for('beta_hitter', key=hk) if hk else url_for('account')
+
+
+def _player_hkey(c):
+    if c.get('hitter_key'):
+        return c['hitter_key']
+    try:
+        return hitting.hitter_key_for(c.get('player_name', ''), c.get('program'), include_demo=False)
+    except Exception:
+        return None
 
 
 def head_required(view):
     """Head coach (or admin) only: managing logins, appearance, and removing data. Assistants get a plain 403."""
     @functools.wraps(view)
     def wrapped(*args, **kwargs):
-        if is_assistant():
+        if is_assistant() or is_player():
             abort(403)
         return view(*args, **kwargs)
     return wrapped
@@ -142,6 +171,8 @@ def head_required(view):
 def upload_required(view):
     @functools.wraps(view)
     def wrapped(*args, **kwargs):
+        if session.get('coach') and is_player():
+            abort(403)
         if session.get('coach') and not can_upload():
             return (BULK_STYLE + '<h1>Uploads are turned off</h1><div class="card">Your head coach has turned off uploading for assistant coaches. '
                     'Ask them to switch it back on from the Coaches page.</div><p><a href="' + home_url() + '">Back to the dashboard</a></p>'), 403
@@ -166,8 +197,31 @@ LOGIN_PAGE = """
   <input name="username" placeholder="Username" autofocus>
   <input name="password" type="password" placeholder="Password">
   <button type="submit">Log in</button>
+  <div style="font-size:11.5px;color:#76828a;margin-top:12px;line-height:1.45;">For authorized coaches and players only. Sign-ins and report downloads are logged, and printed or saved reports are marked with the name of the person they were prepared for.</div>
 </form>
 """
+
+
+_FOOTER_ENDPOINTS = {'view_outing', 'team_scouting_print', 'team_game_scorebook', 'team_game'}
+
+
+@app.after_request
+def prepared_for_footer(resp):
+    """Every report page that can be printed or saved carries who it was prepared for, so a shared copy can be traced."""
+    try:
+        if (request.endpoint in _FOOTER_ENDPOINTS and session.get('coach') and resp.status_code == 200 and (resp.mimetype or '') == 'text/html'
+                and not resp.direct_passthrough):
+            c = current_coach() or {}
+            who = (c.get('display_name') or session.get('coach')).replace('&', '&amp;').replace('<', '&lt;')
+            import datetime as _d
+            html = resp.get_data(as_text=True)
+            bar = ('<div style="text-align:center;font:11px Arial,sans-serif;color:#8a949a;padding:14px 0 6px;">Prepared for ' + who + ', '
+                   + _d.date.today().strftime('%B %-d, %Y') + '. For the use of this program only.</div>')
+            k = html.rfind('</body>')
+            resp.set_data(html[:k] + bar + html[k:] if k > -1 else html + bar)
+    except Exception:
+        pass
+    return resp
 
 
 _FAILS = {}      # (username, ip) -> [timestamps of recent wrong passwords]; per worker, best effort
@@ -197,12 +251,36 @@ def staff_checks():
     if not name:
         return None
     c = store.list_coaches().get(name)
-    if not c or c.get('active') is False:
+    if not c or not store.coach_active(name):
         session.pop('coach', None)
         return redirect(url_for('login'))
     if c.get('must_change') and request.endpoint not in _OPEN_ENDPOINTS:
         return redirect(url_for('account'))
+    if c.get('role') == 'player':
+        return _player_gate(c)
     return None
+
+
+_PLAYER_ENDPOINTS = {'player_overview', 'player_outings', 'view_outing', 'beta_hitter', 'headshot', 'hitter_photo', 'glossary_page',
+                     'account', 'change_password', 'logout', 'static', 'school_logo', 'school_mark', 'brand_logo', 'watermark', 'onboarding_done'}
+
+
+def _player_gate(c):
+    """A player can open only his own profile pages (pitching and hitting), his own reports and his account. Everything else
+    (team pages, scouting, other players, uploads, editing, admin) is closed, whatever address he types."""
+    ep, va = request.endpoint, request.view_args or {}
+    ok = ep in _PLAYER_ENDPOINTS and request.method in ('GET', 'HEAD') or (ep == 'account' and request.method == 'POST')
+    if ok and 'slug' in va and va['slug'] != c.get('player_slug'):
+        ok = False
+    if ok and ep in ('beta_hitter', 'hitter_photo') and va.get('key') != _player_hkey(c):
+        ok = False
+    if ok and ep == 'beta_hitter' and request.args.get('side', 'all') not in ('all', 'L', 'R'):
+        ok = False
+    if ok:
+        return None
+    if request.method in ('GET', 'HEAD'):
+        return redirect(player_home())
+    abort(403)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -216,7 +294,7 @@ def login():
         if _locked(_key):
             error = 'Too many wrong passwords. Wait a few minutes and try again.'
         elif store.verify_coach(username, password) and not store.coach_active(username):
-            error = 'This login has been turned off. Ask your head coach.'
+            error = 'This login has been turned off or has expired. Ask your head coach.'
         elif store.verify_coach(username, password):
             _FAILS.pop(_key, None)
             session['coach'] = username
@@ -286,6 +364,8 @@ def _nav_program():
 
 def home_url():
     """Where "back to dashboard" goes: a program's Team Dashboard for coaches (and for admins inside a program), else the team list."""
+    if session.get('coach') and is_player():
+        return player_home()
     prog = _nav_program() if session.get('coach') else None
     return url_for('team_dashboard', program=prog) if prog else url_for('dashboard')
 
@@ -295,10 +375,13 @@ def inject_theme():
     """School colors (see theme.py) plus back-link targets for whichever program's page this is. Pages with no program (admin tools,
     login) keep the default colors and link back to the team list."""
     prog = _nav_program() if session.get('coach') else None
-    out = {'nav_program': prog, 'home_url': home_url(), 'home_label': 'Team Dashboard' if prog else 'dashboard',
+    _pl = bool(session.get('coach')) and is_player()
+    out = {'nav_program': None if _pl else prog, 'home_url': home_url(), 'home_label': 'my profile' if _pl else ('Team Dashboard' if prog else 'dashboard'),
            'pitchers_url': url_for('team_pitchers', program=prog) if prog else url_for('dashboard'),
            'hitters_url': url_for('team_hitters', program=prog) if prog else (url_for('beta_hitters') if is_admin() else url_for('dashboard')),
            'theme_css': '', 'theme_program': None}
+    if _pl:
+        out['pitchers_url'] = out['hitters_url'] = home_url()
     if prog:
         try:
             out['theme_css'] = theme.css(theme.for_program(prog))
@@ -321,7 +404,7 @@ def inject_me():
     initials = (parts[0][:1] + (parts[-1][:1] if len(parts) > 1 else '')).upper() or '?'
     return {'me': {'name': name, 'key': session.get('coach'), 'label': label, 'is_admin': is_admin(), 'initials': initials, 'program': c.get('program') if c.get('role', 'admin') != 'admin' else None,
                    'badge': {'file': _b[0], 'bg': _b[1]} if _b else None,
-                   'is_head': c.get('role', 'admin') != 'assistant', 'is_assistant': c.get('role') == 'assistant', 'can_upload': can_upload(),
+                   'is_head': c.get('role', 'admin') not in ('assistant', 'player'), 'is_player': c.get('role') == 'player', 'is_assistant': c.get('role') == 'assistant', 'can_upload': can_upload(),
                    'must_change': bool(c.get('must_change'))}}
 
 
@@ -742,7 +825,7 @@ def player_overview(slug):
         hitter_url = url_for('beta_hitter', key=_hk) if _hk else None
     return render_template('player_overview.html', b=b, bio=bio, slug=slug, css=css, hitter_url=hitter_url, has_photo=has_photo, badge=badge,
                            photo_v=int(os.path.getmtime(headshots.path(slug))) if has_photo else 0,
-                           initials=(first[:1] + last[:1]).upper(), pos=_player_pos(bio), is_coach=bool(session.get('coach')), can_edit=can_manage(slug), is_demo=store.is_demo(slug),
+                           initials=(first[:1] + last[:1]).upper(), pos=_player_pos(bio), is_coach=bool(session.get('coach')) and not is_player(), can_edit=can_manage(slug), is_demo=store.is_demo(slug),
                            tour_next=(url_for('view_outing', slug=slug, date=b['log'][0]['id']) + '?tour=report') if b.get('log') else '')
 
 
@@ -758,7 +841,7 @@ def player_outings(slug):
         abort(404)
     _b = pipeline.school_badge_file(bio.get('school'), bio.get('program'))
     return render_template('player_outings.html', bio=bio, slug=slug, log=log, can_edit=can_manage(slug), is_demo=store.is_demo(slug),
-                           is_coach=bool(session.get('coach')), has_photo=headshots.exists(slug),
+                           is_coach=bool(session.get('coach')) and not is_player(), has_photo=headshots.exists(slug),
                            badge={'file': _b[0], 'bg': _b[1]} if _b else None, g_prog=bio.get('program'))
 
 
@@ -1201,7 +1284,7 @@ def beta_hitter(key):
         return _scout_hitter_page(key, h)
     css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
     _ps = h['bio']['photo_slug']
-    return render_template('beta_hitter.html', h=h, css=css, can_edit=(not h['demo'] and not h.get('opp_slug') and (is_admin() or h['program'] == my_program())),
+    return render_template('beta_hitter.html', h=h, css=css, can_edit=(not h['demo'] and not h.get('opp_slug') and not is_player() and (is_admin() or h['program'] == my_program())),
                            photo_v=int(os.path.getmtime(headshots.path(_ps))) if _ps else 0,
                            **({'hitters_url': url_for('team_scouting_opp', program=h['program'], opp=h['opp_slug']), 'scouting': True} if h.get('opp_slug') else {}))
 
@@ -1625,6 +1708,49 @@ def admin_plans():
     return render_template('admin_plans.html', rows=plans.summary(30), plans=plans.PLANS, enforcing=plans.enforcing(), msg=msg)
 
 
+JOIN_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Create your login</title>
+<style>body{font-family:Barlow,Arial,sans-serif;background:#f7f6f2;color:#22303a;margin:0;display:flex;min-height:100vh;align-items:center;justify-content:center;}
+form{background:#fff;padding:28px;border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,.1);width:min(360px,92vw);} h1{font-family:Oswald,Arial,sans-serif;font-size:24px;margin:0 0 6px;} p{color:#6b7680;font-size:13.5px;margin:0 0 14px;}
+input{width:100%;padding:10px;margin:6px 0;border:1px solid #dcdfdc;border-radius:7px;box-sizing:border-box;font:inherit;} button{width:100%;padding:11px;margin-top:10px;border:none;border-radius:999px;background:#5c97a8;color:#fff;font-weight:700;cursor:pointer;font-size:15px;}
+.error{color:#b33;font-size:13px;margin-bottom:8px;} small{color:#8a949a;display:block;margin-top:12px;line-height:1.45;}</style></head><body>
+<form method="post"><h1>Welcome, {{ name }}</h1><p>{{ team }} invited you to see your own data. Choose a username and password.</p>
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+<input name="username" placeholder="Username (letters and numbers)" value="{{ username }}" autocomplete="off" required minlength="3">
+<input name="password" type="password" placeholder="Password (8+ characters)" required minlength="8" autocomplete="new-password">
+<input name="confirm" type="password" placeholder="Confirm password" required minlength="8" autocomplete="new-password">
+<button type="submit">Create login</button>
+<small>This login shows only your own profile and reports, until {{ until }}. Sign-ins and downloads are logged. Please do not share your login.</small></form></body></html>"""
+
+
+@app.route('/join/<token>', methods=['GET', 'POST'])
+def join(token):
+    inv = store.get_invite(token)
+    if not inv:
+        return render_template_string(LOGIN_PAGE, error='This invite link is invalid or has expired. Ask your head coach for a new one.'), 404
+    import datetime as _d
+    until = _d.date.fromisoformat(inv['season_end']).strftime('%B %-d, %Y')
+    error, username = None, ''
+    if request.method == 'POST':
+        username = re.sub(r'[^A-Za-z0-9_.-]', '', request.form.get('username', '').strip())
+        pw = request.form.get('password', '')
+        if len(username) < 3:
+            error = 'Pick a username of at least 3 letters or numbers.'
+        elif username in store.list_coaches():
+            error = 'That username is taken. Try another.'
+        elif len(pw) < 8:
+            error = 'Use a password of at least 8 characters.'
+        elif pw != request.form.get('confirm', ''):
+            error = 'The passwords do not match.'
+        else:
+            store.add_player_login(username, inv['name'], pw, inv)
+            store.use_invite(token)
+            plans.track('player_join', username, inv['program'])
+            session.clear()
+            session['coach'] = username
+            return redirect(player_home())
+    return render_template_string(JOIN_PAGE, name=inv['name'].split()[0] if inv['name'] else '', team=store.program_label(inv['program']), until=until, error=error, username=username)
+
+
 @app.route('/team/<program>/coaches', methods=['GET', 'POST'])
 @login_required
 @head_required
@@ -1633,6 +1759,7 @@ def team_coaches(program):
     c = current_coach() or {}
     head = session['coach'] if c.get('role', 'admin') != 'admin' else None
     msg, err = None, False
+    invite_url = None
     f = request.form
     if request.method == 'POST':
         act = f.get('action', '')
@@ -1652,6 +1779,41 @@ def team_coaches(program):
                 store.add_assistant(u, name, f['password'], program, store.program_label(program), head or session['coach'], can_upload=bool(f.get('can_upload')))
                 plans.track('coach_add', session['coach'], program, target=u)
                 msg = f'Added {name}. Give them the username "{u}" and the temporary password. They choose their own at first login.'
+        elif act == 'players_switch' and is_admin():
+            plans.set_flag(program, 'players', f.get('value') == '1')
+            msg = 'Player logins ' + ('enabled' if f.get('value') == '1' else 'disabled') + ' for this program.'
+        elif act == 'p_invite':
+            if not plans.flag(program, 'players'):
+                abort(404)
+            kind, _, ref = f.get('who', '').partition(':')
+            slug = hkey = name = None
+            if kind == 'p' and (store.get_player(ref) or {}).get('program') == program:
+                slug, name = ref, store.get_player(ref)['name']
+                hkey = hitting.hitter_key_for(name, program, include_demo=False)
+            elif kind == 'h':
+                hh = hitting._collect(False).get(ref)
+                if hh and hh['program'] == program:
+                    hkey, name = ref, hitting.display_name(hh['name'])
+            if not name:
+                msg, err = 'Pick a player from the list.', True
+            else:
+                token = store.create_invite(program, name, slug, hkey, session['coach'], f.get('season_end') or None)
+                invite_url = url_for('join', token=token, _external=True)
+                msg = f'Invite link for {name} (works once, for {store.INVITE_DAYS} days):'
+        elif act in ('p_active', 'p_remove', 'p_extend'):
+            tp = store.list_coaches().get(target)
+            if not tp or tp.get('role') != 'player' or tp.get('program') != program:
+                msg, err = 'That player was not found.', True
+            elif act == 'p_remove':
+                store.delete_coach(target)
+                plans.track('coach_remove', session['coach'], program, target=target)
+                msg = f'Removed {tp["display_name"]}.'
+            elif act == 'p_extend':
+                store.update_coach(target, expires=f.get('season_end') or store.default_season_end(), active=True)
+                msg = f'{tp["display_name"]} can log in until {f.get("season_end") or store.default_season_end()}.'
+            else:
+                store.update_coach(target, active=(f.get('value') == '1'))
+                msg = f'{tp["display_name"]} {"can log in again" if f.get("value") == "1" else "has been turned off"}.'
         elif not t or t.get('role') != 'assistant' or t.get('program') != program:
             msg, err = 'That assistant was not found.', True
         elif act == 'uploads':
@@ -1687,7 +1849,26 @@ def team_coaches(program):
             last.setdefault(x['u'], x['t'])
     log = plans.events(program, 30, names, 40)
     ok_add, why_add = plans.can_add_assistant(program)
-    return render_template('team_coaches.html', program=program, team_label=store.program_label(program), heads=store.program_heads(program), assistants=assistants,
+    players_on = plans.flag(program, 'players')
+    players, choices = {}, []
+    if players_on or is_admin():
+        players = store.program_players(program)
+        names |= set(players)
+        for x in plans.events(program, 90, set(players), 2000):
+            if x['e'] == 'login':
+                last.setdefault(x['u'], x['t'])
+        taken = {c.get('player_name') for c in players.values()}
+        seen = set()
+        for s, b in store.list_players().items():
+            if b.get('program') == program and not store.is_demo(s) and b['name'] not in taken:
+                choices.append(('p:' + s, b['name'])); seen.add(b['name'].lower())
+        for k, hh in hitting._collect(False).items():
+            nm = hitting.display_name(hh['name'])
+            if hh['program'] == program and nm.lower() not in seen and nm not in taken:
+                choices.append(('h:' + k, nm))
+        choices.sort(key=lambda x: x[1].lower())
+    log = plans.events(program, 30, names, 40)
+    return render_template('team_coaches.html', players_on=players_on, players=players, choices=choices, invite_url=invite_url, season_end=store.default_season_end(), is_admin=is_admin(), program=program, team_label=store.program_label(program), heads=store.program_heads(program), assistants=assistants,
                            cap=plans.assistant_cap(program), count=plans.assistant_count(program), can_add=ok_add, why=why_add, last=last, log=log,
                            msg=msg, err=err, now=_t.time())
 

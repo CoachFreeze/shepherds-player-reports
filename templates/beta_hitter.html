@@ -40,7 +40,7 @@
   #zhm text{font-family:'Barlow',Arial,sans-serif;pointer-events:none;}
   .foot{color:#76828a;font-size:12.5px;margin-top:6px;line-height:1.5;}
 </style></head><body>
-<div class="top"><a class="back" href="{{ hitters_url }}">&larr; {{ 'Back to scouting' if scouting else ('Hitters' if nav_program else 'All hitters') }}</a>{% include '_usermenu.html' %}</div>
+<div class="top">{% if me and me.is_player %}<span></span>{% else %}<a class="back" href="{{ hitters_url }}">&larr; {{ 'Back to scouting' if scouting else ('Hitters' if nav_program else 'All hitters') }}</a>{% endif %}{% include '_usermenu.html' %}</div>
 {% set s = h.s %}
 <div class="wrap">
   {% set bio = h.bio %}{% set badge = sbadge(bio.program, bio.school) %}{% set photo = hphoto(bio) %}{% set nm = h.name.split() %}
