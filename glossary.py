@@ -87,12 +87,32 @@ HITTING = [
 ]
 
 
+SCOREBOOK = [
+    ('Where it comes from', 'The scorebook is built from the pitch-by-pitch file, not from an official scorer. Results, hit types, hit direction and distance come from the data and the operator\'s tags, so treat it as a close guide, not an official box score.'),
+    ('Result shorthand', 'K strikeout, BB walk, HBP hit by pitch, 1B single, 2B double, 3B triple, HR home run, BIP ball in play when the result could not be told, SH sacrifice bunt, SF sacrifice fly, FC fielder\'s choice, E error.'),
+    ('Outs on balls in play', 'The first letter is how it was hit: G ground ball, L line drive, F fly ball, P pop-up. The number is the fielder it went to. A ground out is written as the fielder who fielded it, then 3 for the throw to first (6-3 is shortstop to first). 3U is unassisted at first. The fielder is worked out from the direction and distance of the ball.'),
+    ('Position numbers', 'The standard scorebook numbers: 1 pitcher, 2 catcher, 3 first base, 4 second base, 5 third base, 6 shortstop, 7 left field, 8 center field, 9 right field.'),
+    ('Runners and runs', 'The diamond in each box shows how far that batter got. A filled diamond means he scored. Where runners ended up is inferred from the results of the plate appearances behind them, since the pitch data has no baserunning, so steals and some advances on throws or errors can be missed.'),
+    ('Pitching changes and pinch hitters', 'A hard line on the left of a box marks a pinch hitter entering. When a new pitcher comes in, his last name is written above the first batter he faces.'),
+    ('Balls, strikes and pitch counts', 'The pitch count in each box counts every pitch thrown to that batter. A ball in play counts as a strike in the strike totals, and a foul with two strikes does not add a strike to the count.'),
+]
+
+DEFENSE = [
+    ('What it is', 'A suggested fielding alignment for each hitter, built from where his tracked balls in play went. Starters with the most at-bats come first. A hitter with few tracked balls stays close to a standard alignment.'),
+    ('Shade', 'A small adjustment: 1 to 2 steps in the intended direction.'),
+    ('Shift', 'A major adjustment: 3 to 5 steps in the intended direction.'),
+    ('Reading a call', 'Calls name the group, the call and the direction, such as "Infield Pull Shade" or "Outfield Oppo Shade". Pull and oppo are relative to the hitter, so the same call moves the other way for a lefty.'),
+]
+
+
 def sections(is_admin=False):
     s = [
         {'id': 'pitching', 'title': 'Pitching stats', 'groups': _group_pitching()},
         {'id': 'charts', 'title': 'Charts and visuals', 'groups': [{'title': '', 'items': CHARTS}]},
     ]
+    s.append({'id': 'hitting', 'title': 'Hitting', 'groups': HITTING})
+    s.append({'id': 'games', 'title': 'Game reports (scorebook)', 'groups': [{'title': '', 'items': SCOREBOOK}]})
     if is_admin:
-        s.append({'id': 'hitting', 'title': 'Hitting (beta, admin only)', 'groups': HITTING})
+        s.append({'id': 'defense', 'title': 'Defensive positioning (beta, admin only)', 'groups': [{'title': '', 'items': DEFENSE}]})
     s.append({'id': 'data', 'title': 'About the data', 'groups': [{'title': '', 'items': DATA_NOTES}]})
     return s
