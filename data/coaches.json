@@ -17,6 +17,13 @@
     "program_label": "Biola University",
     "role": "program"
   },
+  "joe.schaefer": {
+    "display_name": "Joe Schaefer",
+    "password_hash": "scrypt:32768:8:1$5cSXPKe8bHqCbeW3$026d613a093f46615a2f45d8ecc291f9ed01bee494f4b86e156557fc3c833cc4236760c1fa7b26083fd6634cb8ed2cd6fc23665f402adeffd4872bca15224529",
+    "program": "northwest_nazarene_university",
+    "program_label": "Northwest Nazarene University",
+    "role": "program"
+  },
   "sebastian.garcia": {
     "display_name": "Sebastian Garcia",
     "password_hash": "scrypt:32768:8:1$DltZjQ0tOoPyOO2D$bd2cc4e80fb1bc49b2cbf82911f33f33cbbf5433912f610e207f81d2911ea38463ce607c6f314da99e0c11ec82eff54ccf7c20941583e113b20349af083a28d7",
