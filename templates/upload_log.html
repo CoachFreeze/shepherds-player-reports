@@ -1,0 +1,37 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Upload log</title>
+<style>{{ theme_css|safe }}</style>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#22303a; --teal:var(--accent,#5c97a8); --muted:#6b7680; --line:#dde2e5; }
+  *{box-sizing:border-box;} body{background:#f7f6f2;color:var(--ink);font-family:'Barlow',sans-serif;margin:0;padding-bottom:40px;}
+  .hero{background:var(--brand,#22303a);padding:34px 16px 28px;border-bottom:3px solid var(--teal);position:relative;z-index:5;clip-path:inset(0 0 -900px 0);} .wrap{max-width:1180px;margin:0 auto;padding:0 16px;} .hero .wrap{padding:0;position:relative;}
+  .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-on-dark,#5c97a8);margin:0 0 8px;}
+  h1{font:700 40px 'Oswald',sans-serif;margin:0 0 6px;color:#fff;} .sub{color:#c9d3d8;font-size:14.5px;margin:0;}
+  .bar{display:flex;gap:10px;align-items:center;margin:22px 0 14px;flex-wrap:wrap;} .bar a.back{font:700 13px Barlow,sans-serif;color:var(--accent-ink,#5c97a8);text-decoration:none;margin-right:6px;}
+  .bar select{background:#fff;padding:9px 14px;border:1px solid var(--line);border-radius:999px;font:500 14px 'Barlow',sans-serif;margin-left:auto;}
+  .panel{background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);padding:6px 20px;margin-bottom:18px;overflow-x:auto;}
+  .panel.pad{padding:18px 22px;} .panel h2{font:600 20px 'Oswald',sans-serif;margin:0 0 6px;} .panel p{color:var(--muted);font-size:13.5px;margin:0 0 12px;}
+  table{border-collapse:collapse;width:100%;font-size:14px;} th{text-align:left;font:600 11px 'Barlow',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:12px 12px 8px;border-bottom:2px solid var(--line);white-space:nowrap;}
+  td{padding:11px 12px;border-top:1px solid #eceeed;vertical-align:middle;} tr:first-child td{border-top:0;} td.f{font-weight:600;word-break:break-word;} td.w{white-space:nowrap;color:var(--muted);}
+  .tag{display:inline-block;font:600 11px 'Barlow',sans-serif;letter-spacing:.05em;background:#eef3f4;color:#44606a;border-radius:999px;padding:3px 10px;white-space:nowrap;}
+  .rm{background:none;border:0;color:#a63a2c;font:600 13px Barlow,sans-serif;cursor:pointer;padding:0;} .gone{color:#98a3a9;font-size:13px;}
+  .ok{background:#e3ecdf;color:#3f6b42;border-radius:12px;padding:12px 16px;margin:0 0 14px;font-weight:600;}
+  .danger{padding:10px 20px;border:0;border-radius:999px;background:#a63a2c;color:#fff;font:700 13px Barlow,sans-serif;cursor:pointer;}
+  @media (max-width:520px){h1{font-size:32px;}}
+</style></head><body>
+<div class="hero"><div class="wrap"><div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>
+  <p class="eyebrow">{{ prog_label or 'All programs' }}</p><h1>Upload Log</h1><p class="sub">Every CSV uploaded{% if not admin %} for {{ prog_label }}{% endif %}, newest first.</p></div></div>
+<div class="wrap">
+  <div class="bar"><a class="back" href="{{ home }}">&larr; {{ 'Team Dashboard' if nav_program else 'Dashboard' }}</a>
+    {% if admin %}<form method="get" style="margin:0;margin-left:auto;"><select name="program" onchange="this.form.submit()" style="margin-left:0;"><option value="">All programs</option>{% for slug, lab in programs %}<option value="{{ slug }}" {{ 'selected' if slug == sel }}>{{ lab }}</option>{% endfor %}</select></form>{% endif %}</div>
+  {% if message %}<div class="ok">{{ message }}</div>{% endif %}
+  {% if rows %}<div class="panel"><table>
+    <tr><th>Uploaded</th><th>File</th><th>Type</th>{% if admin %}<th>Program</th>{% endif %}<th>By</th><th></th></tr>
+    {% for e in rows %}<tr><td class="w">{{ e.when }}</td><td class="f">{{ e.file }}</td><td><span class="tag">{{ e.source }}</span></td>{% if admin %}<td>{{ e.plabel }}</td>{% endif %}<td>{{ e.user }}</td>
+      <td style="white-space:nowrap;text-align:right;">{% if e.removed %}<span class="gone">Removed</span>{% elif e.id and (me.is_head or me.is_admin) %}<form method="post" action="{{ url_for('upload_remove') }}" onsubmit="return confirm('Remove every pitch from {{ e.file|e }}? This cannot be undone.');" style="margin:0;"><input type="hidden" name="id" value="{{ e.id }}"><button class="rm">Remove data</button></form>{% endif %}</td></tr>{% endfor %}
+  </table></div>{% else %}<div class="panel pad"><p style="margin:0;">No uploads logged yet. Uploads from now on will appear here.</p></div>{% endif %}
+  {% if me.is_head or me.is_admin %}<div class="panel pad"><h2>Remove a CSV that isn't listed above</h2>
+    <p>For files uploaded before this log existed: choose the same CSV again and every pitch it contributed is taken back out. Pitchers left with no data are removed too. Nothing else is touched.</p>
+    <form method="post" action="{{ url_for('upload_remove_file') }}" enctype="multipart/form-data" onsubmit="return confirm('Remove every pitch in this file from the data? This cannot be undone.');"><input type="file" name="csv" accept=".csv" required> <button class="danger" type="submit">Remove this file's data</button></form></div>{% endif %}
+</div></body></html>

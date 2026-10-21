@@ -408,7 +408,7 @@ def inject_me():
                    'must_change': bool(c.get('must_change'))}}
 
 
-_MENU_PAGES = {'edit_profile', 'admin_status', 'admin_old_reports', 'upload_log_page', 'hitters_sort', 'admin_coaches', 'view_report', 'intake', 'intake_bulk', 'intake_bulk_run',
+_MENU_PAGES = {'edit_profile', 'admin_status', 'admin_old_reports', 'hitters_sort', 'admin_coaches', 'view_report', 'intake', 'intake_bulk', 'intake_bulk_run',
                'intake_lbsu', 'intake_lbsu_confirm', 'edit_comps'}
 
 
@@ -2057,7 +2057,7 @@ def upload_log_page():
         t = datetime.datetime.fromtimestamp(e['t'], datetime.timezone(datetime.timedelta(hours=-7))).strftime('%b %-d, %Y %-I:%M %p')
         rows.append({**e, 'when': t, 'plabel': store.program_label(e.get('program')) if e.get('program') else ''})
     progs = [(p, store.program_label(p)) for p in sorted({e.get('program') for e in uploadlog.entries() if e.get('program')})]
-    return render_template_string(BULK_STYLE + UPLOADS_PAGE, rows=rows, admin=admin, programs=progs, sel=sel or '', home=home_url(), message=request.args.get('msg'),
+    return render_template('upload_log.html', rows=rows, admin=admin, programs=progs, sel=sel or '', home=home_url(), message=request.args.get('msg'),
                                   prog_label=store.program_label(prog) if prog else '')
 
 
