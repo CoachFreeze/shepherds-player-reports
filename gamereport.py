@@ -109,6 +109,97 @@ def _result(rows):
     return None                   # the at-bat was cut off (data ends mid-PA)
 
 
+def advance_runners(pas):
+    """Infer where every batter ended up on the bases (pa['reach'] 0-4, 4 = scored). Trackman has no baserunner data, so this walks each half-inning:
+    walks and hit by pitch force runners, hits move them the number of bases of the hit, RunsScored says how many (lead runners first) came home."""
+    halves = {}
+    for pa in pas:
+        halves.setdefault((pa['inn'], pa['tb'], pa['bat']), []).append(pa)
+    adv_of = {'Single': 1, 'Double': 2, 'Triple': 3, 'Error': 1}
+
+    def score(pa):
+        pa['reach'] = 4
+        pa['scored'] = True
+
+    for ps in halves.values():
+        bases = [None, None, None]                       # index 0 = first base
+        for pa in ps:
+            res = pa['result']
+            pa['reach'] = 0
+            pa['scored'] = False
+            if res is None:
+                continue
+            R = pa['runs']
+            ht = pa.get('hit_type') or ''
+            runners = [(i, b) for i, b in enumerate(bases) if b is not None][::-1]   # lead runner first
+            if res == 'HomeRun':
+                for _, b in runners:
+                    score(b)
+                score(pa)
+                bases = [None] * 3
+            elif res in ('Walk', 'HBP'):
+                pa['reach'] = 1
+                if bases[0] is not None:
+                    if bases[1] is not None:
+                        if bases[2] is not None:
+                            score(bases[2])
+                        bases[2] = bases[1]
+                        bases[2]['reach'] = 3
+                    bases[1] = bases[0]
+                    bases[1]['reach'] = 2
+                bases[0] = pa
+            else:
+                for _, b in runners[:R]:                  # the lead R runners came home
+                    score(b)
+                    bases[bases.index(b)] = None
+                runners = [(i, b) for i, b in enumerate(bases) if b is not None][::-1]
+                if res in ('Single', 'Double', 'Triple', 'Error'):
+                    n = adv_of[res]
+                    ahead = 4
+                    nb = [None] * 3
+                    for i, b in runners:
+                        new = min(i + 1 + n, ahead - 1, 3)
+                        new = max(new, i + 1)
+                        b['reach'] = new
+                        nb[new - 1] = b
+                        ahead = new
+                    pa['reach'] = min(n, ahead - 1) if ahead > 1 else 1
+                    pa['reach'] = max(pa['reach'], 1)
+                    nb[pa['reach'] - 1] = pa
+                    bases = nb
+                elif res == 'FieldersChoice':
+                    pa['reach'] = 1
+                    chain = []
+                    if bases[0] is not None:
+                        chain = [0]
+                        if bases[1] is not None:
+                            chain.append(1)
+                            if bases[2] is not None:
+                                chain.append(2)
+                    out_i = chain[-1] if chain else (runners[0][0] if runners else None)
+                    if out_i is not None:
+                        bases[out_i] = None
+                    for i in sorted(chain[:-1], reverse=True):
+                        bases[i + 1] = bases[i]
+                        bases[i + 1]['reach'] = i + 2
+                        bases[i] = None
+                    bases[0] = pa
+                elif res in ('Out', 'Sacrifice', 'K swinging', 'K looking', 'In play'):
+                    if res == 'Out' and ht == 'GroundBall' and pa['outs_made'] == 2 and bases[0] is not None:
+                        bases[0] = None                  # double play: runner off first
+                        if bases[1] is not None and bases[2] is None:
+                            bases[2] = bases[1]; bases[2]['reach'] = 3; bases[1] = None
+                    elif res == 'Out' and ht == 'GroundBall' and pa['outs_made'] == 1 and bases[0] is not None:
+                        if bases[1] is None:             # forced up one base
+                            bases[1] = bases[0]; bases[1]['reach'] = 2; bases[0] = None
+                        elif bases[2] is None:
+                            bases[2] = bases[1]; bases[2]['reach'] = 3
+                            bases[1] = bases[0]; bases[1]['reach'] = 2; bases[0] = None
+        if ps and ps[-1]['result'] is not None and ps[-1]['outs'] + ps[-1]['outs_made'] >= 3:
+            pass
+        # a batter who did not finish on base keeps reach 0
+
+
 def build(rows):
     """rows: [{'r': trackman row, 'pit': 'us'|'opp'}] for one game (our pitcher rows = opponent's at-bats).
     Returns the whole report model."""
@@ -144,6 +235,7 @@ def build(rows):
         pa['xba'] = H.hit_prob(ev, la) if (pa['result'] in ('In play',) + tuple(OUTCOME) and (last.get('PitchCall') == 'InPlay') and ev is not None and la is not None) else None
         pa['hit_type'] = (last.get('TaggedHitType') or last.get('AutoHitType') or '').replace('Undefined', '')
         _grade(pa)
+    advance_runners(pas)
     teams = {'us': _team(pas, 'us'), 'opp': _team(pas, 'opp')}
     # --- home / away
     us_home = any(x['pit'] == 'us' and _tb(x['r']) == 0 for x in rows) or any(x['pit'] == 'opp' and _tb(x['r']) == 1 for x in rows)
@@ -584,7 +676,7 @@ def cell2(pa, new_pitcher='', end_inning=False, new_batter=False, ink='#2a2118',
     for k_, (x, y) in P.items():
         o.append(f'<rect x="{x - 3.5}" y="{y - 3.5}" width="7" height="7" fill="#fdfbf6" stroke="#9c917f" stroke-width="1"/>')
     res = pa['result']
-    nb = _BASES.get(res, 0)
+    nb = pa['reach'] if 'reach' in pa else _BASES.get(res, 0)
     order_ = ['h', 'f', 's', 't', 'h']
     if nb == 4:
         o.append(f'<path d="M{P["h"][0]} {P["h"][1]} L{P["f"][0]} {P["f"][1]} L{P["s"][0]} {P["s"][1]} L{P["t"][0]} {P["t"][1]} Z" fill="{ink}"/>')
