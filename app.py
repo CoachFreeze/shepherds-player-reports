@@ -891,7 +891,8 @@ def team_scouting_opp(program, opp):
         halves.append({'side': side, 'D': d, 'tiles': [d['tiles'][i] for i in ids if i in d['tiles']]})
     sessions = sorted(set(D['pitching']['sessions']) | set(D['hitting']['sessions']))
     return render_template('scout_team.html', program=program, team_label=store.program_label(program), opp=o, halves=halves,
-                           last_session=sessions[-1] if sessions else None, defense=scouting.defense_data(program, opp))
+                           last_session=sessions[-1] if sessions else None,
+                           defense=scouting.defense_data(program, opp) if is_admin() else [])   # Defensive Positioning is admin-only while in beta
 
 
 @app.route('/team/<program>/scouting/<opp>/pitchers')
