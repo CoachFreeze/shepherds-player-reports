@@ -488,18 +488,6 @@ def why_attr(j):
     return escape(j[4] or '')
 
 
-def _ev_color(v):
-    """60 mph (cool) -> 105 mph (hot). Returns (background, text color)."""
-    t = max(0.0, min(1.0, (v - 60) / 45))
-    stops = [(0.0, (196, 220, 232)), (0.5, (244, 232, 178)), (1.0, (214, 84, 62))]
-    for (a, ca), (b, cb) in zip(stops, stops[1:]):
-        if t <= b:
-            f = (t - a) / (b - a)
-            rgb = tuple(round(ca[i] + (cb[i] - ca[i]) * f) for i in range(3))
-            break
-    return f'rgb{rgb}', ('#fff' if t > 0.8 else '#22303a')
-
-
 def zone_ev_data(pitches):
     """Balls in play with a plate location, as compact rows for the zone heat map (drawn in the browser so the
     pitch-type and pitch-speed filters update instantly). Balls hit off pitches just outside the zone (within 6 inches) are plotted in a ring around it."""

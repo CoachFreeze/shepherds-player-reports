@@ -1,5 +1,4 @@
 """Player overview page: aggregate of a pitcher's most recent outings (see outings.py)."""
-import re
 from html import escape
 
 import extract as e

@@ -186,10 +186,6 @@ def css(t):
             f"--accent-on-dark:{t['accent_on_dark']};--on-accent:{t['on_accent']};--accent-teal:{t['accent_ink']};}}")
 
 
-def style_tag(program):
-    return '<style>' + css(for_program(program)) + '</style>'
-
-
 # ---------------------------------------------------------------- header watermark logo
 WM_BUILTIN = {'long_beach_state': 'long_beach_state.png', 'biola_university': 'biola_university.png', 'ucla': 'ucla.png'}
 

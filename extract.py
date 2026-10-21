@@ -65,25 +65,6 @@ def load_master_rows(xlsx_path=None):
     return rows
 
 
-def pitcher_tracking_table(totals_row):
-    specs = [
-        ('Fastball', 'TFB', 'FB USG', 'FB K%', 'FB S/M%'),
-        ('Curveball', 'TCB', 'CB USG', 'CB K%', 'CB S/M%'),
-        ('Changeup', 'TCH', 'CH USG', 'CH K%', 'CH S/M%'),
-        ('Other', 'TO', 'O USG', 'O K%', 'O S/M%'),
-    ]
-    out = []
-    for label, ncol, usgcol, kcol, smcol in specs:
-        n = totals_row.get(ncol) or 0
-        if not n:
-            continue
-        usg = _num(totals_row.get(usgcol)) or 0
-        kpct = _num(totals_row.get(kcol)) or 0
-        smpct = _num(totals_row.get(smcol)) or 0
-        out.append({'type': label, 'n': int(n), 'pct': usg * 100, 'k_pct': kpct * 100, 'whiff_pct': smpct * 100})
-    return out
-
-
 # ---------------------------------------------------------------------------
 # Master-tab-only pitcher stats -- no reliance on the Totals sheet's fixed
 # Fastball/Curveball/Changeup/Other columns at all. Pitch-type labels come

@@ -2294,46 +2294,6 @@ def intake_lbsu():
     return redirect(url_for('intake_bulk'))
 
 
-def _intake_lbsu_legacy():
-    message, ok = None, True
-    if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        school = request.form.get('school', '').strip() or None
-        grad_year = request.form.get('grad_year', '').strip()
-        grad_year = int(grad_year) if grad_year.isdigit() else None
-        position_pitch = request.form.get('position_pitch', '').strip() or None
-        try:
-            ft = float(request.form.get('height_ft', '') or 0)
-            inch = float(request.form.get('height_in', '') or 0)
-            height_in = ft * 12 + inch if ft else None
-        except ValueError:
-            height_in = None
-        weight_lbs = _num_or_none(request.form.get('weight_lbs'))
-
-        tm_f = request.files.get('trackman_file')
-        if not name or not tm_f or not tm_f.filename:
-            message, ok = 'Name and a Trackman CSV are required.', False
-        else:
-            trackman_path = os.path.join(UPLOAD_DIR, f'{store.slugify(name)}_trackman_{tm_f.filename}')
-            tm_f.save(trackman_path)
-            try:
-                flagged = e_mod.detect_anomalies(e_mod.load_trackman_rows(trackman_path), name)
-                if flagged:
-                    return render_template_string(REVIEW_PAGE, flagged=flagged, name=name, school=school or '', grad_year=grad_year or '',
-                                                  position_pitch=position_pitch or '', height_in=height_in or '', weight_lbs=weight_lbs or '',
-                                                  path=os.path.basename(trackman_path), live_ab=request.form.get('live_ab', ''))
-                slug, out = pipeline.process_trackman_only(trackman_path, name, school, grad_year, position_pitch, height_in, weight_lbs, live_ab=bool(request.form.get('live_ab')))
-                if out:
-                    message = f'Generated a Trackman report for {name}. View it on the dashboard below.'
-                else:
-                    message, ok = (f"{name} wasn't found in that Trackman file -- check the name matches "
-                                    f"exactly (e.g. \"Last, First\" as it appears in the CSV's Pitcher column)."), False
-            except Exception as exc:
-                message, ok = f'Something went wrong processing that file: {exc}', False
-
-    return render_template_string(LBSU_INTAKE_PAGE, message=message, ok=ok, coach=store.coach_display_name(session['coach']))
-
-
 # --- comps override API (coach-only) -------------------------------------
 
 @app.route('/api/comps/search')

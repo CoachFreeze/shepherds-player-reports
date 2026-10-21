@@ -1,6 +1,5 @@
 """Scouting reports for opposing players: what a hitter does and how to pitch / defend him, what a pitcher does and how to attack him.
 Everything is derived from the tracked pitches we have, so every statement carries its sample size and small samples say so."""
-import extract as e
 import hitting as H
 import pitchfx
 

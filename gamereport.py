@@ -75,20 +75,12 @@ def collect(program):
     return out
 
 
-# ------------------------------------------------------------------- grading
+# ------------------------------------------------------------------- results
 OUTCOME = {'HomeRun': 100, 'Triple': 95, 'Double': 90, 'Single': 78, 'Walk': 68, 'HBP': 62, 'Sacrifice': 60, 'Error': 50,
            'FieldersChoice': 40, 'Out': 22, 'K swinging': 8, 'K looking': 4}
 ABBR = {'HomeRun': 'HR', 'Triple': '3B', 'Double': '2B', 'Single': '1B', 'Walk': 'BB', 'HBP': 'HBP', 'Sacrifice': 'SAC', 'Error': 'ROE',
         'FieldersChoice': 'FC', 'Out': 'Out', 'K swinging': 'K', 'K looking': 'Kc', 'In play': 'BIP'}
 HITS = ('Single', 'Double', 'Triple', 'HomeRun')
-BANDS = [(90, 'A+'), (82, 'A'), (75, 'A-'), (68, 'B+'), (60, 'B'), (52, 'B-'), (45, 'C+'), (38, 'C'), (30, 'C-'), (22, 'D')]
-
-
-def letter(score):
-    for lo, g in BANDS:
-        if score >= lo:
-            return g
-    return 'F'
 
 
 def _result(rows):
@@ -234,7 +226,6 @@ def build(rows):
         pa['ev'], pa['la'] = ev, la
         pa['xba'] = H.hit_prob(ev, la) if (pa['result'] in ('In play',) + tuple(OUTCOME) and (last.get('PitchCall') == 'InPlay') and ev is not None and la is not None) else None
         pa['hit_type'] = (last.get('TaggedHitType') or last.get('AutoHitType') or '').replace('Undefined', '')
-        _grade(pa)
     advance_runners(pas)
     teams = {'us': _team(pas, 'us'), 'opp': _team(pas, 'opp')}
     # --- home / away
@@ -248,54 +239,6 @@ def build(rows):
             ls[side].append(line.get((i, tb), 0) if seen else None)
     return {'pas': pas, 'teams': teams, 'score': score, 'linescore': ls, 'innings': innings, 'us_home': us_home,
             'pitchers': {'us': _pitchers(pas, 'us'), 'opp': _pitchers(pas, 'opp')}}
-
-
-def _grade(pa):
-    res = pa['result']
-    if not res:
-        pa.update(grade=None, score=None, why='At-bat cut off in the data')
-        return
-    notes = []
-    base = OUTCOME.get(res)
-    q = None
-    if res == 'In play':
-        base = 50 if pa['xba'] is None else None
-        res_label = 'ball in play'
-    if pa['xba'] is not None:
-        q = pa['xba'] * 100
-        if res == 'HomeRun':
-            q = 100
-        if base is None:
-            base = 22 if pa['outs_made'] else 78
-    s = base if q is None else 0.5 * base + 0.5 * q
-    if q is not None and base is not None:
-        gap = pa['xba'] - (1.0 if res in HITS else 0.0)
-        if res in HITS and pa['xba'] < 0.3:
-            notes.append('hit, but soft contact')
-        elif res not in HITS and res not in ('Sacrifice', 'Error') and pa['xba'] >= 0.6:
-            notes.append('hard contact, no result')
-    n = pa['n_pitches']
-    if n >= 6 and res != 'HomeRun':
-        s += min(8 if res not in ('K swinging', 'K looking') else 4, 2 * (n - 5))
-        notes.append(f'{n}-pitch at-bat')
-    if pa['runs'] and res not in ('K swinging', 'K looking', 'Out'):
-        s += 5 * min(pa['runs'], 2)
-        notes.append(f"{pa['runs']} RBI" if res != 'HomeRun' else f"{pa['runs']} run HR")
-    strikes = int(pa['count'].split('-')[1])
-    if strikes == 2 and res in HITS + ('Walk', 'HBP', 'Sacrifice'):
-        s += 4
-        notes.append('two-strike success')
-    if pa['inn'] >= 7 and abs(pa['margin']) <= 2:
-        s = 50 + (s - 50) * 1.15
-        notes.append('late and close')
-    if pa['outs'] == 2 and res in HITS + ('Walk',):
-        notes.append('two-out')
-    if pa['outs'] < 2 and res == 'Out' and not pa['runs'] and pa['xba'] is not None and pa['xba'] < 0.15:
-        s -= 3
-    s = max(0, min(100, round(s)))
-    pa['score'] = s
-    pa['grade'] = letter(s)
-    pa['why'] = ', '.join(notes)
 
 
 # ------------------------------------------------------------- lineups / lines
@@ -329,14 +272,12 @@ def _totals(ent, slot, is_sub):
     ab = [p for p in ps if p['result'] not in ('Walk', 'HBP', 'Sacrifice')]
     h = [p for p in ps if p['result'] in HITS]
     xs = [p['xba'] for p in ps if p['xba'] is not None]
-    scores = [p['score'] for p in ps if p['score'] is not None]
     evs = [p['ev'] for p in ps if p['ev'] is not None]
-    avg = sum(scores) / len(scores) if scores else None
     ent = dict(ent, slot=slot, is_sub=is_sub, ab=len(ab), h=len(h), bb=sum(1 for p in ps if p['result'] == 'Walk'),
                k=sum(1 for p in ps if p['result'].startswith('K ')), rbi=sum(p['runs'] for p in ps if p['result'] != 'Out' or p['runs']),
                hr=sum(1 for p in ps if p['result'] == 'HomeRun'), bip=len(xs),
                xba=(sum(xs) / len(xs)) if xs else None, ev=(sum(evs) / len(evs)) if evs else None,
-               avg=avg, avg_grade=letter(avg) if avg is not None else None, pa_n=len(ent['pas']))
+               pa_n=len(ent['pas']))
     return ent
 
 
@@ -528,51 +469,6 @@ def _tally(pa):
 _BASES = {'Single': 1, 'Walk': 1, 'HBP': 1, 'Error': 1, 'FieldersChoice': 1, 'Double': 2, 'Triple': 3, 'HomeRun': 4}
 
 
-def cell_svg(pa, ink='#2a2118', gold='#b5763a'):
-    """One scorebook cell: diamond with the base path, notation, ball / strike boxes, out circle, grade."""
-    W, Hh = 70, 62
-    cx, cy, r = 35, 33, 17
-    pts = {'h': (cx, cy + r), 'f': (cx + r, cy), 's': (cx, cy - r), 't': (cx - r, cy)}
-    o = [f'<svg viewBox="0 0 {W} {Hh}" width="{W}" height="{Hh}" xmlns="http://www.w3.org/2000/svg" style="display:block">']
-    o.append(f'<path d="M{pts["h"][0]} {pts["h"][1]} L{pts["f"][0]} {pts["f"][1]} L{pts["s"][0]} {pts["s"][1]} L{pts["t"][0]} {pts["t"][1]} Z" fill="none" stroke="#c9bfae" stroke-width="1.2"/>')
-    res = pa['result']
-    nb = _BASES.get(res, 0)
-    if nb == 4:
-        o.append(f'<path d="M{pts["h"][0]} {pts["h"][1]} L{pts["f"][0]} {pts["f"][1]} L{pts["s"][0]} {pts["s"][1]} L{pts["t"][0]} {pts["t"][1]} Z" fill="{ink}" opacity=".85"/>')
-    elif nb:
-        seq = [pts['h'], pts['f'], pts['s'], pts['t']][:nb + 1]
-        o.append('<path d="M' + ' L'.join(f'{x} {y}' for x, y in seq) + f'" fill="none" stroke="{ink}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>')
-    elif pa['runs'] and res not in (None,):
-        pass
-    nt = notation(pa)
-    big = len(nt) <= 3
-    if nt:
-        col = '#fff' if nb == 4 else ink
-        if nt == 'K' and res == 'K looking':
-            o.append(f'<text x="{cx}" y="{cy + 6}" text-anchor="middle" font-size="19" font-weight="800" fill="{col}" transform="translate({2 * cx} 0) scale(-1 1)" font-family="Barlow,Arial,sans-serif">K</text>')
-        else:
-            fs = 17 if big else 12
-            o.append(f'<text x="{cx}" y="{cy + 6}" text-anchor="middle" font-size="{fs}" font-weight="800" fill="{col}" font-family="Barlow,Arial,sans-serif">{html.escape(nt)}</text>')
-    b, s = _tally(pa)
-    for i in range(3):
-        o.append(f'<rect x="{W - 29 + i * 8}" y="3" width="6" height="6" fill="{ink if i < b else "none"}" stroke="#a79c8a" stroke-width=".8"/>')
-    for i in range(2):
-        o.append(f'<rect x="{W - 21 + i * 8}" y="11" width="6" height="6" fill="{ink if i < s else "none"}" stroke="#a79c8a" stroke-width=".8"/>')
-    o.append(f'<text x="3" y="11" font-size="9" fill="#8a7f6e" font-family="Barlow,Arial,sans-serif">{pa["n_pitches"]}p</text>')
-    if pa['outs_made']:
-        n = min(3, pa['outs'] + pa['outs_made'])
-        o.append(f'<circle cx="{W - 10}" cy="{Hh - 10}" r="7.5" fill="none" stroke="{ink}" stroke-width="1.4"/><text x="{W - 10}" y="{Hh - 6.6}" text-anchor="middle" font-size="10" font-weight="800" fill="{ink}" font-family="Barlow,Arial,sans-serif">{n}</text>')
-    if pa.get('grade'):
-        gc = {'A': '#2f8a57', 'B': '#4a93a8', 'C': '#d9a028', 'D': '#d9702c', 'F': '#c0443c'}[pa['grade'][0]]
-        o.append(f'<rect x="3" y="{Hh - 15}" width="22" height="12" rx="3" fill="{gc}"/><text x="14" y="{Hh - 6}" text-anchor="middle" font-size="9" font-weight="800" fill="#fff" font-family="Barlow,Arial,sans-serif">{pa["grade"]}</text>')
-    if pa['runs'] and pa['result'] not in ('K swinging', 'K looking', 'Out', None):
-        o.append(f'<text x="3" y="22" font-size="8.5" font-weight="700" fill="{gold}" font-family="Barlow,Arial,sans-serif">{pa["runs"]} RBI</text>')
-    if pa['result'] and pa['outs'] + pa['outs_made'] >= 3:
-        o.append(f'<line x1="0" y1="{Hh - .5}" x2="{W}" y2="{Hh - .5}" stroke="{ink}" stroke-width="2.4"/>')
-    o.append('</svg>')
-    return ''.join(o)
-
-
 def scorebook(m, side):
     """Grid for one team batting: rows = lineup spots (substitutes share the spot), columns = innings (extra columns when a spot bats twice)."""
     pas = m['teams'][side]['pas']
@@ -637,10 +533,6 @@ def pitch_kind(r):
     if c == 'InPlay':
         return 'inplay'
     return 'ball'
-
-
-def pa_strikes(pa):
-    return sum(1 for r in pa['rows'] if pitch_kind(r) in ('called', 'swing', 'foul', 'inplay'))
 
 
 def cell2(pa, new_pitcher='', end_inning=False, new_batter=False, ink='#2a2118', gold='#b5763a', gray='#ddd3c2'):

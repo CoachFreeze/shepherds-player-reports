@@ -1,7 +1,6 @@
 """Opponent scouting: the hitters our pitchers faced and the pitchers our hitters faced, grouped by the opponent
 entered when a Game / Scrimmage CSV was uploaded. Private to the program that uploaded it."""
 import cleanup
-import extract as e
 import hitting
 import outings
 import store

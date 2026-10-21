@@ -1,7 +1,7 @@
 """
 Builds the @font-face CSS block with real font files inlined as base64
 data URIs, so every generated report stays a single self-contained HTML
-file (same reasoning as assets.py for photos) — no dependency on the
+file (same reasoning as brand_assets.py) — no dependency on the
 fonts/ directory sitting next to the output file at render time.
 
 """

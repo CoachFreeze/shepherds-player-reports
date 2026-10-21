@@ -11,10 +11,8 @@ import extract as e
 import savant_components as sc
 import brand_assets
 import comps_engine as ce
-import arsenal_comps as ac
 import mlb_lookup
 import store
-import github_sync
 import outings as outings_mod
 import fonts_embed
 
