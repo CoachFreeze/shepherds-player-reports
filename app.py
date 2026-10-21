@@ -957,10 +957,20 @@ def _opp_logo_path(program, opp):
     return os.path.join(store.DATA_DIR, 'logos', 'opp', f'{program}--{opp}.png')
 
 
-def _opp_logo_url(program, opp_slug, label):
-    """URL of the opponent's logo (a coach's upload, else the school library), or None."""
+def _opp_own_logo(program, opp_slug):
+    """Path of the logo to use for an opponent: the coach's upload for this opponent, else the logo that team uses on its own
+    dashboard when it is a team in the app (their uploaded or built-in logo), else None (the school library is the fallback)."""
     p = _opp_logo_path(program, opp_slug)
     if os.path.exists(p):
+        return p
+    src = theme.watermark_source(opp_slug)
+    return src[1] if src and src[0] in ('custom', 'builtin') else None
+
+
+def _opp_logo_url(program, opp_slug, label):
+    """URL of the opponent's logo (a coach's upload, that team's own logo, else the school library), or None."""
+    p = _opp_own_logo(program, opp_slug)
+    if p:
         return url_for('scouting_logo', program=program, opp=opp_slug, v=int(os.path.getmtime(p)))
     if pipeline.school_badge_file(label, None):
         return url_for('scouting_logo', program=program, opp=opp_slug, label=label)
@@ -973,8 +983,8 @@ def scouting_logo(program, opp):
     blocked = _scouting_ok(program)
     if blocked:
         return blocked
-    p = _opp_logo_path(program, opp)
-    if os.path.exists(p):
+    p = _opp_own_logo(program, opp)
+    if p:
         resp = send_file(p, mimetype='image/png')
         resp.headers['Cache-Control'] = 'private, max-age=3600'
         return resp
