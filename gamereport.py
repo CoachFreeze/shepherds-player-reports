@@ -629,9 +629,6 @@ def cell2(pa, new_pitcher='', end_inning=False, new_batter=False, ink='#2a2118',
         o.append(f'<text x="127" y="92" text-anchor="middle" font-size="7.5" font-weight="700" fill="#5b4a33">{html.escape(note)}</text>')
     if new_pitcher:
         o.append(f'<line x1="0" y1="33" x2="9" y2="26" stroke="{ink}" stroke-width="1.8"/>')
-    if pa.get('grade'):
-        gc = {'A': '#2f8a57', 'B': '#4a93a8', 'C': '#d9a028', 'D': '#d9702c', 'F': '#c0443c'}[pa['grade'][0]]
-        o.append(f'<rect x="110" y="46" width="20" height="11" rx="3" fill="{gc}"/><text x="120" y="54.6" text-anchor="middle" font-size="8.5" font-weight="800" fill="#fff">{pa["grade"]}</text>')
     if new_batter:
         o.append(f'<line x1="1.5" y1="0" x2="1.5" y2="{Hh}" stroke="{ink}" stroke-width="3"/>')
     if end_inning:

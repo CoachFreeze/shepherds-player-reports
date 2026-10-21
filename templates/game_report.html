@@ -29,11 +29,11 @@ td.nm{text-align:left;font-weight:700;white-space:nowrap;} td.nm small{font-weig
 {% for side, nm in order %}
 <h2 class="{{ 'pb' if loop.index0 }}">{{ nm }} lineup card</h2>
 <div class="card">{% set t = m.teams[side] %}{% if not t.slots %}<p class="why">No at-bats tracked for this team.</p>{% else %}
-<table><tr><th>#</th><th class="l">Hitter</th>{% for i in range(maxpa[side]) %}<th>PA {{ i + 1 }}</th>{% endfor %}<th>AB</th><th>H</th><th>RBI</th><th>BB</th><th>K</th><th>xBA</th><th>Avg EV</th><th>Grade</th></tr>
+<table><tr><th>#</th><th class="l">Hitter</th>{% for i in range(maxpa[side]) %}<th>PA {{ i + 1 }}</th>{% endfor %}<th>AB</th><th>H</th><th>RBI</th><th>BB</th><th>K</th><th>xBA</th><th>Avg EV</th></tr>
 {% for s in t.slots %}<tr class="{{ 'sub' if s.is_sub }}"><td>{{ '' if s.is_sub else s.slot }}</td>
   <td class="nm">{% if s.is_sub %}<span class="tag">{{ 'PH/SUB' }}</span>{% endif %}{{ s.display }}<small>{% if s.side %}{{ s.side }}{% endif %}{% if s.is_sub %} for {{ s.sub_for_display }} &middot; inn {{ s.first_inn }}{% endif %}</small></td>
-  {% for i in range(maxpa[side]) %}<td>{% if i < s.pas|length %}{% set p = s.pas[i] %}<span class="pa"><i>inn {{ p.inn }}</i><b>{{ abbr.get(p.result, '–') if p.result else '–' }}</b><span class="g g{{ p.grade[0] if p.grade else 'N' }}">{{ p.grade or '–' }}</span></span>{% endif %}</td>{% endfor %}
-  <td>{{ s.ab }}</td><td>{{ s.h }}</td><td>{{ s.rbi }}</td><td>{{ s.bb }}</td><td>{{ s.k }}</td><td>{{ ('%.3f'|format(s.xba))[1:] if s.xba is not none else '—' }}</td><td>{{ '%.0f'|format(s.ev) if s.ev is not none else '—' }}</td><td><span class="g g{{ s.avg_grade[0] if s.avg_grade else 'N' }}">{{ s.avg_grade or '–' }}</span></td></tr>{% endfor %}</table>
+  {% for i in range(maxpa[side]) %}<td>{% if i < s.pas|length %}{% set p = s.pas[i] %}<span class="pa"><i>inn {{ p.inn }}</i><b>{{ abbr.get(p.result, '–') if p.result else '–' }}</b></span>{% endif %}</td>{% endfor %}
+  <td>{{ s.ab }}</td><td>{{ s.h }}</td><td>{{ s.rbi }}</td><td>{{ s.bb }}</td><td>{{ s.k }}</td><td>{{ ('%.3f'|format(s.xba))[1:] if s.xba is not none else '—' }}</td><td>{{ '%.0f'|format(s.ev) if s.ev is not none else '—' }}</td></tr>{% endfor %}</table>
 <p class="why" style="margin:8px 0 0">Order is rebuilt from the order each hitter first came to the plate. A new hitter takes the spot whose turn it was and is shown as PH/SUB.</p>{% endif %}</div>
 {% endfor %}
 
@@ -49,9 +49,9 @@ td.nm{text-align:left;font-weight:700;white-space:nowrap;} td.nm small{font-weig
 {% for side, nm in order %}{% for p in m.pitchers[side] %}{% if p.ars is not none %}<div class="card ar"><h4>{{ p.name }} <small>{{ nm }} &middot; {{ p.np }} pitches today &middot; {% if p.prev_n %}{{ p.prev_n }} earlier pitches on file{% else %}no earlier data on file{% endif %}</small></h4>{{ p.ars|safe }}</div>{% endif %}{% endfor %}{% endfor %}
 
 {% for side, nm in order %}
-<h2 class="pb">{{ nm }} at-bat grades</h2>
-<div class="card">{% set t = m.teams[side] %}<table><tr><th>Inn</th><th class="l">Hitter</th><th class="l">vs</th><th>Pitches</th><th>Final count</th><th>Result</th><th>EV / LA</th><th>xBA</th><th>Grade</th><th class="l">Notes</th></tr>
-{% for p in t.pas %}<tr><td>{{ 'T' if p.tb == 0 else 'B' }}{{ p.inn }}</td><td class="nm">{{ p.display }}</td><td class="l">{{ p.pitcher_display }}</td><td>{{ p.n_pitches }}</td><td>{{ p.count }}</td><td><b>{{ abbr.get(p.result, '–') if p.result else '–' }}</b></td><td>{% if p.ev is not none %}{{ '%.0f'|format(p.ev) }}{% if p.la is not none %} / {{ '%.0f'|format(p.la) }}&deg;{% endif %}{% else %}—{% endif %}</td><td>{{ ('%.3f'|format(p.xba))[1:] if p.xba is not none else '—' }}</td><td><span class="g g{{ p.grade[0] if p.grade else 'N' }}">{{ p.grade or '–' }}</span></td><td class="why">{{ p.why }}</td></tr>{% endfor %}</table></div>
+<h2 class="pb">{{ nm }} at-bat log</h2>
+<div class="card">{% set t = m.teams[side] %}<table><tr><th>Inn</th><th class="l">Hitter</th><th class="l">vs</th><th>Pitches</th><th>Final count</th><th>Result</th><th>EV / LA</th><th>xBA</th></tr>
+{% for p in t.pas %}<tr><td>{{ 'T' if p.tb == 0 else 'B' }}{{ p.inn }}</td><td class="nm">{{ p.display }}</td><td class="l">{{ p.pitcher_display }}</td><td>{{ p.n_pitches }}</td><td>{{ p.count }}</td><td><b>{{ abbr.get(p.result, '–') if p.result else '–' }}</b></td><td>{% if p.ev is not none %}{{ '%.0f'|format(p.ev) }}{% if p.la is not none %} / {{ '%.0f'|format(p.la) }}&deg;{% endif %}{% else %}—{% endif %}</td><td>{{ ('%.3f'|format(p.xba))[1:] if p.xba is not none else '—' }}</td></tr>{% endfor %}</table></div>
 {% endfor %}
-<div class="meth"><b>How at-bats are graded.</b> Half from the result (HR 100, 3B 95, 2B 90, 1B 78, BB 68, HBP 62, sac 60, ROE 50, FC 40, out 22, strikeout 4&ndash;8) and half from contact quality (xBA from exit velocity and launch angle) when the ball was put in play, so a hard-hit out grades well above a weak single. Added on top: long at-bats (6+ pitches), RBI, two-strike success. Late and close games (7th inning on, within 2 runs) stretch the grade up or down. Baserunners are not in the data, so base-state leverage is not counted. Pinch hitters and substitutes are inferred from batting order. Beta: grades are a starting point for the coaching conversation.</div>
+<div class="meth">Baserunners are not in the data. Pinch hitters and substitutes are inferred from batting order. Beta.</div>
 </div></body></html>
