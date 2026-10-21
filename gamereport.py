@@ -548,7 +548,7 @@ def pitch_kind(r):
 
 
 def pa_strikes(pa):
-    return sum(1 for r in pa['rows'] if pitch_kind(r) in ('called', 'swing', 'foul'))
+    return sum(1 for r in pa['rows'] if pitch_kind(r) in ('called', 'swing', 'foul', 'inplay'))
 
 
 def cell2(pa, new_pitcher='', end_inning=False, ink='#2a2118', gold='#b5763a', gray='#ddd3c2'):
@@ -652,12 +652,12 @@ def staff_table(m, bat_side):
             L = pitch_letter(r)
             d = by.setdefault(L, {'n': 0, 's': 0, 'v': []})
             d['n'] += 1
-            d['s'] += 1 if pitch_kind(r) in ('called', 'swing', 'foul') else 0
+            d['s'] += 1 if pitch_kind(r) in ('called', 'swing', 'foul', 'inplay') else 0
             v = e._fnum(r.get('RelSpeed'))
             if v:
                 d['v'].append(v)
         balls = sum(1 for r in p['rows'] if pitch_kind(r) in ('ball', 'hbp'))
-        strikes = sum(1 for r in p['rows'] if pitch_kind(r) in ('called', 'swing', 'foul'))
+        strikes = sum(1 for r in p['rows'] if pitch_kind(r) in ('called', 'swing', 'foul', 'inplay'))
         for L in by:
             if L not in letters:
                 letters.append(L)
