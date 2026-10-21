@@ -48,12 +48,23 @@
   @media (max-width:520px){h1{font-size:32px;} .half-head h2{font-size:25px;}}
 
   .lg{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0 0;font-size:13px;color:var(--muted);} .lg button{border:0;background:#eef1f0;border-radius:999px;padding:7px 14px;font:700 12.5px Barlow,sans-serif;cursor:pointer;color:var(--ink);}
-  .nolist{display:none;}
+
+  .dp-sub{color:var(--muted);font-size:13.5px;margin:0 0 4px;} .dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px;margin-top:14px;}
+  .dcard{background:var(--card);border-radius:16px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);padding:14px 16px 16px;} .dcard.small{padding:12px 14px 14px;}
+  .dh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;} .dh a{font:700 20px 'Oswald',sans-serif;color:var(--ink);text-decoration:none;} .dh a:hover{color:var(--teal);} .dh .m{font-size:12.5px;color:var(--muted);} .dh .bt{font:700 11px 'Barlow',sans-serif;letter-spacing:.08em;border-radius:999px;padding:2px 8px;background:#eef2f3;color:var(--muted);}
+  .dfields{display:flex;gap:8px;margin-top:8px;} .dfields>div{flex:1;min-width:0;} .dfields .bl{font:700 11px 'Barlow',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#98a3a9;margin-bottom:2px;} .dfields svg{border-radius:10px;}
+  .dn{margin:10px 0 0;padding:0;list-style:none;font-size:13.5px;line-height:1.45;} .dn li{padding:4px 0 4px 14px;position:relative;} .dn li:before{content:'';position:absolute;left:0;top:11px;width:6px;height:6px;border-radius:50%;background:var(--teal);}
+  .dkey{font-size:12.5px;color:var(--muted);margin:10px 0 0;} details.more{margin-top:22px;} details.more summary{cursor:pointer;font:700 14px 'Barlow',sans-serif;color:var(--ink);padding:6px 0;}
 </style></head><body>
+{% macro dcard(x) %}<div class="dcard">
+  <div class="dh"><a href="{{ url_for('beta_hitter', key=x.key) }}">{{ x.name }}</a>{% if x.bats %}<span class="bt">{{ 'BATS ' ~ x.bats }}</span>{% endif %}<span class="m">{{ x.pa }} PA &middot; {{ x.bip }} in play</span></div>
+  <div class="dfields">{% for al in x.aligns %}<div>{% if x.aligns|length > 1 %}<div class="bl">Batting {{ 'left' if al.side == 'L' else 'right' }}</div>{% endif %}{{ al.svg|safe }}</div>{% endfor %}</div>
+  {% for al in x.aligns %}<ul class="dn">{% for n in al.notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endfor %}
+</div>{% endmacro %}
 <div class="hero"><div class="wrap">{% if opp.logo %}<img class="wm" src="{{ opp.logo }}{{ '&' if '?' in opp.logo else '?' }}mark=1" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
   <p class="eyebrow">{{ team_label }} &middot; Scouting</p><h1>{{ opp.label }}</h1>
   <p class="sub">{{ opp.pitchers|length }} pitcher{{ 's' if opp.pitchers|length != 1 }} &middot; {{ opp.hitters|length }} hitter{{ 's' if opp.hitters|length != 1 }} seen{% if opp.dates %} &middot; {{ opp.dates|length }} session{{ 's' if opp.dates|length != 1 }}{% endif %}{% if last_session %} &middot; last session {{ last_session }}{% endif %}</p>
-  <div class="jump"><a href="{{ url_for('team_scouting', program=program) }}">&larr; All opponents</a></div></div></div>
+  <div class="jump"><a href="{{ url_for('team_scouting', program=program) }}">&larr; All opponents</a>{% if defense %}<a href="#defense">Defensive Positioning</a>{% endif %}</div></div></div>
 
 <div class="wrap">
 {% if not opp.logo or opp.custom %}<form class="lg" method="post" action="{{ url_for('scouting_logo_save', program=program, opp=opp.slug) }}" enctype="multipart/form-data">{{ 'Logo for ' ~ opp.label ~ ':' if not opp.logo else 'Custom logo in use.' }}<input type="file" name="logo" accept="image/png,image/jpeg,image/webp" required><button type="submit">{{ 'Replace logo' if opp.custom else 'Add logo' }}</button>{% if opp.custom %}<button type="submit" name="remove" value="1" formnovalidate>Remove</button>{% endif %}</form>{% endif %}
@@ -83,5 +94,15 @@
 </section>
 {% endfor %}
 </div>
+
+{% if defense %}{% set starters = defense[:9] %}{% set rest = defense[9:] %}
+<section class="half" id="defense" style="margin-top:44px;">
+  <div class="half-head"><h2>Defensive Positioning</h2></div>
+  <p class="dp-sub">Proposed alignment for each hitter, built from where his tracked balls in play went. Most plate appearances first.</p>
+  <p class="dkey">Numbered dots are the proposed fielders (3 = first base, 4 = second, 5 = third, 6 = shortstop, 7-9 = outfield). A white ring marks the standard spot a fielder moves from. Small dots are the hitter's tracked batted balls.</p>
+  <div class="dgrid">{% for x in starters %}{{ dcard(x) }}{% endfor %}</div>
+  {% if rest %}<details class="more"><summary>{{ rest|length }} more hitter{{ 's' if rest|length != 1 }} with fewer at-bats</summary><div class="dgrid">{% for x in rest %}{{ dcard(x) }}{% endfor %}</div></details>{% endif %}
+</section>
+{% endif %}
 </div>
 </body></html>

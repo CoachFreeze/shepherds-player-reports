@@ -73,3 +73,19 @@ def team_data(program, opp_slug):
             ps.append((slug, {'name': _flip(outs[0]['rows'][0].get('Pitcher')) or slug}, outs))
     hs = {k: h for k, h in hitting.collect_scouting(program).items() if h['opp_slug'] == opp_slug}
     return {'pitching': team.pitching_from(ps), 'hitting': team.hitting_from(hs), 'cfg': team.load(program)}
+
+
+def defense_data(program, opp_slug):
+    """Defensive Positioning cards for one opponent's hitters, most plate appearances first: [{'key', 'name', 'pa', 'bip', 'bats', 'aligns': [...]}]."""
+    import defense
+    out = []
+    for key, h in hitting.collect_scouting(program).items():
+        if h['opp_slug'] != opp_slug:
+            continue
+        st = hitting.hitter_stats(h['pitches'])
+        sides = {p['side'] for p in h['pitches'] if p.get('side')}
+        out.append({'key': key, 'name': hitting.display_name(h['name']), 'pa': st['pa'] or 0, 'pitches': len(h['pitches']),
+                    'bip': sum(1 for p in h['pitches'] if p.get('outcome') == 'inplay'),
+                    'bats': 'S' if len(sides) > 1 else (next(iter(sides)) if sides else ''), 'aligns': defense.alignment(h['pitches'])})
+    out.sort(key=lambda x: (-x['pa'], -x['bip'], x['name'].split()[-1].lower()))
+    return out

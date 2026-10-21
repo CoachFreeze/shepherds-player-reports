@@ -24,7 +24,8 @@ THEMES = {
 }
 
 
-def make_svg(points, width=420, style='classic'):
+def make_svg(points, width=420, style='classic', fielders=None):
+    """`fielders` (optional): [{'x', 'y' (feet), 'label', 'home_x', 'home_y'}] drawn over the field as a defensive alignment; the batted balls then become small quiet dots."""
     th = THEMES.get(style, THEMES['classic'])
     pad = 40
     xmax = fence_r(45) * math.sin(math.radians(45))
@@ -103,6 +104,9 @@ def make_svg(points, width=420, style='classic'):
     for pt in points:
         d = max(8, min(pt['distance'], fence_r(pt['direction']) + 18))
         x, y = polar(d, max(-50, min(50, pt['direction'])))
+        if fielders:
+            s.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="2.6" fill="#22303a" fill-opacity=".38"/>')
+            continue
         ev = pt.get('ev')
         ev_txt = f'{ev:.1f} mph' if ev is not None else '—'
         dist_txt = f'{pt["distance"]:.0f} ft'
@@ -110,5 +114,13 @@ def make_svg(points, width=420, style='classic'):
         s.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4.6" fill="{_ev_bucket_color(ev)}" fill-opacity="0.92" stroke="#fff" stroke-width="1"/>')
         s.append(f'<circle class="bb-hit" cx="{x:.1f}" cy="{y:.1f}" r="9" fill="transparent" style="cursor:pointer;" data-ev="{ev_txt}" data-dist="{dist_txt}" '
                  f'data-la="{la}" data-type="{pt.get("type") or ""}" data-xba="{pt.get("xba") or ""}"/>')
+    for fd in fielders or []:
+        gx, gy = P(fd['home_x'], fd['home_y'])
+        x, y = P(fd['x'], fd['y'])
+        if abs(fd['x'] - fd['home_x']) + abs(fd['y'] - fd['home_y']) > 5:           # moved from the standard spot: ghost + dashed move
+            s.append(f'<line x1="{gx:.1f}" y1="{gy:.1f}" x2="{x:.1f}" y2="{y:.1f}" stroke="#fff" stroke-width="1.3" stroke-dasharray="3 2.5" stroke-opacity=".9"/>')
+            s.append(f'<circle cx="{gx:.1f}" cy="{gy:.1f}" r="6.2" fill="none" stroke="#fff" stroke-width="1.2" stroke-opacity=".85"/>')
+        s.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="8.2" fill="#22303a" stroke="#fff" stroke-width="1.6"/>')
+        s.append(f'<text x="{x:.1f}" y="{y + 3.6:.1f}" text-anchor="middle" font-size="10.5" font-weight="800" fill="#fff">{fd["label"]}</text>')
     s.append('</svg>')
     return ''.join(s)
