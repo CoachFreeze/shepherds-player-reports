@@ -130,6 +130,28 @@ def _player(num, name, pos, bt, ht, wt, major, yr, home, hs, prev):
 
 
 # ----------------------------------------------------------------- parsers
+_LIST_LINE = re.compile(r"^(\d{1,2})\s+(.+?)\s+([A-Za-z]{1,3})\.?\s*-\s*(\d)\s*[\u2032']\s*(\d{1,2})\s*[\u2033\"]?\s*-\s*(\d{2,3})\s*lbs\.?\s*\|\s*(.+)$")
+
+
+def parse_list_pdf(data):
+    """Simple list rosters: '24  Name   JR. - 6'2" - 200 lbs  |  RHP' (no table headers, no bats/throws)."""
+    import pdfplumber
+    out = []
+    with pdfplumber.open(io.BytesIO(data)) as pdf:
+        text = '\n'.join((pg.extract_text() or '') for pg in pdf.pages)
+    for ln in text.splitlines():
+        m = _LIST_LINE.match(ln.strip())
+        if not m:
+            continue
+        num, name, yr, ft, inch, wt, pos = m.groups()
+        p = _player(num, name, pos, None, f"{ft}-{inch}", wt, None, yr.upper() + '.', None, None, None)
+        pp = [t for t in p['positions'] if t in ('RHP', 'LHP')]
+        if pp:
+            p['throws'] = pp[0][0]
+        out.append(p)
+    return out
+
+
 def parse_pdf(data):
     """School-athletics-site roster printed to PDF (columns: # IMAGE NAME POS. B/T HT. WT. MAJOR YR. HOMETOWN HIGH SCHOOL PREVIOUS SCHOOL)."""
     import pdfplumber
@@ -149,6 +171,9 @@ def parse_pdf(data):
             head_top = found['name'][1]
             break
     if not edges:
+        rows = parse_list_pdf(data)
+        if rows:
+            return rows
         raise ValueError("Couldn't find the roster table in that PDF.")
 
     def col_of(x):
