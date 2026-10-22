@@ -2,11 +2,11 @@
 {% block title %}{{ brand }}: pitcher and hitter reports from your tracking data{% endblock %}
 {% block body %}
 <section class="hero"><div class="wrap grid"><div>
-  <p class="eyebrow" style="color:#7fb3c4;">For baseball programs</p>
+  <p class="eyebrow" style="color:#d9a066;">For baseball programs</p>
   <h1>Turn your tracking data into reports your players will read.</h1>
   <p class="lead">Upload a session and get clear pitcher and hitter profiles, a team dashboard and opponent scouting, without the spreadsheets.</p>
   <div class="cta"><a class="btn" href="{{ url_for('welcome_signup') }}">Start {{ trial_days }}-day free trial</a><a class="btn alt" href="{{ url_for('welcome_features') }}">See the features</a></div>
-  <small>No card needed. Already a coach here? <a href="{{ url_for('login') }}" style="color:#c9d3d8;">Log in</a></small></div>
+  <small>No card needed. Already a coach here? <a href="{{ url_for('login') }}" style="color:#dcd8c6;">Log in</a></small></div>
   <div class="shot"><img src="{{ url_for('static', filename='site/team.jpg') }}" alt="Team dashboard"></div></div></section>
 
 <section class="s"><div class="wrap"><div class="head"><p class="eyebrow">Why coaches use it</p><h2>Less time in spreadsheets. More time coaching.</h2></div>
@@ -26,5 +26,5 @@
 <section class="s"><div class="wrap"><div class="head"><p class="eyebrow">Questions</p><h2>Quick answers</h2></div>
   {% for q, a in faq %}<details><summary>{{ q }}</summary><p>{{ a }}</p></details>{% endfor %}</div></section>
 
-<section class="band"><h2>Ready to see your own data?</h2><p>Start your {{ trial_days }}-day free trial and upload your first session today.</p><a class="btn" href="{{ url_for('welcome_signup') }}">Start free trial</a></section>
+<section class="band"><p class="eyebrow" style="color:#d9a066;margin:0 0 10px;">{{ tagline }}</p><h2>Ready to see your own data?</h2><p>Start your {{ trial_days }}-day free trial and upload your first session today.</p><a class="btn" href="{{ url_for('welcome_signup') }}">Start free trial</a></section>
 {% endblock %}

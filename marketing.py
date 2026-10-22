@@ -1,5 +1,5 @@
 """Content and structure for the public website (/welcome). Everything a visitor reads lives here or in templates/site_*.html, so wording,
-prices and the name can be changed without touching the app. The site is unbranded for now: BRAND is a single placeholder.
+prices and the name can be changed without touching the app. Branding: BRAND and TAGLINE here, logo files in static/site/brand/, colors at the top of templates/site_base.html.
 
 Visibility: only admins can open the site until it is switched on for everyone with the environment variable SHEPSAVANT_SITE_PUBLIC=on.
 Nothing else in the app changes when it is on or off, except that a signed-out visitor to the home address lands on the site instead of the login."""
@@ -7,7 +7,8 @@ import os
 
 import plans
 
-BRAND = 'Player Reports'                 # placeholder wordmark until the name is chosen
+BRAND = 'Dugout Tracer'
+TAGLINE = 'Every pitch. Every game. Everywhere.'
 TRIAL_DAYS = 7
 
 # Monthly or yearly prices shown on the plan cards. None shows "Pricing coming soon". Example: {'price': '$49', 'per': 'per month'}
@@ -135,4 +136,4 @@ def plan_bullets():
 def context(page=''):
     import datetime
     return dict(brand=BRAND, trial_days=TRIAL_DAYS, benefits=BENEFITS, steps=STEPS, features=FEATURES, faq=FAQ, cards=plan_cards(), bullets=plan_bullets(),
-                cmp=comparison(), year=datetime.date.today().year, page=page, public=is_public())
+                cmp=comparison(), year=datetime.date.today().year, page=page, public=is_public(), tagline=TAGLINE)

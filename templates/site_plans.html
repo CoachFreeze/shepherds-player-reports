@@ -1,7 +1,7 @@
 {% extends 'site_base.html' %}{% from 'site_macros.html' import plan_cards %}
 {% block title %}Plans | {{ brand }}{% endblock %}
 {% block body %}
-<section class="hero" style="padding:56px 0;"><div class="wrap"><p class="eyebrow" style="color:#7fb3c4;">Plans</p><h1>Start free. Pick a plan when you are ready.</h1>
+<section class="hero" style="padding:56px 0;"><div class="wrap"><p class="eyebrow" style="color:#d9a066;">Plans</p><h1>Start free. Pick a plan when you are ready.</h1>
   <p class="lead">Every account begins with a {{ trial_days }}-day trial of every feature, so you can try it on your own data first.</p></div></section>
 <section class="s"><div class="wrap">{{ plan_cards(cards, bullets, trial_days) }}</div></section>
 <section class="s alt"><div class="wrap"><div class="head"><h2>Compare plans</h2></div><div class="tbl"><table class="cmp"><tr><th></th>{% for h in cmp.head %}<th>{{ h }}</th>{% endfor %}</tr>
