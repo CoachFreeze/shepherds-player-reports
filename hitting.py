@@ -649,7 +649,30 @@ def list_hitters(include_demo=True):
     return rows
 
 
-def hitter_profile(key, include_demo=True, side='all'):
+_PT_LABELS = {'Fastball': 'Fastball', 'FourSeamFastBall': 'Fastball', 'FourSeam': 'Fastball', 'Sinker': 'Sinker', 'TwoSeamFastBall': 'Sinker', 'Cutter': 'Cutter',
+              'Slider': 'Slider', 'Sweeper': 'Sweeper', 'Curveball': 'Curveball', 'ChangeUp': 'Changeup', 'Changeup': 'Changeup', 'Splitter': 'Splitter',
+              'Knuckleball': 'Knuckleball'}
+_PT_ORDER = ['Fastball', 'Sinker', 'Cutter', 'Slider', 'Sweeper', 'Curveball', 'Changeup', 'Splitter', 'Knuckleball']
+
+
+def pitch_type_table(ps):
+    """Batted-ball quality against each pitch type he has seen (plus an all-pitches row). One row per type, same numbers as the tiles above it."""
+    def row(label, sub):
+        s = hitter_stats(sub)
+        return {'label': label, 'seen': len(sub), 'swing_pct': s['swing_pct'], 'whiff_pct': s['whiff_pct'], 'bip': s['bip'], 'avg_ev': s['avg_ev'], 'max_ev': s['max_ev'],
+                'hard_hit_pct': s['hard_hit_pct'], 'brl_pct': s['brl_pct'], 'avg_la': s['avg_la'], 'gb_pct': s['gb_pct'], 'ld_pct': s['ld_pct'],
+                'fb_pct': s['fb_pct'], 'xba': s['xba'], 'ab': s['ab']}
+    groups = {}
+    for p in ps:
+        lab = _PT_LABELS.get(p.get('pitch_type') or '', None)
+        if lab:
+            groups.setdefault(lab, []).append(p)
+    rows = [row(lab, groups[lab]) for lab in sorted(groups, key=lambda k: (-len(groups[k]), _PT_ORDER.index(k) if k in _PT_ORDER else 99))]
+    return {'all': row('All pitches', ps), 'rows': rows}
+
+
+def hitter_profile(key, include_demo=True, side='all', vs='all'):
+    """vs = the pitcher's hand to show ('R', 'L' or 'all'). `side` is the older switch-hitter control (batting left = vs RHP) and still works."""
     h = (collect_scouting().get(key) if key.startswith(SCOUT) else _collect(include_demo).get(key))
     if not h:
         return None
@@ -657,20 +680,30 @@ def hitter_profile(key, include_demo=True, side='all'):
     sides = {p['side'] for p in ps_all if p['side']}
     bats_seen = 'S' if len(sides) > 1 else (next(iter(sides)) if sides else None)
     bio = _bio(key, h, _players_index(), bats_seen)
+    vs = vs if vs in ('R', 'L') else 'all'
+    if vs == 'all' and side in ('L', 'R') and bio['bats'] == 'S':
+        vs = 'R' if side == 'L' else 'L'
     switch = None
     if bio['bats'] == 'S':
         # The data rarely says which side a switch hitter hit from, so it comes from the pitcher's hand: left-handed against righties,
-        # right-handed against lefties. Pitches with no known pitcher hand stay in Combined only.
+        # right-handed against lefties. Pitches with no known pitcher hand stay in the all-pitchers view only.
         for p in ps_all:
             if p.get('p_throws') in ('R', 'L'):
                 p['side'] = 'L' if p['p_throws'] == 'R' else 'R'
-        n_l = sum(1 for p in ps_all if p.get('p_throws') == 'R')
-        n_r = sum(1 for p in ps_all if p.get('p_throws') == 'L')
-        side = side if side in ('L', 'R') else 'all'
-        switch = {'cur': side, 'n_all': len(ps_all), 'n_l': n_l, 'n_r': n_r, 'unknown': len(ps_all) - n_l - n_r}
+        side = {'R': 'L', 'L': 'R'}.get(vs, 'all')
+        switch = {'cur': side, 'n_all': len(ps_all), 'n_l': sum(1 for p in ps_all if p.get('p_throws') == 'R'),
+                  'n_r': sum(1 for p in ps_all if p.get('p_throws') == 'L')}
+        switch['unknown'] = len(ps_all) - switch['n_l'] - switch['n_r']
     else:
         side = 'all'
-    ps = [p for p in ps_all if p.get('p_throws') == ('R' if side == 'L' else 'L')] if side in ('L', 'R') else ps_all
+    ps = [p for p in ps_all if p.get('p_throws') == vs] if vs in ('R', 'L') else ps_all
+
+    def _bip(rows):
+        return sum(1 for p in rows if p['outcome'] == 'inplay' and p['ev'] is not None)
+    vs_counts = {'all': {'pitches': len(ps_all), 'bip': _bip(ps_all)}}
+    for hand in ('R', 'L'):
+        sub = [p for p in ps_all if p.get('p_throws') == hand]
+        vs_counts[hand] = {'pitches': len(sub), 'bip': _bip(sub)}
     bats = side if side in ('L', 'R') else bats_seen if not switch else 'S'
     s = hitter_stats(ps)
     import benchmarks as bm
@@ -679,7 +712,7 @@ def hitter_profile(key, include_demo=True, side='all'):
         prow.append({'label': 'EV90', 'pctl': bm.interpolate(s['ev90'], bm.HITTER['ev90']), 'value_display': f"{s['ev90']:.1f}"})
     if s['whiff_pct'] is not None and len([p for p in ps if p['outcome'] in SWING]) >= 10:
         prow.append({'label': 'Whiff%', 'pctl': bm.interpolate(s['whiff_pct'], bm.HITTER['whiff_pct']), 'value_display': f"{s['whiff_pct']:.1f}%"})
-    return {'bio': bio, 'switch': switch, 'ps_n': len(ps), 'roster': h.get('roster'), 'pctl_html': sc.percentile_bars_html(prow) if prow else '', 'key': key, 'name': display_name(h['name']), 'program': h['program'], 'demo': h['demo'], 'bats': bats, 'opponent': h.get('opponent'), 'opp_slug': h.get('opp_slug'),
+    return {'bio': bio, 'switch': switch, 'vs': vs, 'vs_counts': vs_counts, 'pt_table': pitch_type_table(ps), 'ps_n': len(ps), 'roster': h.get('roster'), 'pctl_html': sc.percentile_bars_html(prow) if prow else '', 'key': key, 'name': display_name(h['name']), 'program': h['program'], 'demo': h['demo'], 'bats': bats, 'opponent': h.get('opponent'), 'opp_slug': h.get('opp_slug'),
             's': s, 'notes': takeaways(s), 'dates': sorted({p['date'] for p in ps_all if p['date']}),
             'zone_ev': zone_ev_data(ps),
             'decision_svg': decision_chart_svg(ps, side=bats if bats in ('L', 'R') else None),

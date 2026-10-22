@@ -38,6 +38,7 @@
   .chips button{border:1px solid #dcdfdc;background:#fff;font:600 12px 'Barlow',sans-serif;color:#55626b;padding:4px 11px;border-radius:999px;cursor:pointer;} .chips button.on{background:var(--accent,#5c97a8);border-color:var(--accent,#5c97a8);color:#fff;}
   .hm-scale{display:flex;align-items:center;gap:8px;font-size:11px;color:#76828a;margin-top:10px;justify-content:center;} .hm-scale div{display:flex;} .hm-scale i{width:14px;height:9px;display:block;} .hm-scale em{margin-left:6px;}
   #zhm text{font-family:'Barlow',Arial,sans-serif;pointer-events:none;}
+  .ptwrap{overflow-x:auto;margin:0 -4px;} .ptt{border-collapse:collapse;width:100%;font-size:13px;min-width:720px;} .ptt th{font:600 10.5px 'Barlow',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#76828a;text-align:right;padding:6px 8px;border-bottom:2px solid #e3e8e6;white-space:nowrap;} .ptt td{text-align:right;padding:8px;border-bottom:1px solid #eef1f0;font-variant-numeric:tabular-nums;} .ptt th.l,.ptt td.l{text-align:left;font-weight:600;} .ptt tr.tot td{background:#f7f6f2;font-weight:700;border-bottom:2px solid #e3e8e6;} .ptt tr.lo td{color:#a3adb3;} .ptt td.hot{color:#b9292a;font-weight:700;}
   .foot{color:#76828a;font-size:12.5px;margin-top:6px;line-height:1.5;}
 </style></head><body>
 <div class="top">{% if me and me.is_player %}<span></span>{% else %}<a class="back" href="{{ hitters_url }}">&larr; {{ 'Back to scouting' if scouting else ('Hitters' if nav_program else 'All hitters') }}</a>{% endif %}{% include '_usermenu.html' %}</div>
@@ -55,12 +56,37 @@
     </div>
   </div>
 
-  {% if h.switch %}{% set sw = h.switch %}
+  {% set vc = h.vs_counts %}
   <div class="swt"><div class="seg">
-    <a href="{{ url_for('beta_hitter', key=h.key) }}" class="{{ 'on' if sw.cur == 'all' }}">Combined <em>{{ sw.n_all }}</em></a>
-    <a href="{{ url_for('beta_hitter', key=h.key, side='L') }}" class="{{ 'on' if sw.cur == 'L' }}">Batting left <small>vs RHP</small> <em>{{ sw.n_l }}</em></a>
-    <a href="{{ url_for('beta_hitter', key=h.key, side='R') }}" class="{{ 'on' if sw.cur == 'R' }}">Batting right <small>vs LHP</small> <em>{{ sw.n_r }}</em></a></div>
-    <p class="hint" style="margin:8px 2px 0;">Switch hitter. The whole profile below shows {{ 'both sides combined' if sw.cur == 'all' else ('his left-handed swings (pitches from right-handed pitchers)' if sw.cur == 'L' else 'his right-handed swings (pitches from left-handed pitchers)') }}. Batting side is worked out from the pitcher's throwing hand because the data doesn't reliably say which side he hit from.{% if sw.unknown %} {{ sw.unknown }} pitch{{ 'es' if sw.unknown != 1 }} had no known pitcher hand and only count in Combined.{% endif %}</p></div>
+    <a href="{{ url_for('beta_hitter', key=h.key) }}" class="{{ 'on' if h.vs == 'all' }}">All pitchers <em>{{ vc['all'].bip }} BIP</em></a>
+    <a href="{{ url_for('beta_hitter', key=h.key, vs='R') }}" class="{{ 'on' if h.vs == 'R' }}">vs RHP{% if h.switch %} <small>bats left</small>{% endif %} <em>{{ vc['R'].bip }} BIP</em></a>
+    <a href="{{ url_for('beta_hitter', key=h.key, vs='L') }}" class="{{ 'on' if h.vs == 'L' }}">vs LHP{% if h.switch %} <small>bats right</small>{% endif %} <em>{{ vc['L'].bip }} BIP</em></a></div>
+    <p class="hint" style="margin:8px 2px 0;">{% if h.vs == 'all' %}Showing everything he has seen, right-handed and left-handed pitchers combined.{% elif h.vs == 'R' %}Showing only pitches from right-handed pitchers.{% else %}Showing only pitches from left-handed pitchers.{% endif %} The whole page below follows this choice.{% if h.switch %} Switch hitter: batting side is worked out from the pitcher's hand (left-handed against righties, right-handed against lefties), because the data doesn't reliably say which side he hit from.{% if h.switch.unknown %} {{ h.switch.unknown }} pitch{{ 'es' if h.switch.unknown != 1 }} had no known pitcher hand and only count in All pitchers.{% endif %}{% endif %}</p></div>
+
+  <div class="card"><h2>Batted-ball quality</h2><p class="hint">{{ s.bip }} tracked ball{{ '' if s.bip == 1 else 's' }} in play{% if h.vs != 'all' %} against {{ 'right-handed' if h.vs == 'R' else 'left-handed' }} pitchers{% endif %}.</p>
+    <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(120px,1fr));">
+      <div class="tile" style="background:#e8f1f4;"><div class="v">{{ ('%.3f' % s.xba).lstrip('0') if s.xba is not none else '–' }}</div><div class="l">xBA</div>{% if s.xba is not none %}<div style="font-size:11px;color:#55626b;margin-top:2px;">{% if s.ba is not none %}BA {{ ('%.3f' % s.ba).lstrip('0') if s.ba < 1 else '1.000' }} · {% endif %}{{ s.ab }} AB</div>{% endif %}</div>
+      {% for l, v, u in [('Avg exit velo', s.avg_ev, ' mph'), ('Max exit velo', s.max_ev, ' mph'), ('EV90', s.ev90, ' mph'), ('Hard-hit (95+)', s.hard_hit_pct, '%'), ('Barrel %', s.brl_pct, '%'), ('Avg launch angle', s.avg_la, '°'), ('Sweet spot (8–32°)', s.sweet_spot_pct, '%'), ('Ground ball', s.gb_pct, '%'), ('Line drive', s.ld_pct, '%'), ('Fly ball', s.fb_pct, '%'), ('Pop-up', s.pu_pct, '%')] %}
+      <div class="tile"><div class="v">{{ v if v is not none else '–' }}<span style="font-size:13px;color:#76828a;">{{ u if v is not none }}</span></div><div class="l">{{ l }}</div>{% if l == 'Barrel %' and s.mix_n %}<div style="font-size:11px;color:#76828a;margin-top:2px;">{{ s.brl }} of {{ s.mix_n }} batted balls</div>{% endif %}</div>{% endfor %}
+    </div>
+    {# percentile bars hidden for now (to be rebuilt with more data): {{ h.pctl_html|safe }} #}
+    <p class="foot"><b>xBA</b> adds up the chance each tracked ball in play would be a hit, from its exit velocity and launch angle, then divides by at-bats (balls in play plus strikeouts; walks and HBP aren't at-bats). Fielders, parks and sprint speed aren't included. The hit-probability table is fitted to about 25,000 MLB batted balls (not Statcast's own model, and MLB hitters on wood bats, so college numbers can run a bit different). It will be refit to your own data as it builds. Under about 20 at-bats it swings a lot.</p>
+  </div>
+  {% set pt = h.pt_table %}{% if pt.rows %}
+  <div class="card"><h2>Batted balls by pitch type</h2>
+    <p class="hint">How he hits each pitch he has seen{% if h.vs != 'all' %} from {{ 'right-handed' if h.vs == 'R' else 'left-handed' }} pitchers{% endif %}. Rows with fewer than 5 balls in play are greyed out; treat them as a first look.</p>
+    <div class="ptwrap"><table class="ptt"><thead><tr><th class="l">Pitch</th><th>Seen</th><th>Whiff %</th><th>BIP</th><th>Avg EV</th><th>Max EV</th><th>Hard-hit %</th><th>Barrel %</th><th>Avg LA</th><th>GB %</th><th>LD %</th><th>FB %</th><th>xBA</th></tr></thead><tbody>
+    {% for r in [pt.all] + pt.rows %}<tr class="{{ 'tot' if loop.first }}{{ ' lo' if r.bip < 5 }}"><td class="l">{{ r.label }}</td><td>{{ r.seen }}</td>
+      <td>{{ ('%.1f' % r.whiff_pct) if r.whiff_pct is not none else '–' }}</td><td>{{ r.bip }}</td>
+      <td class="{{ 'hot' if r.avg_ev is not none and r.bip >= 5 and r.avg_ev >= 90 }}">{{ ('%.1f' % r.avg_ev) if r.avg_ev is not none else '–' }}</td>
+      <td>{{ ('%.1f' % r.max_ev) if r.max_ev is not none else '–' }}</td>
+      <td>{{ ('%.1f' % r.hard_hit_pct) if r.hard_hit_pct is not none else '–' }}</td>
+      <td>{{ ('%.1f' % r.brl_pct) if r.brl_pct is not none else '–' }}</td>
+      <td>{{ ('%.1f' % r.avg_la) if r.avg_la is not none else '–' }}&deg;</td>
+      <td>{{ ('%.0f' % r.gb_pct) if r.gb_pct is not none else '–' }}</td><td>{{ ('%.0f' % r.ld_pct) if r.ld_pct is not none else '–' }}</td><td>{{ ('%.0f' % r.fb_pct) if r.fb_pct is not none else '–' }}</td>
+      <td>{{ ('%.3f' % r.xba).lstrip('0') if r.xba is not none else '–' }}</td></tr>{% endfor %}
+    </tbody></table></div>
+  </div>
   {% endif %}
 
   <div class="card"><h2>Swing decisions</h2>
@@ -91,6 +117,7 @@
     <p class="foot">Counts and pitch type are built in: fastball takes in the heart in hitter's counts count double, early-count takes of off-speed pitches aren't held against him{% if s.excused_takes %} ({{ s.excused_takes }} here){% endif %}, and chases with two strikes are forgiven by half when the pitch was close.</p>
     {% endif %}
     {% if h.notes %}<ul class="notes" style="margin-top:14px;">{% for n in h.notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
+    <p class="foot">Decision score thresholds (85 elite, 75 strong, 65 solid, 55 developing) are starting points for beta and will be tuned once there is more data.</p>
   </div>
 
   <div class="grid">
@@ -164,14 +191,4 @@ var ZD = {{ h.zone_ev|tojson }};
   </div>
 
   {% endif %}
-  <div class="card"><h2>Batted-ball quality</h2><p class="hint">{{ s.bip }} tracked ball{{ '' if s.bip == 1 else 's' }} in play.</p>
-    <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(120px,1fr));">
-      <div class="tile" style="background:#e8f1f4;"><div class="v">{{ ('%.3f' % s.xba).lstrip('0') if s.xba is not none else '–' }}</div><div class="l">xBA</div>{% if s.xba is not none %}<div style="font-size:11px;color:#55626b;margin-top:2px;">{% if s.ba is not none %}BA {{ ('%.3f' % s.ba).lstrip('0') if s.ba < 1 else '1.000' }} · {% endif %}{{ s.ab }} AB</div>{% endif %}</div>
-      {% for l, v, u in [('Avg exit velo', s.avg_ev, ' mph'), ('Max exit velo', s.max_ev, ' mph'), ('EV90', s.ev90, ' mph'), ('Hard-hit (95+)', s.hard_hit_pct, '%'), ('Barrel %', s.brl_pct, '%'), ('Avg launch angle', s.avg_la, '°'), ('Sweet spot (8–32°)', s.sweet_spot_pct, '%'), ('Ground ball', s.gb_pct, '%'), ('Line drive', s.ld_pct, '%'), ('Fly ball', s.fb_pct, '%'), ('Pop-up', s.pu_pct, '%')] %}
-      <div class="tile"><div class="v">{{ v if v is not none else '–' }}<span style="font-size:13px;color:#76828a;">{{ u if v is not none }}</span></div><div class="l">{{ l }}</div>{% if l == 'Barrel %' and s.mix_n %}<div style="font-size:11px;color:#76828a;margin-top:2px;">{{ s.brl }} of {{ s.mix_n }} batted balls</div>{% endif %}</div>{% endfor %}
-    </div>
-    {# percentile bars hidden for now (to be rebuilt with more data): {{ h.pctl_html|safe }} #}
-    <p class="foot"><b>xBA</b> adds up the chance each tracked ball in play would be a hit, from its exit velocity and launch angle, then divides by at-bats (balls in play plus strikeouts; walks and HBP aren't at-bats). Fielders, parks and sprint speed aren't included. The hit-probability table is fitted to about 25,000 MLB batted balls (not Statcast's own model, and MLB hitters on wood bats, so college numbers can run a bit different). It will be refit to your own data as it builds. Under about 20 at-bats it swings a lot.</p>
-    <p class="foot">Decision score thresholds (85 elite, 75 strong, 65 solid, 55 developing) are starting points for beta and will be tuned once there is more data.</p>
-  </div>
 </div></body></html>

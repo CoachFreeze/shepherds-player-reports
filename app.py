@@ -1277,7 +1277,7 @@ def _scout_hitter_page(key, h):
 @app.route('/hitter/<key>')
 @login_required
 def beta_hitter(key):
-    h = hitting.hitter_profile(key, side=request.args.get('side', 'all'))
+    h = hitting.hitter_profile(key, side=request.args.get('side', 'all'), vs=request.args.get('vs', 'all'))
     if not h or h['demo'] and not is_admin():
         abort(404)
     if not is_admin() and (h['program'] != my_program() or not plans.allowed(h['program'], 'hitting')):   # a coach sees only his own program's hitters
