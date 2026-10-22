@@ -291,6 +291,7 @@
   "cj_bott": {
     "comps": {},
     "grad_year": null,
+    "height_in": 74,
     "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_1.csv",
     "name": "CJ Bott",
     "program": "ucla",
@@ -299,7 +300,14 @@
         "position": "RHP"
       }
     },
-    "school": "UCLA"
+    "roster": {
+      "class_year": "SO.",
+      "number": "25",
+      "pos_raw": "RHP",
+      "throws": "R"
+    },
+    "school": "UCLA",
+    "weight_lbs": 200
   },
   "derek_valdez": {
     "comps": {},
@@ -355,6 +363,7 @@
   "elai_iwanaga": {
     "comps": {},
     "grad_year": null,
+    "height_in": 72,
     "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_1.csv",
     "name": "Elai Iwanaga",
     "program": "ucla",
@@ -363,7 +372,14 @@
         "position": "RHP"
       }
     },
-    "school": "UCLA"
+    "roster": {
+      "class_year": "FR.",
+      "number": "47",
+      "pos_raw": "RHP",
+      "throws": "R"
+    },
+    "school": "UCLA",
+    "weight_lbs": 170
   },
   "gabriel_esteban": {
     "comps": {},
@@ -379,6 +395,7 @@
   "hayden_george": {
     "comps": {},
     "grad_year": null,
+    "height_in": 76,
     "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_2.csv",
     "name": "Hayden George",
     "program": "ucla",
@@ -387,7 +404,14 @@
         "position": "RHP"
       }
     },
-    "school": "UCLA"
+    "roster": {
+      "class_year": "FR.",
+      "number": "35",
+      "pos_raw": "RHP",
+      "throws": "R"
+    },
+    "school": "UCLA",
+    "weight_lbs": 225
   },
   "hayden_vanderhoof": {
     "comps": {},
@@ -407,6 +431,7 @@
   "ian_fisher": {
     "comps": {},
     "grad_year": null,
+    "height_in": 73,
     "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_2.csv",
     "name": "Ian Fisher",
     "program": "ucla",
@@ -415,7 +440,14 @@
         "position": "LHP"
       }
     },
-    "school": "UCLA"
+    "roster": {
+      "class_year": "FR.",
+      "number": "44",
+      "pos_raw": "LHP",
+      "throws": "L"
+    },
+    "school": "UCLA",
+    "weight_lbs": 182
   },
   "jackson_orr": {
     "comps": {
@@ -659,6 +691,7 @@
   "mack_edwards": {
     "comps": {},
     "grad_year": null,
+    "height_in": 77,
     "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_1.csv",
     "name": "Mack Edwards",
     "program": "ucla",
@@ -667,7 +700,14 @@
         "position": "LHP"
       }
     },
-    "school": "UCLA"
+    "roster": {
+      "class_year": "FR.",
+      "number": "34",
+      "pos_raw": "LHP",
+      "throws": "L"
+    },
+    "school": "UCLA",
+    "weight_lbs": 230
   },
   "mason_tymick": {
     "comps": {},
@@ -987,6 +1027,7 @@
   "wylan_moss": {
     "comps": {},
     "grad_year": null,
+    "height_in": 75,
     "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_1.csv",
     "name": "Wylan Moss",
     "program": "ucla",
@@ -995,11 +1036,19 @@
         "position": "RHP"
       }
     },
-    "school": "UCLA"
+    "roster": {
+      "class_year": "SO.",
+      "number": "18",
+      "pos_raw": "RHP",
+      "throws": "R"
+    },
+    "school": "UCLA",
+    "weight_lbs": 200
   },
   "zach_strickland": {
     "comps": {},
     "grad_year": null,
+    "height_in": 74,
     "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_10_18_LBS_1.csv",
     "name": "Zach Strickland",
     "program": "ucla",
@@ -1008,7 +1057,14 @@
         "position": "RHP"
       }
     },
-    "school": "UCLA"
+    "roster": {
+      "class_year": "FR.",
+      "number": "12",
+      "pos_raw": "RHP",
+      "throws": "R"
+    },
+    "school": "UCLA",
+    "weight_lbs": 200
   },
   "zachary_berntsen": {
     "comps": {},
