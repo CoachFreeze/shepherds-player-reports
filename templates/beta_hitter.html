@@ -38,11 +38,14 @@
   .chips button{border:1px solid #dcdfdc;background:#fff;font:600 12px 'Barlow',sans-serif;color:#55626b;padding:4px 11px;border-radius:999px;cursor:pointer;} .chips button.on{background:var(--accent,#5c97a8);border-color:var(--accent,#5c97a8);color:#fff;}
   .hm-scale{display:flex;align-items:center;gap:8px;font-size:11px;color:#76828a;margin-top:10px;justify-content:center;} .hm-scale div{display:flex;} .hm-scale i{width:14px;height:9px;display:block;} .hm-scale em{margin-left:6px;}
   #zhm text{font-family:'Barlow',Arial,sans-serif;pointer-events:none;}
-  .ptwrap{overflow-x:auto;margin:0 -4px;} .ptt{border-collapse:collapse;width:100%;font-size:13px;min-width:720px;} .ptt th{font:600 10.5px 'Barlow',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#76828a;text-align:right;padding:6px 8px;border-bottom:2px solid #e3e8e6;white-space:nowrap;} .ptt td{text-align:right;padding:8px;border-bottom:1px solid #eef1f0;font-variant-numeric:tabular-nums;} .ptt th.l,.ptt td.l{text-align:left;font-weight:600;} .ptt tr.tot td{background:#f7f6f2;font-weight:700;border-bottom:2px solid #e3e8e6;} .ptt tr.lo td{color:#a3adb3;} .ptt td.hot{color:#b9292a;font-weight:700;}
+  .ptwrap{overflow-x:auto;margin:0 -4px;} .ptt{border-collapse:collapse;width:100%;font-size:12px;table-layout:auto;} .ptt th{font:600 10.5px 'Barlow',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#76828a;text-align:right;padding:6px 4px;border-bottom:2px solid #e3e8e6;white-space:nowrap;} .ptt td{text-align:right;padding:8px 4px;border-bottom:1px solid #eef1f0;font-variant-numeric:tabular-nums;} .ptt th.l,.ptt td.l{text-align:left;font-weight:600;} .ptt tr.tot td{background:#f7f6f2;font-weight:700;border-bottom:2px solid #e3e8e6;} .ptt tr.lo td{color:#a3adb3;} .ptt td.hot{color:#b9292a;font-weight:700;}
   .tg{display:flex;flex-wrap:wrap;gap:6px;} .tg label{font:600 13px Barlow,sans-serif;border:1px solid #dde2e5;border-radius:999px;padding:5px 12px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px;} .tg input{display:none;} .tg label:has(input:checked){background:#22303a;color:#fff;border-color:#22303a;}
   .sw{display:inline-block;width:11px;height:11px;border-radius:50%;} .cnt{font-size:13.5px;color:#6b7680;line-height:1.8;} .cnt b{color:#22303a;}
   #tip{position:fixed;display:none;pointer-events:none;background:#22303a;color:#fff;border-radius:10px;padding:9px 12px;font-size:13px;line-height:1.45;box-shadow:0 6px 20px rgba(0,0,0,.28);z-index:90;max-width:260px;} #tip b{font:700 15px Barlow,sans-serif;display:block;} #tip i{font-style:normal;color:#e8c36a;display:block;margin-top:3px;font-size:12px;}
   .dot{cursor:pointer;} .dot.hl{stroke:#22303a !important;stroke-width:2.5 !important;}
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start;} .col{min-width:0;} @media(max-width:900px){.cols{grid-template-columns:1fr;}}
+  .col .hero2 .tiles{grid-template-columns:repeat(3,minmax(0,1fr));} @media(max-width:520px){.col .hero2 .tiles{grid-template-columns:repeat(2,minmax(0,1fr));}}
+  .col .subs{grid-template-columns:1fr;} .col .tiles{min-width:0;} .col .hero2{gap:16px;}
   .foot{color:#76828a;font-size:12.5px;margin-top:6px;line-height:1.5;}
 </style></head><body>
 <div class="top">{% if me and me.is_player %}<span></span>{% else %}<a class="back" href="{{ hitters_url }}">&larr; {{ 'Back to scouting' if scouting else ('Hitters' if nav_program else 'All hitters') }}</a>{% endif %}{% include '_usermenu.html' %}</div>
@@ -67,6 +70,8 @@
     <a href="{{ url_for('beta_hitter', key=h.key, vs='L') }}" class="{{ 'on' if h.vs == 'L' }}">vs LHP{% if h.switch %} <small>bats right</small>{% endif %} <em>{{ vc['L'].bip }} BIP</em></a></div>
     <p class="hint" style="margin:8px 2px 0;">{% if h.vs == 'all' %}Showing everything he has seen, right-handed and left-handed pitchers combined.{% elif h.vs == 'R' %}Showing only pitches from right-handed pitchers.{% else %}Showing only pitches from left-handed pitchers.{% endif %} The whole page below follows this choice.{% if h.switch %} Switch hitter: batting side is worked out from the pitcher's hand (left-handed against righties, right-handed against lefties), because the data doesn't reliably say which side he hit from.{% if h.switch.unknown %} {{ h.switch.unknown }} pitch{{ 'es' if h.switch.unknown != 1 }} had no known pitcher hand and only count in All pitchers.{% endif %}{% endif %}</p></div>
 
+  <div class="cols">
+  <div class="col">
   <div class="card"><h2>Batted-ball quality</h2><p class="hint">{{ s.bip }} tracked ball{{ '' if s.bip == 1 else 's' }} in play{% if h.vs != 'all' %} against {{ 'right-handed' if h.vs == 'R' else 'left-handed' }} pitchers{% endif %}.</p>
     <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(120px,1fr));">
       <div class="tile" style="background:#e8f1f4;"><div class="v">{{ ('%.3f' % s.xba).lstrip('0') if s.xba is not none else '–' }}</div><div class="l">xBA</div>{% if s.xba is not none %}<div style="font-size:11px;color:#55626b;margin-top:2px;">{% if s.ba is not none %}BA {{ ('%.3f' % s.ba).lstrip('0') if s.ba < 1 else '1.000' }} · {% endif %}{{ s.ab }} AB</div>{% endif %}</div>
@@ -78,53 +83,21 @@
   </div>
   {% set pt = h.pt_table %}{% if pt.rows %}
   <div class="card"><h2>Batted balls by pitch type</h2>
-    <p class="hint">How he hits each pitch he has seen{% if h.vs != 'all' %} from {{ 'right-handed' if h.vs == 'R' else 'left-handed' }} pitchers{% endif %}. Rows with fewer than 5 balls in play are greyed out; treat them as a first look.</p>
-    <div class="ptwrap"><table class="ptt"><thead><tr><th class="l">Pitch</th><th>Seen</th><th>Whiff %</th><th>BIP</th><th>Avg EV</th><th>Max EV</th><th>Hard-hit %</th><th>Barrel %</th><th>Avg LA</th><th>GB %</th><th>LD %</th><th>FB %</th><th>xBA</th></tr></thead><tbody>
+    <p class="hint">How he hits each pitch he has seen{% if h.vs != 'all' %} from {{ 'right-handed' if h.vs == 'R' else 'left-handed' }} pitchers{% endif %}. Rows with fewer than 5 balls in play are greyed out; treat them as a first look. EV and Max are exit velocity in mph, HH% is hard-hit (95+), Brl% is barrel rate, LA is launch angle, GB/LD/FB are ground ball, line drive and fly ball shares, Whf% is whiffs per swing.</p>
+    <div class="ptwrap"><table class="ptt"><thead><tr><th class="l">Pitch</th><th title="Pitches seen">Seen</th><th title="Whiff % (swings and misses per swing)">Whf%</th><th title="Balls in play">BIP</th><th title="Average exit velocity (mph)">EV</th><th title="Max exit velocity (mph)">Max</th><th title="Hard-hit % (95+ mph)">HH%</th><th title="Barrel %">Brl%</th><th title="Average launch angle">LA</th><th title="Ground ball %">GB</th><th title="Line drive %">LD</th><th title="Fly ball %">FB</th><th title="Expected batting average">xBA</th></tr></thead><tbody>
     {% for r in [pt.all] + pt.rows %}<tr class="{{ 'tot' if loop.first }}{{ ' lo' if r.bip < 5 }}"><td class="l">{{ r.label }}</td><td>{{ r.seen }}</td>
-      <td>{{ ('%.1f' % r.whiff_pct) if r.whiff_pct is not none else '–' }}</td><td>{{ r.bip }}</td>
+      <td>{{ ('%.0f' % r.whiff_pct) if r.whiff_pct is not none else '–' }}</td><td>{{ r.bip }}</td>
       <td class="{{ 'hot' if r.avg_ev is not none and r.bip >= 5 and r.avg_ev >= 90 }}">{{ ('%.1f' % r.avg_ev) if r.avg_ev is not none else '–' }}</td>
       <td>{{ ('%.1f' % r.max_ev) if r.max_ev is not none else '–' }}</td>
-      <td>{{ ('%.1f' % r.hard_hit_pct) if r.hard_hit_pct is not none else '–' }}</td>
-      <td>{{ ('%.1f' % r.brl_pct) if r.brl_pct is not none else '–' }}</td>
-      <td>{{ ('%.1f' % r.avg_la) if r.avg_la is not none else '–' }}&deg;</td>
+      <td>{{ ('%.0f' % r.hard_hit_pct) if r.hard_hit_pct is not none else '–' }}</td>
+      <td>{{ ('%.0f' % r.brl_pct) if r.brl_pct is not none else '–' }}</td>
+      <td>{{ ('%.0f' % r.avg_la) if r.avg_la is not none else '–' }}&deg;</td>
       <td>{{ ('%.0f' % r.gb_pct) if r.gb_pct is not none else '–' }}</td><td>{{ ('%.0f' % r.ld_pct) if r.ld_pct is not none else '–' }}</td><td>{{ ('%.0f' % r.fb_pct) if r.fb_pct is not none else '–' }}</td>
       <td>{{ ('%.3f' % r.xba).lstrip('0') if r.xba is not none else '–' }}</td></tr>{% endfor %}
     </tbody></table></div>
   </div>
   {% endif %}
 
-  <div class="card"><h2>Swing decisions</h2>
-    <p class="hint">Did he swing at pitches he can drive and take pitches he can't, in the right counts? The score blends chase discipline, swings at hittable pitches, and damage on contact.</p>
-    {% if s.score is none %}<div class="empty">Not enough tracked pitches yet.</div>{% else %}
-    <div class="hero2">
-      <div class="ring"><svg viewBox="0 0 44 44" width="132" height="132"><circle cx="22" cy="22" r="18" fill="none" stroke="#e8eef1" stroke-width="5"/>
-        <circle cx="22" cy="22" r="18" fill="none" stroke="{{ '#2f9e6b' if s.score >= 75 else '#c8a132' if s.score >= 60 else '#d0503f' }}" stroke-width="5" stroke-linecap="round" stroke-dasharray="{{ (113.1 * s.score / 100)|round(1) }} 113.1" transform="rotate(-90 22 22)"/></svg>
-        <b>{{ s.score }}<span>{{ s.grade or 'Small sample' }}</span></b></div>
-      <div class="tiles">
-        <div class="tile"><div class="v">{{ s.chase_pct if s.chase_pct is not none else '–' }}{{ '%' if s.chase_pct is not none }}</div><div class="l">Chase rate</div></div>
-        <div class="tile"><div class="v">{{ s.heart_swing_pct if s.heart_swing_pct is not none else '–' }}{{ '%' if s.heart_swing_pct is not none }}</div><div class="l">Swings at the heart</div></div>
-        <div class="tile"><div class="v">{{ s.zone_swing_pct if s.zone_swing_pct is not none else '–' }}{{ '%' if s.zone_swing_pct is not none }}</div><div class="l">Zone swing</div></div>
-        <div class="tile"><div class="v">{{ s.zone_contact_pct if s.zone_contact_pct is not none else '–' }}{{ '%' if s.zone_contact_pct is not none }}</div><div class="l">Zone contact</div></div>
-        <div class="tile"><div class="v">{{ s.whiff_pct if s.whiff_pct is not none else '–' }}{{ '%' if s.whiff_pct is not none }}</div><div class="l">Whiff rate</div></div>
-        <div class="tile"><div class="v">{{ s.good }}<span style="color:#9aa5ab;font-size:15px;"> / {{ s.decisions }}</span></div><div class="l">Good decisions</div></div>
-      </div></div>{% endif %}
-    {% if s.score is not none %}
-    <div class="subs">
-      {% for lab, val, w, blurb in [('Chase discipline', s.disc, '35%', 'Laying off pitches he can\'t drive (' ~ s.disc_n ~ ' pitches)'), ('Hittable pitches', s.hit, '35%', 'Swinging at the pitches in the middle (' ~ s.hit_n ~ ' pitches)'), ('Damage', s.dmg, '30%', ('Expected average on contact off hittable pitches' ~ ((', .' ~ ('%.3f' % s.xbacon).split('.')[1]) if s.xbacon is not none else '') ~ ' (' ~ s.dmg_n ~ ' balls)'))] %}
-      <div class="sub-row"><div class="sub-h"><b>{{ lab }}</b><span class="sub-w">{{ w }}</span><span class="sub-v">{{ val if val is not none else '–' }}</span></div>
-        <div class="sub-bar"><i style="width:{{ val or 0 }}%;background:{{ '#2f9e6b' if (val or 0) >= 75 else '#c8a132' if (val or 0) >= 60 else '#d0503f' }}"></i></div>
-        <div class="sub-b">{{ blurb if val is not none else 'Not enough pitches yet' }}</div></div>{% endfor %}
-    </div>
-    <div class="splits"><b>Where the decisions came from</b>
-      {% for sp in s.splits %}<span class="spl"><em>{{ sp.label }}</em>{{ sp.score if sp.score is not none else '–' }}</span>{% endfor %}
-    </div>
-    <p class="foot">Counts and pitch type are built in: fastball takes in the heart in hitter's counts count double, early-count takes of off-speed pitches aren't held against him{% if s.excused_takes %} ({{ s.excused_takes }} here){% endif %}, and chases with two strikes are forgiven by half when the pitch was close.</p>
-    {% endif %}
-    {% if h.notes %}<ul class="notes" style="margin-top:14px;">{% for n in h.notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
-    <p class="foot">Decision score thresholds (85 elite, 75 strong, 65 solid, 55 developing) are starting points for beta and will be tuned once there is more data.</p>
-  </div>
-
-  <div class="grid">
     <div class="card"><h2>Pitch map</h2>
       <div class="seg" id="mapseg"><button class="on" data-v="dec">Swing decisions</button><button data-v="heat">Exit velo heat map</button></div>
       <div id="pm-dec"><p class="hint">Catcher's view. Every pitch he saw. Hover or tap a dot for the count, pitch and why it was judged that way.</p>
@@ -183,11 +156,45 @@ var ZD = {{ h.zone_ev|tojson }};
 })();
 </script>
     <script>(function(){var b=document.querySelectorAll('#mapseg button');Array.prototype.forEach.call(b,function(x){x.addEventListener('click',function(){Array.prototype.forEach.call(b,function(y){y.classList.toggle('on',y===x);});document.getElementById('pm-dec').style.display=x.dataset.v==='dec'?'block':'none';document.getElementById('pm-heat').style.display=x.dataset.v==='heat'?'block':'none';});});})();</script>
+  </div>
+  <div class="col">
     <div class="card"><h2>Spray chart</h2><p class="hint">Every tracked ball in play. Color is exit velocity; tap a dot for the details.</p>
       <div class="center">{{ h.spray|safe }}</div>
       {% if s.pull_pct is not none %}<div style="margin-top:14px;"><div class="splitl"><b>Pull {{ '%.1f' % s.pull_pct }}%</b><b>Center {{ '%.1f' % s.center_pct }}%</b><b>Oppo {{ '%.1f' % s.oppo_pct }}%</b></div>
         <div class="split"><span style="width:{{ s.pull_pct }}%;background:var(--accent,#5c97a8)"></span><span style="width:{{ s.center_pct }}%;background:#b7cfd6"></span><span style="width:{{ s.oppo_pct }}%;background:#22303a"></span></div></div>{% endif %}
     </div>
+  <div class="card"><h2>Swing decisions</h2>
+    <p class="hint">Did he swing at pitches he can drive and take pitches he can't, in the right counts? The score blends chase discipline, swings at hittable pitches, and damage on contact.</p>
+    {% if s.score is none %}<div class="empty">Not enough tracked pitches yet.</div>{% else %}
+    <div class="hero2">
+      <div class="ring"><svg viewBox="0 0 44 44" width="132" height="132"><circle cx="22" cy="22" r="18" fill="none" stroke="#e8eef1" stroke-width="5"/>
+        <circle cx="22" cy="22" r="18" fill="none" stroke="{{ '#2f9e6b' if s.score >= 75 else '#c8a132' if s.score >= 60 else '#d0503f' }}" stroke-width="5" stroke-linecap="round" stroke-dasharray="{{ (113.1 * s.score / 100)|round(1) }} 113.1" transform="rotate(-90 22 22)"/></svg>
+        <b>{{ s.score }}<span>{{ s.grade or 'Small sample' }}</span></b></div>
+      <div class="tiles">
+        <div class="tile"><div class="v">{{ s.chase_pct if s.chase_pct is not none else '–' }}{{ '%' if s.chase_pct is not none }}</div><div class="l">Chase rate</div></div>
+        <div class="tile"><div class="v">{{ s.heart_swing_pct if s.heart_swing_pct is not none else '–' }}{{ '%' if s.heart_swing_pct is not none }}</div><div class="l">Swings at the heart</div></div>
+        <div class="tile"><div class="v">{{ s.zone_swing_pct if s.zone_swing_pct is not none else '–' }}{{ '%' if s.zone_swing_pct is not none }}</div><div class="l">Zone swing</div></div>
+        <div class="tile"><div class="v">{{ s.zone_contact_pct if s.zone_contact_pct is not none else '–' }}{{ '%' if s.zone_contact_pct is not none }}</div><div class="l">Zone contact</div></div>
+        <div class="tile"><div class="v">{{ s.whiff_pct if s.whiff_pct is not none else '–' }}{{ '%' if s.whiff_pct is not none }}</div><div class="l">Whiff rate</div></div>
+        <div class="tile"><div class="v">{{ s.good }}<span style="color:#9aa5ab;font-size:15px;"> / {{ s.decisions }}</span></div><div class="l">Good decisions</div></div>
+      </div></div>{% endif %}
+    {% if s.score is not none %}
+    <div class="subs">
+      {% for lab, val, w, blurb in [('Chase discipline', s.disc, '35%', 'Laying off pitches he can\'t drive (' ~ s.disc_n ~ ' pitches)'), ('Hittable pitches', s.hit, '35%', 'Swinging at the pitches in the middle (' ~ s.hit_n ~ ' pitches)'), ('Damage', s.dmg, '30%', ('Expected average on contact off hittable pitches' ~ ((', .' ~ ('%.3f' % s.xbacon).split('.')[1]) if s.xbacon is not none else '') ~ ' (' ~ s.dmg_n ~ ' balls)'))] %}
+      <div class="sub-row"><div class="sub-h"><b>{{ lab }}</b><span class="sub-w">{{ w }}</span><span class="sub-v">{{ val if val is not none else '–' }}</span></div>
+        <div class="sub-bar"><i style="width:{{ val or 0 }}%;background:{{ '#2f9e6b' if (val or 0) >= 75 else '#c8a132' if (val or 0) >= 60 else '#d0503f' }}"></i></div>
+        <div class="sub-b">{{ blurb if val is not none else 'Not enough pitches yet' }}</div></div>{% endfor %}
+    </div>
+    <div class="splits"><b>Where the decisions came from</b>
+      {% for sp in s.splits %}<span class="spl"><em>{{ sp.label }}</em>{{ sp.score if sp.score is not none else '–' }}</span>{% endfor %}
+    </div>
+    <p class="foot">Counts and pitch type are built in: fastball takes in the heart in hitter's counts count double, early-count takes of off-speed pitches aren't held against him{% if s.excused_takes %} ({{ s.excused_takes }} here){% endif %}, and chases with two strikes are forgiven by half when the pitch was close.</p>
+    {% endif %}
+    {% if h.notes %}<ul class="notes" style="margin-top:14px;">{% for n in h.notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
+    <p class="foot">Decision score thresholds (85 elite, 75 strong, 65 solid, 55 developing) are starting points for beta and will be tuned once there is more data.</p>
+  </div>
+
+  </div>
   </div>
 
   {% if s.bs_n %}<div class="card"><h2>Swing tracking</h2><p class="hint">{{ s.bs_n }} tracked swing{{ '' if s.bs_n == 1 else 's' }} (bat speed is logged on every swing, contact or not).</p>
