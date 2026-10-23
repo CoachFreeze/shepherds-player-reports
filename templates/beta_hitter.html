@@ -48,6 +48,8 @@
   .col .subs{grid-template-columns:1fr;} .col .tiles{min-width:0;} .col .hero2{gap:16px;}
   .sub-row{display:flex;align-items:center;gap:12px;} .sub-l{flex:1;min-width:0;} .gr{flex:none;width:64px;text-align:center;font:700 32px/1 'Oswald',sans-serif;letter-spacing:.01em;} .g-A{color:#2f9e6b;} .g-B{color:#5fa35a;} .g-C{color:#c8a132;} .g-D{color:#e08a3c;} .g-F{color:#d0503f;} .g-n{color:#9aa5ab;}
   .mh{font:700 12px 'Oswald',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#76828a;margin:18px 0 6px;}
+  .sdcard{position:relative;} .plus{position:absolute;top:14px;right:16px;width:30px;height:30px;border-radius:50%;border:1.5px solid #c7d0d4;background:#fff;color:#55626b;font:600 20px/1 'Barlow',sans-serif;cursor:pointer;padding:0 0 2px;display:flex;align-items:center;justify-content:center;transition:transform .15s,background .15s;} .plus:hover{background:#eef1f0;} .plus[aria-expanded=true]{transform:rotate(45deg);background:#22303a;border-color:#22303a;color:#fff;}
+  .how{background:#f7f6f2;border-radius:12px;padding:6px 16px 10px;margin:4px 0 14px;font-size:13.5px;line-height:1.5;color:#35434d;} .how[hidden]{display:none;} .how h3{font:700 13px 'Oswald',sans-serif;letter-spacing:.1em;text-transform:uppercase;margin:10px 0 6px;color:#22303a;} .how p{margin:8px 0;} .how ul{margin:6px 0;padding-left:18px;} .how li{margin:3px 0;} .how .how-n{font-size:12.5px;color:#76828a;}
   .foot{color:#76828a;font-size:12.5px;margin-top:6px;line-height:1.5;}
 </style></head><body>
 <div class="top">{% if me and me.is_player %}<span></span>{% else %}<a class="back" href="{{ hitters_url }}">&larr; {{ 'Back to scouting' if scouting else ('Hitters' if nav_program else 'All hitters') }}</a>{% endif %}{% include '_usermenu.html' %}</div>
@@ -157,7 +159,27 @@ var ZD = {{ h.zone_ev|tojson }};
       {% if s.pull_pct is not none %}<div style="margin-top:14px;"><div class="splitl"><b>Pull {{ '%.1f' % s.pull_pct }}%</b><b>Center {{ '%.1f' % s.center_pct }}%</b><b>Oppo {{ '%.1f' % s.oppo_pct }}%</b></div>
         <div class="split"><span style="width:{{ s.pull_pct }}%;background:var(--accent,#5c97a8)"></span><span style="width:{{ s.center_pct }}%;background:#b7cfd6"></span><span style="width:{{ s.oppo_pct }}%;background:#22303a"></span></div></div>{% endif %}
     </div>
-  <div class="card"><h2>Swing decisions</h2>
+  <div class="card sdcard"><h2>Swing decisions</h2>
+    <button type="button" class="plus" id="howbtn" aria-expanded="false" aria-controls="how" title="How is this calculated?">+</button>
+    <div class="how" id="how" hidden>
+      <h3>How the Swing Decision Rating is calculated</h3>
+      <p>Every pitch he saw with a tracked location is judged as a good, bad or neutral decision. The rating (0-100) blends three parts:</p>
+      <ul>
+        <li><b>Chase discipline (35%)</b>: of the pitches he couldn't drive (outside the zone), how many did he lay off?</li>
+        <li><b>Hittable pitches (35%)</b>: of the pitches right in the middle, how many did he swing at?</li>
+        <li><b>Damage (30%)</b>: how well he hit the hittable pitches he put in play. This is the expected batting average on those balls, from exit velocity and launch angle. A .330 is a C, and every extra .010 is worth 2.5 points. It needs at least 3 balls in play.</li>
+      </ul>
+      <p><b>The count and the pitch matter.</b></p>
+      <ul>
+        <li>Taking a pitch in the heart is bad. It counts double for a fastball in a hitter's count (balls ahead of strikes), and extra with two strikes.</li>
+        <li>A fastball taken on 3-0 is never held against him.</li>
+        <li>Taking an off-speed or breaking pitch in the heart early in the count isn't held against him on 0-0, and counts half in other early counts.</li>
+        <li>Chasing a pitch off the zone is bad, and counts extra in a hitter's count. With two strikes, chasing a pitch that was close counts half.</li>
+        <li>Laying off a bad pitch is good, and counts extra with two strikes. Swinging at a borderline pitch with two strikes (protecting the plate) is a small plus.</li>
+      </ul>
+      <p><b>Letter grades.</b> A+ 93 and up, A 88, A- 85, B+ 80, B 77, B- 75, C+ 71, C 68, C- 65, D+ 61, D 58, D- 55, and F below 55. The overall labels use the same cutoffs: Elite 85, Strong 75, Solid 65, Developing 55, Needs work below that.</p>
+      <p class="how-n">A part needs at least 5 pitches (Damage needs 3 balls in play) before it is graded, and the overall rating needs about 15 decisions. These cutoffs are starting points and will be tuned as more data comes in.</p>
+    </div>
     <p class="hint">Did he swing at pitches he can drive and take pitches he can't, in the right counts? The score blends chase discipline, swings at hittable pitches, and damage on contact.</p>
     {% if s.score is none %}<div class="empty">Not enough tracked pitches yet.</div>{% else %}
     <div class="hero2">
@@ -178,10 +200,6 @@ var ZD = {{ h.zone_ev|tojson }};
       <div class="sub-row"><div class="sub-l"><div class="sub-h"><b>{{ lab }}</b><span class="sub-w">{{ w }}</span></div>
         <div class="sub-b">{{ blurb if val is not none else 'Not enough pitches yet' }}</div></div><span class="gr g-{{ gr[0] if gr else 'n' }}" title="{{ ('Score ' ~ val ~ ' out of 100') if val is not none else '' }}">{{ gr or '–' }}</span></div>{% endfor %}
     </div>
-    <div class="splits"><b>Where the decisions came from</b>
-      {% for sp in s.splits %}<span class="spl"><em>{{ sp.label }}</em>{{ sp.score if sp.score is not none else '–' }}</span>{% endfor %}
-    </div>
-    <p class="foot">Grades: an A- starts at 85, B- at 75, C- at 65 and D- at 55, the same cutoffs as the overall labels. Counts and pitch type are built in: fastball takes in the heart in hitter's counts count double (except on 3-0, where taking is never held against him), early-count takes of off-speed pitches aren't held against him{% if s.excused_takes %} ({{ s.excused_takes }} here){% endif %}, and chases with two strikes are forgiven by half when the pitch was close.</p>
     {% endif %}
     <h3 class="mh">Pitch map</h3>
     <div id="pm-dec"><p class="hint">Catcher's view. Every pitch he saw. Hover or tap a dot for the count, pitch and why it was judged that way.</p>
@@ -191,7 +209,6 @@ var ZD = {{ h.zone_ev|tojson }};
         <div class="cnt" id="cnt" style="margin-top:8px;text-align:center;"></div>
         <div class="legend"><span><i style="background:var(--good)"></i>Good</span><span><i style="background:var(--bad)"></i>Bad</span><span><i style="background:var(--neu)"></i>Borderline</span><span><i style="background:#fff;border:2px solid #55626b"></i>Take</span><span><i style="background:#55626b"></i>Swing</span></div></div>
     {% if h.notes %}<ul class="notes" style="margin-top:14px;">{% for n in h.notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
-    <p class="foot">Decision score thresholds (85 elite, 75 strong, 65 solid, 55 developing) are starting points for beta and will be tuned once there is more data.</p>
   </div>
 
   </div>
@@ -207,6 +224,7 @@ var ZD = {{ h.zone_ev|tojson }};
   {% endif %}
 </div>
 <div id="tip"></div>
+<script>(function(){var b=document.getElementById('howbtn'),p=document.getElementById('how');if(!b||!p)return;b.addEventListener('click',function(){var o=p.hasAttribute('hidden');if(o)p.removeAttribute('hidden');else p.setAttribute('hidden','');b.setAttribute('aria-expanded',o?'true':'false');b.title=o?'Hide':'How is this calculated?';});})();</script>
 <script>
 (function(){
   var dots=[].slice.call(document.querySelectorAll('#tdc .dot')), tip=document.getElementById('tip'); if(!dots.length)return;
