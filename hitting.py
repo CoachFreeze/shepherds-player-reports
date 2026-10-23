@@ -440,7 +440,7 @@ def decision_chart_svg(pitches, side=None, width=330, height=360):
     return ''.join(svg)
 
 
-def team_decision_chart_svg(items, width=760, height=840):
+def team_decision_chart_svg(items, width=760, height=840, side=None, dot=1.0):
     """Big catcher's-view plate for a whole team. items = [(player name, pitch)]. Same colours and zone as the single-hitter
     chart (filled = swing, ring = take; green good, red bad, grey neutral). Each dot carries data-* for the hover card."""
     xr, zr = (-2.7, 2.7), (0.4, 4.6)
@@ -456,6 +456,8 @@ def team_decision_chart_svg(items, width=760, height=840):
     h = int(Y(zr[0]))
     svg = [f'<svg id="tdc" viewBox="0 0 {width} {h}" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:auto;" '
            f'font-family="Barlow,Arial,sans-serif"><rect width="{width}" height="{h}" fill="#f4f8fa"/>']
+    if side in ('L', 'R'):
+        svg.append('<g opacity=".4">' + sc._batter_outline_svg(X(1.68 if side == 'L' else -1.68), Y(0.0), k, side == 'L') + '</g>')
     svg.append(f'<rect x="{X(-ZX-CHASE_OUT):.1f}" y="{Y(ZT+CHASE_OUT):.1f}" width="{k*(2*ZX+2*CHASE_OUT):.1f}" height="{k*(ZT-ZB+2*CHASE_OUT):.1f}" rx="18" fill="none" stroke="#c9d3d8" stroke-dasharray="4 5"/>')
     svg.append(f'<rect x="{X(-ZX-SHADOW_OUT):.1f}" y="{Y(ZT+SHADOW_OUT):.1f}" width="{k*(2*ZX+2*SHADOW_OUT):.1f}" height="{k*(ZT-ZB+2*SHADOW_OUT):.1f}" rx="10" fill="#e8eef1" fill-opacity=".6"/>')
     svg.append(f'<rect x="{X(-ZX):.1f}" y="{Y(ZT):.1f}" width="{k*2*ZX:.1f}" height="{k*(ZT-ZB):.1f}" fill="#fff" stroke="#5c6b74" stroke-width="2"/>')
@@ -475,9 +477,9 @@ def team_decision_chart_svg(items, width=760, height=840):
         d = (f'class="dot" data-n="{escape(name)}" data-c="{f"{cc[0]}-{cc[1]}" if cc else "-"}" data-p="{escape(pt)}" '
              f'data-a="{"Swing" if swung else "Take"}" data-o="{escape(str(p["outcome"]))}" data-v="{v}" data-w="{why_attr(j)}"')
         if swung:
-            svg.append(f'<circle {d} cx="{cx:.1f}" cy="{cy:.1f}" r="8" fill="{col}" fill-opacity=".85" stroke="#fff" stroke-width="1.5"/>')
+            svg.append(f'<circle {d} cx="{cx:.1f}" cy="{cy:.1f}" r="{8*dot:.1f}" fill="{col}" fill-opacity=".85" stroke="#fff" stroke-width="{1.5*max(dot, .7):.1f}"/>')
         else:
-            svg.append(f'<circle {d} cx="{cx:.1f}" cy="{cy:.1f}" r="7" fill="#fff" fill-opacity=".75" stroke="{col}" stroke-width="2.5"/>')
+            svg.append(f'<circle {d} cx="{cx:.1f}" cy="{cy:.1f}" r="{7*dot:.1f}" fill="#fff" fill-opacity=".75" stroke="{col}" stroke-width="{2.5*max(dot, .7):.1f}"/>')
     svg.append(f'<polygon points="{X(-.7):.1f},{h-14} {X(.7):.1f},{h-14} {X(.7):.1f},{h-24} {X(0):.1f},{h-32} {X(-.7):.1f},{h-24}" fill="#fff" stroke="#9aa5ab" stroke-width="1.5"/>')
     svg.append('</svg>')
     return ''.join(svg), n
@@ -716,6 +718,7 @@ def hitter_profile(key, include_demo=True, side='all', vs='all'):
             's': s, 'notes': takeaways(s), 'dates': sorted({p['date'] for p in ps_all if p['date']}),
             'zone_ev': zone_ev_data(ps),
             'decision_svg': decision_chart_svg(ps, side=bats if bats in ('L', 'R') else None),
+            'decision_svg_i': team_decision_chart_svg([(display_name(h['name']), p) for p in ps], width=420, height=470, side=bats if bats in ('L', 'R') else None, dot=.66)[0],
             'spray': spray_html(ps)}
 
 

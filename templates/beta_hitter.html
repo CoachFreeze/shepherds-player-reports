@@ -39,6 +39,10 @@
   .hm-scale{display:flex;align-items:center;gap:8px;font-size:11px;color:#76828a;margin-top:10px;justify-content:center;} .hm-scale div{display:flex;} .hm-scale i{width:14px;height:9px;display:block;} .hm-scale em{margin-left:6px;}
   #zhm text{font-family:'Barlow',Arial,sans-serif;pointer-events:none;}
   .ptwrap{overflow-x:auto;margin:0 -4px;} .ptt{border-collapse:collapse;width:100%;font-size:13px;min-width:720px;} .ptt th{font:600 10.5px 'Barlow',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#76828a;text-align:right;padding:6px 8px;border-bottom:2px solid #e3e8e6;white-space:nowrap;} .ptt td{text-align:right;padding:8px;border-bottom:1px solid #eef1f0;font-variant-numeric:tabular-nums;} .ptt th.l,.ptt td.l{text-align:left;font-weight:600;} .ptt tr.tot td{background:#f7f6f2;font-weight:700;border-bottom:2px solid #e3e8e6;} .ptt tr.lo td{color:#a3adb3;} .ptt td.hot{color:#b9292a;font-weight:700;}
+  .tg{display:flex;flex-wrap:wrap;gap:6px;} .tg label{font:600 13px Barlow,sans-serif;border:1px solid #dde2e5;border-radius:999px;padding:5px 12px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px;} .tg input{display:none;} .tg label:has(input:checked){background:#22303a;color:#fff;border-color:#22303a;}
+  .sw{display:inline-block;width:11px;height:11px;border-radius:50%;} .cnt{font-size:13.5px;color:#6b7680;line-height:1.8;} .cnt b{color:#22303a;}
+  #tip{position:fixed;display:none;pointer-events:none;background:#22303a;color:#fff;border-radius:10px;padding:9px 12px;font-size:13px;line-height:1.45;box-shadow:0 6px 20px rgba(0,0,0,.28);z-index:90;max-width:260px;} #tip b{font:700 15px Barlow,sans-serif;display:block;} #tip i{font-style:normal;color:#e8c36a;display:block;margin-top:3px;font-size:12px;}
+  .dot{cursor:pointer;} .dot.hl{stroke:#22303a !important;stroke-width:2.5 !important;}
   .foot{color:#76828a;font-size:12.5px;margin-top:6px;line-height:1.5;}
 </style></head><body>
 <div class="top">{% if me and me.is_player %}<span></span>{% else %}<a class="back" href="{{ hitters_url }}">&larr; {{ 'Back to scouting' if scouting else ('Hitters' if nav_program else 'All hitters') }}</a>{% endif %}{% include '_usermenu.html' %}</div>
@@ -123,8 +127,11 @@
   <div class="grid">
     <div class="card"><h2>Pitch map</h2>
       <div class="seg" id="mapseg"><button class="on" data-v="dec">Swing decisions</button><button data-v="heat">Exit velo heat map</button></div>
-      <div id="pm-dec"><p class="hint">Catcher's view. Every pitch he saw.</p>
-        <div style="max-width:380px;margin:0 auto;">{{ h.decision_svg|safe }}</div>
+      <div id="pm-dec"><p class="hint">Catcher's view. Every pitch he saw. Hover or tap a dot for the count, pitch and why it was judged that way.</p>
+        <div class="tg" id="f-a"><label><input type="checkbox" value="Swing" checked>Swings</label><label><input type="checkbox" value="Take" checked>Takes</label></div>
+        <div class="tg" id="f-v" style="margin:6px 0 10px;"><label><input type="checkbox" value="good" checked><span class="sw" style="background:var(--good)"></span>Good</label><label><input type="checkbox" value="bad" checked><span class="sw" style="background:var(--bad)"></span>Bad</label><label><input type="checkbox" value="neutral" checked><span class="sw" style="background:#9aa5ab"></span>Neutral</label></div>
+        <div style="max-width:420px;margin:0 auto;position:relative;">{{ h.decision_svg_i|safe }}</div>
+        <div class="cnt" id="cnt" style="margin-top:8px;text-align:center;"></div>
         <div class="legend"><span><i style="background:var(--good)"></i>Good</span><span><i style="background:var(--bad)"></i>Bad</span><span><i style="background:var(--neu)"></i>Borderline</span><span><i style="background:#fff;border:2px solid #55626b"></i>Take</span><span><i style="background:#55626b"></i>Swing</span></div></div>
       <div id="pm-heat" style="display:none;"><p class="hint">Catcher's view. The bold box is the strike zone, split into 36 squares and colored by the average exit velocity of balls in play at that spot. The outer ring shows balls put in play off pitches just outside the zone (up to 6 inches off the plate). Hover a square for the details.</p>
         <div class="chips" id="zt"></div>
@@ -191,4 +198,30 @@ var ZD = {{ h.zone_ev|tojson }};
   </div>
 
   {% endif %}
-</div></body></html>
+</div>
+<div id="tip"></div>
+<script>
+(function(){
+  var dots=[].slice.call(document.querySelectorAll('#tdc .dot')), tip=document.getElementById('tip'); if(!dots.length)return;
+  function checked(id){return [].slice.call(document.querySelectorAll('#'+id+' input:checked')).map(function(i){return i.value;});}
+  function apply(){
+    var a=checked('f-a'), v=checked('f-v'), n=0, sw=0, g=0, b=0;
+    dots.forEach(function(d){
+      var ok=a.indexOf(d.dataset.a)>-1&&v.indexOf(d.dataset.v)>-1;
+      d.style.display=ok?'':'none'; if(ok){n++; if(d.dataset.a==='Swing')sw++; if(d.dataset.v==='good')g++; if(d.dataset.v==='bad')b++;}
+    });
+    document.getElementById('cnt').innerHTML='<b>'+n+'</b> pitches &middot; <b>'+sw+'</b> swings, <b>'+(n-sw)+'</b> takes<br><b>'+g+'</b> good &middot; <b>'+b+'</b> bad';
+  }
+  document.querySelectorAll('#f-a input,#f-v input').forEach(function(e){e.addEventListener('change',apply);}); apply();
+  function move(e){var x=e.clientX+16,y=e.clientY+16; if(x+270>window.innerWidth)x=e.clientX-276; if(y+110>window.innerHeight)y=e.clientY-110; tip.style.left=x+'px'; tip.style.top=y+'px';}
+  function show(e){var d=e.target; if(!d.classList||!d.classList.contains('dot'))return;
+    d.classList.add('hl');
+    tip.innerHTML='<b>'+d.dataset.p+'</b>Count '+d.dataset.c+'<br>'+d.dataset.a+' &middot; '+d.dataset.o+(d.dataset.w?'<i>'+d.dataset.w+'</i>':'');
+    tip.style.display='block'; move(e);}
+  var svg=document.getElementById('tdc');
+  svg.addEventListener('mouseover',show); svg.addEventListener('mousemove',move);
+  svg.addEventListener('mouseout',function(e){if(e.target.classList)e.target.classList.remove('hl'); tip.style.display='none';});
+  svg.addEventListener('click',function(e){if(e.target.classList&&e.target.classList.contains('dot')){show(e);}});
+})();
+</script>
+</body></html>
