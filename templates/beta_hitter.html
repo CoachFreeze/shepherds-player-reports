@@ -46,6 +46,8 @@
   .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start;} .col{min-width:0;} @media(max-width:900px){.cols{grid-template-columns:1fr;}}
   .col .hero2 .tiles{grid-template-columns:repeat(3,minmax(0,1fr));} @media(max-width:520px){.col .hero2 .tiles{grid-template-columns:repeat(2,minmax(0,1fr));}}
   .col .subs{grid-template-columns:1fr;} .col .tiles{min-width:0;} .col .hero2{gap:16px;}
+  .gr{margin-left:auto;font:700 30px/1 'Oswald',sans-serif;letter-spacing:.01em;} .g-A{color:#2f9e6b;} .g-B{color:#5fa35a;} .g-C{color:#c8a132;} .g-D{color:#e08a3c;} .g-F{color:#d0503f;} .g-n{color:#9aa5ab;}
+  .mh{font:700 12px 'Oswald',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#76828a;margin:18px 0 6px;}
   .foot{color:#76828a;font-size:12.5px;margin-top:6px;line-height:1.5;}
 </style></head><body>
 <div class="top">{% if me and me.is_player %}<span></span>{% else %}<a class="back" href="{{ hitters_url }}">&larr; {{ 'Back to scouting' if scouting else ('Hitters' if nav_program else 'All hitters') }}</a>{% endif %}{% include '_usermenu.html' %}</div>
@@ -98,15 +100,8 @@
   </div>
   {% endif %}
 
-    <div class="card"><h2>Pitch map</h2>
-      <div class="seg" id="mapseg"><button class="on" data-v="dec">Swing decisions</button><button data-v="heat">Exit velo heat map</button></div>
-      <div id="pm-dec"><p class="hint">Catcher's view. Every pitch he saw. Hover or tap a dot for the count, pitch and why it was judged that way.</p>
-        <div class="tg" id="f-a"><label><input type="checkbox" value="Swing" checked>Swings</label><label><input type="checkbox" value="Take" checked>Takes</label></div>
-        <div class="tg" id="f-v" style="margin:6px 0 10px;"><label><input type="checkbox" value="good" checked><span class="sw" style="background:var(--good)"></span>Good</label><label><input type="checkbox" value="bad" checked><span class="sw" style="background:var(--bad)"></span>Bad</label><label><input type="checkbox" value="neutral" checked><span class="sw" style="background:#9aa5ab"></span>Neutral</label></div>
-        <div style="max-width:420px;margin:0 auto;position:relative;">{{ h.decision_svg_i|safe }}</div>
-        <div class="cnt" id="cnt" style="margin-top:8px;text-align:center;"></div>
-        <div class="legend"><span><i style="background:var(--good)"></i>Good</span><span><i style="background:var(--bad)"></i>Bad</span><span><i style="background:var(--neu)"></i>Borderline</span><span><i style="background:#fff;border:2px solid #55626b"></i>Take</span><span><i style="background:#55626b"></i>Swing</span></div></div>
-      <div id="pm-heat" style="display:none;"><p class="hint">Catcher's view. The bold box is the strike zone, split into 36 squares and colored by the average exit velocity of balls in play at that spot. The outer ring shows balls put in play off pitches just outside the zone (up to 6 inches off the plate). Hover a square for the details.</p>
+    <div class="card"><h2>Exit velo heat map</h2>
+      <div id="pm-heat"><p class="hint">Catcher's view. The bold box is the strike zone, split into 36 squares and colored by the average exit velocity of balls in play at that spot. The outer ring shows balls put in play off pitches just outside the zone (up to 6 inches off the plate). Hover a square for the details.</p>
         <div class="chips" id="zt"></div>
         <div style="max-width:400px;margin:0 auto;"><svg id="zhm" viewBox="0 0 400 486" style="display:block;width:100%;height:auto;"></svg></div>
         <div class="hm-scale"><span>65 mph</span><div id="zscale"></div><span>100 mph</span><em>avg exit velocity</em></div>
@@ -155,7 +150,6 @@ var ZD = {{ h.zone_ev|tojson }};
   draw();
 })();
 </script>
-    <script>(function(){var b=document.querySelectorAll('#mapseg button');Array.prototype.forEach.call(b,function(x){x.addEventListener('click',function(){Array.prototype.forEach.call(b,function(y){y.classList.toggle('on',y===x);});document.getElementById('pm-dec').style.display=x.dataset.v==='dec'?'block':'none';document.getElementById('pm-heat').style.display=x.dataset.v==='heat'?'block':'none';});});})();</script>
   </div>
   <div class="col">
     <div class="card"><h2>Spray chart</h2><p class="hint">Every tracked ball in play. Color is exit velocity; tap a dot for the details.</p>
@@ -180,16 +174,22 @@ var ZD = {{ h.zone_ev|tojson }};
       </div></div>{% endif %}
     {% if s.score is not none %}
     <div class="subs">
-      {% for lab, val, w, blurb in [('Chase discipline', s.disc, '35%', 'Laying off pitches he can\'t drive (' ~ s.disc_n ~ ' pitches)'), ('Hittable pitches', s.hit, '35%', 'Swinging at the pitches in the middle (' ~ s.hit_n ~ ' pitches)'), ('Damage', s.dmg, '30%', ('Expected average on contact off hittable pitches' ~ ((', .' ~ ('%.3f' % s.xbacon).split('.')[1]) if s.xbacon is not none else '') ~ ' (' ~ s.dmg_n ~ ' balls)'))] %}
-      <div class="sub-row"><div class="sub-h"><b>{{ lab }}</b><span class="sub-w">{{ w }}</span><span class="sub-v">{{ val if val is not none else '–' }}</span></div>
-        <div class="sub-bar"><i style="width:{{ val or 0 }}%;background:{{ '#2f9e6b' if (val or 0) >= 75 else '#c8a132' if (val or 0) >= 60 else '#d0503f' }}"></i></div>
+      {% for lab, val, gr, w, blurb in [('Chase discipline', s.disc, s.disc_g, '35%', 'Laying off pitches he can\'t drive (' ~ s.disc_n ~ ' pitches)'), ('Hittable pitches', s.hit, s.hit_g, '35%', 'Swinging at the pitches in the middle (' ~ s.hit_n ~ ' pitches)'), ('Damage', s.dmg, s.dmg_g, '30%', ('Expected average on contact off hittable pitches' ~ ((', .' ~ ('%.3f' % s.xbacon).split('.')[1]) if s.xbacon is not none else '') ~ ' (' ~ s.dmg_n ~ ' balls)'))] %}
+      <div class="sub-row"><div class="sub-h"><b>{{ lab }}</b><span class="sub-w">{{ w }}</span><span class="gr g-{{ gr[0] if gr else 'n' }}" title="{{ ('Score ' ~ val ~ ' out of 100') if val is not none else '' }}">{{ gr or '–' }}</span></div>
         <div class="sub-b">{{ blurb if val is not none else 'Not enough pitches yet' }}</div></div>{% endfor %}
     </div>
     <div class="splits"><b>Where the decisions came from</b>
       {% for sp in s.splits %}<span class="spl"><em>{{ sp.label }}</em>{{ sp.score if sp.score is not none else '–' }}</span>{% endfor %}
     </div>
-    <p class="foot">Counts and pitch type are built in: fastball takes in the heart in hitter's counts count double, early-count takes of off-speed pitches aren't held against him{% if s.excused_takes %} ({{ s.excused_takes }} here){% endif %}, and chases with two strikes are forgiven by half when the pitch was close.</p>
+    <p class="foot">Grades: an A- starts at 85, B- at 75, C- at 65 and D- at 55, the same cutoffs as the overall labels. Counts and pitch type are built in: fastball takes in the heart in hitter's counts count double, early-count takes of off-speed pitches aren't held against him{% if s.excused_takes %} ({{ s.excused_takes }} here){% endif %}, and chases with two strikes are forgiven by half when the pitch was close.</p>
     {% endif %}
+    <h3 class="mh">Pitch map</h3>
+    <div id="pm-dec"><p class="hint">Catcher's view. Every pitch he saw. Hover or tap a dot for the count, pitch and why it was judged that way.</p>
+        <div class="tg" id="f-a"><label><input type="checkbox" value="Swing" checked>Swings</label><label><input type="checkbox" value="Take" checked>Takes</label></div>
+        <div class="tg" id="f-v" style="margin:6px 0 10px;"><label><input type="checkbox" value="good" checked><span class="sw" style="background:var(--good)"></span>Good</label><label><input type="checkbox" value="bad" checked><span class="sw" style="background:var(--bad)"></span>Bad</label><label><input type="checkbox" value="neutral" checked><span class="sw" style="background:#9aa5ab"></span>Neutral</label></div>
+        <div style="max-width:420px;margin:0 auto;position:relative;">{{ h.decision_svg_i|safe }}</div>
+        <div class="cnt" id="cnt" style="margin-top:8px;text-align:center;"></div>
+        <div class="legend"><span><i style="background:var(--good)"></i>Good</span><span><i style="background:var(--bad)"></i>Bad</span><span><i style="background:var(--neu)"></i>Borderline</span><span><i style="background:#fff;border:2px solid #55626b"></i>Take</span><span><i style="background:#55626b"></i>Swing</span></div></div>
     {% if h.notes %}<ul class="notes" style="margin-top:14px;">{% for n in h.notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
     <p class="foot">Decision score thresholds (85 elite, 75 strong, 65 solid, 55 developing) are starting points for beta and will be tuned once there is more data.</p>
   </div>

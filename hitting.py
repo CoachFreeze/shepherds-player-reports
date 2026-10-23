@@ -181,6 +181,19 @@ def grade(score):
     return 'Elite' if score >= 85 else 'Strong' if score >= 75 else 'Solid' if score >= 65 else 'Developing' if score >= 55 else 'Needs work'
 
 
+_LETTERS = ((93, 'A+'), (88, 'A'), (85, 'A-'), (80, 'B+'), (77, 'B'), (75, 'B-'), (71, 'C+'), (68, 'C'), (65, 'C-'), (61, 'D+'), (58, 'D'), (55, 'D-'))
+
+
+def letter_grade(score):
+    """0-100 -> A+ ... F. The minus grades start exactly where the overall labels do: A- 85 (Elite), B- 75 (Strong), C- 65 (Solid), D- 55 (Developing)."""
+    if score is None:
+        return None
+    for cut, g in _LETTERS:
+        if score >= cut:
+            return g
+    return 'F'
+
+
 # --------------------------------------------------------------------- xBA
 # Hit probability by exit velocity (columns) and launch angle (rows). xba_table.json (fitted to MLB batted balls)
 # is used when present; the small hand-made table below is only a fallback. Refit on your own tracked outcomes
@@ -347,6 +360,7 @@ def hitter_stats(pitches):
     excused = sum(1 for p, j in judged if j[2] == 'neutral' and j[4] and j[0] == 'heart')
     return {
         'disc': disc if disc_n >= 5 else None, 'disc_n': disc_n, 'hit': hit if hit_n >= 5 else None, 'hit_n': hit_n,
+        'disc_g': letter_grade(disc if disc_n >= 5 else None), 'hit_g': letter_grade(hit if hit_n >= 5 else None), 'dmg_g': letter_grade(dmg),
         'dmg': dmg, 'dmg_n': len(hp), 'xbacon': xbacon, 'splits': splits, 'fb_hc_takes': fb_hc, 'excused_takes': excused,
         'xba': xb['xba'], 'ba': xb['ba'], 'ab': xb['ab'], 'xh': xb['xh'], 'ks': xb['k'],
         'pitches': n, 'pa': pa, 'decisions': decided,
