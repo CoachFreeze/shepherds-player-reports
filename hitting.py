@@ -124,7 +124,8 @@ def judge(p):
     """Returns (region, swung, verdict, weight, why) or None if the pitch can't be judged.
     verdict is good|bad|neutral and weight says how much the decision counts, because the same swing or take means
     different things in different counts and against different pitches:
-      * taking a heart pitch is bad, and worse for a fastball in a hitter's count (balls > strikes) or with two strikes;
+      * taking a heart pitch is bad, and worse for a fastball in a hitter's count (balls > strikes) or with two strikes,
+        except a fastball on 3-0, which is never held against him (taking is the right play there);
       * taking a breaking ball / off-speed pitch in the heart early in the count is not held against him (0-0 not at all,
         other early counts at half weight), unless he has two strikes;
       * swinging at a pitch off the zone is bad, a little worse in a hitter's count, and forgiven by half when it is
@@ -154,6 +155,8 @@ def judge(p):
                 v, w, why = 'neutral', 0.0, 'Took an off-speed or breaking pitch on 0-0 (not held against him)'
             else:
                 v, w, why = 'bad', 0.5, 'Early-count take of an off-speed or breaking pitch (half weight)'
+        elif cls == 'hard' and cc == (3, 0):
+            v, w, why = 'neutral', 0.0, 'Took a fastball on 3-0 (not held against him)'
         elif cls == 'hard' and hitters:
             v, w, why = 'bad', 2.0, "Took a fastball in the heart in a hitter's count (counts double)"
         elif two:
@@ -341,7 +344,7 @@ def hitter_stats(pitches):
           if p['outcome'] == 'inplay' and j[0] in ('heart', 'shadow') and p['ev'] is not None and p['la'] is not None and p['hit_type'] != 'BUNT']
     hp = [v for v in hp if v is not None]
     xbacon = sum(hp) / len(hp) if hp else None
-    dmg = max(0, min(100, round(50 + (xbacon - 0.33) * 250))) if xbacon is not None and len(hp) >= 3 else None
+    dmg = max(0, min(100, round(68 + (xbacon - 0.33) * 250))) if xbacon is not None and len(hp) >= 3 else None
     parts = [(0.35, disc if disc_n >= 5 else None), (0.35, hit if hit_n >= 5 else None), (0.30, dmg)]
     live = [(w_, v_) for w_, v_ in parts if v_ is not None]
     score = round(sum(w_ * v_ for w_, v_ in live) / sum(w_ for w_, _ in live)) if len(live) >= 2 else dec_w
@@ -356,7 +359,7 @@ def hitter_stats(pitches):
     splits = [split('Vs fastballs', lambda p: pitch_class(p) == 'hard'), split('Vs breaking / off-speed', lambda p: pitch_class(p) == 'soft'),
               split("Hitter's counts", lambda p: ctx(p) == 'hit'), split('Even counts', lambda p: ctx(p) == 'even'),
               split("Pitcher's counts / two strikes", lambda p: ctx(p) == 'pit')]
-    fb_hc = sum(1 for p, j in judged if j[0] == 'heart' and not j[1] and pitch_class(p) == 'hard' and count_ctx(p) and count_ctx(p)[0] > count_ctx(p)[1])
+    fb_hc = sum(1 for p, j in judged if j[0] == 'heart' and not j[1] and pitch_class(p) == 'hard' and count_ctx(p) and count_ctx(p)[0] > count_ctx(p)[1] and count_ctx(p) != (3, 0))
     excused = sum(1 for p, j in judged if j[2] == 'neutral' and j[4] and j[0] == 'heart')
     return {
         'disc': disc if disc_n >= 5 else None, 'disc_n': disc_n, 'hit': hit if hit_n >= 5 else None, 'hit_n': hit_n,
