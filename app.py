@@ -14,6 +14,7 @@ import mlb_lookup
 import headshots
 import hitting
 import prs
+import advanced
 import stats as stats_mod
 import team
 import theme
@@ -679,7 +680,7 @@ def _stat_table(program, side):
         D = team.pitching_data(program)
         ids = [i for i in stats_mod.BASE if i not in _PSTAT_SKIP and not i.startswith('pt:')]
         for pl in D['players']:
-            rows.append({'name': pl['name'], 'disp': _last_first(pl['name']), 'jersey': jersey(pl['name']), 'url': url_for('player_overview', slug=pl['key']), 'n': pl['n'],
+            rows.append({'name': pl['name'], 'key': pl['key'], 'disp': _last_first(pl['name']), 'jersey': jersey(pl['name']), 'url': url_for('player_overview', slug=pl['key']), 'n': pl['n'],
                          'cells': {i: (pl['v'][i][0], _pct_num(pl['v'][i][0])) for i in ids if i in pl['v'] and pl['v'][i][0] not in (None, '', '—', '-', '–')}})
         for i in ids:
             if stats_mod.BASE[i][1] in ('Stuff', 'Delivery', 'Mechanics'):
@@ -697,11 +698,27 @@ def _stat_table(program, side):
                 if v is None:
                     continue
                 cells[i] = (team._fmt_hit(kind, v), v)
-            rows.append({'name': pl['name'], 'disp': _last_first(pl['name']), 'jersey': jersey(pl['name']), 'url': url_for('beta_hitter', key=pl['key']), 'n': pl['n'], 'cells': cells})
+            rows.append({'name': pl['name'], 'key': pl['key'], 'disp': _last_first(pl['name']), 'jersey': jersey(pl['name']), 'url': url_for('beta_hitter', key=pl['key']), 'n': pl['n'], 'cells': cells})
         for i, (lab, grp, d, kind) in team.HIT_CATALOG.items():
             if i == 'pitches':
                 continue
             cols.append({'id': i, 'label': lab, 'abbr': _STAT_ABBR.get(i, lab), 'group': grp, 'def': d})
+    # xwOBA / xERA / FIP are always calculated (cached) but only shown for players past the sample minimums; admins can add ?preview=1
+    preview = is_admin() and request.args.get('preview') == '1'
+    adv = advanced.table(program)['p' if side == 'pitching' else 'h']
+    ADV = [('xwoba', 'xwOBA (est.)', 'Expected weighted on-base average from exit velocity, launch angle, walks, HBP and strikeouts. Estimated from our own batted-ball model, not Statcast.' if side == 'hitting' else 'Expected wOBA allowed, from the contact quality, walks, HBP and strikeouts a pitcher gave up. Estimated from our own batted-ball model, not Statcast.', lambda v: f'{v:.3f}'.lstrip('0'))]
+    if side == 'pitching':
+        ADV += [('xera', 'xERA (est.)', 'Expected ERA, converted from xwOBA allowed (MLB run environment). An estimate.', lambda v: f'{v:.2f}'),
+                ('fip', 'FIP (est.)', 'Fielding Independent Pitching: (13 HR + 3 (BB+HBP) - 2 K) / IP + 3.10. Innings and results come from the tagged data, so it is an estimate.', lambda v: f'{v:.2f}')]
+    for r in rows:
+        v = adv.get(r['key'])
+        vals = ({k: v[k] for k in ('xwoba', 'xera', 'fip') if v and v.get(k) is not None} if preview else advanced.released('p' if side == 'pitching' else 'h', v))
+        for sid, lab, d, fmt in ADV:
+            if sid in vals:
+                r['cells'][sid] = (fmt(vals[sid]), vals[sid])
+    for sid, lab, d, fmt in ADV:
+        if any(sid in r['cells'] for r in rows):
+            cols.append({'id': sid, 'label': lab, 'abbr': lab.split(' ')[0], 'group': 'Run value', 'def': d})
     used = {i for r in rows for i in r['cells']}
     cols = [c for c in cols if c['id'] in used]
     order = list(dict.fromkeys(c['group'] for c in cols))
