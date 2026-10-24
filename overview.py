@@ -121,7 +121,7 @@ def outing_log(outs, name):
     return log
 
 
-def build(slug, bio):
+def build(slug, bio, retag=False):
     name = bio['name']
     recent = _stamp(outings_mod.recent(slug, plans_mod.limit(bio.get('program'), 'history')), name)
     if not recent:
@@ -135,7 +135,8 @@ def build(slug, bio):
     def _pmp(sub_rows):
         _, st = e.pitcher_trackman_summary(sub_rows, name)
         _colored(st)
-        pts = [{'type': t['type'], 'color': t['color'], 'hb': t['hb'], 'vb': t['ivb'], 'points': [(h, v, ve) for h, v, ve in t['points']]}
+        pts = [{'type': t['type'], 'color': t['color'], 'hb': t['hb'], 'vb': t['ivb'], 'points': ([(h, v, ve, *pid) for (h, v, ve), pid in zip(t['points'], t['pids'])] if retag and len(t.get('pids') or []) == len(t['points'])
+                           else [(h, v, ve) for h, v, ve in t['points']])}
                for t in st if t['points']]
         return (sc.movement_plot_caption_html() + sc.movement_plot_svg(
             pts, width=680, height=680, all_pitches=True, r24_frac=0.80, font_scale=1.3, pt_r=9, arm_badge=arm_badge)

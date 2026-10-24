@@ -9,6 +9,7 @@ built from scratch (not copied source) to match their visual language:
 Each returns a standalone HTML/SVG fragment you can drop into any page.
 """
 import math
+from html import escape
 
 # ---------------------------------------------------------------------------
 # 1. PERCENTILE RANKING BARS
@@ -228,13 +229,11 @@ def movement_plot_svg(pitches, width=340, height=340, max_range=24, all_pitches=
                 velo = pt[2] if len(pt) > 2 else None
                 x, y = to_xy(hb, vb)
                 tip = f'{p["type"]}  IVB {vb:.1f}\u2033 \u00b7 HB {hb:.1f}\u2033' + (f' \u00b7 {velo:.1f} mph' if velo else '')
+                extra = (f' data-uid="{escape(str(pt[3]), quote=True)}" data-date="{escape(str(pt[4]), quote=True)}"' if len(pt) > 4 else '')
                 svg.append(
                     f'<circle class="mv-pt" cx="{x:.1f}" cy="{y:.1f}" r="{pt_r}" fill="{color}" fill-opacity="0.7" '
                     f'stroke="{color}" stroke-width="1" data-tip="{tip}" data-ptype="{p["type"]}" data-pcolor="{color}" '
-                    f'data-pvelo="{velo:.1f}" data-pivb="{vb:.1f}" data-phb="{hb:.1f}"/>' if velo else
-                    f'<circle class="mv-pt" cx="{x:.1f}" cy="{y:.1f}" r="{pt_r}" fill="{color}" fill-opacity="0.7" '
-                    f'stroke="{color}" stroke-width="1" data-tip="{tip}" data-ptype="{p["type"]}" data-pcolor="{color}" '
-                    f'data-pivb="{vb:.1f}" data-phb="{hb:.1f}"/>')
+                    + (f'data-pvelo="{velo:.1f}" ' if velo else '') + f'data-pivb="{vb:.1f}" data-phb="{hb:.1f}"{extra}/>')
         # hover-isolate layer: one hidden group per pitch type -- a big circle at the type's average movement with lines out to
         # the axes (shown by the legend's hover script, see MOVEMENT_ISO_JS). Drawn last so it sits above the dimmed dots.
         throws = (arm_badge or {}).get('throws') or 'R'

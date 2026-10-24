@@ -39,6 +39,12 @@
   .vsw{display:inline-flex;background:#eef1f0;border-radius:999px;padding:3px;margin:0 10px 0 0;vertical-align:middle;} .vsw a,.vsw b{padding:6px 16px;border-radius:999px;font:600 13px 'Barlow',sans-serif;text-decoration:none;color:#55626b;} .vsw b{background:var(--accent,#5c97a8);color:var(--on-accent,#fff);box-shadow:0 1px 3px rgba(26,31,36,.15);}
   .trow{display:grid;grid-template-columns:1fr 1fr;gap:14px;} .trow .pn{margin-top:14px;min-width:0;} .trow .pn:only-child{grid-column:1/-1;} .trow .trendnote{position:static;text-align:left;margin:0 0 4px 6px;} @media (max-width:760px){.trow{grid-template-columns:1fr;gap:0;}}
   .mv-pt{cursor:pointer;} @media (max-width:560px){.tiles{grid-template-columns:repeat(2,1fr);} .olog .st{width:100%;justify-content:space-between;}}
+  .rt-bar{text-align:center;margin:6px 0 2px;} .rt-bar button{border:1px solid #d6e2e5;background:#fff;color:var(--ink);border-radius:999px;padding:5px 14px;font:700 12.5px 'Barlow',sans-serif;cursor:pointer;} .rt-bar button.on{background:#22303a;color:#fff;border-color:#22303a;}
+  .pmp-panel.rt .mv-pt{cursor:pointer;} .pmp-panel.rt svg.mv-plot{cursor:crosshair;touch-action:none;} .mv-pt.rt-sel{stroke:#111 !important;stroke-width:3 !important;fill-opacity:1 !important;}
+  #rtBox{position:fixed;border:1.5px dashed #22303a;background:rgba(34,48,58,.08);display:none;z-index:40;pointer-events:none;}
+  #rtDock{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;background:#22303a;color:#fff;border-radius:999px;padding:10px 14px 10px 20px;display:none;align-items:center;gap:10px;box-shadow:0 8px 28px rgba(0,0,0,.3);font:600 13.5px 'Barlow',sans-serif;max-width:94vw;flex-wrap:wrap;justify-content:center;}
+  #rtDock select{padding:6px 8px;border-radius:8px;border:0;font:inherit;color:#22303a;} #rtDock button{border:0;border-radius:999px;padding:7px 16px;font:700 13px 'Barlow',sans-serif;cursor:pointer;} #rtDock .go{background:var(--accent,#5c97a8);color:var(--on-accent,#fff);} #rtDock .no{background:transparent;color:#cfd8dc;}
+  .rt-hint{font-size:12px;color:#6b7680;text-align:center;margin:2px 0 4px;display:none;} .pmp-panel.rt .rt-hint{display:block;}
 </style>{% import '_prs.html' as prm %}{{ prm.css() }}</head><body><div class="ov">
 <div class="top">{% if me and me.is_player %}<span></span>{% else %}<a href="{{ pitchers_url }}">&larr; {{ 'Back to scouting' if scouting else ('Pitchers' if nav_program else 'All players') }}</a>{% endif %}{% if is_coach and not scouting %}<span style="display:flex;align-items:center;gap:12px;">{% if me.can_upload %}<a class="upl" href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a>{% endif %}{% include '_usermenu.html' %}</span>{% elif me and me.is_player %}{% include '_usermenu.html' %}{% endif %}</div>
 <div class="head">
@@ -90,7 +96,7 @@
 
 <div class="cols">
 <div class="colL">
-{% if b.movement_html %}<div class="pn pmp-panel"><div class="pn-t">Pitch Movement Profile</div>
+{% if b.movement_html %}<div class="pn pmp-panel"><div class="pn-t">Pitch Movement Profile</div>{% if can_retag %}<div class="rt-bar"><button type="button" id="rtOn" title="Pick pitches on the plot and change their pitch type">&#9998; Retag pitches</button></div>{% endif %}
   {% if b.movement_views %}<div class="seg" role="tablist" aria-label="Batter side">{% for v in b.movement_views %}<button type="button" class="{{ 'on' if loop.first }}" data-hand="{{ v.key }}">{{ v.label }} <small>{{ v.n }}</small></button>{% endfor %}</div>
   {% for v in b.movement_views %}<div class="pmp-view" data-hand="{{ v.key }}"{% if not loop.first %} style="display:none;"{% endif %}>{{ v.html|safe }}</div>{% endfor %}
   <script>(function(){var p=document.currentScript.parentNode;p.querySelectorAll('.seg button').forEach(function(b){b.onclick=function(){p.querySelectorAll('.seg button').forEach(function(x){x.classList.toggle('on',x===b);});p.querySelectorAll('.pmp-view').forEach(function(v){v.style.display=v.dataset.hand===b.dataset.hand?'':'none';});};});})();</script>
@@ -118,6 +124,27 @@
 
 
 </div><div id="mv-tip"></div>
+{% if can_retag %}<div id="rtBox"></div><div id="rtDock"><span id="rtN"></span><span>change to</span><select id="rtT"><option value="" selected disabled>Choose type…</option>{% for l in retag_types %}<option>{{ l }}</option>{% endfor %}</select><button type="button" class="go" id="rtGo">Apply</button><button type="button" class="no" id="rtClr">Clear</button></div>
+<script>(function(){var panel=document.querySelector('.pmp-panel'),on=document.getElementById('rtOn');if(!panel||!on)return;
+var sel={},box=document.getElementById('rtBox'),dock=document.getElementById('rtDock'),n=document.getElementById('rtN'),go=document.getElementById('rtGo'),mode=false,drag=null;
+var hint=document.createElement('div');hint.className='rt-hint';hint.textContent='Click a dot, or drag a box around several, then choose the right pitch type. Click again to unselect.';panel.querySelector('.rt-bar').after(hint);
+function dots(){return panel.querySelectorAll('.mv-pt[data-uid]');}
+function paint(){var c=Object.keys(sel).length;dots().forEach(function(d){d.classList.toggle('rt-sel',!!sel[d.dataset.date+'|'+d.dataset.uid]);});n.textContent=c+' pitch'+(c===1?'':'es')+' selected';dock.style.display=(mode&&c)?'flex':'none';}
+function key(d){return d.dataset.date+'|'+d.dataset.uid;}
+function toggle(d){var k=key(d);if(sel[k])delete sel[k];else sel[k]={date:d.dataset.date,uid:d.dataset.uid};}
+on.onclick=function(){mode=!mode;panel.classList.toggle('rt',mode);on.classList.toggle('on',mode);on.innerHTML=mode?'&#10003; Done retagging':'&#9998; Retag pitches';if(!mode)sel={};paint();};
+panel.addEventListener('pointerdown',function(e){if(!mode)return;var s=e.target.closest&&e.target.closest('svg.mv-plot');if(!s)return;e.preventDefault();drag={x:e.clientX,y:e.clientY,moved:false,el:e.target.closest('.mv-pt'),shift:e.shiftKey};});
+window.addEventListener('pointermove',function(e){if(!drag)return;var dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(!drag.moved&&Math.hypot(dx,dy)<6)return;drag.moved=true;box.style.display='block';box.style.left=Math.min(drag.x,e.clientX)+'px';box.style.top=Math.min(drag.y,e.clientY)+'px';box.style.width=Math.abs(dx)+'px';box.style.height=Math.abs(dy)+'px';});
+window.addEventListener('pointerup',function(e){if(!drag)return;var d=drag;drag=null;box.style.display='none';
+ if(!d.moved){if(d.el)toggle(d.el);paint();return;}
+ var x1=Math.min(d.x,e.clientX),x2=Math.max(d.x,e.clientX),y1=Math.min(d.y,e.clientY),y2=Math.max(d.y,e.clientY);
+ var view=panel.querySelector('.pmp-view:not([style*="display: none"])')||panel;
+ view.querySelectorAll('.mv-pt[data-uid]').forEach(function(el){var r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;if(cx>=x1&&cx<=x2&&cy>=y1&&cy<=y2){var k=key(el);sel[k]={date:el.dataset.date,uid:el.dataset.uid};}});paint();});
+document.getElementById('rtClr').onclick=function(){sel={};paint();};
+go.onclick=function(){var list=Object.keys(sel).map(function(k){return sel[k];});if(!list.length)return;if(!document.getElementById('rtT').value){alert('Choose the correct pitch type first.');return;}go.disabled=true;go.textContent='Saving\u2026';
+ fetch({{ url_for('retag_from_pmp', slug=slug)|tojson }},{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({label:document.getElementById('rtT').value,pitches:list})})
+ .then(function(r){return r.json();}).then(function(j){if(j&&j.ok){location.reload();}else{alert((j&&j.error)||'Could not save.');go.disabled=false;go.textContent='Apply';}}).catch(function(){alert('Could not save. Check your connection and try again.');go.disabled=false;go.textContent='Apply';});};
+})();</script>{% endif %}
 <script>(function(){var tip=document.getElementById('mv-tip');function lum(h){var n=parseInt(h.slice(1),16),r=n>>16,g=(n>>8)&255,b=n&255;return(.299*r+.587*g+.114*b)/255;}
 function build(el){var ty=el.getAttribute('data-ptype');if(!ty){tip.className='';tip.textContent=el.getAttribute('data-tip');return;}var c=el.getAttribute('data-pcolor'),v=el.getAttribute('data-pvelo');var fg=lum(c)>.62?'#1a1a1a':'#fff';tip.className='card';tip.innerHTML='<div class="tt-h" style="background:'+c+';color:'+fg+'">'+ty+'</div><div class="tt-b">'+(v?'<div class="tt-v">'+v+'</div>':'')+'<div class="tt-m">'+(el.getAttribute('data-psub')||('('+el.getAttribute('data-pivb')+'″, '+el.getAttribute('data-phb')+'″)'))+'</div></div>';}
 document.querySelectorAll('.mv-pt').forEach(function(el){var t=el.querySelector('title');if(t)t.remove();el.addEventListener('mousemove',function(ev){build(el);tip.style.display='block';tip.style.left=(ev.clientX+14)+'px';tip.style.top=(ev.clientY+14)+'px';});el.addEventListener('mouseleave',function(){tip.style.display='none';});});})();</script>

@@ -677,7 +677,7 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
     target = _normalize_name(pitcher_name)
     movement = pitcher_trackman_movement(trackman_rows, pitcher_name, fine=True)
 
-    by_type = defaultdict(lambda: {'n': 0, 'velo': [], 'points': [], 'loc': [], 'spin': [], 'vaa': [], 'strikes': 0, 'called': 0})
+    by_type = defaultdict(lambda: {'n': 0, 'velo': [], 'points': [], 'pids': [], 'loc': [], 'spin': [], 'vaa': [], 'strikes': 0, 'called': 0})
     meta = {'throws': None, 'team': None, 'date': None, 'n_pitches': 0, 'log': [], 'release': []}
     for row in trackman_rows:
         raw_name = _tm_get(row, _TM_PITCHER_COLS)
@@ -752,6 +752,7 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
             ivb = _tm_num(_tm_get(row, _TM_VB_COLS))
         if hb is not None and ivb is not None:
             d['points'].append((hb, ivb, velo))
+            d['pids'].append((row.get('PitchUID') or f"{row.get('Date')}|{row.get('PitchNo')}|{row.get('Time')}", str(row.get('Date') or '')[:10]))
         # plate location (feet; side + = catcher's right / 1B side), for the zone heat map
         side = _tm_num(_tm_get(row, _TM_LOC_SIDE_COLS))
         height = _tm_num(_tm_get(row, _TM_LOC_HEIGHT_COLS))
@@ -773,7 +774,7 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
             'pct': d['n'] / total * 100,
             'velo': round(sum(d['velo']) / len(d['velo']), 1) if d['velo'] else None,
             'top_velo': round(max(d['velo']), 1) if d['velo'] else None,
-            'points': d['points'], 'loc': d['loc'],
+            'points': d['points'], 'pids': d['pids'], 'loc': d['loc'],
             'strike_pct': (d['strikes'] / d['called'] * 100) if d['called'] else None,
             'spin_avg': round(sum(d['spin']) / len(d['spin'])) if d['spin'] else None,
             'spin_max': round(max(d['spin'])) if d['spin'] else None,

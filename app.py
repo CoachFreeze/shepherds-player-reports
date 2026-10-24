@@ -830,7 +830,8 @@ def player_overview(slug):
     bio = store.get_player(slug)
     if not bio or not can_view(slug):
         abort(404)
-    b = overview.build(slug, bio)
+    can_retag = can_manage(slug) and not store.is_demo(slug) and not is_player()
+    b = overview.build(slug, bio, retag=can_retag)
     if not b:
         abort(404)
     if not store.is_demo(slug):
@@ -845,7 +846,7 @@ def player_overview(slug):
     if _prog and not store.is_demo(slug) and (is_admin() or (_prog == my_program() and plans.allowed(_prog, 'hitting'))):
         _hk = hitting.hitter_key_for(bio['name'], _prog)
         hitter_url = url_for('beta_hitter', key=_hk) if _hk else None
-    return render_template('player_overview.html', pr_ent=prs.for_pitcher(slug), b=b, bio=bio, slug=slug, css=css, hitter_url=hitter_url, has_photo=has_photo, badge=badge,
+    return render_template('player_overview.html', can_retag=can_retag, retag_types=[l for l, _ in outings_mod.RETAG_TYPES], pr_ent=prs.for_pitcher(slug), b=b, bio=bio, slug=slug, css=css, hitter_url=hitter_url, has_photo=has_photo, badge=badge,
                            photo_v=int(os.path.getmtime(headshots.path(slug))) if has_photo else 0,
                            initials=(first[:1] + last[:1]).upper(), pos=_player_pos(bio), is_coach=bool(session.get('coach')) and not is_player(), can_edit=can_manage(slug), is_demo=store.is_demo(slug),
                            tour_next=(url_for('view_outing', slug=slug, date=b['log'][0]['id']) + '?tour=report') if b.get('log') else '')
@@ -1600,6 +1601,26 @@ def retag_pitches(slug, date):
     outs = [{'id': x['id'], 'label': overview._long_date(x['id'])} for x in outs]
     return render_template_string(RETAG_PAGE, p=p, slug=slug, outs=outs, date=date, rows=rows, types=outings_mod.RETAG_TYPES,
                                   type_labels=[l for l, _ in outings_mod.RETAG_TYPES], saved=saved)
+
+
+@app.route('/player/<slug>/retag/pmp', methods=['POST'])
+@login_required
+def retag_from_pmp(slug):
+    """Retag one or many pitches picked on the Pitch Movement Profile. Body: {"label": "Slider", "pitches": [{"date": "2026-10-09", "uid": "..."}, ...]}."""
+    if not can_manage(slug) or store.is_demo(slug) or is_player():
+        abort(403)
+    d = request.get_json(silent=True) or {}
+    label = d.get('label')
+    if label not in dict(outings_mod.RETAG_TYPES):
+        return jsonify({'ok': False, 'error': 'Pick a pitch type.'}), 400
+    by_date = {}
+    for p in (d.get('pitches') or [])[:500]:
+        if isinstance(p, dict) and p.get('uid') and p.get('date'):
+            by_date.setdefault(outings_mod.iso_date(p['date']), {})[str(p['uid'])] = label
+    n = 0
+    for date, ch in by_date.items():
+        n += outings_mod.retag(slug, date, ch, who=session.get('coach') or '')
+    return jsonify({'ok': True, 'changed': n})
 
 
 @app.route('/hitter/<key>/edit', methods=['GET', 'POST'])
