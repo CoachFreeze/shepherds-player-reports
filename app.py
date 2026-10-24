@@ -620,6 +620,33 @@ def team_view(program):
 _PSTAT_SKIP = {'bf', 'ip', 'pitches'}     # estimates that read as real box-score numbers; everything else the pitching stats module computes is shown
 
 
+_STAT_ABBR = {
+    # hitting
+    'avg_ev': 'Avg EV', 'max_ev': 'Max EV', 'ev90': 'EV90', 'hard_hit_pct': 'HH%', 'sweet_spot_pct': 'SwSp%', 'xba': 'xBA', 'avg_la': 'LA',
+    'score': 'SDR', 'chase_pct': 'Chase%', 'zone_swing_pct': 'Z-Swing%', 'swing_pct': 'Swing%', 'whiff_pct': 'Whiff%', 'zone_contact_pct': 'Z-Con%',
+    'brl_pct': 'Brl%', 'gb_pct': 'GB%', 'ld_pct': 'LD%', 'fb_pct': 'FB%', 'pu_pct': 'PU%', 'pull_pct': 'Pull%', 'avg_bs': 'Avg BS', 'max_bs': 'Max BS',
+    'sq_pct': 'Sq%', 'avg_smash': 'Smash', 'ev_gap': 'EV Gap', 'bip': 'BIP',
+    # pitching
+    'hits': 'H', 'walks': 'BB', 'hbp': 'HBP', 'ks': 'K', 'strike_pct': 'Str%', 'ball_pct': 'Ball%', 'fps_pct': 'FPS%', 'zone_pct': 'Zone%',
+    'edge_pct': 'oZone%', 'ahead_pct': 'Ahead%', 'twostrike_pct': 'Putaway%', 'csw_pct': 'CSW%', 'zswing_pct': 'Z-Swing%', 'zcontact_pct': 'Z-Con%',
+    'ocontact_pct': 'O-Con%', 'contact_pct': 'Con%', 'cs_pct': 'CS%', 'foul_pct': 'Foul%', 'hh_pct': 'HH%', 'top_velo': 'Top Velo',
+    'fb_velo': 'FB Velo', 'fb_top': 'FB Top', 'fb_spin': 'FB Spin', 'fb_ivb': 'FB IVB', 'fb_hb': 'FB HB', 'fb_vaa': 'FB VAA', 'avg_spin': 'Spin',
+    'max_spin': 'Max Spin', 'velo_gap': 'Velo Gap', 'ext': 'Ext', 'rel_h': 'RelH', 'rel_s': 'RelS', 'rel_h_sd': 'RelH SD', 'rel_s_sd': 'RelS SD',
+    'arsenal': 'Arsenal',
+}
+
+
+def _last_first(name):
+    """'Michael Chang' -> 'Chang, Michael' (a trailing Jr./III stays with the last name)."""
+    parts = (name or '').split()
+    if len(parts) < 2:
+        return name or ''
+    k = 1
+    if parts[-1].strip('.').lower() in ('jr', 'sr', 'ii', 'iii', 'iv', 'v') and len(parts) > 2:
+        k = 2
+    return ' '.join(parts[-k:]) + ', ' + ' '.join(parts[:-k])
+
+
 def _pct_num(txt):
     try:
         return float(re.sub(r'[^0-9.\-]', '', str(txt)))
@@ -627,18 +654,36 @@ def _pct_num(txt):
         return None
 
 
+def _jersey_lookup(program):
+    """name -> jersey number from the team roster (Team roster page). Empty until numbers are entered; the tables show a placeholder."""
+    try:
+        r = roster_mod.load(program) or {}
+        pl = [(x['name'], x) for x in r.get('players', [])]
+    except Exception:
+        pl = []
+
+    def look(name):
+        try:
+            m = roster_mod.match_name(name, pl) if pl else None
+            return str((m[0] or {}).get('number') or '') if m else ''
+        except Exception:
+            return ''
+    return look
+
+
 def _stat_table(program, side):
     """Columns + rows for the sortable team stat tables. side = 'pitching' | 'hitting'. Each cell is (text, number-for-sorting)."""
     cols, rows = [], []
+    jersey = _jersey_lookup(program)
     if side == 'pitching':
         D = team.pitching_data(program)
         ids = [i for i in stats_mod.BASE if i not in _PSTAT_SKIP and not i.startswith('pt:')]
         for pl in D['players']:
-            rows.append({'name': pl['name'], 'url': url_for('player_overview', slug=pl['key']), 'n': pl['n'],
+            rows.append({'name': pl['name'], 'disp': _last_first(pl['name']), 'jersey': jersey(pl['name']), 'url': url_for('player_overview', slug=pl['key']), 'n': pl['n'],
                          'cells': {i: (pl['v'][i][0], _pct_num(pl['v'][i][0])) for i in ids if i in pl['v'] and pl['v'][i][0] not in (None, '', '—', '-', '–')}})
         for i in ids:
             lab, d = stats_mod.label_for(i)
-            cols.append({'id': i, 'label': lab, 'group': stats_mod.BASE[i][1], 'def': d})
+            cols.append({'id': i, 'label': lab, 'abbr': _STAT_ABBR.get(i, lab), 'group': stats_mod.BASE[i][1], 'def': d})
     else:
         D = team.hitting_data(program, True)
         for pl in D['players']:
@@ -650,11 +695,11 @@ def _stat_table(program, side):
                 if v is None:
                     continue
                 cells[i] = (team._fmt_hit(kind, v), v)
-            rows.append({'name': pl['name'], 'url': url_for('beta_hitter', key=pl['key']), 'n': pl['n'], 'cells': cells})
+            rows.append({'name': pl['name'], 'disp': _last_first(pl['name']), 'jersey': jersey(pl['name']), 'url': url_for('beta_hitter', key=pl['key']), 'n': pl['n'], 'cells': cells})
         for i, (lab, grp, d, kind) in team.HIT_CATALOG.items():
             if i == 'pitches':
                 continue
-            cols.append({'id': i, 'label': lab, 'group': grp, 'def': d})
+            cols.append({'id': i, 'label': lab, 'abbr': _STAT_ABBR.get(i, lab), 'group': grp, 'def': d})
     used = {i for r in rows for i in r['cells']}
     cols = [c for c in cols if c['id'] in used]
     order = list(dict.fromkeys(c['group'] for c in cols))
@@ -665,7 +710,7 @@ def _stat_table(program, side):
             groups[-1]['n'] += 1
         else:
             groups.append({'name': c['group'], 'n': 1})
-    rows.sort(key=lambda r: r['name'].split()[-1].lower() if r['name'].split() else '')
+    rows.sort(key=lambda r: r['disp'].lower())
     return cols, groups, rows
 
 

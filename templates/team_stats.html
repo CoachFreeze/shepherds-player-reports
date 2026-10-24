@@ -13,10 +13,11 @@
   .tw{background:#fff;border-radius:14px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);overflow:auto;max-height:78vh;}
   table{border-collapse:separate;border-spacing:0;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums;}
   th,td{padding:9px 12px;white-space:nowrap;text-align:right;border-bottom:1px solid #eef1f0;}
-  thead th{position:sticky;background:#fff;z-index:2;font:600 11px 'Barlow',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#76828a;border-bottom:2px solid #e3e8e6;cursor:pointer;user-select:none;}
+  thead th{position:sticky;background:#fff;z-index:2;font:700 12.5px 'Barlow',sans-serif;letter-spacing:.02em;color:#5b6870;border-bottom:2px solid #e3e8e6;cursor:help;user-select:none;}
   thead tr.g th{top:0;cursor:default;text-align:center;font:700 11px 'Oswald',sans-serif;letter-spacing:.14em;color:#22303a;background:#f1f4f3;border-left:1px solid #fff;}
   thead tr.c th{top:34px;} thead th.s:hover{color:#22303a;} thead th.asc::after{content:' ▲';font-size:9px;} thead th.desc::after{content:' ▼';font-size:9px;}
-  th.nm,td.nm{position:sticky;left:0;text-align:left;background:#fff;z-index:1;border-right:1px solid #eef1f0;} thead th.nm{z-index:3;} thead tr.g th.nm{background:#f1f4f3;}
+  th.jn,td.jn{position:sticky;left:0;text-align:center;width:44px;min-width:44px;background:#fff;z-index:1;} thead th.jn{z-index:3;} thead tr.g th.jn{background:#f1f4f3;}
+  th.nm,td.nm{position:sticky;left:44px;text-align:left;background:#fff;z-index:1;border-right:1px solid #eef1f0;} thead th.nm{z-index:3;} thead tr.g th.nm{background:#f1f4f3;}
   td.nm a{font-weight:700;color:var(--ink);text-decoration:none;} td.nm a:hover{color:var(--accent-ink,#5c97a8);text-decoration:underline;}
   tbody tr:hover td{background:#f7f9f9;} td.na{color:#c2cacf;}
   @media (max-width:520px){h1{font-size:32px;}}
@@ -25,12 +26,12 @@
   <p class="eyebrow">{{ team_label }}</p><h1>{{ title }}</h1><p class="sub">{{ rows|length }} {{ 'pitcher' if side == 'pitching' else 'hitter' }}{{ '' if rows|length == 1 else 's' }}. Click a column to sort. Click a name to open the player's profile.</p>
   {% set topnav_on = 'pit' if side == 'pitching' else 'hit' %}{% include '_topnav.html' %}</div></div>
 <div class="wrap">
-  <div class="bar"><input id="q" type="search" placeholder="Search {{ title|lower }}…" autocomplete="off"><a href="?view=cards">Card view &rsaquo;</a><span class="hintt">Hover a column header for its definition.</span></div>
+  <div class="bar"><input id="q" type="search" placeholder="Search {{ title|lower }}…" autocomplete="off"><a href="?view=cards">Card view &rsaquo;</a><span class="hintt">Hover a stat abbreviation for its full name and definition.</span></div>
   {% if not rows %}<p style="color:var(--muted);margin-top:24px;">No {{ title|lower }} tracked for this team yet. They appear automatically once a session is uploaded.</p>{% else %}
   <div class="tw"><table id="st"><thead>
-    <tr class="g"><th class="nm" rowspan="1"></th><th rowspan="1" style="width:1%"></th>{% for g in groups %}<th colspan="{{ g.n }}">{{ g.name }}</th>{% endfor %}</tr>
-    <tr class="c"><th class="nm s" data-t="s">Name</th><th class="s" data-t="n">Pitches</th>{% for c in cols %}<th class="s" data-t="n" title="{{ c.def }}">{{ c.label }}</th>{% endfor %}</tr></thead>
-  <tbody>{% for r in rows %}<tr data-s="{{ r.name|lower }}"><td class="nm" data-v="{{ r.name|lower }}"><a href="{{ r.url }}">{{ r.name }}</a></td><td data-v="{{ r.n }}">{{ r.n }}</td>
+    <tr class="g"><th class="jn"></th><th class="nm"></th><th></th>{% for g in groups %}<th colspan="{{ g.n }}">{{ g.name }}</th>{% endfor %}</tr>
+    <tr class="c"><th class="jn s" data-t="n" title="Jersey number: not entered yet.">#</th><th class="nm s" data-t="s">Name</th><th class="s" data-t="n" title="Pitches: total pitches {{ 'thrown' if side == 'pitching' else 'seen' }}.">{{ 'P' if side == 'pitching' else 'Seen' }}</th>{% for c in cols %}<th class="s" data-t="n" title="{{ c.label }}: {{ c.def }}">{{ c.abbr }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for r in rows %}<tr data-s="{{ r.name|lower }}"><td class="jn {{ '' if r.jersey else 'na' }}" data-v="{{ r.jersey }}">{{ r.jersey or '—' }}</td><td class="nm" data-v="{{ r.disp|lower }}"><a href="{{ r.url }}">{{ r.disp }}</a></td><td data-v="{{ r.n }}">{{ r.n }}</td>
     {% for c in cols %}{% set x = r.cells.get(c.id) %}{% if x %}<td data-v="{{ x[1] if x[1] is not none else '' }}">{{ x[0] }}</td>{% else %}<td class="na" data-v="">—</td>{% endif %}{% endfor %}</tr>{% endfor %}</tbody></table></div>{% endif %}
 </div>
 <script>
