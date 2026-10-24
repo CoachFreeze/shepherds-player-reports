@@ -53,7 +53,7 @@
   <div class="jump">{% if me.can_upload %}<a href="{{ url_for('intake_bulk', program=program) }}" class="up">+ Upload a .CSV</a>{% endif %}<a href="{{ url_for('team_scouting', program=program) }}">Scouting</a><a href="{{ url_for('team_games', program=program) }}">Game Reports</a>{% if is_admin %}<a href="{{ url_for('dashboard') }}">&larr; All teams</a>{% endif %}</div></div></div>
 
 <div class="wrap">
-{% if pr_recent %}<div class="prp" style="margin-top:18px;"><h2>&#9733; Recent personal bests</h2><p class="hint">Records broken in the last two weeks of this team's sessions</p>{{ prm.feed(pr_recent) }}</div>{% endif %}
+{% if pr_recent %}<div style="margin:18px 0 0;"><a class="prbtn" href="{{ url_for('team_prs', program=program) }}">&#9733; See Newest Personal Bests &rarr;</a></div>{% endif %}
 <div class="cols{{ ' one' if halves|length == 1 }}">
 {% for H in halves %}{% set side = H.side %}{% set D = H.D %}
 <section class="half" id="{{ side }}">

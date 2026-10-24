@@ -1,0 +1,21 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ team_label }} &middot; Newest Personal Bests</title>
+<style>{{ theme_css|safe }}</style>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+{% import '_prs.html' as prm %}{{ prm.css() }}
+<style>
+  :root{--ink:#22303a;}
+  *{box-sizing:border-box;} body{background:#f7f6f2;font-family:'Barlow',sans-serif;color:var(--ink);margin:0;}
+  .ov{max-width:1000px;margin:0 auto;padding:0 14px 50px;}
+  .top{display:flex;justify-content:space-between;align-items:center;padding:14px 2px;font-size:13px;} .top a{font-weight:700;color:var(--accent-ink,var(--accent,#5c97a8));text-decoration:none;}
+  .head{background:#fff;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);border-radius:16px;border-top:4px solid var(--accent,#5c97a8);padding:18px;}
+  .head h1{font:700 30px/1.05 'Oswald',sans-serif;margin:0;} .head .sub{color:#6b7680;font-size:14px;margin-top:5px;}
+  .prp h3{display:flex;justify-content:space-between;} .prf a{color:var(--ink);text-decoration:none;font-weight:700;} .prf a:hover{text-decoration:underline;}
+  .empty{background:#fff;border-radius:16px;padding:26px;margin-top:14px;text-align:center;color:#6b7680;box-shadow:0 1px 3px rgba(26,31,36,.08);}
+</style></head><body><div class="ov">
+<div class="top"><a href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Dashboard</a><span style="display:flex;align-items:center;gap:12px;">{% include '_usermenu.html' %}</span></div>
+<div class="head"><h1>&#9733; Newest Personal Bests</h1><div class="sub">{{ team_label }} &middot; records broken in the last 30 days of sessions{% if total %} &middot; {{ total }} record{{ 's' if total != 1 }}{% endif %}</div></div>
+{% for d in days %}<div class="prp"><h3>{{ d.label }}</h3>
+  <ul class="prf">{% for r in d.rows %}<li><span><span class="pw">PR</span><a href="{{ r.url }}">{{ r.who }}</a> &middot; {{ r.label }}</span><span><span class="pv">{{ r.disp }}</span> <small>was {{ r.prev_disp }}</small></span></li>{% endfor %}</ul></div>
+{% else %}<div class="empty">No personal bests in the last 30 days. They show up here as soon as a player breaks a record in a new session.</div>{% endfor %}
+</div></body></html>

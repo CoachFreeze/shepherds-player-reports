@@ -646,9 +646,26 @@ def team_dashboard(program):
         halves.append(half('hitting', H, cfg['hitting_stats']))
     sessions = sorted(set(P['sessions']) | set(H['sessions'] if H else []))
     return render_template('team_dashboard.html', program=program, team_label=store.program_label(program), halves=halves,
-                           last_session=sessions[-1] if sessions else None, is_coach=True, is_admin=is_admin(), pr_recent=prs.program_recent(program),
+                           last_session=sessions[-1] if sessions else None, is_coach=True, is_admin=is_admin(), pr_recent=[r for r in prs.program_recent(program, days=30, limit=200) if r['kind'] != 'h' or plans.allowed(program, 'hitting')],
                            wm_url=_wm_url(program),
                            coach_key=session.get('coach') or '', th=theme.for_program(program), th_default=theme.default_pair(program))
+
+
+@app.route('/team/<program>/personal-bests')
+@login_required
+def team_prs(program):
+    _team_ok(program)
+    rows = prs.program_recent(program, days=30, limit=200)
+    if not plans.allowed(program, 'hitting'):
+        rows = [r for r in rows if r['kind'] != 'h']
+    days = []
+    for r in rows:
+        if not days or days[-1]['date'] != r['date']:
+            days.append({'date': r['date'], 'label': overview._long_date(r['date']), 'rows': []})
+        days[-1]['rows'].append({**r, 'url': url_for('player_overview', slug=r['key']) if r['kind'] == 'p' else url_for('beta_hitter', key=r['key'])})
+    return render_template('team_prs.html', program=program, team_label=store.program_label(program), days=days, total=len(rows),
+                           is_coach=True, is_admin=is_admin(), coach_key=session.get('coach') or '',
+                           th=theme.for_program(program), th_default=theme.default_pair(program))
 
 
 @app.route('/team/<program>/swing-decisions')
