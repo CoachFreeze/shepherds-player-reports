@@ -2,7 +2,8 @@
 {% macro css() %}
   .sq{position:relative;background:#fff;border:none;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;text-decoration:none;color:inherit;transition:transform .12s,box-shadow .12s;} .sq:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(26,31,36,.16);}
   .sq>a.ca{text-decoration:none;color:inherit;display:block;}
-  .ph{aspect-ratio:1/1;background:linear-gradient(135deg,#e1e7e8,#c3ced1);display:flex;align-items:center;justify-content:center;overflow:hidden;} .ph img{width:100%;height:100%;object-fit:cover;display:block;} .ph span{font:700 54px 'Oswald',sans-serif;color:#fff;opacity:.85;}
+  .ph .prc{position:absolute;top:10px;left:10px;z-index:2;opacity:1;font:800 11.5px/1.2 'Barlow',sans-serif;letter-spacing:.08em;border-radius:999px;padding:4px 11px;background:linear-gradient(180deg,#f6ebc8 0%,#e0c98f 48%,#c6a665 100%);border:1px solid #a98b4a;box-shadow:inset 0 1px 0 rgba(255,255,255,.9),inset 0 -2px 3px rgba(120,90,30,.38),0 2px 4px rgba(60,40,10,.32);color:#8a6a28;text-shadow:0 1px 0 rgba(255,255,255,.8),0 -1px 0 rgba(80,55,10,.45);}
+  .ph{position:relative;aspect-ratio:1/1;background:linear-gradient(135deg,#e1e7e8,#c3ced1);display:flex;align-items:center;justify-content:center;overflow:hidden;} .ph img{width:100%;height:100%;object-fit:cover;display:block;} .ph span{font:700 54px 'Oswald',sans-serif;color:#fff;opacity:.85;}
   .bdg span{color:var(--accent-ink,#5c97a8) !important;opacity:1 !important;}
   .bdg{width:58%;aspect-ratio:1/1;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(34,48,58,.18);} .bdg img{max-width:70%;max-height:64%;width:auto;height:auto;object-fit:contain;}
   .info{padding:14px 16px 16px;} .nm{font:700 20px/1.1 'Oswald',sans-serif;color:#22303a;} .nm small{display:block;font:500 14px 'Barlow',sans-serif;color:#76828a;margin-top:3px;}
@@ -11,10 +12,10 @@
   .mg{position:absolute;top:8px;right:8px;display:none;gap:4px;} .sq:hover .mg{display:flex;} .mg form{margin:0;} .mg button{font:600 11px 'Barlow',sans-serif;border:none;background:rgba(255,255,255,.92);color:#6b7680;border-radius:999px;padding:4px 9px;cursor:pointer;} .mg button.del{color:#9c3a3a;}
   @media (hover:none){.mg{display:flex;}} @media (max-width:520px){.nm{font-size:15px;} .ph span{font-size:42px;}}
 {% endmacro %}
-{% macro card(href, last, first, school, cls, pos, ht, wt, tag, search, photo=none, badge=none, initials='', logo=none) %}
+{% macro card(href, last, first, school, cls, pos, ht, wt, tag, search, photo=none, badge=none, initials='', logo=none, pr=0) %}
 <div class="sq" data-s="{{ search }}">
   <a class="ca" href="{{ href }}">
-    <div class="ph">{% if photo %}<img src="{{ photo }}" alt="" loading="lazy">{% elif logo %}<div class="bdg" style="background:#fff"><img src="{{ logo }}" alt="" loading="lazy"></div>{% elif badge %}<div class="bdg" style="background:{{ badge.bg }}"><img src="{{ url_for('school_logo', fname=badge.file) }}" alt="" loading="lazy"></div>{% else %}<span>{{ initials }}</span>{% endif %}</div>
+    <div class="ph">{% if pr %}<span class="prc" title="Set {{ pr }} personal best{{ 's' if pr != 1 }} in the latest session">&#9733; PR{% if pr > 1 %} &times;{{ pr }}{% endif %}</span>{% endif %}{% if photo %}<img src="{{ photo }}" alt="" loading="lazy">{% elif logo %}<div class="bdg" style="background:#fff"><img src="{{ logo }}" alt="" loading="lazy"></div>{% elif badge %}<div class="bdg" style="background:{{ badge.bg }}"><img src="{{ url_for('school_logo', fname=badge.file) }}" alt="" loading="lazy"></div>{% else %}<span>{{ initials }}</span>{% endif %}</div>
     <div class="info"><div class="nm">{{ last }}<small>{{ first }}</small></div>
       <div class="row2"><span>{{ school or '' }}</span></div>
       <div class="row2"><span>{{ cls or '' }}</span><span class="pos">{{ pos or '' }}</span></div>

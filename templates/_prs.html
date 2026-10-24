@@ -1,0 +1,25 @@
+{# Personal bests: css() once per page, banner(ent) for new PRs, panel(ent) for the full list, feed(rows) for team/upload lists. #}
+{% macro css() %}<style>
+  .prb{background:linear-gradient(135deg,#fff7de,#ffefbd);border:1px solid #e6c766;border-radius:14px;padding:12px 16px;margin-top:14px;display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;}
+  .prb .st{font:700 13px 'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#7a5a08;display:flex;align-items:center;gap:6px;white-space:nowrap;padding-top:2px;}
+  .prb ul{margin:0;padding:0;list-style:none;display:flex;gap:6px 18px;flex-wrap:wrap;flex:1;min-width:200px;} .prb li{font-size:14px;color:#4a3a08;} .prb li b{font:700 16px 'Oswald',sans-serif;color:#22303a;} .prb li small{color:#8a7430;}
+  .prp{background:#fff;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);border-radius:16px;margin-top:14px;padding:14px 14px 16px;}
+  .prp h2{font:700 17px 'Oswald',sans-serif;text-transform:uppercase;letter-spacing:.05em;text-align:center;margin:0;color:#22303a;} .prp .hint{font-size:12px;color:#6b7680;text-align:center;margin:3px 0 10px;}
+  .prp h3{font:700 12px 'Oswald',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#6b7680;margin:12px 0 6px;}
+  .prg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+  .prt{position:relative;background:#f7f6f2;border-radius:10px;padding:9px 11px;border:1px solid #ece9df;min-width:0;} .prt.new{background:#fff7de;border-color:#e6c766;}
+  .prt .v{font:700 22px/1.1 'Oswald',sans-serif;color:#22303a;} .prt .l{font-size:12px;color:#4a5760;margin-top:2px;line-height:1.25;} .prt .d{font-size:11px;color:#8a949b;margin-top:3px;}
+  .prt .nw{display:inline-block;margin-bottom:4px;font:800 9.5px 'Barlow',sans-serif;letter-spacing:.08em;border-radius:999px;padding:2px 9px;background:linear-gradient(180deg,#f6ebc8 0%,#e0c98f 48%,#c6a665 100%);border:1px solid #a98b4a;box-shadow:inset 0 1px 0 rgba(255,255,255,.9),inset 0 -2px 3px rgba(120,90,30,.38),0 2px 4px rgba(60,40,10,.32);color:#8a6a28;text-shadow:0 1px 0 rgba(255,255,255,.8),0 -1px 0 rgba(80,55,10,.45);}
+  .prf{list-style:none;margin:0;padding:0;} .prf li{display:flex;gap:8px;align-items:baseline;justify-content:space-between;padding:7px 0;border-top:1px solid #eee9da;font-size:13.5px;flex-wrap:wrap;} .prf li:first-child{border-top:0;}
+  .prf .pw{display:inline-block;font:800 9.5px 'Barlow',sans-serif;letter-spacing:.08em;border-radius:999px;padding:2px 9px;margin-right:6px;vertical-align:1px;background:linear-gradient(180deg,#f6ebc8 0%,#e0c98f 48%,#c6a665 100%);border:1px solid #a98b4a;box-shadow:inset 0 1px 0 rgba(255,255,255,.9),inset 0 -2px 3px rgba(120,90,30,.38),0 2px 4px rgba(60,40,10,.32);color:#8a6a28;text-shadow:0 1px 0 rgba(255,255,255,.8),0 -1px 0 rgba(80,55,10,.45);} .prf .pv{font:700 14px 'Oswald',sans-serif;color:#22303a;} .prf small{color:#8a949b;}
+</style>{% endmacro %}
+{% macro banner(ent) %}{% if ent and ent.new %}
+<div class="prb"><div class="st">&#9733; New personal best{{ 's' if ent.new != 1 }}</div><ul>
+  {% for i in ent['items'] if i.new %}<li>{{ i.label }}: <b>{{ i.disp }}</b> <small>(was {{ i.prev_disp }})</small></li>{% endfor %}</ul></div>{% endif %}{% endmacro %}
+{% macro panel(ent) %}{% if ent and ent['items'] %}
+<div class="prp"><h2>Personal bests</h2><p class="hint">Best ever across every uploaded session, games and practice together{% if ent.sessions > 1 %} &middot; {{ ent.sessions }} sessions{% endif %}. Gold means set in the latest session.</p>
+  {% set ns = namespace(g='') %}
+  {% for grp in ['Velocity','Spin','Movement','Results','Workload','Power','Contact','Decisions'] %}{% set its = ent['items']|selectattr('group','equalto',grp)|list %}{% if its %}
+    <h3>{{ grp }}</h3><div class="prg">{% for i in its %}<div class="prt{{ ' new' if i.new }}">{% if i.new %}<span class="nw">NEW PR</span>{% endif %}<div class="v">{{ i.disp }}</div><div class="l">{{ i.label }}</div><div class="d">{{ i.date }}{% if i.prev_disp %} &middot; prev {{ i.prev_disp }}{% endif %}</div></div>{% endfor %}</div>{% endif %}{% endfor %}
+</div>{% endif %}{% endmacro %}
+{% macro feed(rows, who=true) %}<ul class="prf">{% for r in rows %}<li><span><span class="pw">PR</span>{% if who %}<b>{{ r.who }}</b> &middot; {% endif %}{{ r.label }}</span><span><span class="pv">{{ r.disp }}</span> <small>was {{ r.prev_disp }} &middot; {{ r.date }}</small></span></li>{% endfor %}</ul>{% endmacro %}

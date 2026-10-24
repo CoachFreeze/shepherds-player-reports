@@ -19,6 +19,7 @@
   .ok{background:#e3ecdf;color:#3f6b42;border-radius:12px;padding:12px 16px;margin:0 0 14px;font-weight:600;}
   .danger{padding:10px 20px;border:0;border-radius:999px;background:#a63a2c;color:#fff;font:700 13px Barlow,sans-serif;cursor:pointer;}
   @media (max-width:520px){h1{font-size:32px;}}
+  .prl{margin-top:4px;font-size:12.5px;} .prl summary{cursor:pointer;display:inline-block;background:#fff4d6;color:#7a5a08;border:1px solid #e6c766;border-radius:999px;padding:2px 10px;font-weight:700;font-size:11.5px;list-style:none;} .prl summary::-webkit-details-marker{display:none;} .prl ul{margin:6px 0 2px;padding-left:16px;color:#4a5760;} .prl ul b{color:#22303a;}
 </style></head><body>
 <div class="hero"><div class="wrap"><div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>
   <p class="eyebrow">{{ prog_label or 'All programs' }}</p><h1>Upload Log</h1><p class="sub">Every CSV uploaded{% if not admin %} for {{ prog_label }}{% endif %}, newest first.</p></div></div>
@@ -28,7 +29,7 @@
   {% if message %}<div class="ok">{{ message }}</div>{% endif %}
   {% if rows %}<div class="panel"><table>
     <tr><th>Uploaded</th><th>File</th><th>Type</th>{% if admin %}<th>Program</th>{% endif %}<th>By</th><th></th></tr>
-    {% for e in rows %}<tr><td class="w">{{ e.when }}</td><td class="f">{{ e.file }}</td><td><span class="tag">{{ e.source }}</span></td>{% if admin %}<td>{{ e.plabel }}</td>{% endif %}<td>{{ e.user }}</td>
+    {% for e in rows %}<tr><td class="w">{{ e.when }}</td><td class="f">{{ e.file }}{% if e.prs %}<details class="prl"><summary>&#9733; {{ e.prs|length }} new PR{{ 's' if e.prs|length != 1 }}</summary><ul>{% for r in e.prs %}<li><b>{{ r.who }}</b>: {{ r.label }} {{ r.disp }} <small>(was {{ r.prev_disp }})</small></li>{% endfor %}</ul></details>{% endif %}</td><td><span class="tag">{{ e.source }}</span></td>{% if admin %}<td>{{ e.plabel }}</td>{% endif %}<td>{{ e.user }}</td>
       <td style="white-space:nowrap;text-align:right;">{% if e.removed %}<span class="gone">Removed</span>{% elif e.id and (me.is_head or me.is_admin) %}<form method="post" action="{{ url_for('upload_remove') }}" onsubmit="return confirm('Remove every pitch from {{ e.file|e }}? This cannot be undone.');" style="margin:0;"><input type="hidden" name="id" value="{{ e.id }}"><button class="rm">Remove data</button></form>{% endif %}</td></tr>{% endfor %}
   </table></div>{% else %}<div class="panel pad"><p style="margin:0;">No uploads logged yet. Uploads from now on will appear here.</p></div>{% endif %}
   {% if me.is_head or me.is_admin %}<div class="panel pad"><h2>Remove a CSV that isn't listed above</h2>

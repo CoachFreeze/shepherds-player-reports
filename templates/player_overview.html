@@ -39,7 +39,7 @@
   .vsw{display:inline-flex;background:#eef1f0;border-radius:999px;padding:3px;margin:0 10px 0 0;vertical-align:middle;} .vsw a,.vsw b{padding:6px 16px;border-radius:999px;font:600 13px 'Barlow',sans-serif;text-decoration:none;color:#55626b;} .vsw b{background:var(--accent,#5c97a8);color:var(--on-accent,#fff);box-shadow:0 1px 3px rgba(26,31,36,.15);}
   .trow{display:grid;grid-template-columns:1fr 1fr;gap:14px;} .trow .pn{margin-top:14px;min-width:0;} .trow .pn:only-child{grid-column:1/-1;} .trow .trendnote{position:static;text-align:left;margin:0 0 4px 6px;} @media (max-width:760px){.trow{grid-template-columns:1fr;gap:0;}}
   .mv-pt{cursor:pointer;} @media (max-width:560px){.tiles{grid-template-columns:repeat(2,1fr);} .olog .st{width:100%;justify-content:space-between;}}
-</style></head><body><div class="ov">
+</style>{% import '_prs.html' as prm %}{{ prm.css() }}</head><body><div class="ov">
 <div class="top">{% if me and me.is_player %}<span></span>{% else %}<a href="{{ pitchers_url }}">&larr; {{ 'Back to scouting' if scouting else ('Pitchers' if nav_program else 'All players') }}</a>{% endif %}{% if is_coach and not scouting %}<span style="display:flex;align-items:center;gap:12px;">{% if me.can_upload %}<a class="upl" href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a>{% endif %}{% include '_usermenu.html' %}</span>{% elif me and me.is_player %}{% include '_usermenu.html' %}{% endif %}</div>
 <div class="head">
   <div class="hs">{% if has_photo %}<img src="{{ url_for('headshot', slug=slug) }}?v={{ photo_v }}" alt="">{% elif badge %}<img src="{{ url_for('school_logo', fname=badge.file) }}" alt="" style="width:100%;height:100%;object-fit:contain;padding:18%;background:{{ badge.bg }};">{% else %}<span>{{ initials }}</span>{% endif %}</div>
@@ -53,6 +53,7 @@
   {% if b.log %}<a class="gobtn" href="{{ url_for('player_outings', slug=slug) }}">Go to Outing Reports &rarr;</a>{% endif %}
 </div>
 
+{{ prm.banner(pr_ent) }}
 <div class="pn" id="stats"><div class="pn-t">Pitching Profile</div><div class="pn-s">Last {{ b.n_outings }} outing{{ 's' if b.n_outings != 1 }}{% if can_edit %} &middot; <a href="#" id="stOpen" style="color:var(--accent-teal);font-weight:700;">Customize stats</a>{% endif %}</div>
   <div class="tiles">
   {% for s in b.stat_tiles %}
@@ -94,6 +95,7 @@
   {% for v in b.movement_views %}<div class="pmp-view" data-hand="{{ v.key }}"{% if not loop.first %} style="display:none;"{% endif %}>{{ v.html|safe }}</div>{% endfor %}
   <script>(function(){var p=document.currentScript.parentNode;p.querySelectorAll('.seg button').forEach(function(b){b.onclick=function(){p.querySelectorAll('.seg button').forEach(function(x){x.classList.toggle('on',x===b);});p.querySelectorAll('.pmp-view').forEach(function(v){v.style.display=v.dataset.hand===b.dataset.hand?'':'none';});};});})();</script>
   {% else %}{{ b.movement_html|safe }}{% endif %}</div>{% endif %}
+{{ prm.panel(pr_ent) }}
 {% if b.effect %}<div class="pn"><div class="pn-t">Pitch Effectiveness</div><div class="pn-s">Every pitch he throws, split by the batter's side &middot; grey rows are under 10 pitches</div>
   {% for s in b.effect %}<div class="fx-h">{{ s.title }}<small>{{ s.n }} pitches</small></div>
   {% if s.n %}<div class="fxs"><table class="fx"><tr><th>Pitch</th><th>Avg Velo</th><th>Usage %</th><th>In Zone %</th><th>Whiff %</th><th>Chase %</th><th>Avg Exit Velo</th><th>xBA</th></tr>

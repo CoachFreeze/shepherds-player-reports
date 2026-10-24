@@ -13,6 +13,7 @@ import extract as e_mod
 import mlb_lookup
 import headshots
 import hitting
+import prs
 import team
 import theme
 import roster as roster_mod
@@ -375,6 +376,22 @@ def home_url():
 
 
 @app.context_processor
+def inject_prs():
+    def _dates(slug):
+        try:
+            ent = prs.for_pitcher(slug)
+            return {} if not ent else {ev['date']: 1 for ev in ent['events']}
+        except Exception:
+            return {}
+    def _new(kind, key):
+        try:
+            return prs.new_count(kind, key)
+        except Exception:
+            return 0
+    return {'pr_new': _new, 'pr_dates': _dates}
+
+
+@app.context_processor
 def inject_theme():
     """School colors (see theme.py) plus back-link targets for whichever program's page this is. Pages with no program (admin tools,
     login) keep the default colors and link back to the team list."""
@@ -629,7 +646,7 @@ def team_dashboard(program):
         halves.append(half('hitting', H, cfg['hitting_stats']))
     sessions = sorted(set(P['sessions']) | set(H['sessions'] if H else []))
     return render_template('team_dashboard.html', program=program, team_label=store.program_label(program), halves=halves,
-                           last_session=sessions[-1] if sessions else None, is_coach=True, is_admin=is_admin(),
+                           last_session=sessions[-1] if sessions else None, is_coach=True, is_admin=is_admin(), pr_recent=prs.program_recent(program),
                            wm_url=_wm_url(program),
                            coach_key=session.get('coach') or '', th=theme.for_program(program), th_default=theme.default_pair(program))
 
@@ -828,7 +845,7 @@ def player_overview(slug):
     if _prog and not store.is_demo(slug) and (is_admin() or (_prog == my_program() and plans.allowed(_prog, 'hitting'))):
         _hk = hitting.hitter_key_for(bio['name'], _prog)
         hitter_url = url_for('beta_hitter', key=_hk) if _hk else None
-    return render_template('player_overview.html', b=b, bio=bio, slug=slug, css=css, hitter_url=hitter_url, has_photo=has_photo, badge=badge,
+    return render_template('player_overview.html', pr_ent=prs.for_pitcher(slug), b=b, bio=bio, slug=slug, css=css, hitter_url=hitter_url, has_photo=has_photo, badge=badge,
                            photo_v=int(os.path.getmtime(headshots.path(slug))) if has_photo else 0,
                            initials=(first[:1] + last[:1]).upper(), pos=_player_pos(bio), is_coach=bool(session.get('coach')) and not is_player(), can_edit=can_manage(slug), is_demo=store.is_demo(slug),
                            tour_next=(url_for('view_outing', slug=slug, date=b['log'][0]['id']) + '?tour=report') if b.get('log') else '')
@@ -1289,7 +1306,7 @@ def beta_hitter(key):
         return _scout_hitter_page(key, h)
     css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
     _ps = h['bio']['photo_slug']
-    return render_template('beta_hitter.html', h=h, css=css, can_edit=(not h['demo'] and not h.get('opp_slug') and not is_player() and (is_admin() or h['program'] == my_program())),
+    return render_template('beta_hitter.html', pr_ent=prs.for_hitter(key), h=h, css=css, can_edit=(not h['demo'] and not h.get('opp_slug') and not is_player() and (is_admin() or h['program'] == my_program())),
                            photo_v=int(os.path.getmtime(headshots.path(_ps))) if _ps else 0,
                            **({'hitters_url': url_for('team_scouting_opp', program=h['program'], opp=h['opp_slug']), 'scouting': True} if h.get('opp_slug') else {}))
 
@@ -2150,7 +2167,7 @@ def upload_log_page():
     rows = []
     for e in uploadlog.entries(prog):
         t = datetime.datetime.fromtimestamp(e['t'], datetime.timezone(datetime.timedelta(hours=-7))).strftime('%b %-d, %Y %-I:%M %p')
-        rows.append({**e, 'when': t, 'plabel': store.program_label(e.get('program')) if e.get('program') else ''})
+        rows.append({**e, 'when': t, 'plabel': store.program_label(e.get('program')) if e.get('program') else '', 'prs': (prs.upload_events(e) if not e.get('removed') else [])})
     progs = [(p, store.program_label(p)) for p in sorted({e.get('program') for e in uploadlog.entries() if e.get('program')})]
     return render_template('upload_log.html', rows=rows, admin=admin, programs=progs, sel=sel or '', home=home_url(), message=request.args.get('msg'),
                                   prog_label=store.program_label(prog) if prog else '')

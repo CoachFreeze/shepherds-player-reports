@@ -23,7 +23,7 @@
   {% for r in rows %}{% set bio = r.bio %}{% set parts = r.name.split() %}{% set badge = sbadge(bio.program, bio.school) %}{% set photo = hphoto(bio) %}
     {{ card(url_for('beta_hitter', key=r.key), parts[-1], parts[:-1]|join(' '), bio.school, bio.class_label, 'TWP' if bio.two_way else bio.position, bio.height_in, bio.weight_lbs,
             (('B/T ' ~ bio.bats ~ '/' ~ bio.throws) if (bio.two_way and bio.bats and bio.throws) else ('Bats ' ~ bio.bats if bio.bats else '')),
-            (r.name ~ ' ' ~ (bio.position or '') ~ ' ' ~ (bio.school or '') ~ ' ' ~ (bio.class_label or '') ~ (' two-way twp' if bio.two_way else ''))|lower, photo, badge, (parts[0][:1] ~ parts[-1][:1])|upper) }}{% endfor %}</div>
+            (r.name ~ ' ' ~ (bio.position or '') ~ ' ' ~ (bio.school or '') ~ ' ' ~ (bio.class_label or '') ~ (' two-way twp' if bio.two_way else ''))|lower, photo, badge, (parts[0][:1] ~ parts[-1][:1])|upper, pr=pr_new('h', r.key)) }}{% endfor %}</div>
 </div>
 <script>document.getElementById('q').addEventListener('input',function(){var v=this.value.toLowerCase().trim();document.querySelectorAll('.sq').forEach(function(c){c.style.display=(!v||c.dataset.s.indexOf(v)>-1)?'':'none';});});</script>
 </body></html>

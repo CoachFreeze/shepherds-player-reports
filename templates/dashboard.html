@@ -47,7 +47,7 @@
     {% call card(href, last, first, p.school, ('Class of ' ~ p.grad_year) if p.grad_year else ro.class_year, 'TWP' if two else pos, p.height_in, p.weight_lbs,
                  (('B/T ' ~ ro.bats ~ '/' ~ thr) if (two and ro.bats and thr) else ('Throws ' ~ thr if thr else '')),
                  (p.name ~ ' ' ~ (p.school or '') ~ ' ' ~ (pos or '') ~ ' ' ~ (p.grad_year or '') ~ (' two-way twp' if two else ''))|lower,
-                 (url_for('headshot', slug=slug) ~ '?v=' ~ p.photo_v) if p.has_photo else none, p.badge, (first[:1] ~ last[:1])|upper) %}
+                 (url_for('headshot', slug=slug) ~ '?v=' ~ p.photo_v) if p.has_photo else none, p.badge, (first[:1] ~ last[:1])|upper, pr=pr_new('p', slug)) %}
       {% if p.shep_links %}<div class="links">{% for t, u in p.shep_links %}<a href="{{ u }}">{{ t }}</a>{% endfor %}</div>{% endif %}
       {% if p.can_edit %}<div class="mg">
         <form method="post" action="{{ url_for('delete_player_route', slug=slug) }}" onsubmit="return confirm('Delete {{ p.name|e }} and all their data? This cannot be undone.');"><button type="submit" class="del">Delete</button></form></div>{% endif %}
