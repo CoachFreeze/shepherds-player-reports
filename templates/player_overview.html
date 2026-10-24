@@ -8,7 +8,7 @@
   .ov{max-width:1360px;margin:0 auto;padding:0 14px 50px;}
   .top{display:flex;justify-content:space-between;align-items:center;padding:14px 2px;font-size:13px;} .top a.upl{background:var(--accent,var(--accent,#5c97a8));color:var(--on-accent,#fff);border-radius:999px;padding:8px 16px;font-weight:700;} .top a{color:var(--accent-ink,var(--accent,#5c97a8));font-weight:600;text-decoration:none;}
   .head{background:#fff;border:none;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);border-radius:16px;border-top:4px solid var(--accent,#5c97a8);padding:18px;display:flex;gap:18px;align-items:center;flex-wrap:wrap;}
-  .gobtn{margin-left:auto;align-self:flex-end;background:var(--accent,#5c97a8);color:var(--on-accent,#fff);border-radius:999px;padding:10px 22px;font:700 14px 'Barlow',sans-serif;text-decoration:none;white-space:nowrap;box-shadow:0 1px 3px rgba(26,31,36,.2);} .gobtn:hover{filter:brightness(1.07);}
+  .gobtns{margin-left:auto;align-self:flex-end;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;} .gobtn{background:var(--accent,#5c97a8);color:var(--on-accent,#fff);border-radius:999px;padding:10px 22px;font:700 14px 'Barlow',sans-serif;text-decoration:none;white-space:nowrap;box-shadow:0 1px 3px rgba(26,31,36,.2);} .gobtn:hover{filter:brightness(1.07);}
   .hs{width:128px;height:128px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#e1e7e8,#c3ced1);display:flex;align-items:center;justify-content:center;flex:none;}
   .hs img{width:100%;height:100%;object-fit:cover;} .hs span{font:700 46px 'Oswald',sans-serif;color:#fff;}
   .head h1{font:700 34px/1.05 'Oswald',sans-serif;margin:0;color:var(--ink);} .head .sub{font:500 15px 'Barlow',sans-serif;color:#6b7680;margin-top:6px;}
@@ -56,10 +56,10 @@
     <div class="rng">Profile built from the last {{ b.n_outings }} outing{{ 's' if b.n_outings != 1 }} &middot; {{ b.n_pitches }} pitches &middot; {{ b.range }}</div>
     {% if hitter_url or (can_edit and not is_demo) %}<div class="photo-form">{% if hitter_url %}<span class="vsw"><a href="{{ hitter_url }}">Hitter</a><b>Pitcher</b></span>{% endif %}{% if can_edit and not is_demo %}<a class="editbtn" href="{{ url_for('edit_profile', slug=slug) }}">Edit Profile</a>{% endif %}</div>{% endif %}
   </div>
-  {% if b.log %}<a class="gobtn" href="{{ url_for('player_outings', slug=slug) }}">Go to Outing Reports &rarr;</a>{% endif %}
+  <div class="gobtns">{% if pr_ent %}{{ prm.button(url_for('player_prs', slug=slug)) }}{% endif %}{% if b.log %}<a class="gobtn" href="{{ url_for('player_outings', slug=slug) }}">Go to Outing Reports &rarr;</a>{% endif %}</div>
 </div>
 
-{{ prm.banner(pr_ent) }}
+{{ prm.banner(pr_ent, url_for('player_prs', slug=slug)) }}
 <div class="pn" id="stats"><div class="pn-t">Pitching Profile</div><div class="pn-s">Last {{ b.n_outings }} outing{{ 's' if b.n_outings != 1 }}{% if can_edit %} &middot; <a href="#" id="stOpen" style="color:var(--accent-teal);font-weight:700;">Customize stats</a>{% endif %}</div>
   <div class="tiles">
   {% for s in b.stat_tiles %}
@@ -101,7 +101,6 @@
   {% for v in b.movement_views %}<div class="pmp-view" data-hand="{{ v.key }}"{% if not loop.first %} style="display:none;"{% endif %}>{{ v.html|safe }}</div>{% endfor %}
   <script>(function(){var p=document.currentScript.parentNode;p.querySelectorAll('.seg button').forEach(function(b){b.onclick=function(){p.querySelectorAll('.seg button').forEach(function(x){x.classList.toggle('on',x===b);});p.querySelectorAll('.pmp-view').forEach(function(v){v.style.display=v.dataset.hand===b.dataset.hand?'':'none';});};});})();</script>
   {% else %}{{ b.movement_html|safe }}{% endif %}</div>{% endif %}
-{{ prm.panel(pr_ent) }}
 {% if b.effect %}<div class="pn"><div class="pn-t">Pitch Effectiveness</div><div class="pn-s">Every pitch he throws, split by the batter's side &middot; grey rows are under 10 pitches</div>
   {% for s in b.effect %}<div class="fx-h">{{ s.title }}<small>{{ s.n }} pitches</small></div>
   {% if s.n %}<div class="fxs"><table class="fx"><tr><th>Pitch</th><th>Avg Velo</th><th>Usage %</th><th>In Zone %</th><th>Whiff %</th><th>Chase %</th><th>Avg Exit Velo</th><th>xBA</th></tr>

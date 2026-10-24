@@ -65,9 +65,10 @@
       <div class="rng">{{ s.pitches }} pitches seen &middot; {{ s.pa }} plate appearances &middot; {{ h.dates|length }} session{{ '' if h.dates|length == 1 else 's' }}{% if h.dates %} &middot; {{ h.dates[0] }}{% if h.dates|length > 1 %} to {{ h.dates[-1] }}{% endif %}{% endif %}{% if h.demo %} &middot; sample data{% endif %}</div>
       <div class="photo-form">{% if bio.two_way %}<span class="vsw"><b>Hitter</b><a href="{{ url_for('player_overview', slug=bio.pitcher_slug) }}">Pitcher</a></span>{% endif %}{% if can_edit %}<a class="editbtn" href="{{ url_for('hitter_edit', key=h.key) }}">Edit Profile</a> {% endif %}</div>
     </div>
+    {% if pr_ent %}<div style="margin-left:auto;align-self:flex-end;">{{ prm.button(url_for('hitter_prs', key=h.key)) }}</div>{% endif %}
   </div>
 
-  {{ prm.banner(pr_ent) }}
+  {{ prm.banner(pr_ent, url_for('hitter_prs', key=h.key)) }}
   {% set vc = h.vs_counts %}
   <div class="swt"><div class="seg">
     <a href="{{ url_for('beta_hitter', key=h.key) }}" class="{{ 'on' if h.vs == 'all' }}">All pitchers <em>{{ vc['all'].bip }} BIP</em></a>
@@ -223,7 +224,6 @@ var ZD = {{ h.zone_ev|tojson }};
   </div>
 
   {% endif %}
-{{ prm.panel(pr_ent) }}
 </div>
 <div id="tip"></div>
 <script>(function(){var b=document.getElementById('howbtn'),p=document.getElementById('how');if(!b||!p)return;b.addEventListener('click',function(){var o=p.hasAttribute('hidden');if(o)p.removeAttribute('hidden');else p.setAttribute('hidden','');b.setAttribute('aria-expanded',o?'true':'false');b.title=o?'Hide':'How is this calculated?';});})();</script>

@@ -266,7 +266,7 @@ def staff_checks():
     return None
 
 
-_PLAYER_ENDPOINTS = {'player_overview', 'player_outings', 'view_outing', 'beta_hitter', 'headshot', 'hitter_photo', 'glossary_page',
+_PLAYER_ENDPOINTS = {'player_overview', 'player_outings', 'player_prs', 'hitter_prs', 'view_outing', 'beta_hitter', 'headshot', 'hitter_photo', 'glossary_page',
                      'account', 'change_password', 'logout', 'static', 'school_logo', 'school_mark', 'brand_logo', 'watermark', 'onboarding_done'}
 
 
@@ -277,7 +277,7 @@ def _player_gate(c):
     ok = ep in _PLAYER_ENDPOINTS and request.method in ('GET', 'HEAD') or (ep == 'account' and request.method == 'POST')
     if ok and 'slug' in va and va['slug'] != c.get('player_slug'):
         ok = False
-    if ok and ep in ('beta_hitter', 'hitter_photo') and va.get('key') != _player_hkey(c):
+    if ok and ep in ('beta_hitter', 'hitter_photo', 'hitter_prs') and va.get('key') != _player_hkey(c):
         ok = False
     if ok and ep == 'beta_hitter' and request.args.get('side', 'all') not in ('all', 'L', 'R'):
         ok = False
@@ -866,6 +866,45 @@ def player_outings(slug):
     return render_template('player_outings.html', bio=bio, slug=slug, log=log, can_edit=can_manage(slug), is_demo=store.is_demo(slug),
                            is_coach=bool(session.get('coach')) and not is_player(), has_photo=headshots.exists(slug),
                            badge={'file': _b[0], 'bg': _b[1]} if _b else None, g_prog=bio.get('program'))
+
+
+@app.route('/player/<slug>/personal-bests')
+def player_prs(slug):
+    if not session.get('coach'):
+        return redirect(url_for('login', next=request.path))
+    bio = store.get_player(slug)
+    if not bio or not can_view(slug):
+        abort(404)
+    ent = prs.for_pitcher(slug)
+    _b = pipeline.school_badge_file(bio.get('school'), bio.get('program'))
+    last, first = _split_name(bio['name'])
+    return render_template('player_prs.html', name=bio['name'], ent=ent, history=_pr_history(ent), back_url=url_for('player_overview', slug=slug),
+                           photo=url_for('headshot', slug=slug) if headshots.exists(slug) else None, badge={'file': _b[0], 'bg': _b[1]} if _b else None,
+                           initials=(first[:1] + last[:1]).upper(), is_coach=bool(session.get('coach')) and not is_player())
+
+
+def _pr_history(ent):
+    if not ent:
+        return []
+    return [{'who': '', 'label': ev['label'], 'disp': ev['disp'], 'prev_disp': ev['prev_disp'], 'date': ev['date']}
+            for ev in sorted(ent['events'], key=lambda x: (x['date'], x['label']), reverse=True)]
+
+
+@app.route('/hitter/<key>/personal-bests')
+@login_required
+def hitter_prs(key):
+    h = hitting.hitter_profile(key)
+    if not h or h.get('opp_slug') or (h['demo'] and not is_admin()):
+        abort(404)
+    if not is_admin() and (h['program'] != my_program() or not plans.allowed(h['program'], 'hitting')):
+        abort(404)
+    g.theme_program = h['program']
+    bio = h['bio']
+    nm = h['name'].split()
+    ent = prs.for_hitter(key)
+    return render_template('player_prs.html', name=h['name'], ent=ent, history=_pr_history(ent), back_url=url_for('beta_hitter', key=key),
+                           photo=hphoto(bio), badge=sbadge(bio.get('program'), bio.get('school')), initials=((nm[0][:1] + nm[-1][:1]).upper() if nm else ''),
+                           is_coach=bool(session.get('coach')) and not is_player())
 
 
 @app.route('/report/<slug>/outing/<date>')

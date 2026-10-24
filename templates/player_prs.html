@@ -1,0 +1,28 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ name }} &middot; Personal Bests</title>
+<style>{{ theme_css|safe }}</style>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+{% import '_prs.html' as prm %}{{ prm.css() }}
+<style>
+  :root{--ink:#22303a;}
+  *{box-sizing:border-box;} body{background:#f7f6f2;font-family:'Barlow',sans-serif;color:var(--ink);margin:0;}
+  .ov{max-width:1000px;margin:0 auto;padding:0 14px 50px;}
+  .top{display:flex;justify-content:space-between;align-items:center;padding:14px 2px;font-size:13px;} .top a{font-weight:700;color:var(--accent-ink,var(--accent,#5c97a8));text-decoration:none;}
+  .top a.upl{background:var(--accent,#5c97a8);color:var(--on-accent,#fff);border-radius:999px;padding:8px 14px;}
+  .head{background:#fff;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);border-radius:16px;border-top:4px solid var(--accent,#5c97a8);padding:18px;display:flex;gap:16px;align-items:center;}
+  .hs{width:72px;height:72px;border-radius:50%;overflow:hidden;background:#e1e7e8;flex:none;display:flex;align-items:center;justify-content:center;} .hs img{width:100%;height:100%;object-fit:cover;} .hs span{font:700 26px 'Oswald',sans-serif;color:#fff;}
+  .head h1{font:700 30px/1.05 'Oswald',sans-serif;margin:0;} .head .sub{color:#6b7680;font-size:14px;margin-top:5px;}
+  .empty{background:#fff;border-radius:16px;padding:26px;margin-top:14px;text-align:center;color:#6b7680;box-shadow:0 1px 3px rgba(26,31,36,.08);}
+  .prp .prg{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));}
+</style></head><body><div class="ov">
+<div class="top"><a href="{{ back_url }}">&larr; {{ name }}</a>{% if is_coach %}<span style="display:flex;align-items:center;gap:12px;">{% if me.can_upload %}<a class="upl" href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a>{% endif %}{% include '_usermenu.html' %}</span>{% elif me and me.is_player %}{% include '_usermenu.html' %}{% endif %}</div>
+<div class="head">
+  <div class="hs">{% if photo %}<img src="{{ photo }}" alt="">{% elif badge %}<img src="{{ url_for('school_logo', fname=badge.file) }}" alt="" style="object-fit:contain;padding:16%;background:{{ badge.bg }};">{% else %}<span>{{ initials }}</span>{% endif %}</div>
+  <div><h1>{{ name }}</h1><div class="sub">&#9733; Personal Bests{% if ent %} &middot; {{ ent['items']|length }} record{{ 's' if ent['items']|length != 1 }} &middot; {{ ent.sessions }} session{{ 's' if ent.sessions != 1 }}{% endif %}</div></div>
+</div>
+{% if ent %}
+{{ prm.banner(ent) }}
+{{ prm.panel(ent) }}
+{% if ent.events %}<div class="prp"><h2>Record history</h2><p class="hint">Every time a personal best was broken, newest first</p>{{ prm.feed(history, false) }}</div>{% endif %}
+{% else %}<div class="empty">No personal bests yet. They appear here as soon as {{ name }} has tracked sessions.</div>{% endif %}
+</div></body></html>
