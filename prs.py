@@ -14,6 +14,7 @@ import datetime
 import os
 
 import extract as e
+import cache
 import hitting
 import outings as outings_mod
 import store
@@ -153,6 +154,10 @@ _CACHE = {'sig': None, 'data': None}
 
 
 def _signature():
+    return cache.data_version()
+
+
+def _old_signature():
     sig = []
     d = outings_mod.OUTINGS_DIR
     if os.path.isdir(d):

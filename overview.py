@@ -122,6 +122,13 @@ def outing_log(outs, name):
 
 
 def build(slug, bio, retag=False):
+    """The whole pitcher profile model, kept until the stored data or this player's bio changes (see cache.py)."""
+    import json
+    import cache
+    return cache.get_or_compute(('overview.build', slug, bool(retag), json.dumps(bio, sort_keys=True, default=str)), lambda: _build(slug, bio, retag))
+
+
+def _build(slug, bio, retag=False):
     name = bio['name']
     recent = _stamp(outings_mod.recent(slug, plans_mod.limit(bio.get('program'), 'history')), name)
     if not recent:

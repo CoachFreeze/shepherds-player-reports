@@ -12,6 +12,7 @@ import os
 import re
 import uuid
 
+import cache
 import github_sync
 import hitting
 import outings as outings_mod
@@ -203,6 +204,7 @@ def _pitch_session_series(outs):
     return res
 
 
+@cache.memo
 def pitching_data(program):
     return pitching_from(_pitchers(program))
 
@@ -267,6 +269,7 @@ def _hit_session_series(pitches):
     return res
 
 
+@cache.memo
 def hitting_data(program, include_demo):
     return hitting_from(_hitters(program, include_demo))
 

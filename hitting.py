@@ -28,6 +28,7 @@ import roster as roster_mod
 import savant_components as sc
 import store
 import batted
+import cache
 
 # ---------------------------------------------------------------- 1. adapters
 _HIT_TYPES = {'GroundBall': 'GB', 'LineDrive': 'LD', 'FlyBall': 'FB', 'Popup': 'PU', 'Bunt': 'BUNT'}
@@ -538,6 +539,7 @@ def _slug(name):
 SCOUT = 'scout--'
 
 
+@cache.memo
 def collect_scouting(program=None):
     """Opponent hitters: batters our pitchers faced in Game / Scrimmage uploads, grouped by the opponent entered at upload.
     {key: {'name','program','demo','pitches','opponent','school_override',...}}; key = scout--<program>--<opponent>--<batter>."""
@@ -598,6 +600,7 @@ def _all_pitch_files():
     return [(s, False) for s in real], [(s, True) for s in demo]
 
 
+@cache.memo
 def _collect(include_demo, include_hidden=False):
     """{batter slug: {'name', 'program', 'demo', 'pitches': [...]}}"""
     real, demo = _all_pitch_files()
@@ -655,6 +658,7 @@ def display_name(n):
     return n
 
 
+@cache.memo
 def list_hitters(include_demo=True):
     rows = []
     pidx = _players_index()
@@ -690,12 +694,13 @@ def pitch_type_table(ps):
     return {'all': row('All pitches', ps), 'rows': rows}
 
 
+@cache.memo
 def hitter_profile(key, include_demo=True, side='all', vs='all'):
     """vs = the pitcher's hand to show ('R', 'L' or 'all'). `side` is the older switch-hitter control (batting left = vs RHP) and still works."""
     h = (collect_scouting().get(key) if key.startswith(SCOUT) else _collect(include_demo).get(key))
     if not h:
         return None
-    ps_all = h['pitches']
+    ps_all = [dict(p) for p in h['pitches']]       # a private copy: the switch-hitter handling below edits each pitch's side
     sides = {p['side'] for p in ps_all if p['side']}
     bats_seen = 'S' if len(sides) > 1 else (next(iter(sides)) if sides else None)
     bio = _bio(key, h, _players_index(), bats_seen)
