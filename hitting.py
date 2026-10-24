@@ -696,7 +696,7 @@ def pitch_type_table(ps):
 
 # ------------------------------------------------------------------ team rank badges
 # stat -> +1 when higher is better, -1 when lower is better. Stats with no clear "better" (launch angle, fly-ball share, volume counts) get no badge.
-RANK_STATS = {'xba': 1, 'avg_ev': 1, 'max_ev': 1, 'ev90': 1, 'hard_hit_pct': 1, 'brl_pct': 1, 'sweet_spot_pct': 1, 'ld_pct': 1, 'gb_pct': -1, 'pu_pct': -1,
+RANK_STATS = {'xba': 1, 'avg_ev': 1, 'max_ev': 1, 'ev90': 1, 'hard_hit_pct': 1, 'brl_pct': 1, 'sweet_spot_pct': 1,
               'whiff_pct': -1}
 RANK_MIN_BIP, RANK_MIN_SWINGS, RANK_MIN_TEAM = 5, 10, 3
 
