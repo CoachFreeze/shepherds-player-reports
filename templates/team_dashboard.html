@@ -50,7 +50,7 @@
 <div class="hero"><div class="wrap">{% if wm_url %}<img class="wm" src="{{ wm_url }}" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
   <p class="eyebrow">{{ team_label }}</p><h1>Team Dashboard</h1>
   <p class="sub">{% set P = halves[0].D %}{{ P.n_players }} pitcher{{ 's' if P.n_players != 1 }}{% if halves|length > 1 %} &middot; {{ halves[1].D.n_players }} hitter{{ 's' if halves[1].D.n_players != 1 }}{% endif %}{% if last_session %} &middot; last session {{ last_session }}{% endif %}</p>
-  <div class="jump">{% if me.can_upload %}<a href="{{ url_for('intake_bulk', program=program) }}" class="up">+ Upload a .CSV</a>{% endif %}<a href="{{ url_for('team_scouting', program=program) }}">Scouting</a><a href="{{ url_for('team_games', program=program) }}">Game Reports</a>{% if is_admin %}<a href="{{ url_for('dashboard') }}">&larr; All teams</a>{% endif %}</div></div></div>
+  {% set topnav_on = 'dash' %}{% include '_topnav.html' %}{% if is_admin %}<p style="margin:10px 0 0;"><a href="{{ url_for('dashboard') }}" style="font:600 12.5px Barlow,sans-serif;color:#c9d3d8;text-decoration:none;">&larr; All teams</a></p>{% endif %}</div></div>
 
 <div class="wrap">
 {% if pr_recent %}<div style="margin:18px 0 0;"><a class="prbtn" href="{{ url_for('team_prs', program=program) }}">&#9733; See Newest Personal Bests &rarr;</a></div>{% endif %}

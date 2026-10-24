@@ -14,6 +14,7 @@ import mlb_lookup
 import headshots
 import hitting
 import prs
+import stats as stats_mod
 import team
 import theme
 import roster as roster_mod
@@ -403,6 +404,10 @@ def inject_theme():
            'theme_css': '', 'theme_program': None}
     if _pl:
         out['pitchers_url'] = out['hitters_url'] = home_url()
+    try:
+        out['nav_hitting'] = bool(prog) and plans.allowed(prog, 'hitting')
+    except Exception:
+        out['nav_hitting'] = bool(prog)
     if prog:
         try:
             out['theme_css'] = theme.css(theme.for_program(prog))
@@ -612,11 +617,67 @@ def team_view(program):
     return redirect(url_for('team_dashboard', program=program))
 
 
+_PSTAT_SKIP = {'bf', 'ip', 'pitches'}     # estimates that read as real box-score numbers; everything else the pitching stats module computes is shown
+
+
+def _pct_num(txt):
+    try:
+        return float(re.sub(r'[^0-9.\-]', '', str(txt)))
+    except Exception:
+        return None
+
+
+def _stat_table(program, side):
+    """Columns + rows for the sortable team stat tables. side = 'pitching' | 'hitting'. Each cell is (text, number-for-sorting)."""
+    cols, rows = [], []
+    if side == 'pitching':
+        D = team.pitching_data(program)
+        ids = [i for i in stats_mod.BASE if i not in _PSTAT_SKIP and not i.startswith('pt:')]
+        for pl in D['players']:
+            rows.append({'name': pl['name'], 'url': url_for('player_overview', slug=pl['key']), 'n': pl['n'],
+                         'cells': {i: (pl['v'][i][0], _pct_num(pl['v'][i][0])) for i in ids if i in pl['v'] and pl['v'][i][0] not in (None, '', '—', '-', '–')}})
+        for i in ids:
+            lab, d = stats_mod.label_for(i)
+            cols.append({'id': i, 'label': lab, 'group': stats_mod.BASE[i][1], 'def': d})
+    else:
+        D = team.hitting_data(program, True)
+        for pl in D['players']:
+            cells = {}
+            for i, (lab, grp, d, kind) in team.HIT_CATALOG.items():
+                if i == 'pitches':
+                    continue
+                v = pl['s'].get(i)
+                if v is None:
+                    continue
+                cells[i] = (team._fmt_hit(kind, v), v)
+            rows.append({'name': pl['name'], 'url': url_for('beta_hitter', key=pl['key']), 'n': pl['n'], 'cells': cells})
+        for i, (lab, grp, d, kind) in team.HIT_CATALOG.items():
+            if i == 'pitches':
+                continue
+            cols.append({'id': i, 'label': lab, 'group': grp, 'def': d})
+    used = {i for r in rows for i in r['cells']}
+    cols = [c for c in cols if c['id'] in used]
+    order = list(dict.fromkeys(c['group'] for c in cols))
+    cols.sort(key=lambda c: order.index(c['group']))      # keep each group together (the sort is stable)
+    groups = []
+    for c in cols:
+        if groups and groups[-1]['name'] == c['group']:
+            groups[-1]['n'] += 1
+        else:
+            groups.append({'name': c['group'], 'n': 1})
+    rows.sort(key=lambda r: r['name'].split()[-1].lower() if r['name'].split() else '')
+    return cols, groups, rows
+
+
 @app.route('/team/<program>/pitchers')
 @login_required
 def team_pitchers(program):
     _team_ok(program)
-    return _team_players_page(program, 'Pitchers', pitchers_only=True)
+    if request.args.get('view') == 'cards':
+        return _team_players_page(program, 'Pitchers', pitchers_only=True)
+    cols, groups, rows = _stat_table(program, 'pitching')
+    return render_template('team_stats.html', side='pitching', title='Pitchers', cols=cols, groups=groups, rows=rows, program=program,
+                           team_label=store.program_label(program))
 
 
 @app.route('/team/<program>/hitters')
@@ -625,9 +686,13 @@ def team_hitters(program):
     _team_ok(program)
     if not plans.allowed(program, 'hitting'):
         return _upgrade('hitting')
-    rows = [r for r in hitting.list_hitters() if r['program'] == program]
-    rows.sort(key=lambda r: r['name'].split()[-1].lower())
-    return render_template('team_hitters.html', rows=rows, program=program, team_label=store.program_label(program))
+    if request.args.get('view') == 'cards':
+        rows = [r for r in hitting.list_hitters() if r['program'] == program]
+        rows.sort(key=lambda r: r['name'].split()[-1].lower())
+        return render_template('team_hitters.html', rows=rows, program=program, team_label=store.program_label(program))
+    cols, groups, rows = _stat_table(program, 'hitting')
+    return render_template('team_stats.html', side='hitting', title='Hitters', cols=cols, groups=groups, rows=rows, program=program,
+                           team_label=store.program_label(program))
 
 
 @app.route('/team/<program>/dashboard')

@@ -1,0 +1,46 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ title }}</title>
+<style>{{ theme_css|safe }}</style>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#22303a; --teal:var(--accent,#5c97a8); --muted:#6b7680; --line:#dde2e5; }
+  *{box-sizing:border-box;} body{background:#f7f6f2;color:var(--ink);font-family:'Barlow',sans-serif;margin:0;padding-bottom:40px;}
+  .hero{background:var(--brand,#22303a);padding:34px 16px 24px;border-bottom:3px solid var(--teal);} .wrap{max-width:1280px;margin:0 auto;padding:0 16px;} .hero .wrap{padding:0;position:relative;}
+  .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-on-dark,#5c97a8);margin:0 0 8px;}
+  h1{font:700 40px 'Oswald',sans-serif;margin:0 0 6px;color:#fff;} .sub{color:#c9d3d8;font-size:14.5px;margin:0;}
+  .bar{display:flex;gap:10px;align-items:center;margin:20px 0 10px;flex-wrap:wrap;} .bar input{background:#fff;flex:1;min-width:200px;max-width:340px;padding:10px 14px;border:1px solid var(--line);border-radius:999px;font:500 14px 'Barlow',sans-serif;}
+  .bar a{font:700 13px Barlow,sans-serif;color:var(--accent-ink,#5c97a8);text-decoration:none;} .bar .hintt{color:var(--muted);font-size:12.5px;}
+  .tw{background:#fff;border-radius:14px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);overflow:auto;max-height:78vh;}
+  table{border-collapse:separate;border-spacing:0;width:100%;font-size:13.5px;font-variant-numeric:tabular-nums;}
+  th,td{padding:9px 12px;white-space:nowrap;text-align:right;border-bottom:1px solid #eef1f0;}
+  thead th{position:sticky;background:#fff;z-index:2;font:600 11px 'Barlow',sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#76828a;border-bottom:2px solid #e3e8e6;cursor:pointer;user-select:none;}
+  thead tr.g th{top:0;cursor:default;text-align:center;font:700 11px 'Oswald',sans-serif;letter-spacing:.14em;color:#22303a;background:#f1f4f3;border-left:1px solid #fff;}
+  thead tr.c th{top:34px;} thead th.s:hover{color:#22303a;} thead th.asc::after{content:' ▲';font-size:9px;} thead th.desc::after{content:' ▼';font-size:9px;}
+  th.nm,td.nm{position:sticky;left:0;text-align:left;background:#fff;z-index:1;border-right:1px solid #eef1f0;} thead th.nm{z-index:3;} thead tr.g th.nm{background:#f1f4f3;}
+  td.nm a{font-weight:700;color:var(--ink);text-decoration:none;} td.nm a:hover{color:var(--accent-ink,#5c97a8);text-decoration:underline;}
+  tbody tr:hover td{background:#f7f9f9;} td.na{color:#c2cacf;}
+  @media (max-width:520px){h1{font-size:32px;}}
+</style></head><body>
+<div class="hero"><div class="wrap"><div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>
+  <p class="eyebrow">{{ team_label }}</p><h1>{{ title }}</h1><p class="sub">{{ rows|length }} {{ 'pitcher' if side == 'pitching' else 'hitter' }}{{ '' if rows|length == 1 else 's' }}. Click a column to sort. Click a name to open the player's profile.</p>
+  {% set topnav_on = 'pit' if side == 'pitching' else 'hit' %}{% include '_topnav.html' %}</div></div>
+<div class="wrap">
+  <div class="bar"><input id="q" type="search" placeholder="Search {{ title|lower }}…" autocomplete="off"><a href="?view=cards">Card view &rsaquo;</a><span class="hintt">Hover a column header for its definition.</span></div>
+  {% if not rows %}<p style="color:var(--muted);margin-top:24px;">No {{ title|lower }} tracked for this team yet. They appear automatically once a session is uploaded.</p>{% else %}
+  <div class="tw"><table id="st"><thead>
+    <tr class="g"><th class="nm" rowspan="1"></th><th rowspan="1" style="width:1%"></th>{% for g in groups %}<th colspan="{{ g.n }}">{{ g.name }}</th>{% endfor %}</tr>
+    <tr class="c"><th class="nm s" data-t="s">Name</th><th class="s" data-t="n">Pitches</th>{% for c in cols %}<th class="s" data-t="n" title="{{ c.def }}">{{ c.label }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for r in rows %}<tr data-s="{{ r.name|lower }}"><td class="nm" data-v="{{ r.name|lower }}"><a href="{{ r.url }}">{{ r.name }}</a></td><td data-v="{{ r.n }}">{{ r.n }}</td>
+    {% for c in cols %}{% set x = r.cells.get(c.id) %}{% if x %}<td data-v="{{ x[1] if x[1] is not none else '' }}">{{ x[0] }}</td>{% else %}<td class="na" data-v="">—</td>{% endif %}{% endfor %}</tr>{% endfor %}</tbody></table></div>{% endif %}
+</div>
+<script>
+(function(){var t=document.getElementById('st');if(!t)return;var q=document.getElementById('q');
+q.addEventListener('input',function(){var v=this.value.toLowerCase().trim();t.querySelectorAll('tbody tr').forEach(function(r){r.style.display=(!v||r.dataset.s.indexOf(v)>-1)?'':'none';});});
+var hs=t.querySelectorAll('thead tr.c th');
+hs.forEach(function(h,i){h.addEventListener('click',function(){var asc=!h.classList.contains('asc');hs.forEach(function(x){x.classList.remove('asc','desc');});h.classList.add(asc?'asc':'desc');
+ var tb=t.tBodies[0],rows=Array.prototype.slice.call(tb.rows),txt=h.dataset.t==='s';
+ rows.sort(function(a,b){var x=a.cells[i].dataset.v,y=b.cells[i].dataset.v;
+  if(txt){return asc?x.localeCompare(y):y.localeCompare(x);}
+  var nx=x===''||isNaN(x),ny=y===''||isNaN(y);if(nx&&ny)return 0;if(nx)return 1;if(ny)return -1;x=parseFloat(x);y=parseFloat(y);return asc?x-y:y-x;});
+ rows.forEach(function(r){tb.appendChild(r);});});});})();
+</script></body></html>
