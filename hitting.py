@@ -375,7 +375,7 @@ def hitter_stats(pitches):
         'heart_swing_pct': _pct(heart_sw, heart_n),
         'heart_takes': heart_n - heart_sw, 'chases': chase_sw,
         'zone_contact_pct': _pct(zone_contact, len(zone_swings)), 'whiff_pct': _pct(whiffs, len(swings)),
-        'bip': len(bbs),
+        'bip': len(bbs), 'swings': len(swings),
         'avg_ev': round(sum(evs) / len(evs), 1) if evs else None,
         'max_ev': round(max(evs), 1) if evs else None,
         'ev90': round(_quantile(evs, 0.9), 1) if len(evs) >= 5 else None,
@@ -684,7 +684,7 @@ def pitch_type_table(ps):
         s = hitter_stats(sub)
         return {'label': label, 'seen': len(sub), 'swing_pct': s['swing_pct'], 'whiff_pct': s['whiff_pct'], 'bip': s['bip'], 'avg_ev': s['avg_ev'], 'max_ev': s['max_ev'],
                 'hard_hit_pct': s['hard_hit_pct'], 'brl_pct': s['brl_pct'], 'avg_la': s['avg_la'], 'gb_pct': s['gb_pct'], 'ld_pct': s['ld_pct'],
-                'fb_pct': s['fb_pct'], 'xba': s['xba'], 'ab': s['ab']}
+                'fb_pct': s['fb_pct'], 'xba': s['xba'], 'ab': s['ab'], 'swings': s['swings']}
     groups = {}
     for p in ps:
         lab = _PT_LABELS.get(p.get('pitch_type') or '', None)
@@ -692,6 +692,80 @@ def pitch_type_table(ps):
             groups.setdefault(lab, []).append(p)
     rows = [row(lab, groups[lab]) for lab in sorted(groups, key=lambda k: (-len(groups[k]), _PT_ORDER.index(k) if k in _PT_ORDER else 99))]
     return {'all': row('All pitches', ps), 'rows': rows}
+
+
+# ------------------------------------------------------------------ team rank badges
+# stat -> +1 when higher is better, -1 when lower is better. Stats with no clear "better" (launch angle, fly-ball share, volume counts) get no badge.
+RANK_STATS = {'xba': 1, 'avg_ev': 1, 'max_ev': 1, 'ev90': 1, 'hard_hit_pct': 1, 'brl_pct': 1, 'sweet_spot_pct': 1, 'ld_pct': 1, 'gb_pct': -1, 'pu_pct': -1,
+              'whiff_pct': -1}
+RANK_MIN_BIP, RANK_MIN_SWINGS, RANK_MIN_TEAM = 5, 10, 3
+
+
+def _rank_val(stat, sub):
+    """The stat's value if the slice has enough data to be ranked, else None. `sub` is a hitter_stats / pitch-row dict."""
+    v = sub.get(stat)
+    if v is None:
+        return None
+    if stat == 'whiff_pct':
+        return v if (sub.get('swings') or 0) >= RANK_MIN_SWINGS else None
+    return v if (sub.get('bip') or 0) >= RANK_MIN_BIP else None
+
+
+@cache.memo
+def team_ranks(program):
+    """{(vs, section): {stat: [value of each qualifying hitter]}} for one program's hitters; section is 'all' or a pitch type label."""
+    out = {}
+    for key, h in _collect(True).items():
+        if h['program'] != program:
+            continue
+        for vs in ('all', 'R', 'L'):
+            ps = [p for p in h['pitches'] if p.get('p_throws') == vs] if vs != 'all' else h['pitches']
+            if not ps:
+                continue
+            pt = pitch_type_table(ps)
+            s_all = hitter_stats(ps)
+            for section, sub in [('all', s_all)] + [(r['label'], r) for r in pt['rows']]:
+                for stat in RANK_STATS:
+                    v = _rank_val(stat, sub)
+                    if v is not None:
+                        out.setdefault((vs, section), {}).setdefault(stat, []).append(v)
+    return out
+
+
+def _badge(stat, v, vals):
+    n = len(vals)
+    if v is None or n < RANK_MIN_TEAM:
+        return None
+    d = RANK_STATS[stat]
+    rank = 1 + sum(1 for x in vals if (x - v) * d > 1e-9)
+    if rank == 1:
+        return {'tier': 'lead', 'txt': '#1', 'title': f'Best on the team ({n} hitters ranked)'}
+    if n >= 20 and rank / n <= 0.05:
+        return {'tier': 't5', 'txt': '5%', 'title': f'Top 5% of the team: #{rank} of {n} hitters'}
+    if n >= 10 and rank / n <= 0.10:
+        return {'tier': 't10', 'txt': '10%', 'title': f'Top 10% of the team: #{rank} of {n} hitters'}
+    return None
+
+
+def rank_badges(program, vs, s, pt):
+    """{'bbq': {stat: badge}, 'rows': {pitch label: {stat: badge}}} for one hitter's current view (his stats `s`, pitch table `pt`)."""
+    tr = team_ranks(program)
+    out = {'bbq': {}, 'rows': {}}
+    for stat in RANK_STATS:
+        b = _badge(stat, _rank_val(stat, s), (tr.get((vs, 'all')) or {}).get(stat, []))
+        if b:
+            out['bbq'][stat] = b
+    for r in [pt['all']] + pt['rows']:
+        sec = 'all' if r is pt['all'] else r['label']
+        got = {}
+        for stat in RANK_STATS:
+            if stat == 'pu_pct' or stat == 'ev90' or stat == 'sweet_spot_pct':
+                continue                      # not shown in the pitch-type table
+            b = _badge(stat, _rank_val(stat, r), (tr.get((vs, sec)) or {}).get(stat, []))
+            if b:
+                got[stat] = b
+        out['rows'][r['label']] = got
+    return out
 
 
 @cache.memo
@@ -730,13 +804,15 @@ def hitter_profile(key, include_demo=True, side='all', vs='all'):
         vs_counts[hand] = {'pitches': len(sub), 'bip': _bip(sub)}
     bats = side if side in ('L', 'R') else bats_seen if not switch else 'S'
     s = hitter_stats(ps)
+    pt = pitch_type_table(ps)
+    badges = None if (key.startswith(SCOUT) or h.get('scouting')) else rank_badges(h['program'], vs, s, pt)
     import benchmarks as bm
     prow = []
     if s['ev90'] is not None:
         prow.append({'label': 'EV90', 'pctl': bm.interpolate(s['ev90'], bm.HITTER['ev90']), 'value_display': f"{s['ev90']:.1f}"})
     if s['whiff_pct'] is not None and len([p for p in ps if p['outcome'] in SWING]) >= 10:
         prow.append({'label': 'Whiff%', 'pctl': bm.interpolate(s['whiff_pct'], bm.HITTER['whiff_pct']), 'value_display': f"{s['whiff_pct']:.1f}%"})
-    return {'bio': bio, 'switch': switch, 'vs': vs, 'vs_counts': vs_counts, 'pt_table': pitch_type_table(ps), 'ps_n': len(ps), 'roster': h.get('roster'), 'pctl_html': sc.percentile_bars_html(prow) if prow else '', 'key': key, 'name': display_name(h['name']), 'program': h['program'], 'demo': h['demo'], 'bats': bats, 'opponent': h.get('opponent'), 'opp_slug': h.get('opp_slug'),
+    return {'bio': bio, 'switch': switch, 'vs': vs, 'vs_counts': vs_counts, 'pt_table': pt, 'badges': badges, 'ps_n': len(ps), 'roster': h.get('roster'), 'pctl_html': sc.percentile_bars_html(prow) if prow else '', 'key': key, 'name': display_name(h['name']), 'program': h['program'], 'demo': h['demo'], 'bats': bats, 'opponent': h.get('opponent'), 'opp_slug': h.get('opp_slug'),
             's': s, 'notes': takeaways(s), 'dates': sorted({p['date'] for p in ps_all if p['date']}),
             'zone_ev': zone_ev_data(ps),
             'decision_svg': decision_chart_svg(ps, side=bats if bats in ('L', 'R') else None),
