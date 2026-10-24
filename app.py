@@ -682,6 +682,8 @@ def _stat_table(program, side):
             rows.append({'name': pl['name'], 'disp': _last_first(pl['name']), 'jersey': jersey(pl['name']), 'url': url_for('player_overview', slug=pl['key']), 'n': pl['n'],
                          'cells': {i: (pl['v'][i][0], _pct_num(pl['v'][i][0])) for i in ids if i in pl['v'] and pl['v'][i][0] not in (None, '', '—', '-', '–')}})
         for i in ids:
+            if stats_mod.BASE[i][1] in ('Stuff', 'Delivery', 'Mechanics'):
+                continue                      # left off the pitcher stat sheet
             lab, d = stats_mod.label_for(i)
             cols.append({'id': i, 'label': lab, 'abbr': _STAT_ABBR.get(i, lab), 'group': stats_mod.BASE[i][1], 'def': d})
     else:
