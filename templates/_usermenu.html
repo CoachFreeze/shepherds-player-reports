@@ -17,10 +17,11 @@
     <div class="um-sep"></div><a href="{{ url_for('account') }}">My account</a><a href="{{ url_for('logout') }}">Log out</a>
     {% else %}
     {% if nav_program %}<div class="um-lbl">Team</div><a href="{{ url_for('team_dashboard', program=nav_program) }}">Team Dashboard</a><a href="{{ url_for('team_hitters', program=nav_program) }}">Hitters</a><a href="{{ url_for('team_pitchers', program=nav_program) }}">Pitchers</a><a href="{{ url_for('team_games', program=nav_program) }}">Game Reports</a><a href="{{ url_for('team_scouting', program=nav_program) }}">Scouting</a>{% endif %}
-    <div class="um-lbl">Data</div>{% if me.can_upload %}<a href="{{ url_for('roster_page') }}">Team roster</a>{% endif %}<a href="{{ url_for('upload_log_page') }}">Upload log</a>
+    {% if not me.demo_view %}    <div class="um-lbl">Data</div>{% if me.can_upload %}<a href="{{ url_for('roster_page') }}">Team roster</a>{% endif %}<a href="{{ url_for('upload_log_page') }}">Upload log</a>
     {% if nav_program and not me.is_assistant %}<div class="um-lbl">Manage</div><a href="{{ url_for('team_coaches', program=nav_program) }}">Coaches &amp; players</a><a href="{{ url_for('team_appearance', program=nav_program) }}">Appearance</a>{% endif %}
+    {% endif %}
     <div class="um-lbl">Help</div><a href="{{ url_for('glossary_page') }}">Stats glossary</a>{% if request.endpoint == 'dashboard' %}<a href="#" onclick="document.getElementById('um').classList.remove('open');openTour();return false;">Take the tour</a>{% else %}<a href="{{ url_for('dashboard') }}?tour=dash">Take the tour</a>{% endif %}
     {% if me.is_admin %}<div class="um-lbl">Admin</div><a href="{{ url_for('admin_plans') }}">Plans &amp; usage</a><a href="{{ url_for('admin_activity') }}">Activity &amp; flags</a><a href="{{ url_for('admin_coaches') }}">All coach logins</a><a href="{{ url_for('hitters_sort') }}">Sort hitters</a><a href="{{ url_for('beta_hitters') }}">Hitting (beta)</a><a href="{{ url_for('admin_status') }}">Save status</a>{% endif %}
-    <div class="um-sep"></div><a href="{{ url_for('account') }}">My account</a><a href="{{ url_for('logout') }}">Log out</a>{% endif %}
+    <div class="um-sep"></div>{% if not me.demo_view %}<a href="{{ url_for('account') }}">My account</a>{% endif %}<a href="{{ url_for('logout') }}">Log out</a>{% endif %}
   </div></span>
 <script>document.addEventListener('click',function(e){var m=document.getElementById('um');if(m&&!m.contains(e.target))m.classList.remove('open');});document.addEventListener('keydown',function(e){if(e.key==='Escape'){var m=document.getElementById('um');if(m)m.classList.remove('open');}});</script>

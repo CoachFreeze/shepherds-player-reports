@@ -79,14 +79,20 @@ def can_manage(slug):
     return bool(p) and p.get('program', 'shepherds') == c.get('program')
 
 
+def is_demo_viewer():
+    """A view-only login for the bundled sample program, safe to hand to a prospective coach."""
+    c = current_coach()
+    return bool(c) and bool(c.get('demo_view'))
+
+
 def can_view(slug):
     """Public programs (Shepherds) are open to everyone; every other program is private to its own coaches and admins."""
     p = store.get_player(slug)
     if not p:
         return False
     c = current_coach()
-    if p.get('program') in store.DEMO_PROGRAMS:          # the bundled sample program is for admins only
-        return is_admin()
+    if p.get('program') in store.DEMO_PROGRAMS:          # the bundled sample program is for admins and its view-only logins
+        return is_admin() or (is_demo_viewer() and c.get('program') == p.get('program'))
     if c and c.get('role') == 'player':                  # a player sees only himself
         return slug == c.get('player_slug')
     if c and c.get('role', 'admin') != 'admin':          # a signed-in program coach sees only his own program
@@ -134,7 +140,7 @@ def can_upload():
     c = current_coach()
     if not c:
         return False
-    if c.get('role') == 'player':
+    if c.get('role') == 'player' or c.get('demo_view'):
         return False
     return c.get('role') != 'assistant' or c.get('can_upload', True)
 
@@ -263,8 +269,23 @@ def staff_checks():
         return redirect(url_for('account'))
     if c.get('role') != 'admin' and c.get('program') and plans.trial_expired(c['program']) and request.endpoint not in (_OPEN_ENDPOINTS | {'trial_ended'}):
         return redirect(url_for('trial_ended'))
+    if c.get('demo_view'):
+        return _demo_gate()
     if c.get('role') == 'player':
         return _player_gate(c)
+    return None
+
+
+_DEMO_BLOCKED = {'team_coaches', 'team_appearance', 'roster_page', 'upload_log_page', 'intake_bulk', 'intake_bulk_run', 'edit_profile', 'account', 'change_password',
+                 'admin_status', 'hitters_sort', 'team_customize'}
+
+
+def _demo_gate():
+    """Demo viewers can only look: nothing that saves, uploads or manages gets through."""
+    if request.endpoint in _OPEN_ENDPOINTS - {'account'} or request.endpoint == 'trial_ended':
+        return None
+    if request.method not in ('GET', 'HEAD') or request.endpoint in _DEMO_BLOCKED:
+        abort(403)
     return None
 
 
@@ -432,7 +453,7 @@ def inject_me():
     return {'me': {'name': name, 'key': session.get('coach'), 'label': label, 'is_admin': is_admin(), 'initials': initials, 'program': c.get('program') if c.get('role', 'admin') != 'admin' else None,
                    'badge': {'file': _b[0], 'bg': _b[1]} if _b else None,
                    'is_head': c.get('role', 'admin') not in ('assistant', 'player'), 'is_player': c.get('role') == 'player', 'is_assistant': c.get('role') == 'assistant', 'can_upload': can_upload(),
-                   'must_change': bool(c.get('must_change')),
+                   'must_change': bool(c.get('must_change')), 'demo_view': bool(c.get('demo_view')),
                    'trial_left': plans.trial_days_left(c.get('program')) if c.get('role', 'admin') != 'admin' else None}}
 
 
@@ -1481,7 +1502,7 @@ def _scout_hitter_page(key, h):
 @login_required
 def beta_hitter(key):
     h = hitting.hitter_profile(key, side=request.args.get('side', 'all'), vs=request.args.get('vs', 'all'))
-    if not h or h['demo'] and not is_admin():
+    if not h or h['demo'] and not (is_admin() or is_demo_viewer()):
         abort(404)
     if not is_admin() and (h['program'] != my_program() or not plans.allowed(h['program'], 'hitting')):   # a coach sees only his own program's hitters
         abort(404)
@@ -1903,12 +1924,12 @@ button{padding:10px 22px;border:none;border-radius:999px;background:#5c97a8;colo
 .msg{background:#e3ecdf;color:#3f6b42;padding:10px 14px;border-radius:8px;margin:10px 0;} .err{background:#f6dede;color:#9c3a3a;}</style></head><body>
 <a href="{{ url_for('dashboard') }}">&larr; Dashboard</a><h1>Coach Logins</h1>
 {% if msg %}<div class="msg {{ 'err' if err }}">{{ msg }}</div>{% endif %}
-{% for u, c in coaches.items() %}<div class="card"><div><b>{{ c.display_name }}</b> <small>({{ u }})</small><br><small>{{ 'Admin -- full access' if c.get('role','admin') == 'admin' else ('Assistant coach -- ' ~ (c.get('program_label') or c.get('program')) if c.get('role') == 'assistant' else (c.get('program_label') or c.get('program')) ~ ' coach -- only sees and edits their own program') }}</small></div>
+{% for u, c in coaches.items() %}<div class="card"><div><b>{{ c.display_name }}</b> <small>({{ u }})</small><br><small>{{ 'Demo viewer -- view-only, sample data' if c.get('demo_view') else 'Admin -- full access' if c.get('role','admin') == 'admin' else ('Assistant coach -- ' ~ (c.get('program_label') or c.get('program')) if c.get('role') == 'assistant' else (c.get('program_label') or c.get('program')) ~ ' coach -- only sees and edits their own program') }}</small></div>
 {% if u != me %}<form method="post" action="{{ url_for('admin_coach_delete', username=u) }}" onsubmit="return confirm('Remove this login?');" style="margin:0;"><button class="del">Remove</button></form>{% endif %}</div>{% endfor %}
 <h2 style="font-family:Oswald,Arial,sans-serif;margin-top:28px;">Add a login <small>(or reset a password: reuse the username)</small></h2>
 <form method="post"><label>Username</label><input name="username" required autocomplete="off"><label>Display name</label><input name="display_name" required>
 <label>Password</label><input name="password" type="text" required autocomplete="off" minlength="8">
-<label>Access</label><select name="role"><option value="program">Program coach (sees only their own program)</option><option value="admin">Admin (everything)</option></select>
+<label>Access</label><select name="role"><option value="program">Program coach (sees only their own program)</option><option value="demo">Demo viewer (view-only, sample data only; safe to share)</option><option value="admin">Admin (everything)</option></select>
 <label>Program / school <small>(program coaches only -- coaches with the same name share players)</small></label><input name="program_label" list="progs" placeholder="e.g. Long Beach State"><datalist id="progs">{% for s, l in programs %}<option value="{{ l }}">{% endfor %}</datalist>
 <button type="submit">Save login</button></form></body></html>"""
 
@@ -2417,6 +2438,10 @@ def admin_coaches():
         if not u or len(f.get('password', '')) < 8 or not f.get('display_name', '').strip():
             msg, err = 'Username, name and a password of at least 8 characters are required.', True
         else:
+            if f.get('role') == 'demo':
+                store.add_coach(u, f['display_name'].strip(), f['password'], role='program', program='demo_university', program_label='Demo University (sample)', push=True, demo_view=True)
+                return render_template_string(COACHES_PAGE, coaches=store.list_coaches(), me=session.get('coach'), err=False, programs=store.list_programs(),
+                                              msg=f'Demo login "{u}" saved (view-only, sample data only). Share the username and password with them.')
             role = 'admin' if f.get('role') == 'admin' else 'program'
             label = ' '.join(f.get('program_label', '').split())
             pslug = store.program_slug(label)

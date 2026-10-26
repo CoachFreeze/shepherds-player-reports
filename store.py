@@ -130,7 +130,7 @@ def _push_coaches():
         print(f'WARNING: could not push coaches.json: {exc}')
 
 
-def add_coach(username, display_name, password, role='admin', program=None, push=False, program_label=None):
+def add_coach(username, display_name, password, role='admin', program=None, push=False, program_label=None, demo_view=False):
     """role: 'admin' (everything) or 'program' (only the players of one program, e.g. long_beach_state)."""
     coaches = list_coaches()
     coaches[username] = {
@@ -138,6 +138,8 @@ def add_coach(username, display_name, password, role='admin', program=None, push
         'password_hash': generate_password_hash(password),
         'role': role,
     }
+    if demo_view:
+        coaches[username]['demo_view'] = True       # view-only login for the sample program (see app.staff_checks)
     if program:
         coaches[username]['program'] = program
         if program_label:
@@ -618,7 +620,7 @@ def set_coach_flag(username, key, value=True):
 def needs_first_upload(username):
     """A program coach who has not uploaded yet and whose program has no players."""
     c = list_coaches().get(username) or {}
-    if c.get('role', 'admin') != 'program' or c.get('uploaded_first'):
+    if c.get('role', 'admin') != 'program' or c.get('uploaded_first') or c.get('demo_view'):
         return False
     return not any(p.get('program') == c.get('program') for p in list_players().values())
 
