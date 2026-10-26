@@ -509,15 +509,56 @@ def why_attr(j):
 
 
 def zone_ev_data(pitches):
-    """Balls in play with a plate location, as compact rows for the zone heat map (drawn in the browser so the
-    pitch-type and pitch-speed filters update instantly). Balls hit off pitches just outside the zone (within 6 inches) are plotted in a ring around it."""
+    """Balls in play with a plate location, drawn as a smooth Savant-style exit-velocity map: the average exit velocity of nearby balls in play,
+    blue (soft) to red (hard), one drawing per pitch type so the filter buttons switch instantly. Balls hit off pitches up to a foot outside the zone count."""
     bb = [p for p in pitches if p['outcome'] == 'inplay' and p['ev'] is not None and p['x'] is not None and p['z'] is not None]
-    pts = [{'x': round(p['x'], 3), 'z': round(p['z'], 3), 'ev': round(p['ev'], 1),
-            'sp': round(p['speed'], 1) if p['speed'] is not None else None, 't': p['pitch_type'] or 'Unknown'} for p in bb]
-    RING = 0.5  # feet of "just off the plate" shown around the zone
+    pts = [{'x': round(p['x'], 3), 'z': round(p['z'], 3), 'ev': round(p['ev'], 1), 't': p['pitch_type'] or 'Unknown'} for p in bb]
+    RING = 1.0     # feet around the zone that still count
     near = [q for q in pts if abs(q['x']) <= ZX + RING and ZB - RING <= q['z'] <= ZT + RING]
     types = sorted({q['t'] for q in near}, key=lambda t: -sum(1 for q in near if q['t'] == t))
-    return {'pts': near, 'types': types, 'outside': len(pts) - len(near), 'bounds': [ZX, ZB, ZT, RING]}
+    X0, X1, Z0, Z1, W = -2.9, 2.9, -0.5, 4.9, 400
+    k = W / (X1 - X0)
+    H = round((Z1 - Z0) * k)
+    X = lambda v: (v - X0) * k
+    Y = lambda v: (Z1 - v) * k
+    FLOOR, EV_LO, EV_HI = 60.0, 70.0, 100.0
+    levels = [EV_LO - 2 + n * 3 for n in range(14)]                      # 63 .. 102
+    colors = [sc._lerp_stops(sc.EV_STOPS, (L - EV_LO) / (EV_HI - EV_LO)) for L in levels]
+
+    def view(rows):
+        if not rows:
+            return ''
+        xs, zs, dens, num = sc.smooth_field([(q['x'], q['z'], q['ev']) for q in rows], X0, X1, Z0, Z1, 0.08, 0.38)
+        F = []
+        for j in range(len(zs)):
+            row = []
+            for i in range(len(xs)):
+                d = dens[j][i]
+                sup = min(1.0, d / 0.9)                                    # fades out where there are no balls nearby
+                row.append(FLOOR + ((num[j][i] / d if d > 1e-9 else FLOOR) - FLOOR) * sup)
+            F.append(row)
+        for j in range(len(F)):
+            F[j][0] = F[j][-1] = FLOOR
+        F[0] = [FLOOR] * len(F[0])
+        F[-1] = [FLOOR] * len(F[0])
+        return sc.contour_layers(F, xs, zs, levels, colors, X, Y)
+    zl, zr, zt, zb = X(-ZX), X(ZX), Y(ZT), Y(ZB)
+    parts = [f'<rect width="{W}" height="{H}" fill="#fff"/>']
+    for name in ['All'] + types:
+        rows = near if name == 'All' else [q for q in near if q['t'] == name]
+        parts.append(f'<g class="zv" data-view="{name}" opacity=".7" style="display:{"block" if name == "All" else "none"}">{view(rows)}</g>')
+    for m in (1, 2):                                   # subtle 3 x 3 inside the zone
+        parts.append(f'<line x1="{zl + (zr - zl) * m / 3:.1f}" y1="{zt:.1f}" x2="{zl + (zr - zl) * m / 3:.1f}" y2="{zb:.1f}" stroke="#22303a" stroke-opacity=".3" stroke-width="1"/>'
+                     f'<line x1="{zl:.1f}" y1="{zt + (zb - zt) * m / 3:.1f}" x2="{zr:.1f}" y2="{zt + (zb - zt) * m / 3:.1f}" stroke="#22303a" stroke-opacity=".3" stroke-width="1"/>')
+    parts.append(f'<rect x="{zl:.1f}" y="{zt:.1f}" width="{zr - zl:.1f}" height="{zb - zt:.1f}" fill="none" stroke="#22303a" stroke-width="1.8"/>')
+    py0, py1, cx = Y(0.0), Y(-0.38), X(0)
+    pw = zr - cx
+    parts.append(f'<polygon points="{cx - pw:.1f},{py0:.1f} {cx + pw:.1f},{py0:.1f} {cx + pw:.1f},{(py0 + py1) / 2:.1f} {cx:.1f},{py1:.1f} {cx - pw:.1f},{(py0 + py1) / 2:.1f}" fill="#fff" stroke="#22303a" stroke-width="1.5"/>')
+    svg = f'<svg id="zhm" viewBox="0 0 {W} {H}" style="display:block;width:100%;height:auto;" xmlns="http://www.w3.org/2000/svg">' + ''.join(parts) + '</svg>'
+    counts = {'All': len(near)}
+    counts.update({t: sum(1 for q in near if q['t'] == t) for t in types})
+    return {'pts': near, 'types': types, 'outside': len(pts) - len(near), 'svg': svg, 'counts': counts,
+            'geo': {'x0': X0, 'z1': Z1, 'k': k}}
 
 
 def spray_html(pitches, width=400, height=352, style='classic'):

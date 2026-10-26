@@ -589,6 +589,134 @@ def _in_zone(side, height):
     return abs(side) <= _IN_X and _IN_BOT <= height <= _IN_TOP
 
 
+# ---------------------------------------------------------------- smooth contour maps (Savant-style filled density / value maps)
+def smooth_field(pts, x0, x1, y0, y1, step, bw):
+    """Gaussian-smoothed sums on a grid. pts: [(x, y, weight_or_None)]. Returns (xs, ys, dens, num): dens[j][i] = sum of kernel weights,
+    num[j][i] = sum of kernel * value (value = the point's third element, or 1)."""
+    nx, ny = int((x1 - x0) / step) + 1, int((y1 - y0) / step) + 1
+    xs = [x0 + i * step for i in range(nx)]
+    ys = [y0 + j * step for j in range(ny)]
+    dens = [[0.0] * nx for _ in range(ny)]
+    num = [[0.0] * nx for _ in range(ny)]
+    r = int(3 * bw / step) + 1
+    two = 2 * bw * bw
+    for x, y, v in pts:
+        ci, cj = round((x - x0) / step), round((y - y0) / step)
+        if not (-r <= ci < nx + r and -r <= cj < ny + r):
+            continue
+        gx = {i: math.exp(-((xs[0] + i * step - x) ** 2) / two) for i in range(max(0, ci - r), min(nx, ci + r + 1))}
+        for j in range(max(0, cj - r), min(ny, cj + r + 1)):
+            gy = math.exp(-((ys[0] + j * step - y) ** 2) / two)
+            if gy < 1e-4:
+                continue
+            row_d, row_n = dens[j], num[j]
+            for i, g in gx.items():
+                w = g * gy
+                row_d[i] += w
+                if v is not None:
+                    row_n[i] += w * v
+    return xs, ys, dens, num
+
+
+def _contour_rings(F, xs, ys, L):
+    """Marching squares: closed rings (lists of (x, y)) bounding the region where F >= L. The grid's border must be below L."""
+    ny, nx = len(F), len(F[0])
+    segs = {}
+
+    def pt(e):
+        k, i, j = e
+        if k == 'h':
+            a, b = F[j][i], F[j][i + 1]
+            t = (L - a) / (b - a) if b != a else .5
+            return (xs[i] + (xs[i + 1] - xs[i]) * t, ys[j])
+        a, b = F[j][i], F[j + 1][i]
+        t = (L - a) / (b - a) if b != a else .5
+        return (xs[i], ys[j] + (ys[j + 1] - ys[j]) * t)
+    cases = {1: [(3, 0)], 2: [(0, 1)], 3: [(3, 1)], 4: [(1, 2)], 5: [(3, 0), (1, 2)], 6: [(0, 2)], 7: [(3, 2)], 8: [(2, 3)],
+             9: [(0, 2)], 10: [(0, 1), (2, 3)], 11: [(1, 2)], 12: [(1, 3)], 13: [(0, 1)], 14: [(3, 0)]}
+    for j in range(ny - 1):
+        for i in range(nx - 1):
+            idx = (F[j][i] >= L) | ((F[j][i + 1] >= L) << 1) | ((F[j + 1][i + 1] >= L) << 2) | ((F[j + 1][i] >= L) << 3)
+            if idx in cases:
+                edges = (('h', i, j), ('v', i + 1, j), ('h', i, j + 1), ('v', i, j))
+                for a, b in cases[idx]:
+                    ea, eb = edges[a], edges[b]
+                    segs.setdefault(ea, []).append(eb)
+                    segs.setdefault(eb, []).append(ea)
+    rings, seen = [], set()
+    for start in list(segs):
+        if start in seen:
+            continue
+        ring, cur, prev = [], start, None
+        while cur not in seen:
+            seen.add(cur)
+            ring.append(pt(cur))
+            nxt = [n for n in segs[cur] if n != prev and n not in seen]
+            if not nxt:
+                break
+            prev, cur = cur, nxt[0]
+        if len(ring) >= 4:
+            rings.append(ring)
+    return rings
+
+
+def _chaikin(ring, rounds=2):
+    for _ in range(rounds):
+        out = []
+        n = len(ring)
+        for k in range(n):
+            (x0_, y0_), (x1_, y1_) = ring[k], ring[(k + 1) % n]
+            out.append((0.75 * x0_ + 0.25 * x1_, 0.75 * y0_ + 0.25 * y1_))
+            out.append((0.25 * x0_ + 0.75 * x1_, 0.25 * y0_ + 0.75 * y1_))
+        ring = out
+    return ring
+
+
+def contour_layers(F, xs, ys, levels, colors, X, Y, opacity=1.0):
+    """Stacked filled contour regions (lowest level first). X / Y turn feet into pixels. Returns SVG <path> markup."""
+    out = []
+    for L, col in zip(levels, colors):
+        d = []
+        for ring in _contour_rings(F, xs, ys, L):
+            ring = _chaikin(ring)
+            d.append('M' + 'L'.join(f'{X(x):.1f},{Y(y):.1f}' for x, y in ring) + 'Z')
+        if d:
+            out.append(f'<path d="{"".join(d)}" fill="{col}" fill-opacity="{opacity}" fill-rule="evenodd" stroke="#fff" stroke-opacity=".35" stroke-width=".6"/>')
+    return ''.join(out)
+
+
+def _lerp_stops(stops, t):
+    t = max(0.0, min(1.0, t))
+    for (a, ca), (b, cb) in zip(stops, stops[1:]):
+        if t <= b:
+            f = (t - a) / (b - a) if b > a else 0
+            return 'rgb(' + ','.join(str(round(ca[i] + (cb[i] - ca[i]) * f)) for i in range(3)) + ')'
+    return 'rgb(' + ','.join(str(v) for v in stops[-1][1]) + ')'
+
+
+# blue -> pale -> red, like the Savant location maps
+DENSITY_STOPS = [(0.0, (66, 110, 186)), (0.3, (140, 172, 222)), (0.5, (232, 236, 245)), (0.7, (240, 160, 158)), (1.0, (212, 36, 50))]
+EV_STOPS = [(0.0, (36, 90, 158)), (0.5, (238, 232, 214)), (1.0, (185, 41, 42))]
+
+
+def density_contours(pts, x0, x1, y0, y1, X, Y, bw=0.45, step=0.1, n_levels=11):
+    """pts: [(x, y)]. Savant-style filled density contours (blue rim to red core) for one set of pitch locations."""
+    if not pts:
+        return ''
+    xs, ys, dens, _ = smooth_field([(x, y, None) for x, y in pts], x0, x1, y0, y1, step, bw)
+    mx = max(max(r) for r in dens)
+    if mx <= 0:
+        return ''
+    F = [[v / mx for v in r] for r in dens]
+    for j in range(len(F)):                       # close every contour inside the frame
+        F[j][0] = F[j][-1] = 0.0
+    F[0] = [0.0] * len(F[0])
+    F[-1] = [0.0] * len(F[0])
+    levels = [0.07 + k * (0.88 / n_levels) for k in range(n_levels)]
+    colors = [_lerp_stops(DENSITY_STOPS, (L - 0.07) / 0.88 * 0.95 + 0.02) for L in levels]
+    return contour_layers(F, xs, ys, levels, colors, X, Y)
+
+
 def _heat_color(t):
     """t in 0..1 -> (rgb, opacity): transparent pale blue -> yellow -> red."""
     stops = [(0.0, (120, 170, 215)), (0.35, (250, 235, 150)), (0.7, (240, 150, 70)), (1.0, (205, 50, 50))]
@@ -668,25 +796,8 @@ def location_heatmap_html(pitches, width=340, uid='loc'):
     X = lambda v: (v - x0) * k
     Y = lambda v: (y1 - v) * k
 
-    def heat(pts, bw=0.45, step=0.14):
-        gx = [x0 + i * step for i in range(int((x1 - x0) / step))]
-        gy = [y0 + j * step for j in range(int((y1 - y0) / step))]
-        cells, mx = [], 0.0
-        for xx in gx:
-            for yy in gy:
-                d = sum(math.exp(-(((xx + step / 2 - l['side']) ** 2 + (yy + step / 2 - l['height']) ** 2) / (2 * bw * bw)))
-                        for l in pts)
-                cells.append((xx, yy, d))
-                mx = max(mx, d)
-        out = []
-        for xx, yy, d in cells:
-            t = d / mx if mx else 0
-            if t < 0.07:
-                continue
-            (r, g, b), op = _heat_color(t)
-            out.append(f'<rect x="{X(xx):.1f}" y="{Y(yy + step):.1f}" width="{step * k + 1.4:.1f}" height="{step * k + 1.4:.1f}" '
-                       f'fill="rgb({r},{g},{b})" fill-opacity="{op:.2f}"/>')
-        return ''.join(out)
+    def heat(pts):
+        return density_contours([(l['side'], l['height']) for l in pts], x0, x1, y0, y1, X, Y)
 
     view_names = ['All'] + [p['type'] for p in pitches]
 
@@ -696,19 +807,18 @@ def location_heatmap_html(pitches, width=340, uid='loc'):
         locs = [(p, l) for p in pitches for l in p['loc'] if l.get('bats') == side_code]
         svg = [f'<svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg" '
                f'font-family="ProximaNova,Helvetica Neue,Arial,sans-serif" style="display:block;width:100%;height:auto;">',
-               f'<defs><filter id="{uid2}-blur" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="3.5"/></filter>'
-               f'<clipPath id="{uid2}-clip"><rect width="{width}" height="{height}"/></clipPath></defs>',
-               f'<rect width="{width}" height="{height}" fill="#f4f8fa"/>']
-        svg.append(_batter_outline_svg(X(1.68 if mirror else -1.68), Y(0.0), k, mirror))
+               f'<defs><clipPath id="{uid2}-clip"><rect width="{width}" height="{height}"/></clipPath></defs>',
+               f'<rect width="{width}" height="{height}" fill="#fff"/>']
         for i, name in enumerate(view_names):
             pts = [l for p, l in locs if name == 'All' or p['type'] == name]
-            svg.append(f'<g class="{uid}-heat" data-view="{name}" clip-path="url(#{uid2}-clip)" style="display:{"block" if i == 0 else "none"}">'
-                       f'<g filter="url(#{uid2}-blur)">{heat(pts) if pts else ""}</g></g>')
+            svg.append(f'<g class="{uid}-heat" data-view="{name}" clip-path="url(#{uid2}-clip)" opacity=".7" style="display:{"block" if i == 0 else "none"}">'
+                       f'{heat(pts) if pts else ""}</g>')
+        svg.append(_batter_outline_svg(X(1.68 if mirror else -1.68), Y(0.0), k, mirror))      # in front of the heat map
         zl, zr, zt, zb = X(-_ZONE_X), X(_ZONE_X), Y(_ZONE_TOP), Y(_ZONE_BOT)
-        for m in (1, 2):
-            svg.append(f'<line x1="{zl + (zr - zl) * m / 3:.1f}" y1="{zt:.1f}" x2="{zl + (zr - zl) * m / 3:.1f}" y2="{zb:.1f}" stroke="#7c96a5" stroke-width="1" stroke-dasharray="3,3" opacity=".7"/>')
-            svg.append(f'<line x1="{zl:.1f}" y1="{zt + (zb - zt) * m / 3:.1f}" x2="{zr:.1f}" y2="{zt + (zb - zt) * m / 3:.1f}" stroke="#7c96a5" stroke-width="1" stroke-dasharray="3,3" opacity=".7"/>')
-        svg.append(f'<rect x="{zl:.1f}" y="{zt:.1f}" width="{zr - zl:.1f}" height="{zb - zt:.1f}" fill="none" stroke="#5c7585" stroke-width="2"/>')
+        for m in (1, 2):                                   # subtle 3 x 3 inside the zone
+            svg.append(f'<line x1="{zl + (zr - zl) * m / 3:.1f}" y1="{zt:.1f}" x2="{zl + (zr - zl) * m / 3:.1f}" y2="{zb:.1f}" stroke="#22303a" stroke-opacity=".3" stroke-width="1"/>')
+            svg.append(f'<line x1="{zl:.1f}" y1="{zt + (zb - zt) * m / 3:.1f}" x2="{zr:.1f}" y2="{zt + (zb - zt) * m / 3:.1f}" stroke="#22303a" stroke-opacity=".3" stroke-width="1"/>')
+        svg.append(f'<rect x="{zl:.1f}" y="{zt:.1f}" width="{zr - zl:.1f}" height="{zb - zt:.1f}" fill="none" stroke="#22303a" stroke-width="1.6"/>')
         py0, py1, cx, pw = Y(0.0), Y(-0.38), X(0), X(_ZONE_X) - X(0)
         svg.append(f'<polygon points="{cx - pw:.1f},{py0:.1f} {cx + pw:.1f},{py0:.1f} {cx + pw:.1f},{(py0 + py1) / 2:.1f} {cx:.1f},{py1:.1f} {cx - pw:.1f},{(py0 + py1) / 2:.1f}" fill="#fff" stroke="#5c7585" stroke-width="1.8"/>')
         for p, l in locs:
@@ -756,7 +866,7 @@ def location_heatmap_html(pitches, width=340, uid='loc'):
            f'.{uid}-row{{display:flex;gap:10px;}} .{uid}-col{{flex:1 1 0;min-width:0;}}'
            f'.{uid}-title{{font:700 13px/1 var(--f-heading);text-align:center;color:#26343b;margin:0 0 6px;letter-spacing:.02em;}}'
            f'.{uid}-stats{{font:500 11.5px/1.3 var(--f-heading);color:var(--muted);text-align:center;margin-top:6px;}}</style>')
-    js = (f'<script>(function(){{var uid="{uid}",view="All",mode="both";'
+    js = (f'<script>(function(){{var uid="{uid}",view="All",mode="heat";'
           f'var vb=document.querySelectorAll("."+uid+"-btn:not(."+uid+"-mbtn)"),mb=document.querySelectorAll("."+uid+"-mbtn");'
           f'function render(){{vb.forEach(function(b){{b.classList.toggle("on",b.dataset.view===view)}});'
           f'mb.forEach(function(b){{b.classList.toggle("on",b.dataset.mode===mode)}});'
@@ -764,8 +874,8 @@ def location_heatmap_html(pitches, width=340, uid='loc'):
           f'document.querySelectorAll("."+uid+"-stat").forEach(function(g){{g.style.display=g.dataset.view===view?"block":"none"}});'
           f'document.querySelectorAll("."+uid+"-dot").forEach(function(d){{d.style.display=((view==="All"||d.dataset.type===view)&&mode!=="heat")?"":"none"}});}}'
           f'vb.forEach(function(b){{b.addEventListener("click",function(){{view=b.dataset.view;render()}})}});'
-          f'mb.forEach(function(b){{b.addEventListener("click",function(){{mode=b.dataset.mode;render()}})}});}})();</script>')
-    modes = ''.join(f'<button type="button" class="{uid}-btn {uid}-mbtn{" on" if m == "both" else ""}" data-mode="{m}">{lbl}</button>'
+          f'mb.forEach(function(b){{b.addEventListener("click",function(){{mode=b.dataset.mode;render()}})}});render();}})();</script>')
+    modes = ''.join(f'<button type="button" class="{uid}-btn {uid}-mbtn{" on" if m == "heat" else ""}" data-mode="{m}">{lbl}</button>'
                     for m, lbl in (('dots', 'Dots Only'), ('heat', 'Heat Map'), ('both', 'Both')))
     return (css + f'<div class="{uid}-btns">{modes}</div><div class="{uid}-btns">{btns}</div>' + _marker_legend(uid) + f'<div class="{uid}-row">'
             + one_chart('R', 'vs Right Handed Batter', uid + 'R')
