@@ -672,6 +672,13 @@ def _collect(include_demo, include_hidden=False):
                     h = out[key] = {'name': p['batter'], 'program': hit[0] if hit else prog, 'demo': is_demo, 'pitches': [],
                                     'roster': hit[1] if hit else None, 'on_roster': bool(hit)}
                 h['pitches'].append(p)
+    for h in out.values():                           # a batted ball with no recorded batter side still belongs to a known hitter: fill it in so pull / oppo is judged for his handedness
+        seen = {p['side'] for p in h['pitches'] if p['side']}
+        fill = next(iter(seen)) if len(seen) == 1 else (None if seen else ((h.get('roster') or {}).get('bats') if (h.get('roster') or {}).get('bats') in ('L', 'R') else None))
+        if fill:                                     # a switch hitter (both sides seen) is left alone; hitter_profile sorts that out from the pitcher's hand
+            for p in h['pitches']:
+                if not p['side']:
+                    p['side'] = fill
     import cleanup                                   # hitters the coach moved to another team, or hid (opposing hitters)
     for key, ov in cleanup.hitter_overrides().items():
         h = out.get(key)
@@ -737,7 +744,7 @@ def pitch_type_table(ps):
 
 # ------------------------------------------------------------------ team rank badges
 # stat -> +1 when higher is better, -1 when lower is better. Stats with no clear "better" (launch angle, fly-ball share, volume counts) get no badge.
-RANK_STATS = {'xba': 1, 'avg_ev': 1, 'max_ev': 1, 'ev90': 1, 'hard_hit_pct': 1, 'brl_pct': 1, 'sweet_spot_pct': 1,
+RANK_STATS = {'xba': 1, 'avg_ev': 1, 'max_ev': 1, 'hard_hit_pct': 1, 'brl_pct': 1,
               'whiff_pct': -1}
 RANK_MIN_BIP, RANK_MIN_SWINGS, RANK_MIN_TEAM = 5, 10, 3
 
