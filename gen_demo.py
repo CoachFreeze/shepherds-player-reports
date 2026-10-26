@@ -186,7 +186,9 @@ def batted_ball(rng, H, pitch, reg):
     ev -= 0.11 * max(0, abs(la - 14) - 9)                    # weak contact on the extremes
     if reg in ('chase', 'waste'):
         ev -= 3.0
-    ev = clip(ev, 38, 108.5)
+    if ev > 102:                                              # a soft ceiling, so the hardest hitters still separate (a hard clip piled every top ball at one value)
+        ev = 102 + (ev - 102) * 0.55
+    ev = clip(ev, 38, 116)
     pull = rng.gauss(H['pull'], H['dsd']) + 0.18 * (la - 12) * (1 if H['pull'] > 5 else .4)
     pull = clip(pull, -52, 52)
     direction = -pull if H['side'] == 'R' else pull         # RHH pull = negative (left field)
