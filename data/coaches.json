@@ -10,6 +10,14 @@
     "program_label": "Long Beach State",
     "role": "program"
   },
+  "dane.stanky": {
+    "demo_view": true,
+    "display_name": "Dane Stankiewicz",
+    "password_hash": "scrypt:32768:8:1$ZDuMCi67nyfkaZ4Z$51274bd3c0f01630977f09cbfcda6ef5ad41f34a98614e563a03fb9965c56aed5af9de2c1d91f6f844b86b98ecd3b18f3142383ddb13aee972f95a3cec25f87b",
+    "program": "demo_university",
+    "program_label": "Demo University (sample)",
+    "role": "program"
+  },
   "jesse.rodgers": {
     "display_name": "Jesse Rodgers",
     "password_hash": "scrypt:32768:8:1$wYiMeJJpPrLw1xpB$1ca2f0c8f75b3c69213da07fed3eb45593dbb268336e267538878c674a8acb8da9cbc4027fe37cd17dbc67cc67100b4298ef061f8e2f05166470941b637f9fca",
