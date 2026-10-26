@@ -290,8 +290,8 @@ def hitting_from(hs):
         players.append({'key': key, 'name': hitting.display_name(h['name']), 's': s, 'n': len(h['pitches']),
                         'series': _hit_session_series(h['pitches']), 'sessions': len({p['date'] for p in h['pitches'] if p['date']})})
     boards = []
-    ev = [p for p in players if p['s']['max_ev'] is not None]
-    boards.append({'title': 'Top exit velocity', 'sub': 'Hardest ball hit', 'unit': 'mph',
+    ev = [p for p in players if p['s']['max_ev'] is not None and (p['s']['bip'] or 0) >= hitting.RANK_MIN_BIP]
+    boards.append({'title': 'Top exit velocity', 'sub': f'Hardest ball hit, min. {hitting.RANK_MIN_BIP} balls in play', 'unit': 'mph',
                    'rows': [{'key': p['key'], 'name': p['name'], 'value': f"{p['s']['max_ev']:.1f}",
                              'extra': f"avg {p['s']['avg_ev']:.1f}" if p['s']['avg_ev'] is not None else ''} for p in sorted(ev, key=lambda p: -p['s']['max_ev'])[:5]]})
     xb = [p for p in players if p['s']['xba'] is not None and (p['s']['ab'] or 0) >= 5]
