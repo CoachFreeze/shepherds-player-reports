@@ -1,4 +1,32 @@
 {
+  "adam_whyte": {
+    "comps": {},
+    "grad_year": null,
+    "height_in": 71.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261023-BiolaUniversity-Private-1_unverified.csv",
+    "name": "Adam Whyte",
+    "program": "biola_university",
+    "roles": {
+      "hit": {
+        "position": "INF"
+      },
+      "pitch": {
+        "position": "LHP"
+      }
+    },
+    "roster": {
+      "bats": "L",
+      "class_year": "Fr.",
+      "high_school": "Tustin HS",
+      "hometown": "Tustin, CA",
+      "major": "Kinesiology",
+      "pos_raw": "Utility",
+      "prev_school": "Tustin HS",
+      "throws": "L"
+    },
+    "school": "Biola University",
+    "weight_lbs": 210.0
+  },
   "adrian_pineda": {
     "comps": {},
     "grad_year": 2028,
@@ -25,7 +53,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 74.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261016-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261023-BiolaUniversity-Private-1_unverified.csv",
     "name": "Aidan Dahlk",
     "program": "biola_university",
     "roles": {
@@ -97,11 +125,36 @@
     "school": "West Texas A&M",
     "sixty_yd_time": 7.53
   },
+  "andres_hernandez": {
+    "comps": {},
+    "grad_year": null,
+    "height_in": 70.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261023-BiolaUniversity-Private-1_unverified.csv",
+    "name": "Andres Hernandez",
+    "program": "biola_university",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "roster": {
+      "bats": "R",
+      "class_year": "Jr.",
+      "high_school": "Northwood HS",
+      "hometown": "Irvine, CA",
+      "major": "Business Administration",
+      "pos_raw": "Right-Handed Pitcher",
+      "prev_school": "Irvine Valley College",
+      "throws": "R"
+    },
+    "school": "Biola University",
+    "weight_lbs": 180.0
+  },
   "ben_ricketts": {
     "comps": {},
     "grad_year": null,
     "height_in": 77.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261016-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261023-BiolaUniversity-Private-1_unverified.csv",
     "name": "Ben Ricketts",
     "program": "biola_university",
     "roles": {
@@ -288,6 +341,30 @@
     "school": "Long Beach State",
     "weight_lbs": 185.0
   },
+  "christian_trejo": {
+    "comps": {},
+    "grad_year": null,
+    "height_in": 72.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261023-BiolaUniversity-Private-1_unverified.csv",
+    "name": "Christian Trejo",
+    "program": "biola_university",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "roster": {
+      "class_year": "Jr.",
+      "high_school": "Grapeland HS",
+      "hometown": "Colleyville, TX",
+      "major": "Philosophy",
+      "number": "16",
+      "pos_raw": "Right-Handed Pitcher",
+      "prev_school": "Chaminade"
+    },
+    "school": "Biola University",
+    "weight_lbs": 175.0
+  },
   "cj_bott": {
     "comps": {},
     "grad_year": null,
@@ -339,7 +416,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 76.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261010-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261023-BiolaUniversity-Private-1_unverified.csv",
     "name": "Dylan Proost",
     "program": "biola_university",
     "roles": {
@@ -590,7 +667,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 70.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261010-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261023-BiolaUniversity-Private-1_unverified.csv",
     "name": "Jayden Rojas",
     "program": "biola_university",
     "roles": {
@@ -728,7 +805,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 74.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261016-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261023-BiolaUniversity-Private-1_unverified.csv",
     "name": "Oscar Knapp",
     "program": "biola_university",
     "roles": {
@@ -972,7 +1049,7 @@
     "comps": {},
     "grad_year": 2030,
     "height_in": 78.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261010-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261023-BiolaUniversity-Private-1_unverified.csv",
     "name": "Shane Piester",
     "program": "biola_university",
     "roles": {
