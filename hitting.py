@@ -779,7 +779,7 @@ def _badge(stat, v, vals):
         return None
     d = RANK_STATS[stat]
     rank = 1 + sum(1 for x in vals if (x - v) * d > 1e-9)
-    if rank <= 5:
+    if rank <= 3:
         return {'tier': f'r{rank}', 'txt': f'#{rank}', 'title': (f'Best on the team ({n} hitters ranked)' if rank == 1 else f'#{rank} on the team ({n} hitters ranked)')}
     return None
 
