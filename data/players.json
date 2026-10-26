@@ -910,31 +910,6 @@
     "school": "Long Beach State",
     "weight_lbs": 185.0
   },
-  "myles_dismute": {
-    "comps": {},
-    "grad_year": null,
-    "height_in": 75.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261024-BiolaUniversity-Private-1_unverified.csv",
-    "name": "Myles Dismute",
-    "program": "biola_university",
-    "roles": {
-      "pitch": {
-        "position": "RHP"
-      }
-    },
-    "roster": {
-      "bats": "R",
-      "class_year": "Jr.",
-      "high_school": "Wilson HS",
-      "hometown": "Long Beach, CA",
-      "major": "Sociology",
-      "pos_raw": "Right-Handed Pitcher",
-      "prev_school": "Southern University",
-      "throws": "R"
-    },
-    "school": "Biola University",
-    "weight_lbs": 200.0
-  },
   "nick_brown": {
     "comps": {},
     "grad_year": null,
