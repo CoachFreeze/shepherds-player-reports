@@ -49,6 +49,32 @@
     ],
     "weight_lbs": 190.0
   },
+  "aidan_cube": {
+    "comps": {},
+    "grad_year": null,
+    "height_in": 75.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261024-BiolaUniversity-Private-1_unverified.csv",
+    "name": "Aidan Cube",
+    "program": "biola_university",
+    "roles": {
+      "pitch": {
+        "position": "LHP"
+      }
+    },
+    "roster": {
+      "bats": "L",
+      "class_year": "Jr.",
+      "high_school": "Los Osos HS",
+      "hometown": "Rancho Cucamonga, CA",
+      "major": "Engineering",
+      "number": "30",
+      "pos_raw": "Left-Handed Pitcher",
+      "prev_school": "Los Osos HS",
+      "throws": "L"
+    },
+    "school": "Biola University",
+    "weight_lbs": 205.0
+  },
   "aidan_dahlk": {
     "comps": {},
     "grad_year": null,
@@ -458,6 +484,32 @@
     "school": "UCLA",
     "weight_lbs": 170
   },
+  "erick_felix": {
+    "comps": {},
+    "grad_year": null,
+    "height_in": 72.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261024-BiolaUniversity-Private-1_unverified.csv",
+    "name": "Erick Felix",
+    "program": "biola_university",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "roster": {
+      "bats": "R",
+      "class_year": "Jr.",
+      "high_school": "Walnut HS",
+      "hometown": "La Puente, CA",
+      "major": "Sociology",
+      "number": "26",
+      "pos_raw": "Right-Handed Pitcher",
+      "prev_school": "Walnut HS",
+      "throws": "R"
+    },
+    "school": "Biola University",
+    "weight_lbs": 175.0
+  },
   "gabriel_esteban": {
     "comps": {},
     "grad_year": 2028,
@@ -468,6 +520,34 @@
     "roles": {},
     "school": "Shepherds",
     "weight_lbs": 170.0
+  },
+  "griffin_brown": {
+    "comps": {},
+    "grad_year": null,
+    "height_in": 76.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261024-BiolaUniversity-Private-1_unverified.csv",
+    "name": "Griffin Brown",
+    "program": "biola_university",
+    "roles": {
+      "hit": {
+        "position": "OF"
+      },
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "roster": {
+      "bats": "R",
+      "class_year": "Fr.",
+      "high_school": "Cathedral Catholic HS",
+      "hometown": "Carlsbad, CA",
+      "major": "Communication",
+      "pos_raw": "Outfield/Right-Handed Pitcher",
+      "prev_school": "Cathedral Catholic HS",
+      "throws": "R"
+    },
+    "school": "Biola University",
+    "weight_lbs": 195.0
   },
   "hayden_george": {
     "comps": {},
@@ -525,6 +605,35 @@
     },
     "school": "UCLA",
     "weight_lbs": 182
+  },
+  "jack_o_brasky": {
+    "comps": {},
+    "grad_year": null,
+    "height_in": 72.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261024-BiolaUniversity-Private-1_unverified.csv",
+    "name": "Jack O'Brasky",
+    "program": "biola_university",
+    "roles": {
+      "hit": {
+        "position": "INF"
+      },
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "roster": {
+      "bats": "R",
+      "class_year": "Jr.",
+      "high_school": "Arcadia HS",
+      "hometown": "Scottsdale, AZ",
+      "major": "Business Administration",
+      "number": "6",
+      "pos_raw": "Infield/Right-Handed Pitcher",
+      "prev_school": "Arcadia HS",
+      "throws": "R"
+    },
+    "school": "Biola University",
+    "weight_lbs": 160.0
   },
   "jackson_orr": {
     "comps": {
@@ -623,7 +732,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 72.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261016-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261024-BiolaUniversity-Private-1_unverified.csv",
     "name": "Jacob Talbott",
     "program": "biola_university",
     "roles": {
@@ -631,7 +740,7 @@
         "position": "INF"
       },
       "pitch": {
-        "position": "TWP"
+        "position": "RHP"
       }
     },
     "roster": {
@@ -695,7 +804,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 70.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261010-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261024-BiolaUniversity-Private-1_unverified.csv",
     "name": "John Iacono",
     "program": "biola_university",
     "roles": {
@@ -800,6 +909,83 @@
     },
     "school": "Long Beach State",
     "weight_lbs": 185.0
+  },
+  "myles_dismute": {
+    "comps": {},
+    "grad_year": null,
+    "height_in": 75.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261024-BiolaUniversity-Private-1_unverified.csv",
+    "name": "Myles Dismute",
+    "program": "biola_university",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "roster": {
+      "bats": "R",
+      "class_year": "Jr.",
+      "high_school": "Wilson HS",
+      "hometown": "Long Beach, CA",
+      "major": "Sociology",
+      "pos_raw": "Right-Handed Pitcher",
+      "prev_school": "Southern University",
+      "throws": "R"
+    },
+    "school": "Biola University",
+    "weight_lbs": 200.0
+  },
+  "nick_brown": {
+    "comps": {},
+    "grad_year": null,
+    "height_in": 73.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261024-BiolaUniversity-Private-1_unverified.csv",
+    "name": "Nick Brown",
+    "program": "biola_university",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "roster": {
+      "bats": "R",
+      "class_year": "Sr.",
+      "high_school": "Stocksdale HS",
+      "hometown": "Bakersfield, CA",
+      "major": "Business Administration",
+      "number": "40",
+      "pos_raw": "Right-Handed Pitcher",
+      "prev_school": "Allan Hancock College",
+      "throws": "R"
+    },
+    "school": "Biola University",
+    "weight_lbs": 215.0
+  },
+  "noe_novella": {
+    "comps": {},
+    "grad_year": null,
+    "height_in": 71.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261024-BiolaUniversity-Private-1_unverified.csv",
+    "name": "Noe Novella",
+    "program": "biola_university",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "roster": {
+      "bats": "R",
+      "class_year": "Sr.",
+      "high_school": "Foothill HS",
+      "hometown": "Santa Ana, CA",
+      "major": "Engineering",
+      "number": "23",
+      "pos_raw": "Right-Hand Pitcher",
+      "prev_school": "Midway University",
+      "throws": "R"
+    },
+    "school": "Biola University",
+    "weight_lbs": 190.0
   },
   "oscar_knapp": {
     "comps": {},
@@ -1101,6 +1287,32 @@
     "school": "Long Beach State",
     "weight_lbs": 210.0
   },
+  "wyatt_nichol": {
+    "comps": {},
+    "grad_year": null,
+    "height_in": 73.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261024-BiolaUniversity-Private-1_unverified.csv",
+    "name": "Wyatt Nichol",
+    "program": "biola_university",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "roster": {
+      "bats": "R",
+      "class_year": "Sr.",
+      "high_school": "Crean Lutheran HS",
+      "hometown": "Laguna Niguel, CA",
+      "major": "Business Administration",
+      "number": "20",
+      "pos_raw": "Right-Handed Pitcher",
+      "prev_school": "Pepperdine",
+      "throws": "R"
+    },
+    "school": "Biola University",
+    "weight_lbs": 160.0
+  },
   "wylan_moss": {
     "comps": {},
     "grad_year": null,
@@ -1147,7 +1359,7 @@
     "comps": {},
     "grad_year": 2030,
     "height_in": 73.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261010-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261024-BiolaUniversity-Private-1_unverified.csv",
     "name": "Zachary Berntsen",
     "program": "biola_university",
     "roles": {
