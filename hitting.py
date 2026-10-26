@@ -779,12 +779,8 @@ def _badge(stat, v, vals):
         return None
     d = RANK_STATS[stat]
     rank = 1 + sum(1 for x in vals if (x - v) * d > 1e-9)
-    if rank == 1:
-        return {'tier': 'lead', 'txt': '#1', 'title': f'Best on the team ({n} hitters ranked)'}
-    if n >= 20 and rank / n <= 0.05:
-        return {'tier': 't5', 'txt': '5%', 'title': f'Top 5% of the team: #{rank} of {n} hitters'}
-    if n >= 10 and rank / n <= 0.10:
-        return {'tier': 't10', 'txt': '10%', 'title': f'Top 10% of the team: #{rank} of {n} hitters'}
+    if rank <= 5:
+        return {'tier': f'r{rank}', 'txt': f'#{rank}', 'title': (f'Best on the team ({n} hitters ranked)' if rank == 1 else f'#{rank} on the team ({n} hitters ranked)')}
     return None
 
 
