@@ -71,6 +71,20 @@ BASE = {
     'rel_s_sd': ('Release Side Consistency', 'Delivery', 'Standard deviation of release side (in). Lower = more repeatable.'),
     'arsenal': ('Pitch Types Thrown', 'Delivery', 'Number of different pitch types used.'),
 }
+# Arsenal families for the team Pitchers sheet: id prefix -> (abbr, name, pitch types folded in). Computed in compute(), not shown in the stat picker.
+FAMILIES = [
+    ('fb', 'FB', 'Fastball', {'fastball', 'fourseamfastball', 'fourseam', 'fourseamfastball', '4seam', 'sinker', 'twoseamfastball', 'twoseam', 'cutter'}, 'includes Cutter and Sinker'),
+    ('cb', 'CB', 'Curveball', {'curveball', 'curve', 'slurve', 'knucklecurve'}, 'includes Slurve'),
+    ('sl', 'SL', 'Slider', {'slider', 'sweeper'}, 'includes Sweeper'),
+    ('ch', 'CH', 'Changeup', {'changeup', 'change', 'splitter', 'split', 'splitfinger'}, 'includes Splitter'),
+]
+
+
+def _norm_type(t):
+    import re
+    return re.sub(r'[^a-z0-9]', '', str(t or '').lower())
+
+
 PT_STATS = [  # suffix, label, definition
     ('usage', 'Usage', 'Share of all pitches.'),
     ('velo', 'Avg Velo', 'Average velocity (mph).'),
@@ -225,6 +239,13 @@ def compute(rows):
         for k in ('strike_pct', 'ball_pct', 'ahead_pct', 'twostrike_pct', 'csw_pct', 'cs_pct', 'ks', 'fps_pct', 'zone_pct', 'edge_pct', 'chase_pct'):
             out[k] = ('-', '')
     out['arsenal'] = (str(len(types)), ', '.join(types))
+    out['balls'] = (str(c['balls'] + o.count('hbp')), '') if c['known'] else ('-', '')
+    out['strikes'] = (str(c['strikes']), '') if c['known'] else ('-', '')
+    for fid, _ab, _nm, members, _note in FAMILIES:
+        fr = [r for r in rows if _norm_type(r.get('TaggedPitchType')) in members]
+        out[f'{fid}_use'] = _pct(len(fr), n) if fr else ('-', '')
+        fc = _core(fr) if fr else None
+        out[f'{fid}_k'] = _pct(fc['strikes'], fc['known']) if fc and fc['known'] else ('-', '')
     # per pitch type
     for t, rs in types.items():
         pc = _core(rs)

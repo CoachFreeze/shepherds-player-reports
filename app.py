@@ -697,21 +697,56 @@ def _jersey_lookup(program):
     return look
 
 
+_PITCH_LINEUP = [  # (stat id, header, hover text "Full name: definition", section)
+    ('gp', 'GP', 'Games Played: outings with data.', 'Volume'),
+    ('ip', 'IP', 'Innings Pitched: outs recorded (tagged outs + strikeouts) / 3. Estimate.', 'Volume'),
+    ('pitches', 'TP', 'Total Pitches thrown.', 'Volume'),
+    ('balls', 'Balls', 'Balls: pitches called balls (hit-by-pitch included).', 'Volume'),
+    ('strikes', 'Strikes', 'Strikes: called, swinging, foul and in-play pitches.', 'Volume'),
+    ('hits', 'H', 'Hits allowed: pitches tagged single, double, triple or home run.', 'Volume'),
+    ('ks', 'K', 'Strikeouts: swinging or called strike three (estimate).', 'Volume'),
+    ('walks', 'BB', 'Walks: balls thrown with 3 balls already in the count (estimate).', 'Volume'),
+    ('hbp', 'HBP', 'Hit By Pitch: pitches that hit the batter.', 'Volume'),
+    ('strike_pct', 'Str%', 'Strike %: strikes / pitches.', 'Command'),
+    ('zone_pct', 'Zone%', 'Zone %: pitches in the strike zone / pitches with location.', 'Command'),
+    ('fps_pct', 'FPS%', 'First Pitch Strike %: strikes on 0-0 pitches.', 'Command'),
+    ('ahead_pct', 'Ahead%', 'Ahead in Count %: pitches thrown with more strikes than balls.', 'Command'),
+    ('whiff_pct', 'Whiff%', 'Whiff %: swinging strikes / swings.', 'Swing and Miss'),
+    ('chase_pct', 'Chase%', 'Chase %: swings at pitches outside the zone / pitches outside the zone.', 'Swing and Miss'),
+    ('csw_pct', 'CSW%', 'Called + Swinging Strike %: (called strikes + whiffs) / pitches.', 'Swing and Miss'),
+    ('swing_pct', 'Swing%', 'Swing %: swings / pitches.', 'Swing and Miss'),
+    ('bip', 'BIP', 'Balls In Play: pitches put in play.', 'Contact Allowed'),
+    ('avg_ev', 'Avg EV', 'Average Exit Velocity on balls in play (mph).', 'Contact Allowed'),
+    ('contact_pct', 'Contact%', 'Contact %: fouls + balls in play / swings.', 'Contact Allowed'),
+    ('hh_pct', 'HH%', 'Hard-Hit %: balls in play at 95+ mph.', 'Contact Allowed'),
+    ('gb_pct', 'GB%', 'Ground Ball %: launch angle under 10 degrees.', 'Contact Allowed'),
+    ('ld_pct', 'LD%', 'Line Drive %: launch angle 10-25 degrees.', 'Contact Allowed'),
+    ('fb_pct', 'FB%', 'Fly Ball %: launch angle 25-50 degrees.', 'Contact Allowed'),
+    ('pu_pct', 'PU%', 'Pop-Up %: launch angle over 50 degrees.', 'Contact Allowed'),
+    ('fb_use', 'FB%', 'Fastball usage % (includes Cutter and Sinker): share of all pitches.', 'Arsenal'),
+    ('fb_k', 'FBk%', 'Fastball Strike % (includes Cutter and Sinker): strikes / fastballs thrown.', 'Arsenal'),
+    ('cb_use', 'CB%', 'Curveball usage % (includes Slurve): share of all pitches.', 'Arsenal'),
+    ('cb_k', 'CBk%', 'Curveball Strike % (includes Slurve): strikes / curveballs thrown.', 'Arsenal'),
+    ('sl_use', 'SL%', 'Slider usage % (includes Sweeper): share of all pitches.', 'Arsenal'),
+    ('sl_k', 'SLk%', 'Slider Strike % (includes Sweeper): strikes / sliders thrown.', 'Arsenal'),
+    ('ch_use', 'CH%', 'Changeup usage % (includes Splitter): share of all pitches.', 'Arsenal'),
+    ('ch_k', 'CHk%', 'Changeup Strike % (includes Splitter): strikes / changeups thrown.', 'Arsenal'),
+]
+
+
 def _stat_table(program, side):
     """Columns + rows for the sortable team stat tables. side = 'pitching' | 'hitting'. Each cell is (text, number-for-sorting)."""
     cols, rows = [], []
     jersey = _jersey_lookup(program)
     if side == 'pitching':
         D = team.pitching_data(program)
-        ids = [i for i in stats_mod.BASE if i not in _PSTAT_SKIP and not i.startswith('pt:')]
         for pl in D['players']:
+            v = dict(pl['v'])
+            v['gp'] = (str(pl['sessions']), '')
             rows.append({'name': pl['name'], 'key': pl['key'], 'disp': _last_first(pl['name']), 'jersey': jersey(pl['name']), 'url': url_for('player_overview', slug=pl['key']), 'n': pl['n'],
-                         'cells': {i: (pl['v'][i][0], _pct_num(pl['v'][i][0])) for i in ids if i in pl['v'] and pl['v'][i][0] not in (None, '', '—', '-', '–')}})
-        for i in ids:
-            if stats_mod.BASE[i][1] in ('Stuff', 'Delivery', 'Mechanics'):
-                continue                      # left off the pitcher stat sheet
-            lab, d = stats_mod.label_for(i)
-            cols.append({'id': i, 'label': lab, 'abbr': _STAT_ABBR.get(i, lab), 'group': stats_mod.BASE[i][1], 'def': d})
+                         'cells': {i: (v[i][0], _pct_num(v[i][0])) for i, _a, _d, _g in _PITCH_LINEUP if i in v and v[i][0] not in (None, '', '—', '-', '–')}})
+        for i, ab, d, g in _PITCH_LINEUP:
+            cols.append({'id': i, 'label': ab, 'abbr': ab, 'group': g, 'def': d})
     else:
         D = team.hitting_data(program, True)
         for pl in D['players']:
