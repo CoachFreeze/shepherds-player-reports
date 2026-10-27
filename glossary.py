@@ -77,6 +77,7 @@ HITTING = [
         ('xBA (expected batting average)', 'What his average would be from how hard and at what angle he hit the ball, ignoring defense, parks and luck. '
          'Each ball is given a chance of being a hit from its exit velocity and launch angle; the chances are added up and divided by at-bats (balls in play plus strikeouts, no walks or hit by pitches). '
          'The hit chances were fitted to about 25,000 MLB balls in play and will be refit with our own data. Sprint speed is not included. Swings a lot under about 20 at-bats.'),
+        ('xBAA (expected batting average against)', 'The pitcher-side version of xBA: what opposing hitters would hit against him, from how hard and at what angle they hit the balls he allowed, ignoring defense, parks and luck. Same method as xBA, so it also swings a lot on small samples.'),
     ]},
     {'title': 'Hitting charts', 'items': [
         ('Decision map', 'Every pitch he saw, from the catcher\'s view. Filled dots are swings and rings are takes. Green is a good decision, red is bad, grey is borderline.'),

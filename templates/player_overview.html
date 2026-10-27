@@ -103,7 +103,7 @@
   {% else %}{{ b.movement_html|safe }}{% endif %}</div>{% endif %}
 {% if b.effect %}<div class="pn"><div class="pn-t">Pitch Effectiveness</div><div class="pn-s">Every pitch he throws, split by the batter's side &middot; grey rows are under 10 pitches</div>
   {% for s in b.effect %}<div class="fx-h">{{ s.title }}<small>{{ s.n }} pitches</small></div>
-  {% if s.n %}<div class="fxs"><table class="fx"><tr><th>Pitch</th><th>Avg Velo</th><th>Usage %</th><th>In Zone %</th><th>Whiff %</th><th>Chase %</th><th>Avg Exit Velo</th><th>xBA</th></tr>
+  {% if s.n %}<div class="fxs"><table class="fx"><tr><th>Pitch</th><th>Avg Velo</th><th>Usage %</th><th>In Zone %</th><th>Whiff %</th><th>Chase %</th><th>Avg Exit Velo</th><th title="xBAA: Expected Batting Average Against. What opposing hitters would hit against him, from how hard and at what angle they hit the ball (no defense, parks or luck).">xBAA</th></tr>
     {% for r in s.rows %}<tr class="{{ 'sm' if r.n < 10 }}"><td class="ty" title="{{ r.n }} pitches"><i style="display:inline-block;width:11px;height:11px;border-radius:50%;background:{{ r.color }};margin-right:7px;vertical-align:-1px;"></i>{{ r.type }}</td>
       <td>{{ '%.1f'|format(r.velo) if r.velo is not none else '—' }}</td><td>{{ '%.1f%%'|format(r.usage) if r.n else '—' }}</td><td>{{ '%.1f%%'|format(r.zone) if r.zone is not none else '—' }}</td>
       <td>{{ '%.1f%%'|format(r.whiff) if r.whiff is not none else '—' }}</td><td>{{ '%.1f%%'|format(r.chase) if r.chase is not none else '—' }}</td>
