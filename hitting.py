@@ -813,7 +813,7 @@ def rank_badges(program, vs, s, pt):
 
 
 @cache.memo
-def hitter_profile(key, include_demo=True, side='all', vs='all'):
+def hitter_profile(key, include_demo=True, side='all', vs='all', frm=None, to=None):
     """vs = the pitcher's hand to show ('R', 'L' or 'all'). `side` is the older switch-hitter control (batting left = vs RHP) and still works."""
     h = (collect_scouting().get(key) if key.startswith(SCOUT) else _collect(include_demo).get(key))
     if not h:
@@ -822,6 +822,14 @@ def hitter_profile(key, include_demo=True, side='all', vs='all'):
     sides = {p['side'] for p in ps_all if p['side']}
     bats_seen = 'S' if len(sides) > 1 else (next(iter(sides)) if sides else None)
     bio = _bio(key, h, _players_index(), bats_seen)
+    all_dates = sorted({p['date'] for p in ps_all if p['date']})
+    range_empty = False
+    if frm or to:                                  # date range: bio / handedness above still come from everything he has ever seen
+        sub = [p for p in ps_all if p['date'] and (not frm or p['date'] >= frm) and (not to or p['date'] <= to)]
+        if sub:
+            ps_all = sub
+        else:
+            range_empty = True
     vs = vs if vs in ('R', 'L') else 'all'
     if vs == 'all' and side in ('L', 'R') and bio['bats'] == 'S':
         vs = 'R' if side == 'L' else 'L'
@@ -857,7 +865,7 @@ def hitter_profile(key, include_demo=True, side='all', vs='all'):
     if s['whiff_pct'] is not None and len([p for p in ps if p['outcome'] in SWING]) >= 10:
         prow.append({'label': 'Whiff%', 'pctl': bm.interpolate(s['whiff_pct'], bm.HITTER['whiff_pct']), 'value_display': f"{s['whiff_pct']:.1f}%"})
     return {'bio': bio, 'switch': switch, 'vs': vs, 'vs_counts': vs_counts, 'pt_table': pt, 'badges': badges, 'ps_n': len(ps), 'roster': h.get('roster'), 'pctl_html': sc.percentile_bars_html(prow) if prow else '', 'key': key, 'name': display_name(h['name']), 'program': h['program'], 'demo': h['demo'], 'bats': bats, 'opponent': h.get('opponent'), 'opp_slug': h.get('opp_slug'),
-            's': s, 'notes': takeaways(s), 'dates': sorted({p['date'] for p in ps_all if p['date']}),
+            's': s, 'notes': takeaways(s), 'dates': all_dates, 'range_empty': range_empty,
             'zone_ev': zone_ev_data(ps),
             'decision_svg': decision_chart_svg(ps, side=bats if bats in ('L', 'R') else None),
             'decision_svg_i': team_decision_chart_svg([(display_name(h['name']), p) for p in ps], width=420, height=470, side=bats if bats in ('L', 'R') else None, dot=.66)[0],

@@ -121,16 +121,19 @@ def outing_log(outs, name):
     return log
 
 
-def build(slug, bio, retag=False):
+def build(slug, bio, retag=False, frm=None, to=None):
     """The whole pitcher profile model, kept until the stored data or this player's bio changes (see cache.py)."""
     import json
     import cache
-    return cache.get_or_compute(('overview.build', slug, bool(retag), json.dumps(bio, sort_keys=True, default=str)), lambda: _build(slug, bio, retag))
+    return cache.get_or_compute(('overview.build', slug, bool(retag), json.dumps(bio, sort_keys=True, default=str), frm, to), lambda: _build(slug, bio, retag, frm, to))
 
 
-def _build(slug, bio, retag=False):
+def _build(slug, bio, retag=False, frm=None, to=None):
     name = bio['name']
-    recent = _stamp(outings_mod.recent(slug, plans_mod.limit(bio.get('program'), 'history')), name)
+    recent = outings_mod.recent(slug, plans_mod.limit(bio.get('program'), 'history'))
+    if frm or to:                                   # a chosen date range replaces the "last N outings" window (the plan's history limit still applies)
+        recent = [o for o in recent if (not frm or o['date'] >= frm) and (not to or o['date'] <= to)]
+    recent = _stamp(recent, name)
     if not recent:
         return None
     rows = [r for o in recent for r in o['rows']]

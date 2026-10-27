@@ -1,0 +1,14 @@
+{# Coach-only panel: make, copy or turn off the public link to this profile. Needs share = {url, active, post}. #}
+<div class="shr" id="share">
+  <b>Share this profile</b>
+  {% if share.active %}
+    <input type="text" readonly value="{{ share.url }}" onclick="this.select()" id="shUrl"><button type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('shUrl').value);this.textContent='Copied'">Copy link</button>
+    <form method="post" action="{{ share.post }}"><input type="hidden" name="action" value="revoke"><button type="submit" class="off" onclick="return confirm('Turn this link off? Anyone who has it will lose access.')">Turn off</button></form>
+    <span class="n">Anyone with this link can view his name, photo, bio and stats, with no sign-in. It does not show team rankings, personal bests or any other player.</span>
+  {% else %}
+    <form method="post" action="{{ share.post }}"><input type="hidden" name="action" value="create"><button type="submit">Create share link</button></form>
+    <span class="n">Makes a private, read-only page for recruiting. You can turn it off any time.</span>
+  {% endif %}
+</div>
+<style>.shr{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0 4px;font:500 13px 'Barlow',sans-serif;color:#55626b;} .shr b{font:700 11.5px 'Barlow',sans-serif;letter-spacing:.04em;text-transform:uppercase;} .shr form{margin:0;display:inline;}
+.shr input[type=text]{padding:6px 10px;border:1px solid #dde2e5;border-radius:8px;min-width:260px;font:500 13px 'Barlow',sans-serif;} .shr button{padding:7px 16px;border:0;border-radius:999px;background:#22303a;color:#fff;font:700 13px 'Barlow',sans-serif;cursor:pointer;margin:0;} .shr button.off{background:#fff;color:#a33;border:1px solid #e0c4c4;} .shr .n{flex-basis:100%;font-size:12px;} @media print{.shr{display:none;}}</style>

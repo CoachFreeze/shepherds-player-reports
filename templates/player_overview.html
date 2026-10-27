@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!doctype html><html><head><meta charset="utf-8">{% if public %}<meta name="robots" content="noindex,nofollow,noarchive">{% endif %}<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ b.name }} · Player Overview</title>
 <style>{{ theme_css|safe }}</style>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -45,10 +45,11 @@
   #rtDock{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:60;background:#22303a;color:#fff;border-radius:999px;padding:10px 14px 10px 20px;display:none;align-items:center;gap:10px;box-shadow:0 8px 28px rgba(0,0,0,.3);font:600 13.5px 'Barlow',sans-serif;max-width:94vw;flex-wrap:wrap;justify-content:center;}
   #rtDock select{padding:6px 8px;border-radius:8px;border:0;font:inherit;color:#22303a;} #rtDock button{border:0;border-radius:999px;padding:7px 16px;font:700 13px 'Barlow',sans-serif;cursor:pointer;} #rtDock .go{background:var(--accent,#5c97a8);color:var(--on-accent,#fff);} #rtDock .no{background:transparent;color:#cfd8dc;}
   .rt-hint{font-size:12px;color:#6b7680;text-align:center;margin:2px 0 4px;display:none;} .pmp-panel.rt .rt-hint{display:block;}
+  .prt{border:0;background:#22303a!important;color:#fff!important;opacity:1!important;border-radius:999px;padding:8px 16px;font:700 13px Barlow,sans-serif;cursor:pointer;} @media print{.prt,.top .upl{display:none!important;}}
 </style>{% import '_prs.html' as prm %}{{ prm.css() }}</head><body><div class="ov">
-<div class="top">{% if me and me.is_player %}<span></span>{% else %}<a href="{{ pitchers_url }}">&larr; {{ 'Back to scouting' if scouting else ('Pitchers' if nav_program else 'All players') }}</a>{% endif %}{% if is_coach and not scouting %}<span style="display:flex;align-items:center;gap:12px;">{% if me.can_upload %}<a class="upl" href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a>{% endif %}{% include '_usermenu.html' %}</span>{% elif me and me.is_player %}{% include '_usermenu.html' %}{% endif %}</div>
+{% if public %}<div class="top"><span><b>{{ share_team }}</b> &middot; Player profile</span><button type="button" class="prt" onclick="window.print()">Print / Save PDF</button></div>{% else %}<div class="top">{% if me and me.is_player %}<span></span>{% else %}<a href="{{ pitchers_url }}">&larr; {{ 'Back to scouting' if scouting else ('Pitchers' if nav_program else 'All players') }}</a>{% endif %}{% if is_coach and not scouting %}<span style="display:flex;align-items:center;gap:12px;">{% if me.can_upload %}<a class="upl" href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a>{% endif %}{% include '_usermenu.html' %}</span>{% elif me and me.is_player %}{% include '_usermenu.html' %}{% endif %}</div>{% endif %}
 <div class="head">
-  <div class="hs">{% if has_photo %}<img src="{{ url_for('headshot', slug=slug) }}?v={{ photo_v }}" alt="">{% elif badge %}<img src="{{ url_for('school_logo', fname=badge.file) }}" alt="" style="width:100%;height:100%;object-fit:contain;padding:18%;background:{{ badge.bg }};">{% else %}<span>{{ initials }}</span>{% endif %}</div>
+  <div class="hs">{% if has_photo %}<img src="{{ photo_src or url_for('headshot', slug=slug) }}?v={{ photo_v }}" alt="">{% elif badge %}<img src="{{ url_for('school_logo', fname=badge.file) }}" alt="" style="width:100%;height:100%;object-fit:contain;padding:18%;background:{{ badge.bg }};">{% else %}<span>{{ initials }}</span>{% endif %}</div>
   <div style="flex:1;min-width:220px;">
     <h1>{{ bio.name }}</h1>
     <div class="sub">{% if pos %}<b>{{ pos }}</b>{% endif %}{% if bio.school %} &middot; {{ bio.school }}{% endif %}{% if bio.grad_year %} &middot; Class of {{ bio.grad_year }}{% endif %}</div>
@@ -56,11 +57,13 @@
     <div class="rng">Profile built from the last {{ b.n_outings }} outing{{ 's' if b.n_outings != 1 }} &middot; {{ b.n_pitches }} pitches &middot; {{ b.range }}</div>
     {% if hitter_url or (can_edit and not is_demo) %}<div class="photo-form">{% if hitter_url %}<span class="vsw"><a href="{{ hitter_url }}">Hitter</a><b>Pitcher</b></span>{% endif %}{% if can_edit and not is_demo %}<a class="editbtn" href="{{ url_for('edit_profile', slug=slug) }}">Edit Profile</a>{% endif %}</div>{% endif %}
   </div>
-  <div class="gobtns">{% if pr_ent %}{{ prm.button(url_for('player_prs', slug=slug)) }}{% endif %}{% if b.log %}<a class="gobtn" href="{{ url_for('player_outings', slug=slug) }}">Go to Outing Reports &rarr;</a>{% endif %}</div>
+  <div class="gobtns">{% if not public %}{% if pr_ent %}{{ prm.button(url_for('player_prs', slug=slug)) }}{% endif %}{% if b.log %}<a class="gobtn" href="{{ url_for('player_outings', slug=slug) }}">Go to Outing Reports &rarr;</a>{% endif %}{% endif %}</div>
 </div>
 
 {{ prm.banner(pr_ent, url_for('player_prs', slug=slug)) }}
-<div class="pn" id="stats"><div class="pn-t">Pitching Profile</div><div class="pn-s">Last {{ b.n_outings }} outing{{ 's' if b.n_outings != 1 }}{% if can_edit %} &middot; <a href="#" id="stOpen" style="color:var(--accent-teal);font-weight:700;">Customize stats</a>{% endif %}</div>
+{% if share and not public %}{% include '_share.html' %}{% endif %}
+{% if dr and not scouting %}{% include '_daterange.html' %}{% endif %}
+<div class="pn" id="stats"><div class="pn-t">Pitching Profile</div><div class="pn-s">{{ 'Selected range: ' if dr and (dr.frm or dr.to) else 'Last ' }}{{ b.n_outings }} outing{{ 's' if b.n_outings != 1 }}{% if can_edit %} &middot; <a href="#" id="stOpen" style="color:var(--accent-teal);font-weight:700;">Customize stats</a>{% endif %}</div>
   <div class="tiles">
   {% for s in b.stat_tiles %}
     <div class="tile" title="{{ s.definition }}"><div class="v">{{ s.value }}</div><div class="l">{{ s.label }}</div><div class="d">{{ s.detail }}</div></div>
@@ -147,4 +150,4 @@ go.onclick=function(){var list=Object.keys(sel).map(function(k){return sel[k];})
 <script>(function(){var tip=document.getElementById('mv-tip');function lum(h){var n=parseInt(h.slice(1),16),r=n>>16,g=(n>>8)&255,b=n&255;return(.299*r+.587*g+.114*b)/255;}
 function build(el){var ty=el.getAttribute('data-ptype');if(!ty){tip.className='';tip.textContent=el.getAttribute('data-tip');return;}var c=el.getAttribute('data-pcolor'),v=el.getAttribute('data-pvelo');var fg=lum(c)>.62?'#1a1a1a':'#fff';tip.className='card';tip.innerHTML='<div class="tt-h" style="background:'+c+';color:'+fg+'">'+ty+'</div><div class="tt-b">'+(v?'<div class="tt-v">'+v+'</div>':'')+'<div class="tt-m">'+(el.getAttribute('data-psub')||('('+el.getAttribute('data-pivb')+'″, '+el.getAttribute('data-phb')+'″)'))+'</div></div>';}
 document.querySelectorAll('.mv-pt').forEach(function(el){var t=el.querySelector('title');if(t)t.remove();el.addEventListener('mousemove',function(ev){build(el);tip.style.display='block';tip.style.left=(ev.clientX+14)+'px';tip.style.top=(ev.clientY+14)+'px';});el.addEventListener('mouseleave',function(){tip.style.display='none';});});})();</script>
-{% if not (me and me.is_player) %}{% set tour_stage = 'player' %}{% include '_tour.html' %}{% endif %}</body></html>
+{% if not public and not (me and me.is_player) %}{% set tour_stage = 'player' %}{% include '_tour.html' %}{% endif %}</body></html>

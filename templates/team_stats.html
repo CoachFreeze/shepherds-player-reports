@@ -21,19 +21,42 @@
   th.nm,td.nm{position:sticky;left:44px;text-align:left;background:#fff;z-index:1;border-right:1px solid #eef1f0;} thead th.nm{z-index:3;} thead tr.g th.nm{background:#f1f4f3;}
   td.nm a{font-weight:700;color:var(--ink);text-decoration:none;} td.nm a:hover{color:var(--accent-ink,#5c97a8);text-decoration:underline;}
   tbody tr:hover td{background:#f7f9f9;} td.na{color:#c2cacf;}
+
+  .pill{background:#fff;border:1px solid var(--line);border-radius:999px;padding:8px 16px;font:700 13px Barlow,sans-serif;color:var(--ink);cursor:pointer;margin:0;} .pill.dark{background:#22303a;color:#fff;border-color:#22303a;} .pill:hover{filter:brightness(.96);}
+  .cpanel{background:#fff;border-radius:14px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);padding:16px 18px;margin:0 0 14px;} .cpanel[hidden]{display:none;}
+  .cp-top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px;} .cp-sets{display:inline-flex;gap:6px;flex-wrap:wrap;} .cp-sets .chip{background:#eef1f0;border-radius:999px;padding:4px 6px 4px 12px;font:600 12.5px Barlow,sans-serif;cursor:pointer;} .cp-sets .chip.on{background:#22303a;color:#fff;} .cp-sets .chip i{font-style:normal;opacity:.6;margin-left:6px;padding:0 6px;}
+  .cp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;} .cp-gt{font:700 11px Oswald,sans-serif;letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px;color:#22303a;}
+  .cp-g label{display:block;font-size:13px;padding:2px 0;cursor:pointer;} .cp-g small{color:var(--muted);}
+  .cp-act{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;border-top:1px solid #eef1f0;padding-top:12px;} .cp-act input[type=text]{padding:8px 12px;border:1px solid var(--line);border-radius:999px;min-width:230px;font:500 13px Barlow,sans-serif;}
+  .ptitle{display:none;}
+  @media print{
+    @page{size:landscape;margin:.35in;}
+    body{background:#fff;padding:0;} .hero,.bar,.cpanel,.topnav{display:none!important;} .wrap{max-width:none;padding:0;}
+    .ptitle{display:block;font:700 18px Oswald,sans-serif;margin:0 0 8px;color:#22303a;}
+    .tw{box-shadow:none;border-radius:0;max-height:none;overflow:visible;} th,td{padding:4px 6px;font-size:11px;} thead th{position:static;} th.jn,td.jn,th.nm,td.nm{position:static;}
+    tr{break-inside:avoid;} thead{display:table-header-group;}
+  }
   @media (max-width:520px){h1{font-size:32px;}}
 </style></head><body>
 <div class="hero"><div class="wrap">{% if wm_url %}<img class="wm" src="{{ wm_url }}" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
   <p class="eyebrow">{{ team_label }}</p><h1>{{ title }}</h1><p class="sub">{{ rows|length }} {{ 'pitcher' if side == 'pitching' else 'hitter' }}{{ '' if rows|length == 1 else 's' }}. Click a column to sort. Click a name to open the player's profile.</p>
   {% set topnav_on = 'pit' if side == 'pitching' else 'hit' %}{% include '_topnav.html' %}</div></div>
 <div class="wrap">
-  <div class="bar"><input id="q" type="search" placeholder="Search {{ title|lower }}…" autocomplete="off"><a href="?view=cards">Card view &rsaquo;</a><span class="hintt">Hover a stat abbreviation for its full name and definition.</span></div>
+  <div class="bar"><input id="q" type="search" placeholder="Search {{ title|lower }}…" autocomplete="off"><button type="button" id="colBtn" class="pill">Columns</button><button type="button" id="prBtn" class="pill dark">Print / PDF</button><a href="?view=cards">Card view &rsaquo;</a><span class="hintt">Hover a stat abbreviation for its full name and definition.</span></div>
+
+  <div id="colPanel" class="cpanel" hidden>
+    <div class="cp-top"><b>Choose columns</b><span class="cp-sets" id="cpSets"></span></div>
+    <div class="cp-grid">{% for g in groups %}<div class="cp-g"><div class="cp-gt">{{ g.name }}</div>{% for c in cols if c.group == g.name %}<label title="{{ c.label }}: {{ c.def }}"><input type="checkbox" value="{{ c.id }}" checked> {{ c.abbr }} <small>{{ c.label }}</small></label>{% endfor %}</div>{% endfor %}</div>
+    <div class="cp-act"><button type="button" class="pill" id="cpAll">Show all</button><button type="button" class="pill" id="cpDefault">Reset</button>
+      <input id="cpName" type="text" maxlength="40" placeholder="Name this set (e.g. Bullpen review)"><button type="button" class="pill dark" id="cpSave">Save set</button><span id="cpMsg" class="hintt"></span></div>
+  </div>
+  <div class="ptitle">{{ team_label }} &middot; {{ title }} &middot; <span id="pdate"></span></div>
   {% if not rows %}<p style="color:var(--muted);margin-top:24px;">No {{ title|lower }} tracked for this team yet. They appear automatically once a session is uploaded.</p>{% else %}
   <div class="tw"><table id="st"><thead>
-    <tr class="g"><th class="jn"></th><th class="nm"></th><th></th>{% for g in groups %}<th colspan="{{ g.n }}">{{ g.name }}</th>{% endfor %}</tr>
-    <tr class="c"><th class="jn s" data-t="n" title="Jersey number: not entered yet.">#</th><th class="nm s" data-t="s">Name</th><th class="s" data-t="n" title="Pitches: total pitches {{ 'thrown' if side == 'pitching' else 'seen' }}.">{{ 'P' if side == 'pitching' else 'Seen' }}</th>{% for c in cols %}<th class="s" data-t="n" title="{{ c.label }}: {{ c.def }}">{{ c.abbr }}</th>{% endfor %}</tr></thead>
-  <tbody>{% for r in rows %}<tr data-s="{{ r.name|lower }}"><td class="jn {{ '' if r.jersey else 'na' }}" data-v="{{ r.jersey }}">{{ r.jersey or '—' }}</td><td class="nm" data-v="{{ r.disp|lower }}"><a href="{{ r.url }}">{{ r.disp }}</a></td><td data-v="{{ r.n }}">{{ r.n }}</td>
-    {% for c in cols %}{% set x = r.cells.get(c.id) %}{% if x %}<td data-v="{{ x[1] if x[1] is not none else '' }}">{{ x[0] }}</td>{% else %}<td class="na" data-v="">—</td>{% endif %}{% endfor %}</tr>{% endfor %}</tbody></table></div>{% endif %}
+    <tr class="g"><th class="jn"></th><th class="nm"></th>{% if side != 'pitching' %}<th></th>{% endif %}{% for g in groups %}<th colspan="{{ g.n }}" data-g="{{ g.name }}">{{ g.name }}</th>{% endfor %}</tr>
+    <tr class="c"><th class="jn s" data-t="n" title="Jersey number: not entered yet.">#</th><th class="nm s" data-t="s">Name</th>{% if side != 'pitching' %}<th class="s" data-t="n" title="Pitches: total pitches seen.">Seen</th>{% endif %}{% for c in cols %}<th class="s" data-t="n" data-c="{{ c.id }}" title="{{ c.label }}: {{ c.def }}">{{ c.abbr }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for r in rows %}<tr data-s="{{ r.name|lower }}"><td class="jn {{ '' if r.jersey else 'na' }}" data-v="{{ r.jersey }}">{{ r.jersey or '—' }}</td><td class="nm" data-v="{{ r.disp|lower }}"><a href="{{ r.url }}">{{ r.disp }}</a></td>{% if side != 'pitching' %}<td data-v="{{ r.n }}">{{ r.n }}</td>{% endif %}
+    {% for c in cols %}{% set x = r.cells.get(c.id) %}{% if x %}<td data-c="{{ c.id }}" data-v="{{ x[1] if x[1] is not none else '' }}">{{ x[0] }}</td>{% else %}<td class="na" data-c="{{ c.id }}" data-v="">—</td>{% endif %}{% endfor %}</tr>{% endfor %}</tbody></table></div>{% endif %}
 </div>
 <script>
 (function(){var t=document.getElementById('st');if(!t)return;var q=document.getElementById('q');
@@ -45,4 +68,36 @@ hs.forEach(function(h,i){h.addEventListener('click',function(){var asc=!h.classL
   if(txt){return asc?x.localeCompare(y):y.localeCompare(x);}
   var nx=x===''||isNaN(x),ny=y===''||isNaN(y);if(nx&&ny)return 0;if(nx)return 1;if(ny)return -1;x=parseFloat(x);y=parseFloat(y);return asc?x-y:y-x;});
  rows.forEach(function(r){tb.appendChild(r);});});});})();
-</script></body></html>
+</script>
+<script>
+(function(){var t=document.getElementById('st');if(!t)return;
+var SIDE="{{ side }}",PROG="{{ program }}",SAVED={{ colsets|tojson }},sets=SAVED.sets||{},active=SAVED.active||'';
+var panel=document.getElementById('colPanel'),boxes=[].slice.call(panel.querySelectorAll('input[type=checkbox]')),msg=document.getElementById('cpMsg');
+var allIds=boxes.map(function(b){return b.value;});
+function apply(ids){var on={};ids.forEach(function(i){on[i]=1;});
+ t.querySelectorAll('[data-c]').forEach(function(el){el.style.display=on[el.dataset.c]?'':'none';});
+ boxes.forEach(function(b){b.checked=!!on[b.value];});
+ var gr=t.querySelectorAll('thead tr.g th[data-g]');
+ var order={{ cols|map(attribute='id')|list|tojson }},grp={{ (cols|map(attribute='group')|list)|tojson }};
+ var cnt={};order.forEach(function(id,i){if(on[id])cnt[grp[i]]=(cnt[grp[i]]||0)+1;});
+ gr.forEach(function(g){var n=cnt[g.dataset.g]||0;g.style.display=n?'':'none';g.colSpan=n||1;});}
+function checked(){return boxes.filter(function(b){return b.checked;}).map(function(b){return b.value;});}
+boxes.forEach(function(b){b.addEventListener('change',function(){active='';render();apply(checked());});});
+function persist(){fetch('/team/'+PROG+'/'+SIDE+'/colsets',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sets:sets,active:active})}).then(function(r){msg.textContent=r.ok?'Saved.':'Could not save.';}).catch(function(){msg.textContent='Could not save.';});}
+function render(){var box=document.getElementById('cpSets');box.innerHTML='';
+ Object.keys(sets).forEach(function(n){var c=document.createElement('span');c.className='chip'+(n===active?' on':'');c.textContent=n;
+  c.onclick=function(){active=n;apply(sets[n]);render();persist();};
+  var x=document.createElement('i');x.textContent='\u00d7';x.title='Delete this set';x.onclick=function(e){e.stopPropagation();delete sets[n];if(active===n)active='';if(!active)apply(allIds);render();persist();};c.appendChild(x);box.appendChild(c);});}
+document.getElementById('colBtn').onclick=function(){panel.hidden=!panel.hidden;};
+document.getElementById('cpAll').onclick=function(){active='';apply(allIds);render();persist();};
+document.getElementById('cpDefault').onclick=function(){active='';apply(allIds);render();persist();};
+document.getElementById('cpSave').onclick=function(){var n=document.getElementById('cpName').value.trim();if(!n){msg.textContent='Name the set first.';return;}
+ sets[n]=checked();active=n;document.getElementById('cpName').value='';render();persist();};
+document.getElementById('prBtn').onclick=function(){window.print();};
+var d=new Date();document.getElementById('pdate').textContent=d.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'});
+window.addEventListener('beforeprint',function(){var w=t.parentNode.scrollWidth,tw=t.scrollWidth;t.style.zoom='';var avail=1000;if(tw>avail)t.style.zoom=(avail/tw).toFixed(3);});
+window.addEventListener('afterprint',function(){t.style.zoom='';});
+render();if(active&&sets[active])apply(sets[active]);
+})();
+</script>
+</body></html>

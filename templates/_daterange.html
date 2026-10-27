@@ -1,0 +1,21 @@
+{# Date range picker for the player profiles. Needs: dr = {frm, to, min, max, empty, extra: {name: value}} #}
+<form class="drng" method="get" action="{{ request.path }}">
+  {% for k, v in dr.extra.items() %}{% if v %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endif %}{% endfor %}
+  <span class="dl">Date range</span>
+  <input type="date" name="frm" value="{{ dr.frm or '' }}" min="{{ dr.min }}" max="{{ dr.max }}" aria-label="From date">
+  <span class="dl">to</span>
+  <input type="date" name="to" value="{{ dr.to or '' }}" min="{{ dr.min }}" max="{{ dr.max }}" aria-label="To date">
+  <button type="submit">Apply</button>
+  <span class="pre">{% for lab, f, t in dr.presets %}<a href="{{ request.path }}?{{ dr.qs(f, t) }}" class="{{ 'on' if (dr.frm or '') == (f or '') and (dr.to or '') == (t or '') }}">{{ lab }}</a>{% endfor %}</span>
+  {% if dr.empty %}<span class="warn">No data in that range, so all dates are shown.</span>{% endif %}
+</form>
+<style>
+ .drng{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0 4px;font:500 13px 'Barlow',sans-serif;color:#55626b;}
+ .drng .dl{font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:11.5px;}
+ .drng input[type=date]{padding:6px 10px;border:1px solid #dde2e5;border-radius:8px;font:500 13px 'Barlow',sans-serif;background:#fff;color:#22303a;}
+ .drng button{padding:7px 16px;border:0;border-radius:999px;background:#22303a;color:#fff;font:700 13px 'Barlow',sans-serif;cursor:pointer;margin:0;}
+ .drng .pre{display:inline-flex;gap:4px;background:#eef1f0;border-radius:999px;padding:3px;}
+ .drng .pre a{padding:5px 12px;border-radius:999px;text-decoration:none;color:#55626b;font-weight:600;} .drng .pre a.on{background:#fff;color:#22303a;box-shadow:0 1px 3px rgba(26,31,36,.15);}
+ .drng .warn{color:#a8541e;font-weight:600;}
+ @media print{.drng{display:none;}}
+</style>

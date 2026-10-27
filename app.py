@@ -3,7 +3,7 @@ import json
 import os
 import datetime
 import re
-from flask import g, Flask, Response, render_template, request, session, redirect, url_for, render_template_string, send_file, jsonify, abort
+from flask import g, Flask, Response, make_response, render_template, request, session, redirect, url_for, render_template_string, send_file, jsonify, abort
 
 import github_sync
 import plans
@@ -24,6 +24,7 @@ import overview
 import outings as outings_mod
 import fullswing
 import uploadlog
+import shares
 import cleanup
 import scouting
 import scoutnotes
@@ -650,7 +651,7 @@ _STAT_ABBR = {
     # hitting
     'avg_ev': 'Avg EV', 'max_ev': 'Max EV', 'ev90': 'EV90', 'hard_hit_pct': 'HH%', 'sweet_spot_pct': 'SwSp%', 'xba': 'xBA', 'avg_la': 'LA',
     'score': 'SDR', 'chase_pct': 'Chase%', 'zone_swing_pct': 'Z-Swing%', 'swing_pct': 'Swing%', 'whiff_pct': 'Whiff%', 'zone_contact_pct': 'Z-Con%',
-    'brl_pct': 'Brl%', 'gb_pct': 'GB%', 'ld_pct': 'LD%', 'fb_pct': 'FB%', 'pu_pct': 'PU%', 'pull_pct': 'Pull%', 'avg_bs': 'Avg BS', 'max_bs': 'Max BS',
+    'brl_pct': 'Brl%', 'gb_pct': 'GB%', 'ld_pct': 'LD%', 'fb_pct': 'Fly%', 'pu_pct': 'PU%', 'pull_pct': 'Pull%', 'avg_bs': 'Avg BS', 'max_bs': 'Max BS',
     'sq_pct': 'Sq%', 'avg_smash': 'Smash', 'ev_gap': 'EV Gap', 'bip': 'BIP',
     # pitching
     'hits': 'H', 'walks': 'BB', 'hbp': 'HBP', 'ks': 'K', 'strike_pct': 'Str%', 'ball_pct': 'Ball%', 'fps_pct': 'FPS%', 'zone_pct': 'Zone%',
@@ -721,7 +722,7 @@ _PITCH_LINEUP = [  # (stat id, header, hover text "Full name: definition", secti
     ('hh_pct', 'HH%', 'Hard-Hit %: balls in play at 95+ mph.', 'Contact Allowed'),
     ('gb_pct', 'GB%', 'Ground Ball %: launch angle under 10 degrees.', 'Contact Allowed'),
     ('ld_pct', 'LD%', 'Line Drive %: launch angle 10-25 degrees.', 'Contact Allowed'),
-    ('fb_pct', 'FB%', 'Fly Ball %: launch angle 25-50 degrees.', 'Contact Allowed'),
+    ('fb_pct', 'Fly%', 'Fly Ball %: launch angle 25-50 degrees.', 'Contact Allowed'),
     ('pu_pct', 'PU%', 'Pop-Up %: launch angle over 50 degrees.', 'Contact Allowed'),
     ('fb_use', 'FB%', 'Fastball usage % (includes Cutter and Sinker): share of all pitches.', 'Arsenal'),
     ('fb_k', 'FBk%', 'Fastball Strike % (includes Cutter and Sinker): strikes / fastballs thrown.', 'Arsenal'),
@@ -793,6 +794,35 @@ def _stat_table(program, side):
     return cols, groups, rows
 
 
+def _colsets(side):
+    """This coach's saved column sets for one stat sheet: {'sets': {name: [stat ids]}, 'active': name or ''}."""
+    c = (current_coach() or {}).get('col_sets') or {}
+    d = c.get(side) or {}
+    return {'sets': d.get('sets') or {}, 'active': d.get('active') or ''}
+
+
+@app.route('/team/<program>/<side>/colsets', methods=['POST'])
+@login_required
+def save_colsets(program, side):
+    _team_ok(program)
+    if side not in ('pitching', 'hitting'):
+        abort(404)
+    data = request.get_json(silent=True) or {}
+    sets = {}
+    for name, ids in (data.get('sets') or {}).items():
+        name = re.sub(r'\s+', ' ', str(name)).strip()[:40]
+        if name and isinstance(ids, list):
+            sets[name] = [str(i)[:40] for i in ids][:80]
+        if len(sets) >= 12:
+            break
+    active = str(data.get('active') or '')
+    me = session.get('coach')
+    cs = dict((current_coach() or {}).get('col_sets') or {})
+    cs[side] = {'sets': sets, 'active': active if active in sets else ''}
+    store.update_coach(me, col_sets=cs)
+    return jsonify(ok=True)
+
+
 @app.route('/team/<program>/pitchers')
 @login_required
 def team_pitchers(program):
@@ -801,7 +831,7 @@ def team_pitchers(program):
         return _team_players_page(program, 'Pitchers', pitchers_only=True)
     cols, groups, rows = _stat_table(program, 'pitching')
     return render_template('team_stats.html', side='pitching', title='Pitchers', cols=cols, groups=groups, rows=rows, program=program,
-                           team_label=store.program_label(program))
+                           team_label=store.program_label(program), colsets=_colsets('pitching'))
 
 
 @app.route('/team/<program>/hitters')
@@ -816,7 +846,7 @@ def team_hitters(program):
         return render_template('team_hitters.html', rows=rows, program=program, team_label=store.program_label(program))
     cols, groups, rows = _stat_table(program, 'hitting')
     return render_template('team_stats.html', side='hitting', title='Hitters', cols=cols, groups=groups, rows=rows, program=program,
-                           team_label=store.program_label(program))
+                           team_label=store.program_label(program), colsets=_colsets('hitting'))
 
 
 @app.route('/team/<program>/dashboard')
@@ -1029,6 +1059,35 @@ def brand_logo(fname):
     return send_file(path, mimetype='image/png', max_age=86400)
 
 
+def _date_range(dates, extra=None, empty=False):
+    """Model for templates/_daterange.html from ?frm= / ?to= (ISO dates) and the list of dates the player has data for."""
+    import datetime as _dt
+    from urllib.parse import urlencode
+    def _iso(v):
+        try:
+            return _dt.date.fromisoformat((v or '')[:10]).isoformat()
+        except ValueError:
+            return None
+    frm, to = _iso(request.args.get('frm')), _iso(request.args.get('to'))
+    if frm and to and frm > to:
+        frm, to = to, frm
+    ds = sorted(d for d in dates if d)
+    today = _dt.date.today()
+    extra = dict(extra or {})
+    def qs(f, t):
+        q = {k: v for k, v in extra.items() if v}
+        if f:
+            q['frm'] = f
+        if t:
+            q['to'] = t
+        return urlencode(q)
+    presets = [('All', None, None), ('Last 7 days', (today - _dt.timedelta(days=7)).isoformat(), None), ('Last 30 days', (today - _dt.timedelta(days=30)).isoformat(), None)]
+    if ds:
+        yr = ds[-1][:4]
+        presets.append((f'{yr} season', f'{yr}-01-01', f'{yr}-12-31'))
+    return {'frm': frm, 'to': to, 'min': ds[0] if ds else '', 'max': ds[-1] if ds else '', 'empty': empty, 'extra': extra, 'presets': presets, 'qs': qs}
+
+
 @app.route('/player/<slug>')
 def player_overview(slug):
     if not session.get('coach'):
@@ -1036,11 +1095,31 @@ def player_overview(slug):
     bio = store.get_player(slug)
     if not bio or not can_view(slug):
         abort(404)
-    can_retag = can_manage(slug) and not store.is_demo(slug) and not is_player()
-    b = overview.build(slug, bio, retag=can_retag)
+    return _pitcher_page(slug, bio)
+
+
+def _share_ctx(kind, ref, program):
+    """What the Share panel on a coach's profile page needs, or None when this viewer can't share it."""
+    if is_player() or is_demo_viewer() or not session.get('coach'):
+        return None
+    if not (is_admin() or program == my_program()):
+        return None
+    t, s = shares.for_ref(kind, ref)
+    return {'url': url_for('public_share', token=t, _external=True) if t else '', 'active': bool(t),
+            'post': url_for('share_pitcher', slug=ref) if kind == 'pitcher' else url_for('share_hitter', key=ref)}
+
+
+def _pitcher_page(slug, bio, public=False, token=None):
+    can_retag = (not public) and can_manage(slug) and not store.is_demo(slug) and not is_player()
+    _dr = _date_range([o['date'] for o in outings_mod.outings(slug)])
+    b = overview.build(slug, bio, retag=can_retag, frm=_dr['frm'], to=_dr['to']) if (_dr['frm'] or _dr['to']) else None
+    if (_dr['frm'] or _dr['to']) and not b:
+        _dr = _date_range([o['date'] for o in outings_mod.outings(slug)], empty=True)
+        _dr['frm'] = _dr['to'] = None
+    b = b or overview.build(slug, bio, retag=can_retag)
     if not b:
         abort(404)
-    if not store.is_demo(slug):
+    if not public and not store.is_demo(slug):
         _track('view', slug=slug)
     last, first = _split_name(bio['name'])
     has_photo = headshots.exists(slug)
@@ -1049,13 +1128,81 @@ def player_overview(slug):
     css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
     hitter_url = None      # two-way player: a hitter profile exists for the same person (same program) -> Hitter / Pitcher switch
     _prog = bio.get('program')
-    if _prog and not store.is_demo(slug) and (is_admin() or (_prog == my_program() and plans.allowed(_prog, 'hitting'))):
+    if not public and _prog and not store.is_demo(slug) and (is_admin() or (_prog == my_program() and plans.allowed(_prog, 'hitting'))):
         _hk = hitting.hitter_key_for(bio['name'], _prog)
         hitter_url = url_for('beta_hitter', key=_hk) if _hk else None
-    return render_template('player_overview.html', can_retag=can_retag, retag_types=[l for l, _ in outings_mod.RETAG_TYPES], pr_ent=prs.for_pitcher(slug), b=b, bio=bio, slug=slug, css=css, hitter_url=hitter_url, has_photo=has_photo, badge=badge,
+    return render_template('player_overview.html', dr=_dr, public=public, photo_src=(url_for('public_share_photo', token=token) if public else None),
+                           share=(None if public else _share_ctx('pitcher', slug, _prog)), share_team=store.program_label(_prog) if (public and _prog) else '',
+                           can_retag=can_retag, retag_types=[l for l, _ in outings_mod.RETAG_TYPES], pr_ent=(None if public else prs.for_pitcher(slug)), b=b, bio=bio, slug=slug, css=css, hitter_url=hitter_url, has_photo=has_photo, badge=badge,
                            photo_v=int(os.path.getmtime(headshots.path(slug))) if has_photo else 0,
-                           initials=(first[:1] + last[:1]).upper(), pos=_player_pos(bio), is_coach=bool(session.get('coach')) and not is_player(), can_edit=can_manage(slug), is_demo=store.is_demo(slug),
-                           tour_next=(url_for('view_outing', slug=slug, date=b['log'][0]['id']) + '?tour=report') if b.get('log') else '')
+                           initials=(first[:1] + last[:1]).upper(), pos=_player_pos(bio), is_coach=(not public) and bool(session.get('coach')) and not is_player(), can_edit=(not public) and can_manage(slug), is_demo=store.is_demo(slug),
+                           tour_next='' if public else ((url_for('view_outing', slug=slug, date=b['log'][0]['id']) + '?tour=report') if b.get('log') else ''))
+
+
+@app.route('/player/<slug>/share', methods=['POST'])
+@login_required
+def share_pitcher(slug):
+    bio = store.get_player(slug)
+    if not bio or not can_view(slug) or not can_manage(slug) or store.is_demo(slug) or is_player() or is_demo_viewer():
+        abort(404)
+    if request.form.get('action') == 'revoke':
+        shares.revoke('pitcher', slug)
+    else:
+        shares.create('pitcher', slug, bio.get('program'), session.get('coach'))
+    return redirect(url_for('player_overview', slug=slug) + '#share')
+
+
+@app.route('/hitter/<key>/share', methods=['POST'])
+@login_required
+def share_hitter(key):
+    h = hitting.hitter_profile(key, include_demo=False)
+    if not h or h.get('opp_slug') or h['demo'] or is_player() or is_demo_viewer() or not (is_admin() or h['program'] == my_program()):
+        abort(404)
+    if request.form.get('action') == 'revoke':
+        shares.revoke('hitter', key)
+    else:
+        shares.create('hitter', key, h['program'], session.get('coach'))
+    return redirect(url_for('beta_hitter', key=key) + '#share')
+
+
+@app.route('/s/<token>')
+def public_share(token):
+    """The public, read-only profile behind a share link. No sign-in; the token is the key, and revoking it ends access."""
+    s = shares.get(token)
+    if not s:
+        abort(404)
+    if s['kind'] == 'pitcher':
+        bio = store.get_player(s['ref'])
+        if not bio or store.is_demo(s['ref']):
+            abort(404)
+        resp = make_response(_pitcher_page(s['ref'], bio, public=True, token=token))
+    else:
+        _d = _date_range([])
+        h = hitting.hitter_profile(s['ref'], include_demo=False, vs=request.args.get('vs', 'all'), frm=_d['frm'], to=_d['to'])
+        if not h or h['demo'] or h.get('opp_slug'):
+            abort(404)
+        resp = make_response(_hitter_render(s['ref'], h, public=True, token=token))
+    resp.headers['X-Robots-Tag'] = 'noindex, nofollow, noarchive'
+    resp.headers['Cache-Control'] = 'private, no-store'
+    resp.headers['Referrer-Policy'] = 'no-referrer'
+    return resp
+
+
+@app.route('/s/<token>/photo')
+def public_share_photo(token):
+    s = shares.get(token)
+    if not s:
+        abort(404)
+    if s['kind'] == 'pitcher':
+        slug = s['ref']
+    else:
+        h = hitting.hitter_profile(s['ref'], include_demo=False)
+        slug = (h or {}).get('bio', {}).get('photo_slug')
+    if not slug or not headshots.exists(slug):
+        abort(404)
+    resp = send_file(headshots.path(slug), mimetype='image/jpeg')
+    resp.headers['Cache-Control'] = 'private, max-age=600'
+    return resp
 
 
 @app.route('/player/<slug>/outings')
@@ -1540,7 +1687,8 @@ def _scout_hitter_page(key, h):
 @app.route('/hitter/<key>')
 @login_required
 def beta_hitter(key):
-    h = hitting.hitter_profile(key, side=request.args.get('side', 'all'), vs=request.args.get('vs', 'all'))
+    _dr0 = _date_range([])
+    h = hitting.hitter_profile(key, side=request.args.get('side', 'all'), vs=request.args.get('vs', 'all'), frm=_dr0['frm'], to=_dr0['to'])
     if not h or h['demo'] and not (is_admin() or is_demo_viewer()):
         abort(404)
     if not is_admin() and (h['program'] != my_program() or not plans.allowed(h['program'], 'hitting')):   # a coach sees only his own program's hitters
@@ -1550,9 +1698,21 @@ def beta_hitter(key):
     g.theme_program = h['program']
     if h.get('opp_slug'):
         return _scout_hitter_page(key, h)
+    return _hitter_render(key, h)
+
+
+def _hitter_render(key, h, public=False, token=None):
+    g.theme_program = h['program']
     css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
     _ps = h['bio']['photo_slug']
-    return render_template('beta_hitter.html', pr_ent=prs.for_hitter(key), h=h, css=css, can_edit=(not h['demo'] and not h.get('opp_slug') and not is_player() and (is_admin() or h['program'] == my_program())),
+    _dr = _date_range(h['dates'], {'vs': h['vs'] if h['vs'] != 'all' else '', 'side': request.args.get('side') if request.args.get('side') in ('L', 'R') else ''}, empty=h.get('range_empty', False))
+    def hurl(vs=None):
+        if public:
+            return url_for('public_share', token=token, vs=vs, frm=_dr['frm'], to=_dr['to'])
+        return url_for('beta_hitter', key=key, vs=vs, frm=_dr['frm'], to=_dr['to'])
+    return render_template('beta_hitter.html', dr=_dr, public=public, hurl=hurl, photo_src=(url_for('public_share_photo', token=token) if public and _ps else None),
+                           share=(None if public else _share_ctx('hitter', key, h['program'])), share_team=store.program_label(h['program']) if public else '',
+                           pr_ent=(None if public else prs.for_hitter(key)), h=h, css=css, can_edit=((not public) and not h['demo'] and not h.get('opp_slug') and not is_player() and (is_admin() or h['program'] == my_program())),
                            photo_v=int(os.path.getmtime(headshots.path(_ps))) if _ps else 0,
                            **({'hitters_url': url_for('team_scouting_opp', program=h['program'], opp=h['opp_slug']), 'scouting': True} if h.get('opp_slug') else {}))
 
@@ -2266,6 +2426,43 @@ def admin_activity():
 def admin_status():
     import github_sync
     return render_template_string(STATUS_PAGE, on=github_sync.enabled(), repo=github_sync.GITHUB_REPO, branch=github_sync.GITHUB_BRANCH, log=github_sync.LOG)
+
+
+@app.route('/admin/backups', methods=['GET', 'POST'])
+@admin_required
+def admin_backups():
+    import backup
+    import time as _t
+    msg = ''
+    if request.method == 'POST':
+        ok, msg = backup.run_backup(force_push=True)
+        msg = ('Backed up: ' if ok else 'Backup failed: ') + msg
+    rows = [dict(b, when=_t.strftime('%b %d, %Y %H:%M', _t.gmtime(b['mtime'])) + ' UTC', kb=b['size'] // 1024) for b in backup.list_backups()]
+    return render_template_string(BACKUPS_PAGE, rows=rows, msg=msg, log=list(reversed(backup.LOG)), branch=backup.BACKUP_BRANCH)
+
+
+@app.route('/admin/backups/<name>')
+@admin_required
+def admin_backup_download(name):
+    import backup
+    if not re.fullmatch(r'shepsavant-\d{4}-\d{2}-\d{2}\.zip', name) or not os.path.exists(os.path.join(backup.BACKUP_DIR, name)):
+        abort(404)
+    return send_file(os.path.join(backup.BACKUP_DIR, name), as_attachment=True, download_name=name)
+
+
+BACKUPS_PAGE = """
+<title>Backups</title><body style="font-family:system-ui,sans-serif;max-width:760px;margin:30px auto;padding:0 16px;color:#22303a;">
+<h1>Data backups</h1>
+<p>The whole data folder (players, rosters, outings, coaches, logs) is zipped automatically once a day and the newest 14 are kept. When GitHub sync is on, a copy also goes to the <b>{{ branch }}</b> branch once a week (and whenever you press the button), which does not redeploy the site. Backups kept on the server disappear if Render resets the server, so the GitHub copy is the one that survives.</p>
+{% if msg %}<p style="background:#eef6f0;padding:10px 14px;border-radius:8px;">{{ msg }}</p>{% endif %}
+<form method="post"><button type="submit" style="padding:9px 16px;border-radius:999px;border:0;background:#22303a;color:#fff;font-weight:700;cursor:pointer;">Back up now</button></form>
+<table style="border-collapse:collapse;width:100%;margin-top:16px;font-size:14px;">
+{% for r in rows %}<tr style="border-bottom:1px solid #e3e8e6;"><td style="padding:8px 0;"><a href="{{ url_for('admin_backup_download', name=r.name) }}">{{ r.name }}</a></td><td>{{ r.when }}</td><td style="text-align:right;">{{ r.kb }} KB</td></tr>
+{% else %}<tr><td style="color:#6b7680;padding:10px 0;">No backups yet. The first one runs shortly after the site starts, or press the button.</td></tr>{% endfor %}</table>
+{% if log %}<h3>Recent runs</h3>{% for l in log %}<div style="font-size:13px;color:{{ '#2f6b3a' if l.ok else '#a33' }};">{{ l.when }}: {{ l.detail }}</div>{% endfor %}{% endif %}
+<p style="margin-top:22px;"><a href="{{ url_for('admin_status') }}">GitHub sync status</a></p>
+</body>
+"""
 
 
 UPLOADS_PAGE = """
@@ -3214,6 +3411,10 @@ def edit_sixty(slug):
         store.set_sixty_yd_time(slug, seconds)
         pipeline.regenerate_role(slug, 'hit')
     return redirect(url_for('edit_comps', slug=slug))
+
+
+import backup as _backup
+_backup.start()
 
 
 if __name__ == '__main__':
