@@ -2705,7 +2705,7 @@ BULK_UPLOAD_PAGE = BULK_STYLE + """
 <p style="margin:0 0 8px;">Let's start by adding your first session. It takes about a minute.</p>
 <ol style="margin:0;padding-left:20px;line-height:1.6;"><li>Export a session from your tracking system as a <b>CSV</b>.</li><li>Choose that file in the matching box below and tap <b>Read file</b>.</li><li>On the next screen, confirm each player and add class year, height and weight if you have them. Then tap <b>Generate all reports</b>.</li></ol>
 <p style="margin:8px 0 0;color:#6b7680;font-size:14px;">Right after, we'll give you a quick tour of your player dashboard and outing reports.</p></div>{% endif %}
-<p>Pick the box that matches the system your file came from. Everyone in the file is picked up automatically.</p>
+<p>Choose your Trackman file. Everyone in it is picked up automatically.</p>
 {% if message %}<div class="card" style="color:#9c3a3a;">{{ message }}</div>{% endif %}
 <form method="post" enctype="multipart/form-data">{% if programs %}<p><label style="font-weight:600;">Upload to: <select name="program">{% for s, l in programs %}<option value="{{ s }}" {{ 'selected' if s == prog }}>{{ l }}</option>{% endfor %}</select></label></p>{% endif %}
 <div class="card"><label style="font-weight:700;font-size:16px;display:block;margin-bottom:6px;">What kind of session is this?</label>
@@ -2794,7 +2794,7 @@ def _safe_wm(prog):
 
 
 def _bulk_ctx(prog):
-    return {'sources': UPLOAD_SOURCES, 'programs': ([('shepherds', store.program_label('shepherds'))] + store.list_programs()) if is_admin() else None, 'prog': prog, 'prog_label': store.program_label(prog), 'theme_css': _safe_theme_css(prog), 'wm_url': _safe_wm(prog), 'nav_hitting': plans.allowed(prog, 'hitting'),
+    return {'sources': [x for x in UPLOAD_SOURCES if x[0] == 'trackman'], 'programs': ([('shepherds', store.program_label('shepherds'))] + store.list_programs()) if is_admin() else None, 'prog': prog, 'prog_label': store.program_label(prog), 'theme_css': _safe_theme_css(prog), 'wm_url': _safe_wm(prog), 'nav_hitting': plans.allowed(prog, 'hitting'),
             'opponents': sorted({e_.get('opponent') for e_ in uploadlog.entries(prog) if e_.get('opponent')})}
 
 
