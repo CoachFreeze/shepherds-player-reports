@@ -6,6 +6,7 @@
   :root{ --ink:#22303a; --teal:var(--accent,#5c97a8); --muted:#6b7680; --line:#dde2e5; }
   *{box-sizing:border-box;} body{background:#f7f6f2;color:var(--ink);font-family:'Barlow',sans-serif;margin:0;padding-bottom:40px;}
   .hero{background:var(--brand,#22303a);padding:34px 16px 24px;border-bottom:3px solid var(--teal);} .wrap{max-width:1280px;margin:0 auto;padding:0 16px;} .hero .wrap{padding:0;position:relative;}
+  .hero{position:relative;z-index:5;clip-path:inset(0 0 -900px 0);} .hero .wrap>*:not(.wm){position:relative;z-index:1;} .hero .wm{position:absolute;right:0;top:50%;transform:translateY(-50%);height:118%;max-height:140px;max-width:300px;width:auto;opacity:.2;pointer-events:none;z-index:0;object-fit:contain;} @media (max-width:640px){.hero .wm{max-height:96px;max-width:160px;}}
   .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-on-dark,#5c97a8);margin:0 0 8px;}
   h1{font:700 40px 'Oswald',sans-serif;margin:0 0 6px;color:#fff;} .sub{color:#c9d3d8;font-size:14.5px;margin:0;}
   .bar{display:flex;gap:10px;align-items:center;margin:20px 0 10px;flex-wrap:wrap;} .bar input{background:#fff;flex:1;min-width:200px;max-width:340px;padding:10px 14px;border:1px solid var(--line);border-radius:999px;font:500 14px 'Barlow',sans-serif;}
@@ -22,7 +23,7 @@
   tbody tr:hover td{background:#f7f9f9;} td.na{color:#c2cacf;}
   @media (max-width:520px){h1{font-size:32px;}}
 </style></head><body>
-<div class="hero"><div class="wrap"><div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>
+<div class="hero"><div class="wrap">{% if wm_url %}<img class="wm" src="{{ wm_url }}" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
   <p class="eyebrow">{{ team_label }}</p><h1>{{ title }}</h1><p class="sub">{{ rows|length }} {{ 'pitcher' if side == 'pitching' else 'hitter' }}{{ '' if rows|length == 1 else 's' }}. Click a column to sort. Click a name to open the player's profile.</p>
   {% set topnav_on = 'pit' if side == 'pitching' else 'hit' %}{% include '_topnav.html' %}</div></div>
 <div class="wrap">

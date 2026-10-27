@@ -17,7 +17,7 @@
   .opp b{font:700 24px 'Oswald',sans-serif;display:block;} .opp span{color:var(--muted);font-size:13.5px;display:block;margin-top:6px;line-height:1.5;}
   @media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr);gap:10px;} h1{font-size:32px;}}
 </style><style>{{ card_css() }}</style></head><body>
-<div class="hero"><div class="wrap">{% if opp and opp.logo %}<img class="wm" src="{{ opp.logo }}{{ '&' if '?' in opp.logo else '?' }}mark=1" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>
+<div class="hero"><div class="wrap">{% if opp and opp.logo %}<img class="wm" src="{{ opp.logo }}{{ '&' if '?' in opp.logo else '?' }}mark=1" alt="">{% elif wm_url and not opp %}<img class="wm" src="{{ wm_url }}" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>
   <p class="eyebrow">{{ team_label }} &middot; Scouting{% if view %} &middot; {{ 'Pitchers' if view == 'pitchers' else 'Hitters' }}{% endif %}</p><h1>{{ opp.label if opp else 'Scouting' }}</h1>
   <p class="sub">{% if opp %}{{ opp.hitters|length }} hitter{{ 's' if opp.hitters|length != 1 }} &middot; {{ opp.pitchers|length }} pitcher{{ 's' if opp.pitchers|length != 1 }} seen{% if opp.dates %} &middot; {{ opp.dates|length }} session{{ 's' if opp.dates|length != 1 }}{% endif %}{% else %}Opponents from your games and scrimmages. Private to {{ team_label }}.{% endif %}</p>{% if not opp %}{% set topnav_on = 'scout' %}{% include '_topnav.html' %}{% endif %}</div></div>
 <div class="wrap">

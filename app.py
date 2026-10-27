@@ -427,6 +427,10 @@ def inject_theme():
     if _pl:
         out['pitchers_url'] = out['hitters_url'] = home_url()
     try:
+        out['wm_url'] = _wm_url(prog) if (prog and not _pl) else None      # the team logo shown faintly in the dark page header
+    except Exception:
+        out['wm_url'] = None
+    try:
         out['nav_hitting'] = bool(prog) and plans.allowed(prog, 'hitting')
     except Exception:
         out['nav_hitting'] = bool(prog)
@@ -472,7 +476,7 @@ def add_profile_menu(resp):
             html = resp.get_data(as_text=True)
             i = html.lower().find('<body')
             j = (html.find('>', i) + 1) if i > -1 else 0       # pages without a <body> tag: put it at the very top
-            if True:
+            if 'class="bhero"' not in html:                     # the upload pages carry their own menu in the dark header
                 box = ('<style>.um-fixed{position:fixed;top:12px;right:14px;z-index:9999;} @media print{.um-fixed{display:none;}}</style>'
                        '<div class="um-fixed">' + render_template('_usermenu.html', **inject_me()) + '</div>')
                 resp.set_data(html[:j] + box + html[j:])
@@ -2697,10 +2701,10 @@ h1{font-family:Oswald,Arial,sans-serif;} .card{background:#fff;border:1px solid 
 button{margin-top:14px;padding:11px 22px;border:none;border-radius:999px;background:#5c97a8;color:#fff;font-weight:600;cursor:pointer;}</style>"""
 
 BULK_UPLOAD_PAGE = BULK_STYLE + """
-<title>Upload a .CSV</title>{% if welcome %}<div class="card" style="border-left:5px solid #5c97a8;"><h2 style="margin:0 0 6px;font-family:Oswald,Arial,sans-serif;">Welcome{% if welcome_name %}, {{ welcome_name }}{% endif %}!</h2>
+<title>Upload a .CSV</title>{% set hero_title = 'Upload a .CSV' %}{% include '_bulk_hero.html' %}{% if welcome %}<div class="card" style="border-left:5px solid #5c97a8;"><h2 style="margin:0 0 6px;font-family:Oswald,Arial,sans-serif;">Welcome{% if welcome_name %}, {{ welcome_name }}{% endif %}!</h2>
 <p style="margin:0 0 8px;">Let's start by adding your first session. It takes about a minute.</p>
 <ol style="margin:0;padding-left:20px;line-height:1.6;"><li>Export a session from your tracking system as a <b>CSV</b>.</li><li>Choose that file in the matching box below and tap <b>Read file</b>.</li><li>On the next screen, confirm each player and add class year, height and weight if you have them. Then tap <b>Generate all reports</b>.</li></ol>
-<p style="margin:8px 0 0;color:#6b7680;font-size:14px;">Right after, we'll give you a quick tour of your player dashboard and outing reports.</p></div>{% endif %}<h1>Upload a .CSV</h1>
+<p style="margin:8px 0 0;color:#6b7680;font-size:14px;">Right after, we'll give you a quick tour of your player dashboard and outing reports.</p></div>{% endif %}
 <p>Pick the box that matches the system your file came from. Everyone in the file is picked up automatically.</p>
 {% if message %}<div class="card" style="color:#9c3a3a;">{{ message }}</div>{% endif %}
 <form method="post" enctype="multipart/form-data">{% if programs %}<p><label style="font-weight:600;">Upload to: <select name="program">{% for s, l in programs %}<option value="{{ s }}" {{ 'selected' if s == prog }}>{{ l }}</option>{% endfor %}</select></label></p>{% endif %}
@@ -2720,7 +2724,7 @@ UPLOAD_SOURCES = [('trackman', 'Trackman', 'Per-pitch export from a Trackman ses
 _SOURCES_READY = {'trackman', 'fullswing'}
 
 BULK_REVIEW_PAGE = BULK_STYLE + """
-<title>Review Pitchers</title><h1>Review pitchers</h1>
+<title>Review Pitchers</title>{% set hero_title = 'Review pitchers' %}{% include '_bulk_hero.html' %}
 <p>{{ pitchers|length }} pitchers found. Fill in height/weight for the arm-angle badge (optional), uncheck anyone to skip, and review any flagged pitches.</p>
 <form method="post" enctype="multipart/form-data" action="{{ url_for('intake_bulk_run') }}">
 <input type="hidden" name="path" value="{{ path }}"><input type="hidden" name="program" value="{{ prog }}">
@@ -2753,7 +2757,7 @@ BULK_REVIEW_PAGE = BULK_STYLE + """
 
 
 SCOUT_REVIEW_PAGE = BULK_STYLE + """
-<title>Scouting upload</title><h1>Scouting only</h1>
+<title>Scouting upload</title>{% set hero_title = 'Scouting only' %}{% include '_bulk_hero.html' %}
 <p>Name the teams in this file. Both teams' hitters and pitchers go into Scouting, private to {{ prog_label }}. Nothing is added to your own dashboards.</p>
 <form method="post" action="{{ url_for('intake_bulk_run') }}">
 <input type="hidden" name="path" value="{{ path }}"><input type="hidden" name="program" value="{{ prog }}"><input type="hidden" name="session_type" value="Scouting">
@@ -2775,8 +2779,22 @@ def _target_program():
     return my_program()
 
 
+def _safe_theme_css(prog):
+    try:
+        return theme.css(theme.for_program(prog))
+    except Exception:
+        return ''
+
+
+def _safe_wm(prog):
+    try:
+        return _wm_url(prog)
+    except Exception:
+        return None
+
+
 def _bulk_ctx(prog):
-    return {'sources': UPLOAD_SOURCES, 'programs': ([('shepherds', store.program_label('shepherds'))] + store.list_programs()) if is_admin() else None, 'prog': prog, 'prog_label': store.program_label(prog),
+    return {'sources': UPLOAD_SOURCES, 'programs': ([('shepherds', store.program_label('shepherds'))] + store.list_programs()) if is_admin() else None, 'prog': prog, 'prog_label': store.program_label(prog), 'theme_css': _safe_theme_css(prog), 'wm_url': _safe_wm(prog), 'nav_hitting': plans.allowed(prog, 'hitting'),
             'opponents': sorted({e_.get('opponent') for e_ in uploadlog.entries(prog) if e_.get('opponent')})}
 
 

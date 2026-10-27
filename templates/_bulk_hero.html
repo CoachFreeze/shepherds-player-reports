@@ -1,0 +1,15 @@
+{# The dark team header for the upload pages (set hero_title first). Full-bleed even though these pages are a narrow column. #}
+{% set program = prog %}{% set nav_program = prog %}{% set topnav_on = 'upload' %}
+<style>{{ theme_css|safe }}
+.bhero{background:var(--brand,#22303a);padding:34px 16px 24px;border-bottom:3px solid var(--accent,#5c97a8);margin:-28px calc(50% - 50vw) 22px;position:relative;z-index:5;clip-path:inset(0 0 -900px 0);}
+.bhero .bw{max-width:1280px;margin:0 auto;padding:0 16px;position:relative;} .bhero .bw>*:not(.wm){position:relative;z-index:1;}
+.bhero .wm{position:absolute;right:16px;top:50%;transform:translateY(-50%);height:118%;max-height:140px;max-width:300px;width:auto;opacity:.2;pointer-events:none;z-index:0;object-fit:contain;}
+.bhero .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-on-dark,#5c97a8);margin:0 0 8px;}
+.bhero h1{font:700 40px 'Oswald',sans-serif;margin:0 0 6px;color:#fff;} .bhero .sub{color:#c9d3d8;font-size:14.5px;margin:0;}
+/* these pages style every <button> as a pill; keep the account button plain */
+.bhero .um-btn{margin:0;padding:0;background:none;border:0;border-radius:50%;}
+@media (max-width:640px){.bhero .wm{max-height:96px;max-width:160px;} .bhero h1{font-size:32px;}}</style>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<div class="bhero"><div class="bw">{% if wm_url %}<img class="wm" src="{{ wm_url }}" alt="">{% endif %}<div style="position:absolute;top:-14px;right:16px;z-index:2;">{% include '_usermenu.html' %}</div>
+  <p class="eyebrow">{{ prog_label }}</p><h1>{{ hero_title }}</h1>{% if hero_sub %}<p class="sub">{{ hero_sub }}</p>{% endif %}
+  {% include '_topnav.html' %}</div></div>
