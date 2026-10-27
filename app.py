@@ -290,7 +290,7 @@ def _demo_gate():
     return None
 
 
-_PLAYER_ENDPOINTS = {'player_overview', 'player_outings', 'player_prs', 'hitter_prs', 'view_outing', 'beta_hitter', 'headshot', 'hitter_photo', 'glossary_page',
+_PLAYER_ENDPOINTS = {'pitch_clip', 'player_overview', 'player_outings', 'player_prs', 'hitter_prs', 'view_outing', 'beta_hitter', 'headshot', 'hitter_photo', 'glossary_page',
                      'account', 'change_password', 'logout', 'static', 'school_logo', 'school_mark', 'brand_logo', 'watermark', 'onboarding_done'}
 
 
@@ -1202,6 +1202,19 @@ def public_share_photo(token):
         abort(404)
     resp = send_file(headshots.path(slug), mimetype='image/jpeg')
     resp.headers['Cache-Control'] = 'private, max-age=600'
+    return resp
+
+
+@app.route('/clip/<int:pid>/<code>/<int:year>')
+def pitch_clip(pid, code, year):
+    """Redirects to a playable Baseball Savant clip of this MLB pitcher's pitch type in that season (looked up once, then remembered)."""
+    import arsenal_comps as _ac
+    import savant_clips
+    ids = {str(r['id']) for r in _ac.load_reference()[0]}          # only pitchers in our comparison data: keeps this from being a free Savant proxy
+    if str(pid) not in ids or code not in savant_clips.CODES or not (2015 <= year <= 2035):
+        abort(404)
+    resp = redirect(savant_clips.resolve(pid, code, year))
+    resp.headers['Cache-Control'] = 'private, max-age=3600'
     return resp
 
 
