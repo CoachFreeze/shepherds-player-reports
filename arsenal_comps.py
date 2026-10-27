@@ -331,7 +331,7 @@ def suggest_pitches(arsenal, throws='R', arm_angle=None, k_neighbors=40, n=3):
             'target': {'velo_gap': t_gap, 'velo_gap_mlb': t_gap_mlb, 'hb': t_hb, 'ivb': t_ivb, 'spin': t_spin,
                        'velo': (fb['velo'] - t_gap) if fb.get('velo') else None},
             'blurb': BLURB.get(code, ''),
-            'examples': [{'name': r['name'], 'id': r['id'], 'arm_angle': r['arm_angle']} for r, _, _ in examples],
+            'examples': [{'name': r['name'], 'id': r['id'], 'arm_angle': r['arm_angle'], 'year': r.get('year') or 2026} for r, _, _ in examples],
             'n_users': len(users), 'n_neighbours': len(neighbours),
         })
     out.sort(key=lambda d: -d['score'])

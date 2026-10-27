@@ -1010,7 +1010,7 @@ def arsenal_ideas_html(ideas, colors, fb_velo=None, throws='R'):
         if clips:
             ex = '<div class="ai-clips">' + ''.join(clips) + '</div>'
         else:
-            ex = ', '.join(f'<a href="{_savant_video_url(e["id"], s["code"])}" target="_blank" rel="noopener">{e["name"]} &#9654;</a>' for e in s['examples'] if e.get('id'))
+            ex = ', '.join(f'<a href="{_savant_video_url(e["id"], s["code"], e.get("year") or 2026)}" target="_blank" rel="noopener">{e["name"]} &#9654;</a>' for e in s['examples'] if e.get('id'))
         why = (f'{s["n_users"]} of the {s["n_neighbours"]} MLB pitchers with the most similar fastball and arm slot throw it. '
                f'It would move about {s["contrast"]:.0f}\u2033 differently from your closest current pitch.')
         try:
