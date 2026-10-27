@@ -20,6 +20,10 @@ import math
 import os
 
 DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'mlb_arsenals_2026.csv')
+# Earlier seasons (2021-2025) from a Savant export with usage per pitch (n_xx_formatted) and pitches thrown (n) but no four-seam usage column:
+# that is 100 minus the rest. Extra comp candidates only; a pitcher already in the 2026 file is skipped, and tiny samples are dropped.
+HISTORY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'mlb_arsenals_history.csv')
+HISTORY_MIN_PITCHES = 200
 
 # report label -> csv prefix
 LABEL_TO_CODE = {'4-Seam': 'ff', 'Sinker': 'si', 'Slider': 'sl', 'Sweeper': 'st', 'Cutter': 'fc',
@@ -45,20 +49,26 @@ def _f(x):
         return None
 
 
-def load_reference(path=DATA_PATH):
-    if path in _cache:
-        return _cache[path]
-    rows = []
-    if os.path.exists(path):
-        with open(path, newline='', encoding='utf-8-sig') as fh:
-            for r in csv.DictReader(fh):
+def _read_rows(path, rows, skip_ids=(), history=False):
+    if not os.path.exists(path):
+        return
+    with open(path, newline='', encoding='utf-8-sig') as fh:
+        for r in csv.DictReader(fh):
+            if True:
                 hand = (r.get('pitch_hand') or '').strip().upper()[:1]
                 if hand not in ('R', 'L'):
                     continue
+                if history and (r.get('player_id') in skip_ids or r.get('year') == '2026' or (_f(r.get('n')) or 0) < HISTORY_MIN_PITCHES):
+                    continue
                 sgn = -1 if hand == 'R' else 1         # Savant break_x: righty arm-side is negative
                 pitches = {}
+                ff_use = None
+                if history:
+                    ff_use = 100 - sum(_f(r.get(f'n_{c}_formatted')) or 0 for c in CODES if c != 'ff')
                 for c in CODES:
-                    n = _f(r.get(f'n_{c}_formatted'))
+                    n = ff_use if (history and c == 'ff') else _f(r.get(f'n_{c}_formatted'))
+                    if history and c == 'ff' and (n is None or n < 1 or not _f(r.get('ff_avg_speed'))):
+                        continue
                     if not n:
                         continue
                     bx, bz = _f(r.get(f'{c}_avg_break_x')), _f(r.get(f'{c}_avg_break_z_induced'))
@@ -73,8 +83,21 @@ def load_reference(path=DATA_PATH):
                 if ',' in name:
                     last, first = [x.strip() for x in name.split(',', 1)]
                     name = f'{first} {last}'
-                rows.append({'name': name, 'id': r.get('player_id'), 'hand': hand,
+                if history:
+                    if not pitches:
+                        continue
+                    name = f"{name} ({r.get('year')})"
+                rows.append({'name': name, 'id': r.get('player_id'), 'hand': hand, 'history': history, 'year': r.get('year'),
                              'arm_angle': _f(r.get('arm_angle')), 'pitches': pitches})
+
+
+def load_reference(path=DATA_PATH):
+    if path in _cache:
+        return _cache[path]
+    rows = []
+    _read_rows(path, rows)
+    if path == DATA_PATH:
+        _read_rows(HISTORY_PATH, rows, skip_ids={r['id'] for r in rows}, history=True)
     # per-pitch league spreads, used to standardise distances
     stats = {}
     for c in CODES:
@@ -167,6 +190,13 @@ def find_arsenal_comps(arsenal, throws='R', arm_angle=None, n=3, same_hand=True,
         sc, matches = _arsenal_distance(ours, r, stats, arm_angle, r.get('arm_angle'))
         scored.append((sc, r, matches))
     scored.sort(key=lambda t: t[0])
+    seen, uniq = set(), []                       # one entry per pitcher: the same man in several seasons shouldn't fill the list
+    for t in scored:
+        if t[1]['id'] in seen:
+            continue
+        seen.add(t[1]['id'])
+        uniq.append(t)
+    scored = uniq
     out = []
     fb_o = ours.get('ff') or ours.get('si') or max(ours.values(), key=lambda p: p['pct'])
     for sc, r, matches in scored[:n]:
@@ -220,6 +250,12 @@ def suggest_pitches(arsenal, throws='R', arm_angle=None, k_neighbors=40, n=3):
     4) Spin fit: whether his spin ability suits the candidate.
     Target shape = the neighbours' average version of the pitch, expressed relative to his fastball."""
     rows, stats = load_reference()
+    _seen, _keep = set(), []                                  # one season per pitcher (the newest), so a man isn't counted as several neighbours
+    for r in sorted(rows, key=lambda r: -int(r.get('year') or 9999)):
+        if r['id'] not in _seen:
+            _seen.add(r['id'])
+            _keep.append(r)
+    rows = _keep
     ours = _normalise(arsenal, throws)
     if not rows or not ours:
         return []
