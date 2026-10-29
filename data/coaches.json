@@ -32,6 +32,18 @@
     "program_label": "Northwest Nazarene University",
     "role": "program"
   },
+  "josh.frye": {
+    "active": true,
+    "can_upload": true,
+    "created": "2026-10-29",
+    "display_name": "Josh Frye",
+    "head": "CoachFreeze",
+    "must_change": true,
+    "password_hash": "scrypt:32768:8:1$QTynewClebsOUTfA$f2f256718db5a51edb105b947cde72eac353922d6740ee4b6166330077ffa21aed4cc4b8567fd7ce577671d0eeb847ad7a060eadc89c71f5947ca6709bdbdf4f",
+    "program": "biola_university",
+    "program_label": "Biola University",
+    "role": "assistant"
+  },
   "sebastian.garcia": {
     "display_name": "Sebastian Garcia",
     "password_hash": "scrypt:32768:8:1$DltZjQ0tOoPyOO2D$bd2cc4e80fb1bc49b2cbf82911f33f33cbbf5433912f610e207f81d2911ea38463ce607c6f314da99e0c11ec82eff54ccf7c20941583e113b20349af083a28d7",
