@@ -56,5 +56,17 @@
     "program": "pepperdine_university",
     "program_label": "Pepperdine University",
     "role": "program"
+  },
+  "zachary.thomas": {
+    "active": true,
+    "can_upload": true,
+    "created": "2026-10-29",
+    "display_name": "Zachary Thomas",
+    "head": "CoachFreeze",
+    "must_change": true,
+    "password_hash": "scrypt:32768:8:1$M8PqcwLOY1eblURw$6c48378f41d6fbd4916611b2dfface6dab386e75b1cf56e4dbdf60fa14f3fbe8bc0a01bef479ae3627414c98600c5824e607e59b84406c1e949e10c31f2ad35c",
+    "program": "biola_university",
+    "program_label": "Biola University",
+    "role": "assistant"
   }
 }
