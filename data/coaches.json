@@ -3,6 +3,18 @@
     "display_name": "CoachFreeze",
     "password_hash": "scrypt:32768:8:1$UnY2M4S5NyHVH1ST$8c34675d9ca011a46f64109b1ead47d3052ece97b77733699d5e02d08a35fec3b094a78cd3d3100ef93a4eb4b41664f19d4cc68cdbe0bc89e1024c098c9ca833"
   },
+  "Connor.tallakson": {
+    "active": true,
+    "can_upload": true,
+    "created": "2026-10-29",
+    "display_name": "Connor Tallakson",
+    "head": "CoachFreeze",
+    "must_change": true,
+    "password_hash": "scrypt:32768:8:1$s6JjqrfOmkfKdsg9$18a46d4866f363b6ce9564a4ae5dbdb88ab9baee1cf8575ffdb620f503bd9028b31fa00052f762e05c6b7d7520361d3d225a0226f147e937320d135a8459f6c6",
+    "program": "biola_university",
+    "program_label": "Biola University",
+    "role": "assistant"
+  },
   "abe.alvarez": {
     "display_name": "Abe Alvarez",
     "password_hash": "scrypt:32768:8:1$392kZ1AesphAvDPZ$4d6d365b0f449f4a7db60a971bd7c04e799eb9e4d7f7f7f5b0f880fdd93c6922620d80f9db3961e25da47304e1fda4c18e320c0139146b0757ee8a04e0762551",
@@ -56,17 +68,5 @@
     "program": "pepperdine_university",
     "program_label": "Pepperdine University",
     "role": "program"
-  },
-  "zachary.thomas": {
-    "active": true,
-    "can_upload": true,
-    "created": "2026-10-29",
-    "display_name": "Zachary Thomas",
-    "head": "CoachFreeze",
-    "must_change": true,
-    "password_hash": "scrypt:32768:8:1$M8PqcwLOY1eblURw$6c48378f41d6fbd4916611b2dfface6dab386e75b1cf56e4dbdf60fa14f3fbe8bc0a01bef479ae3627414c98600c5824e607e59b84406c1e949e10c31f2ad35c",
-    "program": "biola_university",
-    "program_label": "Biola University",
-    "role": "assistant"
   }
 }
