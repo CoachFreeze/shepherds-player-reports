@@ -316,7 +316,7 @@ def _player_gate(c):
 def login():
     error = None
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
+        username = store.resolve_username(request.form.get('username', '').strip())
         password = request.form.get('password', '')
         _prog = (store.list_coaches().get(username) or {}).get('program')
         _key = (username.lower(), request.remote_addr)
@@ -2192,7 +2192,7 @@ def join(token):
     until = _d.date.fromisoformat(inv['season_end']).strftime('%B %-d, %Y')
     error, username = None, ''
     if request.method == 'POST':
-        username = re.sub(r'[^A-Za-z0-9_.-]', '', request.form.get('username', '').strip())
+        username = re.sub(r'[^a-z0-9_.-]', '', request.form.get('username', '').strip().lower())
         pw = request.form.get('password', '')
         if len(username) < 3:
             error = 'Pick a username of at least 3 letters or numbers.'
@@ -2248,6 +2248,7 @@ def welcome_signup():
     if session.get('coach') and not is_admin():
         return redirect(home_url())
     f = {k: ' '.join(request.form.get(k, '').split()) for k in ('name', 'email', 'school', 'username')}
+    f['username'] = f['username'].lower()
     error = None
     if request.method == 'POST':
         import time as _t
@@ -2255,7 +2256,7 @@ def welcome_signup():
         ip = request.remote_addr or '?'
         recent = [t for t in _SIGNUPS.get(ip, []) if now - t < 3600]
         _SIGNUPS[ip] = recent
-        u = re.sub(r'[^A-Za-z0-9_.-]', '', f['username'])
+        u = re.sub(r'[^a-z0-9_.-]', '', f['username'])
         pslug = store.program_slug(f['school'])
         pw = request.form.get('password', '')
         existing = store.list_coaches()
@@ -2315,7 +2316,7 @@ def team_coaches(program):
         target = f.get('username', '')
         t = store.list_coaches().get(target)
         if act == 'add':
-            u = re.sub(r'[^A-Za-z0-9_.-]', '', f.get('username', '').strip())
+            u = re.sub(r'[^a-z0-9_.-]', '', f.get('username', '').strip().lower())
             name = ' '.join(f.get('display_name', '').split())
             ok, why = plans.can_add_assistant(program)
             if not ok:
@@ -2683,7 +2684,7 @@ def admin_coaches():
     msg, err = None, False
     if request.method == 'POST':
         f = request.form
-        u = re.sub(r'[^A-Za-z0-9_.-]', '', f.get('username', '').strip())
+        u = re.sub(r'[^a-z0-9_.-]', '', f.get('username', '').strip().lower())
         if not u or len(f.get('password', '')) < 8 or not f.get('display_name', '').strip():
             msg, err = 'Username, name and a password of at least 8 characters are required.', True
         else:
@@ -3426,6 +3427,7 @@ def edit_sixty(slug):
     return redirect(url_for('edit_comps', slug=slug))
 
 
+store.lowercase_usernames()          # one-time tidy: every login name is lowercase
 import backup as _backup
 _backup.start()
 

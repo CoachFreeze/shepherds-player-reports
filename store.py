@@ -122,8 +122,20 @@ def list_coaches():
     return _load(COACHES_PATH, {})
 
 
-def _push_coaches():
+def _push_coaches(drop=()):
+    """Saves coaches.json to GitHub. Every save there redeploys the site, and a fresh deploy starts from what GitHub held when it was built,
+    so two logins added a minute apart could have the first one wiped by the second (the new server never saw it). To stop that, any login
+    GitHub already has that this copy is missing is put back first (`drop` = logins that were just deliberately removed)."""
     try:
+        remote = github_sync.get_json('data/coaches.json')
+        if isinstance(remote, dict):
+            local = _load(COACHES_PATH, {})
+            back = [u for u in remote if u not in local and u not in drop]
+            if back:
+                for u in back:
+                    local[u] = remote[u]
+                _save(COACHES_PATH, local)
+                print(f'NOTE: restored {len(back)} login(s) that GitHub had but this copy had lost: {", ".join(back)}')
         with open(COACHES_PATH, 'rb') as f:
             github_sync.put_file('data/coaches.json', f.read())
     except Exception as exc:
@@ -154,7 +166,39 @@ def delete_coach(username):
     if username in coaches:
         del coaches[username]
         _save(COACHES_PATH, coaches)
-        _push_coaches()
+        _push_coaches(drop={username})
+
+
+def resolve_username(typed):
+    """What someone typed at login -> the stored login name. Names are lowercase; an older mixed-case one still matches whatever case is typed."""
+    typed = (typed or '').strip()
+    coaches = list_coaches()
+    if typed in coaches:
+        return typed
+    low = typed.lower()
+    return next((u for u in coaches if u.lower() == low), low)
+
+
+def lowercase_usernames():
+    """Renames any login that still has capital letters to all lowercase (and points assistants' / players' `head` at the new name).
+    Skips a rename if the lowercase name is already taken. Returns {old: new}."""
+    try:
+        coaches = list_coaches()
+        ren = {u: u.lower() for u in coaches if u != u.lower() and u.lower() not in coaches}
+        if not ren:
+            return {}
+        out = {}
+        for u, c in coaches.items():
+            if c.get('head') in ren:
+                c['head'] = ren[c['head']]
+            out[ren.get(u, u)] = c
+        _save(COACHES_PATH, out)
+        _push_coaches(drop=set(ren))
+        print(f'NOTE: usernames set to lowercase: {ren}')
+        return ren
+    except Exception as exc:
+        print(f'WARNING: could not lowercase usernames: {exc}')
+        return {}
 
 
 def verify_coach(username, password):

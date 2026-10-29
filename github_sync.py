@@ -212,3 +212,18 @@ def put_file(repo_path, content_bytes):
     except Exception as exc:
         print(f'WARNING: GitHub put of {repo_path} raised: {exc}')
         _log(repo_path, False, str(exc))
+
+
+def get_json(repo_path):
+    """The current JSON content of one file on the branch (what is really saved in GitHub), or None if it can't be read."""
+    if not enabled():
+        return None
+    try:
+        r = requests.get(f'{API_BASE}/repos/{GITHUB_REPO}/contents/{repo_path}', params={'ref': GITHUB_BRANCH}, timeout=15,
+                         headers={**_headers(), 'Accept': 'application/vnd.github.raw+json'})
+        if r.status_code != 200:
+            return None
+        return json.loads(r.content.decode('utf-8'))
+    except Exception as exc:
+        print(f'WARNING: GitHub read of {repo_path} raised: {exc}')
+        return None
