@@ -31,6 +31,7 @@ HIT_CATALOG = {
     'sweet_spot_pct': ('Sweet Spot %', 'Contact quality', 'Balls in play with a launch angle of 8-32 degrees.', 'pct'),
     'xba': ('xBA', 'Contact quality', 'Expected batting average from exit velocity and launch angle.', 'avg'),
     'avg_la': ('Avg Launch Angle', 'Contact quality', 'Average launch angle on balls in play (degrees).', 'deg'),
+    'qab_pct': ('Quality AB %', 'Plate discipline', 'Quality at-bats / plate appearances. A quality at-bat is a hit, a walk or HBP, a ball hit 95+ mph, or a 6+ pitch plate appearance. Needs 5 finished plate appearances.', 'pct'),
     'score': ('Swing Decision Rating', 'Plate discipline', 'Overall swing-decision score, 0-100.', 'int'),
     'chase_pct': ('Chase %', 'Plate discipline', 'Swings at pitches outside the zone. Lower is better.', 'pct'),
     'zone_swing_pct': ('Zone Swing %', 'Plate discipline', 'Swings at pitches in the zone.', 'pct'),

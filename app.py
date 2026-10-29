@@ -650,7 +650,7 @@ _PSTAT_SKIP = {'bf', 'ip', 'pitches'}     # estimates that read as real box-scor
 _STAT_ABBR = {
     # hitting
     'avg_ev': 'Avg EV', 'max_ev': 'Max EV', 'ev90': 'EV90', 'hard_hit_pct': 'HH%', 'sweet_spot_pct': 'SwSp%', 'xba': 'xBA', 'avg_la': 'LA',
-    'score': 'SDR', 'chase_pct': 'Chase%', 'zone_swing_pct': 'Z-Swing%', 'swing_pct': 'Swing%', 'whiff_pct': 'Whiff%', 'zone_contact_pct': 'Z-Con%',
+    'score': 'SDR', 'qab_pct': 'QAB%', 'chase_pct': 'Chase%', 'zone_swing_pct': 'Z-Swing%', 'swing_pct': 'Swing%', 'whiff_pct': 'Whiff%', 'zone_contact_pct': 'Z-Con%',
     'brl_pct': 'Brl%', 'gb_pct': 'GB%', 'ld_pct': 'LD%', 'fb_pct': 'Fly%', 'pu_pct': 'PU%', 'pull_pct': 'Pull%', 'avg_bs': 'Avg BS', 'max_bs': 'Max BS',
     'sq_pct': 'Sq%', 'avg_smash': 'Smash', 'ev_gap': 'EV Gap', 'bip': 'BIP',
     # pitching

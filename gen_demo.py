@@ -137,7 +137,7 @@ def make_pitch(rng, P, t, balls, strikes, bside, fatigue):
     va = clip(-9.5 + 0.105 * ivb_ + 0.029 * (velo - 80) + 0.2 * (z - 2.5) + rng.gauss(0, .3), -11, -2.5)
     return {
         'TaggedPitchType': t, 'RelSpeed': f'{velo:.2f}', 'SpinRate': f'{spin:.0f}', 'RelHeight': f'{rel_h:.3f}', 'RelSide': f'{rel_s:.3f}',
-        'PlateLocHeight': f'{z:.3f}', 'PlateLocSide': f'{x:.3f}', 'VertApprAngle': f'{va:.2f}', 'HorzApprAngle': f'{clip(rng.gauss(0, .2) - hb_ * .03 + rel_s * .1, -3, 3):.2f}',
+        'PlateLocHeight': f'{z:.3f}', 'PlateLocSide': f'{-x:.3f}', 'VertApprAngle': f'{va:.2f}', 'HorzApprAngle': f'{clip(rng.gauss(0, .2) - hb_ * .03 + rel_s * .1, -3, 3):.2f}',
         'InducedVertBreak': f'{ivb_:.1f}', 'HorzBreak': f'{hb_:.1f}', 'VertBreak': f'{vb:.1f}', 'Extension': f'{rng.gauss(P["ext"], .12):.2f}',
         'pfxx': f'{-0.65 * hb_:.1f}', 'pfxz': f'{ivb_:.1f}', 'ZoneSpeed': f'{velo * 0.915:.1f}', 'SpinAxis': f'{axis:.0f}', 'Tilt': f'{th}:{tm:02d}',
         '_x': x, '_z': z, '_v': velo, '_t': t,

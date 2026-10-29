@@ -39,7 +39,7 @@ def _norm_trackman(r):
     return {
         'batter': (r.get('Batter') or '').strip(), 'side': side, 'date': (r.get('Date') or '')[:10],
         'pitcher': r.get('Pitcher'), 'p_throws': {'Right': 'R', 'Left': 'L', 'R': 'R', 'L': 'L'}.get(r.get('PitcherThrows') or r.get('Pitcher Throws')), 'pitch_type': r.get('TaggedPitchType'), 'speed': e._fnum(r.get('RelSpeed')),
-        'x': e._fnum(r.get('PlateLocSide')), 'z': e._fnum(r.get('PlateLocHeight')),
+        'x': (lambda v: -v if v is not None else None)(e._fnum(r.get('PlateLocSide'))), 'z': e._fnum(r.get('PlateLocHeight')),   # Trackman: + is the right-handed batter's side (catcher's left); stored flipped so + = catcher's right, as drawn
         'outcome': e._outcome(r),
         'ev': e._fnum(r.get('ExitSpeed')), 'la': e._fnum(r.get('Angle')),
         'bat_speed': e._fnum(r.get('BatSpeed')), 'smash': e._fnum(r.get('SmashFactor')), 'squared': e._fnum(r.get('SquaredUp')), 'pot_ev': e._fnum(r.get('PotExitSpeed')),
@@ -294,6 +294,34 @@ def spray_zone(p):
     return 'pull' if toward_pull > 15 else 'oppo' if toward_pull < -15 else 'center'
 
 
+def qab_stats(pitches):
+    """Quality at-bats. Plate appearances are rebuilt from the pitch sequence (a 0-0 pitch starts a new one) and only finished ones count:
+    a ball in play, a walk, a hit-by-pitch or a strikeout. A PA is a quality at-bat when it has any of: a hit, a walk or HBP,
+    a ball hit 95+ mph (even if it was caught), or 6 or more pitches. Hits count only when the session has result tags."""
+    pas, cur = [], []
+    for p in pitches:
+        if (p.get('balls'), p.get('strikes')) == ('0', '0') and cur:
+            pas.append(cur)
+            cur = []
+        cur.append(p)
+    if cur:
+        pas.append(cur)
+    done = qual = 0
+    for pa in pas:
+        last = pa[-1]
+        cc = count_ctx(last)
+        walk = last['outcome'] == 'ball' and cc is not None and cc[0] == 3
+        k = last['outcome'] in ('whiff', 'cs') and cc is not None and cc[1] == 2
+        if not (last['outcome'] in ('inplay', 'hbp') or walk or k):
+            continue                                     # cut off mid-count (a drill, or pitches missing from the file)
+        done += 1
+        hit = any(p['outcome'] == 'inplay' and p.get('hit') for p in pa)
+        hard = any(p['outcome'] == 'inplay' and p.get('ev') is not None and p['ev'] >= 95 for p in pa)
+        if hit or hard or walk or last['outcome'] == 'hbp' or len(pa) >= 6:
+            qual += 1
+    return {'qab': qual, 'qab_pa': done, 'qab_pct': _pct(qual, done) if done >= 5 else None}
+
+
 def hitter_stats(pitches):
     n = len(pitches)
     judged = [(p, j) for p in pitches for j in [judge(p)] if j]
@@ -367,7 +395,7 @@ def hitter_stats(pitches):
         'disc_g': letter_grade(disc if disc_n >= 5 else None), 'hit_g': letter_grade(hit if hit_n >= 5 else None), 'dmg_g': letter_grade(dmg),
         'dmg': dmg, 'dmg_n': len(hp), 'xbacon': xbacon, 'splits': splits, 'fb_hc_takes': fb_hc, 'excused_takes': excused,
         'xba': xb['xba'], 'ba': xb['ba'], 'ab': xb['ab'], 'xh': xb['xh'], 'ks': xb['k'],
-        'pitches': n, 'pa': pa, 'decisions': decided,
+        'pitches': n, 'pa': pa, 'decisions': decided, **qab_stats(pitches),
         'score': score, 'grade': grade(score) if decided >= 15 else None,
         'good': good, 'bad': bad, 'neutral': cnt(verdict='neutral'),
         'swing_pct': _pct(len(swings), len(judged)),

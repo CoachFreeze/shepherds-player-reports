@@ -753,8 +753,10 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
         if hb is not None and ivb is not None:
             d['points'].append((hb, ivb, velo))
             d['pids'].append((row.get('PitchUID') or f"{row.get('Date')}|{row.get('PitchNo')}|{row.get('Time')}", str(row.get('Date') or '')[:10]))
-        # plate location (feet; side + = catcher's right / 1B side), for the zone heat map
+        # plate location (feet), for the zone heat map. Trackman's PlateLocSide is + toward the right-handed batter's side (the catcher's left,
+        # checked against hit-by-pitches and pitch-type tendencies), so it is flipped here: side + = catcher's right / 1B side, the way the charts draw it.
         side = _tm_num(_tm_get(row, _TM_LOC_SIDE_COLS))
+        side = -side if side is not None else None
         height = _tm_num(_tm_get(row, _TM_LOC_HEIGHT_COLS))
         if side is not None and height is not None:
             d['loc'].append({
