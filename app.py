@@ -1355,6 +1355,31 @@ def team_games(program):
     return render_template('games.html', program=program, team_label=store.program_label(program), games=out)
 
 
+@app.route('/team/<program>/catchers')
+@login_required
+def team_catchers(program):
+    _team_ok(program)
+    import catcher
+    g.theme_program = program
+    B = catcher.build(program)
+    cs = sorted(B['catchers'].values(), key=lambda c: -c['n'])
+    return render_template('catchers.html', program=program, team_label=store.program_label(program), catchers=cs, team_call=B['team_call'])
+
+
+@app.route('/team/<program>/catchers/<key>')
+@login_required
+def team_catcher(program, key):
+    _team_ok(program)
+    import catcher
+    g.theme_program = program
+    B = catcher.build(program)
+    c = B['catchers'].get(key)
+    if not c:
+        abort(404)
+    return render_template('catcher_profile.html', program=program, team_label=store.program_label(program), c=c, team_call=B['team_call'],
+                           zone_svg=catcher.zone_svg(c['recv']['points']), res_ids=catcher.RESULT_IDS)
+
+
 @app.route('/team/<program>/game/<gid>/notes', methods=['POST'])
 @login_required
 def team_game_notes(program, gid):
