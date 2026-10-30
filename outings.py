@@ -61,6 +61,23 @@ def _normalize_dates(data):
     return data
 
 
+_PT_SIFT = {'twoseamfastball': 'Sinker', 'twoseam': 'Sinker', 'fourseamfastball': 'Fastball', 'fourseam': 'Fastball'}
+_PT_COLS = ('TaggedPitchType', 'AutoPitchType')
+
+
+def sift_types(data):
+    """Trackman's TwoSeamFastball is a Sinker and FourSeamFastball is a Fastball, wherever they appear (uploads and already-stored data)."""
+    for o in data.get('outings', []):
+        for r in o.get('rows', []):
+            for c in _PT_COLS:
+                v = r.get(c)
+                if isinstance(v, str) and v:
+                    n = _PT_SIFT.get(v.lower().replace(' ', '').replace('-', '').replace('_', ''))
+                    if n:
+                        r[c] = n
+    return data
+
+
 def load(slug, real_only=False):
     p = _path(slug)
     if not os.path.exists(p):
@@ -70,7 +87,7 @@ def load(slug, real_only=False):
         else:
             return {'outings': []}
     with open(p, encoding='utf-8') as f:
-        return _normalize_dates(json.load(f))
+        return sift_types(_normalize_dates(json.load(f)))
 
 
 def _save(slug, data, push=True):
@@ -88,6 +105,7 @@ def _uid(r):
 
 def add_rows(slug, rows, live_ab=False, push=True):
     """Adds one pitcher's Trackman rows, split by calendar date. Returns the list of outing ids touched."""
+    sift_types({'outings': [{'rows': rows}]})
     data = load(slug, real_only=True)       # never start from the bundled sample data
     by_id = {o['id']: o for o in data['outings']}
     touched = []
