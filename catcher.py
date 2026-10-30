@@ -89,14 +89,15 @@ def _takes(rows):
         p = hitting._norm_trackman(r)
         if p['outcome'] not in ('ball', 'cs') or p['x'] is None or p['z'] is None:
             continue
-        out.append((edge_dist(p['x'], p['z']), p['outcome'] == 'cs', p['x'], p['z']))
+        out.append((edge_dist(p['x'], p['z']), p['outcome'] == 'cs', p['x'], p['z'],
+                    (str(p.get('pitch_type') or 'Unknown').strip() or 'Unknown', p.get('speed'), display(p.get('pitcher') or ''))))
     return out
 
 
 def fit_zone_model(takes):
     """Logistic curve for P(called strike) by distance from the edge, fit to every take near the edge in the pool (our own umpires, our own
     data). Falls back to a typical curve when the pool is small."""
-    pts = [(d, 1.0 if cs else 0.0) for d, cs, _, _ in takes if abs(d) <= 0.7]
+    pts = [(d, 1.0 if cs else 0.0) for d, cs, *_ in takes if abs(d) <= 0.7]
     a, b = 0.0, 22.0          # p = 1 / (1 + exp(-(a - b d)))
     if len(pts) < 150:
         return a, b
@@ -141,7 +142,7 @@ def receiving(rows, model):
         'in_n': len(inside), 'in_cs': sum(1 for x in inside if x[1]),
         'in_pct': round(100 * sum(1 for x in inside if x[1]) / len(inside), 1) if inside else None,
         'near_n': len(near), 'extra': round(extra, 1), 'per100': round(100 * extra / len(near), 1) if near else None,
-        'rated': len(border) >= MIN_BORDER, 'points': [(x[2], x[3], x[1]) for x in t if abs(x[0]) <= 0.9],
+        'rated': len(border) >= MIN_BORDER, 'points': [(x[2], x[3], x[1], *x[4]) for x in t if abs(x[0]) <= 0.9],
     }
 
 
@@ -161,11 +162,13 @@ def zone_svg(points, width=360):
     for m in (1, 2):
         s.append(f'<line x1="{zl + (zr - zl) * m / 3:.1f}" y1="{zt:.1f}" x2="{zl + (zr - zl) * m / 3:.1f}" y2="{zb:.1f}" stroke="#22303a" stroke-opacity=".12"/>')
         s.append(f'<line x1="{zl:.1f}" y1="{zt + (zb - zt) * m / 3:.1f}" x2="{zr:.1f}" y2="{zt + (zb - zt) * m / 3:.1f}" stroke="#22303a" stroke-opacity=".12"/>')
-    for x, z, cs in points:
+    for x, z, cs, pt, mph, pn in points:
+        tip = f'{pt}' + (f' · {mph:.1f} mph' if mph else '') + (f' · {pn}' if pn else '') + (' · Called strike' if cs else ' · Ball')
+        at = f'class="pp" data-t="{pt}" data-cs="{1 if cs else 0}" data-tip="{tip}"'
         if cs:
-            s.append(f'<circle cx="{X(x):.1f}" cy="{Y(z):.1f}" r="5" fill="#2f9e6b" fill-opacity=".85" stroke="#fff" stroke-width="1"/>')
+            s.append(f'<circle {at} cx="{X(x):.1f}" cy="{Y(z):.1f}" r="5" fill="#2f9e6b" fill-opacity=".85" stroke="#fff" stroke-width="1"/>')
         else:
-            s.append(f'<circle cx="{X(x):.1f}" cy="{Y(z):.1f}" r="4.5" fill="#fff" stroke="#8a97a0" stroke-width="1.6"/>')
+            s.append(f'<circle {at} cx="{X(x):.1f}" cy="{Y(z):.1f}" r="4.5" fill="#fff" stroke="#8a97a0" stroke-width="1.6"/>')
     s.append('</svg>')
     return ''.join(s)
 
