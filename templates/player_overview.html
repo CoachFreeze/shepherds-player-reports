@@ -48,20 +48,20 @@
   .prt{border:0;background:#22303a!important;color:#fff!important;opacity:1!important;border-radius:999px;padding:8px 16px;font:700 13px Barlow,sans-serif;cursor:pointer;} @media print{.prt,.top .upl{display:none!important;}}
 </style>{% import '_prs.html' as prm %}{{ prm.css() }}</head><body><div class="ov">
 {% if public %}<div class="top"><span><b>{{ share_team }}</b> &middot; Player profile</span><button type="button" class="prt" onclick="window.print()">Print / Save PDF</button></div>{% else %}<div class="top">{% if me and me.is_player %}<span></span>{% else %}<a href="{{ pitchers_url }}">&larr; {{ 'Back to scouting' if scouting else ('Pitchers' if nav_program else 'All players') }}</a>{% endif %}{% if is_coach and not scouting %}<span style="display:flex;align-items:center;gap:12px;">{% if me.can_upload %}<a class="upl" href="{{ url_for('intake_bulk') }}">+ Upload a .CSV</a>{% endif %}{% include '_usermenu.html' %}</span>{% elif me and me.is_player %}{% include '_usermenu.html' %}{% endif %}</div>{% endif %}
-<div class="head">
+<div class="head" style="position:relative;">
   <div class="hs">{% if has_photo %}<img src="{{ photo_src or url_for('headshot', slug=slug) }}?v={{ photo_v }}" alt="">{% elif badge %}<img src="{{ url_for('school_logo', fname=badge.file) }}" alt="" style="width:100%;height:100%;object-fit:contain;padding:18%;background:{{ badge.bg }};">{% else %}<span>{{ initials }}</span>{% endif %}</div>
   <div style="flex:1;min-width:220px;">
     <h1>{{ bio.name }}</h1>
     <div class="sub">{% if pos %}<b>{{ pos }}</b>{% endif %}{% if bio.school %} &middot; {{ bio.school }}{% endif %}{% if bio.grad_year %} &middot; Class of {{ bio.grad_year }}{% endif %}</div>
     <div class="sub">{% if b.meta.throws %}<b>Throws:</b> {{ b.meta.throws }}{% endif %}{% if bio.height_in %} &middot; {{ (bio.height_in//12)|int }}'{{ (bio.height_in%12)|int }}"{% endif %}{% if bio.weight_lbs %} &middot; {{ bio.weight_lbs|int }} lb{% endif %}</div>
     <div class="rng">Profile built from the last {{ b.n_outings }} outing{{ 's' if b.n_outings != 1 }} &middot; {{ b.n_pitches }} pitches &middot; {{ b.range }}</div>
+{% if share and not public %}{% include '_share.html' %}{% endif %}
     {% if hitter_url or (can_edit and not is_demo) %}<div class="photo-form">{% if hitter_url %}<span class="vsw"><a href="{{ hitter_url }}">Hitter</a><b>Pitcher</b></span>{% endif %}{% if can_edit and not is_demo %}<a class="editbtn" href="{{ url_for('edit_profile', slug=slug) }}">Edit Profile</a>{% endif %}</div>{% endif %}
   </div>
   <div class="gobtns">{% if not public %}{% if pr_ent %}{{ prm.button(url_for('player_prs', slug=slug)) }}{% endif %}{% if b.log %}<a class="gobtn" href="{{ url_for('player_outings', slug=slug) }}">Go to Outing Reports &rarr;</a>{% endif %}{% endif %}</div>
 </div>
 
 {{ prm.banner(pr_ent, url_for('player_prs', slug=slug)) }}
-{% if share and not public %}{% include '_share.html' %}{% endif %}
 {% if dr and not scouting %}{% include '_daterange.html' %}{% endif %}
 {% if ins and not public %}{% include '_insights.html' %}{% endif %}
 <div class="pn" id="stats"><div class="pn-t">Pitching Profile</div><div class="pn-s">{{ 'Selected range: ' if dr and (dr.frm or dr.to) else 'Last ' }}{{ b.n_outings }} outing{{ 's' if b.n_outings != 1 }}{% if can_edit %} &middot; <a href="#" id="stOpen" style="color:var(--accent-teal);font-weight:700;">Customize stats</a>{% endif %}</div>
@@ -107,9 +107,9 @@
   {% else %}{{ b.movement_html|safe }}{% endif %}</div>{% endif %}
 {% if b.effect %}<div class="pn"><div class="pn-t">Pitch Effectiveness</div><div class="pn-s">Every pitch he throws, split by the batter's side &middot; grey rows are under 10 pitches</div>
   {% for s in b.effect %}<div class="fx-h">{{ s.title }}<small>{{ s.n }} pitches</small></div>
-  {% if s.n %}<div class="fxs"><table class="fx"><tr><th>Pitch</th><th>Avg Velo</th><th>Usage %</th><th>In Zone %</th><th>Whiff %</th><th>Chase %</th><th>Avg Exit Velo</th><th title="xBAA: Expected Batting Average Against. What opposing hitters would hit against him, from how hard and at what angle they hit the ball (no defense, parks or luck).">xBAA</th></tr>
+  {% if s.n %}<div class="fxs"><table class="fx"><tr><th>Pitch</th><th>Avg Velo</th><th title="Average spin rate (rpm)">Avg Spin</th><th>Usage %</th><th>In Zone %</th><th>Whiff %</th><th>Chase %</th><th>Avg Exit Velo</th><th title="xBAA: Expected Batting Average Against. What opposing hitters would hit against him, from how hard and at what angle they hit the ball (no defense, parks or luck).">xBAA</th></tr>
     {% for r in s.rows %}<tr class="{{ 'sm' if r.n < 10 }}"><td class="ty" title="{{ r.n }} pitches"><i style="display:inline-block;width:11px;height:11px;border-radius:50%;background:{{ r.color }};margin-right:7px;vertical-align:-1px;"></i>{{ r.type }}</td>
-      <td>{{ '%.1f'|format(r.velo) if r.velo is not none else '—' }}</td><td>{{ '%.1f%%'|format(r.usage) if r.n else '—' }}</td><td>{{ '%.1f%%'|format(r.zone) if r.zone is not none else '—' }}</td>
+      <td>{{ '%.1f'|format(r.velo) if r.velo is not none else '—' }}</td><td>{{ '%d'|format(r.spin) if r.spin is not none else '—' }}</td><td>{{ '%.1f%%'|format(r.usage) if r.n else '—' }}</td><td>{{ '%.1f%%'|format(r.zone) if r.zone is not none else '—' }}</td>
       <td>{{ '%.1f%%'|format(r.whiff) if r.whiff is not none else '—' }}</td><td>{{ '%.1f%%'|format(r.chase) if r.chase is not none else '—' }}</td>
       <td>{{ '%.1f'|format(r.ev) if r.ev is not none else '—' }}</td><td>{{ ('%.3f'|format(r.xba))[1:] if r.xba is not none else '—' }}</td></tr>{% endfor %}</table></div>
   {% else %}<p class="pn-s" style="margin:10px 0 4px;">No pitches to {{ 'right' if s.side == 'R' else 'left' }}-handed batters yet.</p>{% endif %}{% endfor %}</div>{% endif %}

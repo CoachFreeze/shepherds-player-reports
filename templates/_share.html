@@ -2,7 +2,7 @@
 <div class="shr" id="share">
   {% set ico %}<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 9.5H7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1.5"/><path d="M12 15V3.5"/><path d="M8.6 6.6 12 3.2l3.4 3.4"/></svg>{% endset %}
   {% if share.active %}
-    <button type="button" class="shi on" id="shBtn" title="Share Profile" aria-label="Share Profile" aria-expanded="false" onclick="var p=document.getElementById('shPop');p.hidden=!p.hidden;this.setAttribute('aria-expanded',!p.hidden)">{{ ico }}</button>
+    <button type="button" class="shi" id="shBtn" title="Share Profile" aria-label="Share Profile" aria-expanded="false" onclick="var p=document.getElementById('shPop');p.hidden=!p.hidden;this.setAttribute('aria-expanded',!p.hidden)">{{ ico }}</button>
     <div class="shp" id="shPop" hidden>
       <div class="shh">Share Profile</div>
       <input type="text" readonly value="{{ share.url }}" onclick="this.select()" id="shUrl" title="Anyone with this link can view his name, photo, bio and stats, with no sign-in. It does not show team rankings, personal bests or any other player.">
@@ -13,7 +13,8 @@
     <form method="post" action="{{ share.post }}"><input type="hidden" name="action" value="create"><button type="submit" class="shi" title="Share Profile" aria-label="Share Profile">{{ ico }}</button></form>
   {% endif %}
 </div>
-<style>.head,.phead{position:relative;} .shr{position:absolute;top:14px;right:14px;z-index:20;margin:0;} .shr form{margin:0;}
-.shi{width:38px;height:38px;border-radius:50%;border:1px solid #d6dde1;background:#fff;color:#22303a;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:background .12s,color .12s,border-color .12s;} .shi:hover{background:#22303a;color:#fff;border-color:#22303a;} .shi.on{background:#eaf4ef;border-color:#2f9e6b;color:#1d7a4f;} .shi.on:hover{background:#1d7a4f;color:#fff;}
+{% if share.active %}<script>(function(){var b=document.getElementById('shBtn'),p=document.getElementById('shPop');if(b&&p&&location.hash==='#share'){p.hidden=false;b.setAttribute('aria-expanded','true');}document.addEventListener('click',function(e){if(!p.hidden&&!e.target.closest('#share')){p.hidden=true;b.setAttribute('aria-expanded','false');}});})();</script>{% endif %}
+<style>.shr{position:absolute;top:14px;right:14px;z-index:20;margin:0;} .shr form{margin:0;}
+.shi{width:38px;height:38px;border-radius:50%;border:1px solid #d6dde1;background:#fff;color:#22303a;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:background .12s,color .12s,border-color .12s;} .shi:hover{background:#22303a;color:#fff;border-color:#22303a;}
 .shp{position:absolute;top:46px;right:0;width:300px;background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(26,31,36,.2);padding:12px;font:500 13px 'Barlow',sans-serif;color:#55626b;} .shp[hidden]{display:none;} .shh{font:700 11.5px 'Barlow',sans-serif;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;color:#22303a;}
 .shp input[type=text]{width:100%;padding:7px 10px;border:1px solid #dde2e5;border-radius:8px;font:500 13px 'Barlow',sans-serif;box-sizing:border-box;} .shrow{display:flex;gap:8px;margin-top:8px;} .shrow button{padding:7px 14px;border:0;border-radius:999px;background:#22303a;color:#fff;font:700 13px 'Barlow',sans-serif;cursor:pointer;} .shrow button.off{background:#f1dede;color:#8f2f2f;} @media print{.shr{display:none;}}</style>
