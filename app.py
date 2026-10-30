@@ -415,6 +415,9 @@ def inject_prs():
     return {'pr_new': _new, 'pr_dates': _dates}
 
 
+# Every subject heading shows with each word capitalized (Top Exit Velocity), without touching the stored text.
+_TITLE_CSS = 'h1,h2,h3,h4,.half-head,.phead,.fx-h,.g-t,.board h4,.card>.head,.sh,.sect-title{text-transform:capitalize;}'
+
 @app.context_processor
 def inject_theme():
     """School colors (see theme.py) plus back-link targets for whichever program's page this is. Pages with no program (admin tools,
@@ -424,7 +427,7 @@ def inject_theme():
     out = {'nav_program': None if _pl else prog, 'home_url': home_url(), 'home_label': 'my profile' if _pl else ('Team Dashboard' if prog else 'dashboard'),
            'pitchers_url': url_for('team_pitchers', program=prog) if prog else url_for('dashboard'),
            'hitters_url': url_for('team_hitters', program=prog) if prog else (url_for('beta_hitters') if is_admin() else url_for('dashboard')),
-           'theme_css': '', 'theme_program': None}
+           'theme_css': _TITLE_CSS, 'theme_program': None}
     if _pl:
         out['pitchers_url'] = out['hitters_url'] = home_url()
     try:
@@ -437,7 +440,7 @@ def inject_theme():
         out['nav_hitting'] = bool(prog)
     if prog:
         try:
-            out['theme_css'] = theme.css(theme.for_program(prog))
+            out['theme_css'] = theme.css(theme.for_program(prog)) + _TITLE_CSS
             out['theme_program'] = prog
         except Exception:
             pass
