@@ -63,6 +63,7 @@
 {{ prm.banner(pr_ent, url_for('player_prs', slug=slug)) }}
 {% if share and not public %}{% include '_share.html' %}{% endif %}
 {% if dr and not scouting %}{% include '_daterange.html' %}{% endif %}
+{% if ins and not public %}{% include '_insights.html' %}{% endif %}
 <div class="pn" id="stats"><div class="pn-t">Pitching Profile</div><div class="pn-s">{{ 'Selected range: ' if dr and (dr.frm or dr.to) else 'Last ' }}{{ b.n_outings }} outing{{ 's' if b.n_outings != 1 }}{% if can_edit %} &middot; <a href="#" id="stOpen" style="color:var(--accent-teal);font-weight:700;">Customize stats</a>{% endif %}</div>
   <div class="tiles">
   {% for s in b.stat_tiles %}

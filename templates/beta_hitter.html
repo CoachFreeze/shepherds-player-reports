@@ -75,6 +75,7 @@
   {{ prm.banner(pr_ent, url_for('hitter_prs', key=h.key)) }}
   {% if share and not public %}{% include '_share.html' %}{% endif %}
   {% if dr %}{% include '_daterange.html' %}{% endif %}
+{% if ins and not public %}{% include '_insights.html' %}{% endif %}
   {% set vc = h.vs_counts %}
   <div class="swt"><div class="seg">
     <a href="{{ (hurl() if hurl else url_for('beta_hitter', key=h.key, frm=dr.frm if dr else None, to=dr.to if dr else None)) }}" class="{{ 'on' if h.vs == 'all' }}">All pitchers <em>{{ vc['all'].bip }} BIP</em></a>

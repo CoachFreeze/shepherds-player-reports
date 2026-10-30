@@ -1134,7 +1134,14 @@ def _pitcher_page(slug, bio, public=False, token=None):
     if not public and _prog and not store.is_demo(slug) and (is_admin() or (_prog == my_program() and plans.allowed(_prog, 'hitting'))):
         _hk = hitting.hitter_key_for(bio['name'], _prog)
         hitter_url = url_for('beta_hitter', key=_hk) if _hk else None
-    return render_template('player_overview.html', dr=_dr, public=public, photo_src=(url_for('public_share_photo', token=token) if public else None),
+    ins = None
+    if not public:
+        try:
+            import insights
+            ins = insights.pitcher(slug, bio.get('program') or ('demo_university' if store.is_demo(slug) else 'shepherds'))
+        except Exception:
+            ins = None
+    return render_template('player_overview.html', ins=ins, dr=_dr, public=public, photo_src=(url_for('public_share_photo', token=token) if public else None),
                            share=(None if public else _share_ctx('pitcher', slug, _prog)), share_team=store.program_label(_prog) if (public and _prog) else '',
                            can_retag=can_retag, retag_types=[l for l, _ in outings_mod.RETAG_TYPES], pr_ent=(None if public else prs.for_pitcher(slug)), b=b, bio=bio, slug=slug, css=css, hitter_url=hitter_url, has_photo=has_photo, badge=badge,
                            photo_v=int(os.path.getmtime(headshots.path(slug))) if has_photo else 0,
@@ -1751,7 +1758,14 @@ def _hitter_render(key, h, public=False, token=None):
         if public:
             return url_for('public_share', token=token, vs=vs, frm=_dr['frm'], to=_dr['to'])
         return url_for('beta_hitter', key=key, vs=vs, frm=_dr['frm'], to=_dr['to'])
-    return render_template('beta_hitter.html', dr=_dr, public=public, hurl=hurl, photo_src=(url_for('public_share_photo', token=token) if public and _ps else None),
+    ins = None
+    if not public and not h.get('opp_slug'):
+        try:
+            import insights
+            ins = insights.hitter(key)
+        except Exception:
+            ins = None
+    return render_template('beta_hitter.html', ins=ins, dr=_dr, public=public, hurl=hurl, photo_src=(url_for('public_share_photo', token=token) if public and _ps else None),
                            share=(None if public else _share_ctx('hitter', key, h['program'])), share_team=store.program_label(h['program']) if public else '',
                            pr_ent=(None if public else prs.for_hitter(key)), h=h, css=css, can_edit=((not public) and not h['demo'] and not h.get('opp_slug') and not is_player() and (is_admin() or h['program'] == my_program())),
                            photo_v=int(os.path.getmtime(headshots.path(_ps))) if _ps else 0,
