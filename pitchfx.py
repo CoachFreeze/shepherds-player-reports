@@ -38,9 +38,11 @@ def _row(rs, total):
     c = stats_mod._core(rs)
     fs = bool(rs) and all((r.get('Source') or '') == 'fullswing' for r in rs)
     velos = [v for v in (e._fnum(r.get('RelSpeed')) for r in rs) if v]
+    spins = [v for v in (e._fnum(r.get('SpinRate')) for r in rs) if v]
     evs = [v for r, o in zip(rs, c['o']) if o == 'inplay' for v in [e._fnum(r.get('ExitSpeed'))] if v]
     return {'n': len(rs), 'usage': 100.0 * len(rs) / total if total else None,
             'velo': sum(velos) / len(velos) if velos else None,
+            'spin': sum(spins) / len(spins) if spins else None,
             'zone': None if fs or not c['loc'] else 100.0 * c['zin'] / c['loc'],
             'whiff': 100.0 * c['whiffs'] / c['swings'] if c['swings'] else None,
             'chase': None if fs or not c['zout'] else 100.0 * c['osw'] / c['zout'],
