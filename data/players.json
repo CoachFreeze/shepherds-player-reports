@@ -1286,6 +1286,13 @@
       "throws": "R"
     },
     "school": "Biola University",
+    "stat_ids": [
+      "strike_pct",
+      "whiff_pct",
+      "zone_pct",
+      "chase_pct",
+      "avg_ev"
+    ],
     "weight_lbs": 160.0
   },
   "wylan_moss": {
