@@ -416,7 +416,7 @@ def inject_prs():
 
 
 # Every subject heading shows with each word capitalized (Top Exit Velocity), without touching the stored text.
-_TITLE_CSS = 'h1,h2,h3,h4,.half-head,.phead,.fx-h,.g-t,.board h4,.card>.head,.sh,.sect-title{text-transform:capitalize;}'
+_TITLE_CSS = 'h1,h2,h3,h4,.half-head,.fx-h,.g-t,.board h4,.card>.head,.sh,.sect-title{text-transform:capitalize;}'
 
 @app.context_processor
 def inject_theme():
@@ -738,7 +738,7 @@ _PITCH_LINEUP = [  # (stat id, header, hover text "Full name: definition", secti
 ]
 
 
-def _stat_table(program, side):
+def _stat_table(program, side, basic=False):
     """Columns + rows for the sortable team stat tables. side = 'pitching' | 'hitting'. Each cell is (text, number-for-sorting)."""
     cols, rows = [], []
     jersey = _jersey_lookup(program)
@@ -753,6 +753,17 @@ def _stat_table(program, side):
             cols.append({'id': i, 'label': ab, 'abbr': ab, 'group': g, 'def': d})
     else:
         D = team.hitting_data(program, True)
+        if basic:
+            for pl in D['players']:
+                cells = {}
+                for i, lab, ab_, d, kind in team.BASIC_HIT:
+                    v = pl['s'].get(i)
+                    if v is not None:
+                        cells[i] = (team._fmt_hit(kind, v), v)
+                rows.append({'name': pl['name'], 'key': pl['key'], 'disp': _last_first(pl['name']), 'jersey': jersey(pl['name']), 'url': url_for('beta_hitter', key=pl['key']), 'n': pl['n'], 'cells': cells})
+            cols = [{'id': i, 'label': lab, 'abbr': ab_, 'group': 'Basic', 'def': d} for i, lab, ab_, d, kind in team.BASIC_HIT if any(i in r['cells'] for r in rows)]
+            rows.sort(key=lambda r: r['disp'].lower())
+            return cols, [{'name': 'Basic', 'n': len(cols)}], rows
         for pl in D['players']:
             cells = {}
             for i, (lab, grp, d, kind) in team.HIT_CATALOG.items():
@@ -847,8 +858,9 @@ def team_hitters(program):
         rows = [r for r in hitting.list_hitters() if r['program'] == program]
         rows.sort(key=lambda r: r['name'].split()[-1].lower())
         return render_template('team_hitters.html', rows=rows, program=program, team_label=store.program_label(program))
-    cols, groups, rows = _stat_table(program, 'hitting')
-    return render_template('team_stats.html', side='hitting', title='Hitters', cols=cols, groups=groups, rows=rows, program=program,
+    basic = request.args.get('stats', 'basic') != 'advanced'
+    cols, groups, rows = _stat_table(program, 'hitting', basic=basic)
+    return render_template('team_stats.html', side='hitting', title='Hitters', stats_mode='basic' if basic else 'advanced', cols=cols, groups=groups, rows=rows, program=program,
                            team_label=store.program_label(program), colsets=_colsets('hitting'))
 
 

@@ -34,6 +34,21 @@ import cache
 _HIT_TYPES = {'GroundBall': 'GB', 'LineDrive': 'LD', 'FlyBall': 'FB', 'Popup': 'PU', 'Bunt': 'BUNT'}
 
 
+_PLAY_RESULT = {'Single': '1B', 'Double': '2B', 'Triple': '3B', 'HomeRun': 'HR', 'Out': 'OUT', 'Error': 'ERR', 'FieldersChoice': 'FC', 'Sacrifice': 'SAC'}
+
+
+def _play_result(r):
+    """How a ball in play ended: 1B 2B 3B HR OUT ERR FC SAC, or None when nobody tagged it. The operator's result tags win; Trackman's own
+    PlayResult column (filled by the stadium unit or an operator) is the fallback."""
+    t = e._tags(r)
+    for tag, v in (('PR_HomeRun', 'HR'), ('PR_Triple', '3B'), ('PR_Double', '2B'), ('PR_Single', '1B')):
+        if tag in t:
+            return v
+    if any(x.startswith('PR_') for x in t):
+        return 'OUT'
+    return _PLAY_RESULT.get((r.get('PlayResult') or '').strip())
+
+
 def _norm_trackman(r):
     side = {'Right': 'R', 'Left': 'L'}.get(r.get('BatterSide'))
     return {
@@ -47,6 +62,7 @@ def _norm_trackman(r):
         'hit_type': _HIT_TYPES.get(r.get('HitType')),
         'balls': r.get('Balls'), 'strikes': r.get('Strikes'), 'src': 'trackman',
         'hit': bool(e._tags(r) & e._HIT_TAGS), 'has_result': any(t.startswith('PR_') for t in e._tags(r)),
+        'result': _play_result(r),
     }
 
 
@@ -322,6 +338,58 @@ def qab_stats(pitches):
     return {'qab': qual, 'qab_pa': done, 'qab_pct': _pct(qual, done) if done >= 5 else None}
 
 
+def basic_stats(pitches):
+    """The traditional stat line, rebuilt from the pitch sequence (see qab_stats): PA, AB, BB, K and the walk and strikeout rates come from the
+    counts alone. Hits, extra-base hits and AVG/OBP/SLG/OPS also need a result for the ball in play (the operator's tags, else Trackman's PlayResult column), so they show only
+    when every ball in play for the hitter has one; sacrifices are not at-bats; otherwise they are left blank rather than guessed. HBP counts toward on-base %."""
+    pas, cur = [], []
+    for p in pitches:
+        if (p.get('balls'), p.get('strikes')) == ('0', '0') and cur:
+            pas.append(cur)
+            cur = []
+        cur.append(p)
+    if cur:
+        pas.append(cur)
+    pa = bb = hbp = k = unresolved = sac = h = d2 = d3 = hr = 0
+    for seq in pas:
+        last = seq[-1]
+        cc = count_ctx(last)
+        if last['outcome'] == 'hbp':
+            hbp += 1
+        elif last['outcome'] == 'ball' and cc is not None and cc[0] == 3:
+            bb += 1
+        elif last['outcome'] in ('whiff', 'cs') and cc is not None and cc[1] == 2:
+            k += 1
+        elif last['outcome'] == 'inplay':
+            res = last.get('result')
+            if res is None:
+                unresolved += 1
+            elif res == 'SAC':
+                sac += 1
+            else:
+                h += res in ('1B', '2B', '3B', 'HR')
+                d2 += res == '2B'
+                d3 += res == '3B'
+                hr += res == 'HR'
+        else:
+            continue                                     # cut off mid-count
+        pa += 1
+    ab = pa - bb - hbp - sac
+    out = {'b_pa': pa, 'b_ab': ab, 'b_bb': bb, 'b_k': k,
+           'b_bb_pct': 100.0 * bb / pa if pa else None, 'b_k_pct': 100.0 * k / pa if pa else None,
+           'b_h': None, 'b_2b': None, 'b_3b': None, 'b_hr': None, 'b_avg': None, 'b_obp': None, 'b_slg': None, 'b_ops': None}
+    if pa and not unresolved:
+        tb = (h - d2 - d3 - hr) + 2 * d2 + 3 * d3 + 4 * hr
+        out.update({'b_h': h, 'b_2b': d2, 'b_3b': d3, 'b_hr': hr})
+        if ab:
+            out['b_avg'], out['b_slg'] = h / ab, tb / ab
+        if ab + bb + hbp:
+            out['b_obp'] = (h + bb + hbp) / (ab + bb + hbp)
+        if out['b_obp'] is not None and out['b_slg'] is not None:
+            out['b_ops'] = out['b_obp'] + out['b_slg']
+    return out
+
+
 def hitter_stats(pitches):
     n = len(pitches)
     judged = [(p, j) for p in pitches for j in [judge(p)] if j]
@@ -395,7 +463,7 @@ def hitter_stats(pitches):
         'disc_g': letter_grade(disc if disc_n >= 5 else None), 'hit_g': letter_grade(hit if hit_n >= 5 else None), 'dmg_g': letter_grade(dmg),
         'dmg': dmg, 'dmg_n': len(hp), 'xbacon': xbacon, 'splits': splits, 'fb_hc_takes': fb_hc, 'excused_takes': excused,
         'xba': xb['xba'], 'ba': xb['ba'], 'ab': xb['ab'], 'xh': xb['xh'], 'ks': xb['k'],
-        'pitches': n, 'pa': pa, 'decisions': decided, **qab_stats(pitches),
+        'pitches': n, 'pa': pa, 'decisions': decided, **qab_stats(pitches), **basic_stats(pitches),
         'score': score, 'grade': grade(score) if decided >= 15 else None,
         'good': good, 'bad': bad, 'neutral': cnt(verdict='neutral'),
         'swing_pct': _pct(len(swings), len(judged)),
