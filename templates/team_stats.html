@@ -1,7 +1,7 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ title }}</title>
 <style>
-  .seg2{display:inline-flex;background:rgba(255,255,255,.12);border-radius:999px;padding:3px;margin:14px 0 4px;} .seg2 a{color:#e3eaee;text-decoration:none;font:700 13px 'Barlow',sans-serif;padding:7px 18px;border-radius:999px;} .seg2 a.on{background:#fff;color:#22303a;} @media print{.seg2{display:none;}}{{ theme_css|safe }}</style>
+  .seg2{display:inline-flex;background:#e9edef;border-radius:999px;padding:3px;margin:16px 0 0;} .seg2 a{color:#55626b;text-decoration:none;font:700 13px 'Barlow',sans-serif;padding:7px 18px;border-radius:999px;} .seg2 a.on{background:#22303a;color:#fff;} @media print{.seg2{display:none;}}{{ theme_css|safe }}</style>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{ --ink:#22303a; --teal:var(--accent,#5c97a8); --muted:#6b7680; --line:#dde2e5; }
@@ -41,9 +41,9 @@
 </style></head><body>
 <div class="hero"><div class="wrap">{% if wm_url %}<img class="wm" src="{{ wm_url }}" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
   <p class="eyebrow">{{ team_label }}</p><h1>{{ title }}</h1><p class="sub">{{ rows|length }} {{ 'pitcher' if side == 'pitching' else 'hitter' }}{{ '' if rows|length == 1 else 's' }}. Click a column to sort. Click a name to open the player's profile.</p>
-  {% if side == 'hitting' %}<div class="seg2"><a href="?stats=basic" class="{{ 'on' if stats_mode == 'basic' }}">Basic Stats</a><a href="?stats=advanced" class="{{ 'on' if stats_mode == 'advanced' }}">Advanced Stats</a></div>{% endif %}
   {% set topnav_on = 'pit' if side == 'pitching' else 'hit' %}{% include '_topnav.html' %}</div></div>
 <div class="wrap">
+  {% if side == 'hitting' %}<div class="seg2 body"><a href="?stats=basic" class="{{ 'on' if stats_mode == 'basic' }}">Basic Stats</a><a href="?stats=advanced" class="{{ 'on' if stats_mode == 'advanced' }}">Advanced Stats</a></div>{% endif %}
   <div class="bar"><input id="q" type="search" placeholder="Search {{ title|lower }}…" autocomplete="off"><button type="button" id="colBtn" class="pill">Columns</button><button type="button" id="prBtn" class="pill dark">Print / PDF</button><a href="?view=cards">Card view &rsaquo;</a><span class="hintt">Hover a stat abbreviation for its full name and definition.</span></div>
 
   <div id="colPanel" class="cpanel" hidden>
