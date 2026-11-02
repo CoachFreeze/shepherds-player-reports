@@ -481,7 +481,7 @@ def decision_chart_svg(pitches, side=None, width=330, height=360):
             svg.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="5.2" fill="{col}" fill-opacity=".88" stroke="#fff" stroke-width="1"><title>{tip}</title></circle>')
         else:
             svg.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="4.6" fill="#fff" fill-opacity=".7" stroke="{col}" stroke-width="2"><title>{tip}</title></circle>')
-    svg.append(f'<polygon points="{X(-.35):.1f},{h-8} {X(.35):.1f},{h-8} {X(.35):.1f},{h-13} {X(0):.1f},{h-17} {X(-.35):.1f},{h-13}" fill="#fff" stroke="#9aa5ab"/>')
+    svg.append(f'<polygon points="{X(-.35):.1f},{h-17} {X(.35):.1f},{h-17} {X(.35):.1f},{h-12} {X(0):.1f},{h-8} {X(-.35):.1f},{h-12}" fill="#fff" stroke="#9aa5ab"/>')
     svg.append('</svg>')
     return ''.join(svg)
 
@@ -526,7 +526,7 @@ def team_decision_chart_svg(items, width=760, height=840, side=None, dot=1.0):
             svg.append(f'<circle {d} cx="{cx:.1f}" cy="{cy:.1f}" r="{8*dot:.1f}" fill="{col}" fill-opacity=".85" stroke="#fff" stroke-width="{1.5*max(dot, .7):.1f}"/>')
         else:
             svg.append(f'<circle {d} cx="{cx:.1f}" cy="{cy:.1f}" r="{7*dot:.1f}" fill="#fff" fill-opacity=".75" stroke="{col}" stroke-width="{2.5*max(dot, .7):.1f}"/>')
-    svg.append(f'<polygon points="{X(-.7):.1f},{h-14} {X(.7):.1f},{h-14} {X(.7):.1f},{h-24} {X(0):.1f},{h-32} {X(-.7):.1f},{h-24}" fill="#fff" stroke="#9aa5ab" stroke-width="1.5"/>')
+    svg.append(f'<polygon points="{X(-.7):.1f},{h-32} {X(.7):.1f},{h-32} {X(.7):.1f},{h-22} {X(0):.1f},{h-14} {X(-.7):.1f},{h-22}" fill="#fff" stroke="#9aa5ab" stroke-width="1.5"/>')
     svg.append('</svg>')
     return ''.join(svg), n
 
