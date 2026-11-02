@@ -66,7 +66,7 @@
       <h1>{{ h.name }}</h1>
       <div class="sub">{% set rest = [] %}{% if bio.number %}{% set _ = rest.append('#' ~ bio.number) %}{% endif %}{% if bio.school %}{% set _ = rest.append(bio.school) %}{% endif %}{% if bio.class_label %}{% set _ = rest.append(bio.class_label) %}{% endif %}{% if bio.position %}<b>{{ bio.position }}</b>{% if rest %} &middot; {% endif %}{% endif %}{{ rest|join(' · ') }}</div>
       <div class="sub">{% set bt = {'R':'Right','L':'Left','S':'Switch'}.get(bio.bats) %}{% if bt %}<b>Bats:</b> {{ bt }}{% endif %}{% if bio.throws %} &middot; <b>Throws:</b> {{ {'R':'Right','L':'Left'}.get(bio.throws, bio.throws) }}{% endif %}{% if bio.height_in %} &middot; {{ (bio.height_in//12)|int }}'{{ (bio.height_in%12)|int }}"{% endif %}{% if bio.weight_lbs %} &middot; {{ bio.weight_lbs|int }} lb{% endif %}{% if bio.hometown %} &middot; {{ bio.hometown }}{% endif %}</div>
-      <div class="rng">{{ s.pitches }} pitches seen &middot; {{ s.pa }} plate appearances &middot; {% if dr and (dr.frm or dr.to) and not dr.empty %}{{ h.dates|length }} sessions on file &middot; showing {{ dr.frm or h.dates[0] }} to {{ dr.to or h.dates[-1] }}{% else %}{{ h.dates|length }} session{{ '' if h.dates|length == 1 else 's' }}{% if h.dates %} &middot; {{ h.dates[0] }}{% if h.dates|length > 1 %} to {{ h.dates[-1] }}{% endif %}{% endif %}{% endif %}{% if h.demo %} &middot; sample data{% endif %}</div>
+      <div class="rng">{{ s.pitches }} pitches seen &middot; {% if s.pa %}{{ s.pa }} plate appearances{% else %}Full Swing tracked{% endif %} &middot; {% if dr and (dr.frm or dr.to) and not dr.empty %}{{ h.dates|length }} sessions on file &middot; showing {{ dr.frm or h.dates[0] }} to {{ dr.to or h.dates[-1] }}{% else %}{{ h.dates|length }} session{{ '' if h.dates|length == 1 else 's' }}{% if h.dates %} &middot; {{ h.dates[0] }}{% if h.dates|length > 1 %} to {{ h.dates[-1] }}{% endif %}{% endif %}{% endif %}{% if h.demo %} &middot; sample data{% endif %}</div>
 {% if share and not public %}{% include '_share.html' %}{% endif %}
       <div class="photo-form">{% if bio.two_way and not public %}<span class="vsw"><b>Hitter</b><a href="{{ url_for('player_overview', slug=bio.pitcher_slug) }}">Pitcher</a></span>{% endif %}{% if can_edit %}<a class="editbtn" href="{{ url_for('hitter_edit', key=h.key) }}">Edit Profile</a> {% endif %}</div>
     </div>
@@ -76,12 +76,13 @@
   {{ prm.banner(pr_ent, url_for('hitter_prs', key=h.key)) }}
     {% if dr %}{% include '_daterange.html' %}{% endif %}
 {% if ins and not public %}{% include '_insights.html' %}{% endif %}
-  {% set vc = h.vs_counts %}
-  <div class="swt"><div class="seg">
+  {% if is_fs(h.program) %}<p style="margin:0 0 10px;font:500 12.5px 'Barlow',sans-serif;color:#6b7680;">Full Swing Live At Bat session: results such as xBA are predicted from the batted ball, not actual outcomes. Pitch type, location and counts are not in this data.</p>{% endif %}
+  {% set vc = h.vs_counts %}{% set has_loc = (s.decisions or 0) > 0 %}{% set has_hand = ((vc['R'].bip or 0) + (vc['L'].bip or 0)) > 0 %}
+  {% if has_hand %}<div class="swt"><div class="seg">
     <a href="{{ (hurl() if hurl else url_for('beta_hitter', key=h.key, frm=dr.frm if dr else None, to=dr.to if dr else None)) }}" class="{{ 'on' if h.vs == 'all' }}">All pitchers <em>{{ vc['all'].bip }} BIP</em></a>
     <a href="{{ (hurl('R') if hurl else url_for('beta_hitter', key=h.key, vs='R', frm=dr.frm if dr else None, to=dr.to if dr else None)) }}" class="{{ 'on' if h.vs == 'R' }}">vs RHP{% if h.switch %} <small>bats left</small>{% endif %} <em>{{ vc['R'].bip }} BIP</em></a>
     <a href="{{ (hurl('L') if hurl else url_for('beta_hitter', key=h.key, vs='L', frm=dr.frm if dr else None, to=dr.to if dr else None)) }}" class="{{ 'on' if h.vs == 'L' }}">vs LHP{% if h.switch %} <small>bats right</small>{% endif %} <em>{{ vc['L'].bip }} BIP</em></a></div>
-    <p class="hint" style="margin:8px 2px 0;">{% if h.vs == 'all' %}Showing everything he has seen, right-handed and left-handed pitchers combined.{% elif h.vs == 'R' %}Showing only pitches from right-handed pitchers.{% else %}Showing only pitches from left-handed pitchers.{% endif %} The whole page below follows this choice.{% if h.switch %} Switch hitter: batting side is worked out from the pitcher's hand (left-handed against righties, right-handed against lefties), because the data doesn't reliably say which side he hit from.{% if h.switch.unknown %} {{ h.switch.unknown }} pitch{{ 'es' if h.switch.unknown != 1 }} had no known pitcher hand and only count in All pitchers.{% endif %}{% endif %}</p></div>
+    <p class="hint" style="margin:8px 2px 0;">{% if h.vs == 'all' %}Showing everything he has seen, right-handed and left-handed pitchers combined.{% elif h.vs == 'R' %}Showing only pitches from right-handed pitchers.{% else %}Showing only pitches from left-handed pitchers.{% endif %} The whole page below follows this choice.{% if h.switch %} Switch hitter: batting side is worked out from the pitcher's hand (left-handed against righties, right-handed against lefties), because the data doesn't reliably say which side he hit from.{% if h.switch.unknown %} {{ h.switch.unknown }} pitch{{ 'es' if h.switch.unknown != 1 }} had no known pitcher hand and only count in All pitchers.{% endif %}{% endif %}</p></div>{% endif %}
 
   <div class="cols">
   <div class="col">
@@ -112,15 +113,15 @@
   </div>
   {% endif %}
 
-    <div class="card"><h2>Exit velo heat map</h2>
+    {% if has_loc %}    <div class="card"><h2>Exit velo heat map</h2>
       <div id="pm-heat"><p class="hint">Catcher's view. The box is the strike zone. Color is the average exit velocity of the balls he put in play near each spot, from blue (soft) to red (hard); it includes pitches up to a foot outside the zone. Move over the map to read the local average.</p>
         <div class="chips" id="zt"></div>
         <div style="max-width:400px;margin:0 auto;position:relative;">{{ h.zone_ev.svg|safe }}</div>
         <div class="hm-scale"><span>70 mph</span><div id="zscale"></div><span>100 mph</span><em>avg exit velocity</em></div>
         <p class="foot" id="zread" style="text-align:center;min-height:18px;margin:6px 0 0;"></p>
         <p class="foot" id="znote"></p></div>
-    </div>
-    <script>
+    </div>{% endif %}
+{% if has_loc %}    <script>
 var ZD = {{ h.zone_ev|tojson }};
 (function(){
   var svg=document.getElementById('zhm'), ft='All';
@@ -140,7 +141,7 @@ var ZD = {{ h.zone_ev|tojson }};
     rd.textContent=sw>.45?('About '+(sv/sw).toFixed(1)+' mph here ('+n+' ball'+(n===1?'':'s')+' within 6 inches)'):'';});
   svg.addEventListener('mouseleave',function(){rd.textContent='';});
 })();
-</script>
+</script>{% endif %}
   </div>
   <div class="col">
     <div class="card"><h2>Spray chart</h2><p class="hint">Every tracked ball in play. Color is exit velocity; tap a dot for the details.</p>
@@ -148,7 +149,7 @@ var ZD = {{ h.zone_ev|tojson }};
       {% if s.pull_pct is not none %}<div style="margin-top:14px;"><div class="splitl"><b>Pull {{ '%.1f' % s.pull_pct }}%</b><b>Center {{ '%.1f' % s.center_pct }}%</b><b>Oppo {{ '%.1f' % s.oppo_pct }}%</b></div>
         <div class="split"><span style="width:{{ s.pull_pct }}%;background:var(--accent,#5c97a8)"></span><span style="width:{{ s.center_pct }}%;background:#b7cfd6"></span><span style="width:{{ s.oppo_pct }}%;background:#22303a"></span></div></div>{% endif %}
     </div>
-  <div class="card sdcard"><h2>Swing decisions</h2>
+  {% if has_loc %}  <div class="card sdcard"><h2>Swing decisions</h2>
     <button type="button" class="plus" id="howbtn" aria-expanded="false" aria-controls="how" title="How is this calculated?">+</button>
     <div class="how" id="how" hidden>
       <h3>How the Swing Decision Rating is calculated</h3>
@@ -198,7 +199,7 @@ var ZD = {{ h.zone_ev|tojson }};
         <div class="cnt" id="cnt" style="margin-top:8px;text-align:center;"></div>
         <div class="legend"><span><i style="background:var(--good)"></i>Good</span><span><i style="background:var(--bad)"></i>Bad</span><span><i style="background:var(--neu)"></i>Borderline</span><span><i style="background:#fff;border:2px solid #55626b"></i>Take</span><span><i style="background:#55626b"></i>Swing</span></div></div>
     {% if h.notes %}<h3 class="mh">Player Insights</h3><ul class="notes" style="margin-top:6px;">{% for n in h.notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
-  </div>
+  </div>{% endif %}
 
   </div>
   </div>

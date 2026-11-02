@@ -144,6 +144,7 @@ def _pitcher_pitches(slug):
             p['label'] = hitting._PT_LABELS.get(p.get('pitch_type') or '')
             p['sess'] = p['date'] or o['id']
             p['i'] = i
+            p['spin'] = _num(r.get('SpinRate'))
             p['relh'] = _num(r.get('RelHeight'))
             p['rels'] = _num(r.get('RelSide'))
             p['session_type'] = r.get('SessionType')
@@ -168,6 +169,8 @@ def _hand_word(s):
 
 
 def pitcher(slug, program):
+    if store.is_fullswing(program):
+        return pitcher_fs(slug)
     ps = _pitcher_pitches(slug)
     sessions = {p['sess'] for p in ps}
     if len(ps) < READY_PITCHES or len(sessions) < READY_SESSIONS:
@@ -303,6 +306,8 @@ def _cell_text(row, col):
 
 def hitter(key):
     h = hitting._collect(True).get(key)
+    if h and store.is_fullswing(h.get('program')):
+        return hitter_fs(h)
     if not h:
         return {'ready': False, 'have': '0 pitches', 'need': f'{READY_PITCHES} pitches over at least {READY_SESSIONS} sessions'}
     ps = [p for p in h['pitches'] if p.get('outcome') and p['outcome'] != 'unk']
@@ -382,6 +387,40 @@ def hitter(key):
     _rate_trend(ozs, 'His chase rate', 'pitches out of the zone', False, found, 'Trend', 'He is chasing more. Revisit his plan and zone.', 'He is laying off more pitches out of the zone. Reinforce it.', min_n=40)
     evs = [(p['date'], p['ev']) for p in bip]
     _mean_trend(evs, 'His average exit velocity', ' mph', True, found, 'Trend', 'He is hitting the ball harder. Reinforce what is working.', 'His contact quality is slipping. Check timing, bat path and any recent changes.', min_n=40, min_diff=2.0)
+    return _finish(found)
+
+
+# ------------------------------------------------------------------ Full Swing programs
+# Full Swing exports carry no location, pitch type or counts, so the only reliable things to flag are trends in what it measures.
+# (When Full Swing's January update adds those fields, the program can be switched back to the full analysis.)
+def hitter_fs(h):
+    ps = h['pitches']
+    sessions = {p['date'] for p in ps if p['date']}
+    swings = [p for p in ps if p.get('bat_speed')]
+    if len(swings) < 40 or len(sessions) < READY_SESSIONS:
+        return {'ready': False, 'have': f'{len(swings)} tracked swings over {len(sessions)} session{"" if len(sessions) == 1 else "s"}',
+                'need': f'40 tracked swings over at least {READY_SESSIONS} sessions'}
+    found = []
+    _mean_trend([(p['date'], p['bat_speed']) for p in swings], 'His average bat speed', ' mph', True, found, 'Trend',
+                'His swing is getting faster. Point out what he has been working on.', 'His swing speed is down. Check fatigue, grip and his approach.', min_n=25, min_diff=1.5)
+    _mean_trend([(p['date'], p['ev']) for p in ps if p['outcome'] == 'inplay' and p.get('ev')], 'His average exit velocity', ' mph', True, found, 'Trend',
+                'He is hitting the ball harder. Reinforce what is working.', 'His contact quality is slipping. Check timing and bat path.', min_n=20, min_diff=2.0)
+    _mean_trend([(p['date'], 100 * p['squared']) for p in ps if p['outcome'] == 'inplay' and p.get('squared') is not None], 'His squared-up rate', '%', True, found, 'Trend',
+                'He is squaring the ball up more. Keep reinforcing it.', 'He is squaring up less. Revisit timing and swing path.', min_n=20, min_diff=6.0)
+    return _finish(found)
+
+
+def pitcher_fs(slug):
+    ps = _pitcher_pitches(slug)
+    sessions = {p['sess'] for p in ps}
+    if len(ps) < READY_PITCHES or len(sessions) < READY_SESSIONS:
+        return {'ready': False, 'have': f'{len(ps)} pitches over {len(sessions)} session{"" if len(sessions) == 1 else "s"}',
+                'need': f'{READY_PITCHES} pitches over at least {READY_SESSIONS} sessions'}
+    found = []
+    _mean_trend([(p['sess'], p['speed']) for p in ps if p['speed']], 'His average velocity', ' mph', True, found, 'Trend',
+                'His velocity is climbing. Point out what changed.', 'Check workload, recovery and any change in delivery.', min_n=40, min_diff=1.0)
+    _mean_trend([(p['sess'], p['spin']) for p in ps if p.get('spin')], 'His average spin rate', ' rpm', True, found, 'Trend',
+                'His spin is up. Check whether his grip or release changed.', 'His spin is down. Look at grip pressure and release.', min_n=40, min_diff=75.0)
     return _finish(found)
 
 

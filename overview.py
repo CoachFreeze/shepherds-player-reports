@@ -8,6 +8,7 @@ import savant_components as sc
 import outings as outings_mod
 import pipeline
 import pitchfx
+import store
 import arsenal_comps as ac
 
 
@@ -165,6 +166,8 @@ def _build(slug, bio, retag=False, frm=None, to=None):
 
     colors = {t['type']: t['color'] for t in tm}
     effect = pitchfx.effectiveness(rows, [t['type'] for t in tm], colors)
+    if effect and not any(s.get('n') for s in effect):       # no batter-side data in the file (Full Swing today): nothing to split
+        effect = None
     throws = meta.get('throws') or 'R'
     ars = [{'type': t['type'], 'pct': t['pct'], 'velo': t['velo'], 'spin': t['spin_avg'], 'hb': t['hb'], 'ivb': t['ivb']}
            for t in tm if t.get('hb') is not None and t.get('ivb') is not None]
@@ -174,7 +177,10 @@ def _build(slug, bio, retag=False, frm=None, to=None):
 
     summ = e.outing_summary(rows) or {}
     stat_vals = stats_mod.compute(rows)
-    stat_tiles = stats_mod.tiles(stat_vals, bio.get('stat_ids'))
+    fs_prog = store.is_fullswing(bio.get('program'))
+    stat_tiles = stats_mod.tiles(stat_vals, bio.get('stat_ids') or (['avg_velo', 'top_velo', 'avg_spin', 'whiff_pct', 'avg_ev', 'hh_pct'] if fs_prog else None))
+    if fs_prog:        # Full Swing: leave out tiles the file cannot fill yet (they return once the data exists)
+        stat_tiles = [t for t in stat_tiles if t['value'] not in ('-', '—', '', None)]
     stat_catalog = stats_mod.catalog(stat_vals)
 
     # velocity trend, oldest -> newest
@@ -193,6 +199,9 @@ def _build(slug, bio, retag=False, frm=None, to=None):
     order = [t['type'] for t in tm]
     series = {k: series[k] for k in order if k in series}
     spin_series = {k: spin_series[k] for k in order if k in spin_series}
+    if fs_prog:        # Full Swing files carry no pitch type, so the single line is every pitch
+        series = {('All pitches' if k == 'Untagged' else k): v for k, v in series.items()}
+        spin_series = {('All pitches' if k == 'Untagged' else k): v for k, v in spin_series.items()}
     trend_html = trend_svg(series, dates, height=250)
     spin_html = trend_svg(spin_series, dates, height=250, ylabel='Avg spin rate (rpm)', unit='rpm', dec=0, nice=[50, 100, 200, 250, 500])
     legend = [{'type': k, 'color': v['color']} for k, v in series.items()]

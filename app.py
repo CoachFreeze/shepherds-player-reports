@@ -415,6 +415,8 @@ def inject_prs():
     return {'pr_new': _new, 'pr_dates': _dates}
 
 
+app.jinja_env.globals['is_fs'] = lambda program: store.is_fullswing(program)
+
 # Every subject heading shows with each word capitalized (Top Exit Velocity), without touching the stored text.
 _TITLE_CSS = 'h1,h2,h3,h4,.half-head,.fx-h,.g-t,.board h4,.card>.head,.sh,.sect-title{text-transform:capitalize;}'
 
@@ -701,6 +703,28 @@ def _jersey_lookup(program):
     return look
 
 
+_PITCH_LINEUP_FS = [  # Full Swing programs: what a Full Swing file can measure (see store.is_fullswing)
+    ('gp', 'GP', 'Games Played: sessions with data.', 'Volume'),
+    ('pitches', 'TP', 'Total Pitches thrown.', 'Volume'),
+    ('avg_velo', 'Avg Velo', 'Average Velocity of every pitch (mph).', 'Stuff'),
+    ('top_velo', 'Top Velo', 'Fastest pitch (mph).', 'Stuff'),
+    ('avg_spin', 'Avg Spin', 'Average Spin Rate, all pitches (rpm).', 'Stuff'),
+    ('max_spin', 'Max Spin', 'Highest Spin Rate (rpm).', 'Stuff'),
+    ('strike_pct', 'Str%', 'Strike %: strikes / pitches. Appears once the file carries pitch calls.', 'Command'),
+    ('zone_pct', 'Zone%', 'Zone %: pitches in the strike zone. Appears once the file carries pitch locations.', 'Command'),
+    ('fps_pct', 'FPS%', 'First Pitch Strike %. Appears once the file carries counts.', 'Command'),
+    ('whiff_pct', 'Whiff%', 'Whiff %: swings and misses / swings. Live At Bat results are predicted from the batted ball, not actual outcomes.', 'Swing and Miss'),
+    ('chase_pct', 'Chase%', 'Chase %: swings at pitches outside the zone. Appears once the file carries pitch locations.', 'Swing and Miss'),
+    ('csw_pct', 'CSW%', 'Called + Swinging Strike %. Appears once the file carries pitch calls.', 'Swing and Miss'),
+    ('swing_pct', 'Swing%', 'Swing %: swings / pitches.', 'Swing and Miss'),
+    ('bip', 'BIP', 'Balls In Play: pitches put in play.', 'Contact Allowed'),
+    ('avg_ev', 'Avg EV', 'Average Exit Velocity on balls in play (mph).', 'Contact Allowed'),
+    ('hh_pct', 'HH%', 'Hard-Hit %: balls in play at 95+ mph.', 'Contact Allowed'),
+    ('gb_pct', 'GB%', 'Ground Ball %: launch angle under 10 degrees.', 'Contact Allowed'),
+    ('ld_pct', 'LD%', 'Line Drive %: launch angle 10-25 degrees.', 'Contact Allowed'),
+    ('fb_pct', 'Fly%', 'Fly Ball %: launch angle 25-50 degrees.', 'Contact Allowed'),
+    ('pu_pct', 'PU%', 'Pop-Up %: launch angle over 50 degrees.', 'Contact Allowed'),
+]
 _PITCH_LINEUP = [  # (stat id, header, hover text "Full name: definition", section)
     ('gp', 'GP', 'Games Played: outings with data.', 'Volume'),
     ('ip', 'IP', 'Innings Pitched: outs recorded (tagged outs + strikeouts) / 3. Estimate.', 'Volume'),
@@ -742,14 +766,16 @@ def _stat_table(program, side, basic=False):
     """Columns + rows for the sortable team stat tables. side = 'pitching' | 'hitting'. Each cell is (text, number-for-sorting)."""
     cols, rows = [], []
     jersey = _jersey_lookup(program)
+    fs = store.is_fullswing(program)
+    lineup = _PITCH_LINEUP_FS if fs else _PITCH_LINEUP
     if side == 'pitching':
         D = team.pitching_data(program)
         for pl in D['players']:
             v = dict(pl['v'])
             v['gp'] = (str(pl['sessions']), '')
             rows.append({'name': pl['name'], 'key': pl['key'], 'disp': _last_first(pl['name']), 'jersey': jersey(pl['name']), 'url': url_for('player_overview', slug=pl['key']), 'n': pl['n'],
-                         'cells': {i: (v[i][0], _pct_num(v[i][0])) for i, _a, _d, _g in _PITCH_LINEUP if i in v and v[i][0] not in (None, '', '—', '-', '–')}})
-        for i, ab, d, g in _PITCH_LINEUP:
+                         'cells': {i: (v[i][0], _pct_num(v[i][0])) for i, _a, _d, _g in lineup if i in v and v[i][0] not in (None, '', '—', '-', '–')}})
+        for i, ab, d, g in lineup:
             cols.append({'id': i, 'label': ab, 'abbr': ab, 'group': g, 'def': d})
     else:
         D = team.hitting_data(program, True)
@@ -780,7 +806,7 @@ def _stat_table(program, side, basic=False):
             cols.append({'id': i, 'label': lab, 'abbr': _STAT_ABBR.get(i, lab), 'group': grp, 'def': d})
     # xwOBA / xERA / FIP are always calculated (cached) but only shown for players past the sample minimums; admins can add ?preview=1
     preview = is_admin() and request.args.get('preview') == '1'
-    adv = advanced.table(program)['p' if side == 'pitching' else 'h']
+    adv = {} if fs else advanced.table(program)['p' if side == 'pitching' else 'h']
     ADV = [('xwoba', 'xwOBA (est.)', 'Expected weighted on-base average from exit velocity, launch angle, walks, HBP and strikeouts. Estimated from our own batted-ball model, not Statcast.' if side == 'hitting' else 'Expected wOBA allowed, from the contact quality, walks, HBP and strikeouts a pitcher gave up. Estimated from our own batted-ball model, not Statcast.', lambda v: f'{v:.3f}'.lstrip('0'))]
     if side == 'pitching':
         ADV += [('xera', 'xERA (est.)', 'Expected ERA, converted from xwOBA allowed (MLB run environment). An estimate.', lambda v: f'{v:.2f}'),
@@ -844,7 +870,7 @@ def team_pitchers(program):
     if request.args.get('view') == 'cards':
         return _team_players_page(program, 'Pitchers', pitchers_only=True)
     cols, groups, rows = _stat_table(program, 'pitching')
-    return render_template('team_stats.html', side='pitching', title='Pitchers', cols=cols, groups=groups, rows=rows, program=program,
+    return render_template('team_stats.html', side='pitching', title='Pitchers', fs=store.is_fullswing(program), cols=cols, groups=groups, rows=rows, program=program,
                            team_label=store.program_label(program), colsets=_colsets('pitching'))
 
 
@@ -858,9 +884,10 @@ def team_hitters(program):
         rows = [r for r in hitting.list_hitters() if r['program'] == program]
         rows.sort(key=lambda r: r['name'].split()[-1].lower())
         return render_template('team_hitters.html', rows=rows, program=program, team_label=store.program_label(program))
-    basic = request.args.get('stats', 'basic') != 'advanced'
+    fs = store.is_fullswing(program)
+    basic = (not fs) and request.args.get('stats', 'basic') != 'advanced'
     cols, groups, rows = _stat_table(program, 'hitting', basic=basic)
-    return render_template('team_stats.html', side='hitting', title='Hitters', stats_mode='basic' if basic else 'advanced', cols=cols, groups=groups, rows=rows, program=program,
+    return render_template('team_stats.html', side='hitting', title='Hitters', fs=fs, stats_mode=None if fs else ('basic' if basic else 'advanced'), cols=cols, groups=groups, rows=rows, program=program,
                            team_label=store.program_label(program), colsets=_colsets('hitting'))
 
 
@@ -1375,6 +1402,27 @@ def team_games(program):
                     'logo': _opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp'])})
     out.sort(key=lambda x: x['date'], reverse=True)
     return render_template('games.html', program=program, team_label=store.program_label(program), games=out)
+
+
+@app.route('/team/<program>/outings')
+@login_required
+def team_outings(program):
+    _team_ok(program)
+    g.theme_program = program
+    import datetime as _dt
+    by = {}
+    for slug, bio, outs in team._pitchers(program):
+        for o in outs:
+            by.setdefault(o['date'], []).append({'slug': slug, 'name': bio.get('name', slug), 'n': len(o['rows'])})
+    days = []
+    for d in sorted(by, reverse=True):
+        try:
+            pretty = _dt.date.fromisoformat(d).strftime('%a %b %-d, %Y')
+        except Exception:
+            pretty = d
+        days.append({'date': d, 'pretty': pretty, 'items': sorted(by[d], key=lambda x: x['name'].split()[-1].lower()),
+                     'total': sum(x['n'] for x in by[d])})
+    return render_template('team_outings.html', program=program, team_label=store.program_label(program), days=days)
 
 
 @app.route('/team/<program>/catchers')

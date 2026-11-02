@@ -73,8 +73,14 @@ BASIC_HIT = [
 ]
 HIT_DEFAULT = ['avg_ev', 'hard_hit_pct', 'xba', 'score', 'chase_pct', 'whiff_pct']
 
-PITCH_IDS = ['fb_velo', 'fb_top', 'top_velo', 'fb_spin', 'strike_pct', 'fps_pct', 'zone_pct', 'ahead_pct', 'whiff_pct', 'csw_pct',
+PITCH_IDS = ['avg_velo', 'avg_spin', 'max_spin', 'fb_velo', 'fb_top', 'top_velo', 'fb_spin', 'strike_pct', 'fps_pct', 'zone_pct', 'ahead_pct', 'whiff_pct', 'csw_pct',
              'chase_pct', 'avg_ev', 'hh_pct', 'brl_pct', 'gb_pct', 'ld_pct', 'fb_pct', 'pu_pct', 'pitches', 'ks']
+# Full Swing programs (see store.is_fullswing): no location, pitch type or counts, so the dashboard leans on what Full Swing measures.
+# Live At Bat outcomes are predicted from the batted ball, not actual results.
+HIT_DEFAULT_FS = ['avg_bs', 'avg_ev', 'hard_hit_pct', 'sq_pct', 'xba', 'whiff_pct']
+PITCH_DEFAULT_FS = ['avg_velo', 'top_velo', 'avg_spin', 'whiff_pct', 'avg_ev', 'hh_pct']
+HIT_TREND_FS = {'avg_ev': ('Avg exit velo', ' mph', 1.5), 'avg_bs': ('Avg bat speed', ' mph', 1.5), 'sq_pct': ('Squared-up %', '%', 5.0)}
+PITCH_TREND_FS = {'avg_velo': ('Avg velo', ' mph', 0.8), 'avg_spin': ('Avg spin', ' rpm', 60.0), 'whiff_pct': ('Whiff %', '%', 5.0)}
 PITCH_DEFAULT = ['fb_velo', 'strike_pct', 'fps_pct', 'whiff_pct', 'csw_pct', 'chase_pct']
 
 # Metrics tracked session-to-session for risers/decliners: id -> (label, unit, "meaningful change", minimum sample key)
@@ -119,8 +125,9 @@ def load(program):
                 data = json.load(f)
         except Exception:
             data = {}
-    data.setdefault('hitting_stats', list(HIT_DEFAULT))
-    data.setdefault('pitching_stats', list(PITCH_DEFAULT))
+    fs = store.is_fullswing(program)
+    data.setdefault('hitting_stats', list(HIT_DEFAULT_FS if fs else HIT_DEFAULT))
+    data.setdefault('pitching_stats', list(PITCH_DEFAULT_FS if fs else PITCH_DEFAULT))
     data.setdefault('goals', [])
     return data
 
@@ -211,14 +218,14 @@ def _pitchers(program):
     return out
 
 
-def _pitch_session_series(outs):
+def _pitch_session_series(outs, trend=None):
     """Oldest-first list of {'date', 'fb_velo', 'strike_pct', 'whiff_pct', 'n'} per outing (None when the sample is too thin)."""
     res = []
     for o in sorted(outs, key=lambda x: x['date']):
         v = stats_mod.compute(o['rows'])
         n = len(o['rows'])
         row = {'date': o['date'], 'n': n}
-        for k in PITCH_TREND:
+        for k in (trend or PITCH_TREND):
             row[k] = _num(v[k][0]) if (k in v and n >= 15) else None
         res.append(row)
     return res
@@ -226,10 +233,10 @@ def _pitch_session_series(outs):
 
 @cache.memo
 def pitching_data(program):
-    return pitching_from(_pitchers(program))
+    return pitching_from(_pitchers(program), fs=store.is_fullswing(program))
 
 
-def pitching_from(ps):
+def pitching_from(ps, fs=False):
     """Team pitching numbers for [(key, bio {'name'}, [outings newest first])]: used for a program's own pitchers and for scouting an opponent."""
     all_rows = [r for _, _, outs in ps for o in outs for r in o['rows']]
     vals = stats_mod.compute(all_rows) if all_rows else {}
@@ -242,9 +249,20 @@ def pitching_from(ps):
     for slug, bio, outs in ps:
         rows = [r for o in outs for r in o['rows']]
         v = stats_mod.compute(rows)
-        players.append({'key': slug, 'name': bio.get('name', slug), 'v': v, 'n': len(rows), 'series': _pitch_session_series(outs),
+        players.append({'key': slug, 'name': bio.get('name', slug), 'v': v, 'n': len(rows), 'series': _pitch_session_series(outs, PITCH_TREND_FS if fs else None),
                         'sessions': len(outs)})
     boards = []
+    if fs:
+        def _num_board(sid, title, sub, unit, fmt, min_n=15, reverse=True):
+            got = [(p, _num(p['v'][sid][0])) for p in players if sid in p['v'] and p['n'] >= min_n and _num(p['v'][sid][0]) is not None]
+            boards.append({'title': title, 'sub': sub, 'unit': unit,
+                           'rows': [{'key': p['key'], 'name': p['name'], 'value': fmt(v), 'extra': f"{p['n']} pitches"} for p, v in sorted(got, key=lambda x: -x[1] if reverse else x[1])[:5]]})
+        _num_board('avg_velo', 'Average Velocity', 'All pitches, min. 15 pitches', 'mph', lambda v: f'{v:.1f}')
+        _num_board('top_velo', 'Top Velocity', 'Fastest pitch, min. 15 pitches', 'mph', lambda v: f'{v:.1f}')
+        _num_board('avg_spin', 'Average Spin Rate', 'All pitches, min. 15 pitches', 'rpm', lambda v: f'{v:.0f}')
+        _num_board('whiff_pct', 'Whiff %', 'Swings and misses / swings, min. 15 pitches', '%', lambda v: f'{v:.1f}%')
+        return {'players': players, 'tiles': tiles_all, 'boards': boards, 'n_players': len(players), 'n_pitches': len(all_rows),
+                'sessions': sorted({o['date'] for _, _, outs in ps for o in outs}), 'trend': _trends(players, PITCH_TREND_FS, 'pitch')}
     fb = [(p, _num(p['v']['fb_velo'][0]), _num(p['v'].get('fb_top', ('', ''))[0])) for p in players if 'fb_velo' in p['v'] and p['n'] >= 15 and _num(p['v']['fb_velo'][0]) is not None]
     boards.append({'title': 'Fastball velocity', 'sub': 'Average, min. 15 pitches', 'unit': 'mph',
                    'rows': [{'key': p['key'], 'name': p['name'], 'value': f'{a:.1f}', 'extra': f'top {t:.1f}' if t else ''}
@@ -285,16 +303,18 @@ def _hit_session_series(pitches):
         res.append({'date': d, 'n': len(by[d]),
                     'avg_ev': s['avg_ev'] if s['bip'] >= 3 else None,
                     'xba': s['xba'] if (s['ab'] or 0) >= 5 else None,
-                    'score': s['score'] if s['decisions'] >= 10 else None})
+                    'score': s['score'] if s['decisions'] >= 10 else None,
+                    'avg_bs': s.get('avg_bs') if (s.get('bs_n') or 0) >= 5 else None,
+                    'sq_pct': s.get('sq_pct') if (s.get('bs_n') or 0) >= 5 else None})
     return res
 
 
 @cache.memo
 def hitting_data(program, include_demo):
-    return hitting_from(_hitters(program, include_demo))
+    return hitting_from(_hitters(program, include_demo), fs=store.is_fullswing(program))
 
 
-def hitting_from(hs):
+def hitting_from(hs, fs=False):
     """Team hitting numbers for {key: {'name', 'pitches': [...]}}: a program's own hitters, or the hitters of an opponent being scouted."""
     all_p = [p for h in hs.values() for p in h['pitches']]
     s_all = hitting.hitter_stats(all_p) if all_p else None
@@ -310,6 +330,20 @@ def hitting_from(hs):
         players.append({'key': key, 'name': hitting.display_name(h['name']), 's': s, 'n': len(h['pitches']),
                         'series': _hit_session_series(h['pitches']), 'sessions': len({p['date'] for p in h['pitches'] if p['date']})})
     boards = []
+    if fs:
+        def _hboard(key, title, sub, unit, fmt, ok, extra):
+            got = [p for p in players if p['s'].get(key) is not None and ok(p)]
+            boards.append({'title': title, 'sub': sub, 'unit': unit,
+                           'rows': [{'key': p['key'], 'name': p['name'], 'value': fmt(p['s'][key]), 'extra': extra(p)} for p in sorted(got, key=lambda p: -p['s'][key])[:5]]})
+        _hboard('avg_bs', 'Average Bat Speed', 'Tracked swings, min. 10 swings', 'mph', lambda v: f'{v:.1f}', lambda p: (p['s'].get('bs_n') or 0) >= 10,
+                lambda p: f"max {p['s']['max_bs']:.1f}" if p['s'].get('max_bs') else '')
+        _hboard('avg_ev', 'Average Exit Velocity', f'Balls in play, min. {hitting.RANK_MIN_BIP} balls in play', 'mph', lambda v: f'{v:.1f}',
+                lambda p: (p['s']['bip'] or 0) >= hitting.RANK_MIN_BIP, lambda p: f"max {p['s']['max_ev']:.1f}" if p['s'].get('max_ev') else '')
+        _hboard('sq_pct', 'Squared-Up %', 'Tracked swings, min. 10 swings', '%', lambda v: f'{v:.1f}%', lambda p: (p['s'].get('bs_n') or 0) >= 10, lambda p: '')
+        _hboard('xba', 'Predicted xBA', 'Predicted from the batted ball, min. 5 at-bats', '', lambda v: f'{v:.3f}'.lstrip('0'), lambda p: (p['s']['ab'] or 0) >= 5, lambda p: f"{p['s']['ab']} AB")
+        return {'players': players, 'tiles': tiles_all, 'boards': boards, 'n_players': len(players), 'n_pitches': len(all_p),
+                'sessions': sorted({p['date'] for h in hs.values() for p in h['pitches'] if p['date']}),
+                'trend': _trends(players, HIT_TREND_FS, 'hit')}
     ev = [p for p in players if p['s']['avg_ev'] is not None and (p['s']['bip'] or 0) >= hitting.RANK_MIN_BIP]
     boards.append({'title': 'Average Exit Velocity', 'sub': f'Average on balls in play, min. {hitting.RANK_MIN_BIP} balls in play', 'unit': 'mph',
                    'rows': [{'key': p['key'], 'name': p['name'], 'value': f"{p['s']['avg_ev']:.1f}",

@@ -54,6 +54,7 @@
 
 <div class="wrap">
 {% if pr_recent %}<div style="margin:18px 0 0;"><a class="prbtn" href="{{ url_for('team_prs', program=program) }}">&#9733; See Newest Personal Bests &rarr;</a></div>{% endif %}
+{% if is_fs(program) %}<p style="margin:14px 0 0;font:500 13px 'Barlow',sans-serif;color:#6b7680;max-width:760px;">Training program view: built from Full Swing Live At Bat sessions. Outcomes such as xBA and whiff % are predicted from the batted ball, not actual results.</p>{% endif %}
 <div class="cols{{ ' one' if halves|length == 1 }}">
 {% for H in halves %}{% set side = H.side %}{% set D = H.D %}
 <section class="half" id="{{ side }}">

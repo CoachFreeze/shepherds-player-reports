@@ -60,6 +60,7 @@ BASE = {
     'fb_ivb': ('Fastball Induced Vert Break', 'Stuff', 'Average fastball induced vertical break (in).'),
     'fb_hb': ('Fastball Horizontal Break', 'Stuff', 'Average fastball horizontal break (in).'),
     'fb_vaa': ('Fastball Vertical Approach Angle', 'Stuff', 'Average fastball VAA (degrees).'),
+    'avg_velo': ('Avg Velo', 'Stuff', 'Average velocity of every pitch (mph).'),
     'avg_spin': ('Avg Spin Rate', 'Stuff', 'Average spin rate, all pitches (rpm).'),
     'max_spin': ('Max Spin Rate', 'Stuff', 'Highest spin rate (rpm).'),
     'velo_gap': ('Velo Separation', 'Stuff', 'Fastball velocity minus avg changeup/splitter velocity (mph).'),
@@ -218,6 +219,7 @@ def compute(rows):
     out['fb_ivb'] = _f(_avg(fb, 'InducedVertBreak'), 1, '"')
     out['fb_hb'] = _f(_avg(fb, 'HorzBreak'), 1, '"')
     out['fb_vaa'] = _f(_avg(fb, 'VertApprAngle'), 1, '°')
+    out['avg_velo'] = _f(sum(spd) / len(spd) if spd else None)
     out['avg_spin'] = _f(_avg(rows, 'SpinRate'), 0)
     sp = [v for v in (_n(r, 'SpinRate') for r in rows) if v]
     out['max_spin'] = _f(max(sp) if sp else None, 0)

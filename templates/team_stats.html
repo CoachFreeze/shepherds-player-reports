@@ -40,10 +40,10 @@
   @media (max-width:520px){h1{font-size:32px;}}
 </style></head><body>
 <div class="hero"><div class="wrap">{% if wm_url %}<img class="wm" src="{{ wm_url }}" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
-  <p class="eyebrow">{{ team_label }}</p><h1>{{ title }}</h1><p class="sub">{{ rows|length }} {{ 'pitcher' if side == 'pitching' else 'hitter' }}{{ '' if rows|length == 1 else 's' }}. Click a column to sort. Click a name to open the player's profile.</p>
+  <p class="eyebrow">{{ team_label }}</p><h1>{{ title }}</h1><p class="sub">{{ rows|length }} {{ 'pitcher' if side == 'pitching' else 'hitter' }}{{ '' if rows|length == 1 else 's' }}. Click a column to sort. Click a name to open the player's profile.{% if fs %} Live At Bat results are predicted from the batted ball, not actual outcomes.{% endif %}</p>
   {% set topnav_on = 'pit' if side == 'pitching' else 'hit' %}{% include '_topnav.html' %}</div></div>
 <div class="wrap">
-  {% if side == 'hitting' %}<div class="seg2 body"><a href="?stats=basic" class="{{ 'on' if stats_mode == 'basic' }}">Basic Stats</a><a href="?stats=advanced" class="{{ 'on' if stats_mode == 'advanced' }}">Advanced Stats</a></div>{% endif %}
+  {% if side == 'hitting' and stats_mode %}<div class="seg2 body"><a href="?stats=basic" class="{{ 'on' if stats_mode == 'basic' }}">Basic Stats</a><a href="?stats=advanced" class="{{ 'on' if stats_mode == 'advanced' }}">Advanced Stats</a></div>{% endif %}
   <div class="bar"><input id="q" type="search" placeholder="Search {{ title|lower }}…" autocomplete="off"><button type="button" id="colBtn" class="pill">Columns</button><button type="button" id="prBtn" class="pill dark">Print / PDF</button><a href="?view=cards">Card view &rsaquo;</a><span class="hintt">Hover a stat abbreviation for its full name and definition.</span></div>
 
   <div id="colPanel" class="cpanel" hidden>

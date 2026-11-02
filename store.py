@@ -737,3 +737,21 @@ def add_player_login(username, display_name, password, inv):
 
 def program_players(program):
     return {u: c for u, c in list_coaches().items() if c.get('program') == program and c.get('role') == 'player'}
+
+
+# Programs whose data comes from Full Swing only (no pitch location, pitch type, counts or handedness) and that are run as a training program
+# rather than Team Reporting. Their pages adapt: no Game Reports / Scouting / Catchers, no location-based stats, Live At Bat outcomes labelled as
+# predicted. Add a slug here (or {"slug": "fullswing"} in data/program_modes.json) to switch another program to this mode.
+FULLSWING_PROGRAMS = {'shepherds'}
+
+
+def is_fullswing(program):
+    if not program:
+        return False
+    try:
+        modes = _load(os.path.join(DATA_DIR, 'program_modes.json'), {})
+    except Exception:
+        modes = {}
+    if program in modes:
+        return modes[program] == 'fullswing'
+    return program in FULLSWING_PROGRAMS
