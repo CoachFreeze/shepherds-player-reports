@@ -3,7 +3,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 71.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261023-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261031-BiolaUniversity-Private-2_unverified.csv",
     "name": "Adam Whyte",
     "program": "biola_university",
     "roles": {
@@ -79,7 +79,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 74.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261023-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261031-BiolaUniversity-Private-2_unverified.csv",
     "name": "Aidan Dahlk",
     "program": "biola_university",
     "roles": {
@@ -155,7 +155,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 70.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261023-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261031-BiolaUniversity-Private-2_unverified.csv",
     "name": "Andres Hernandez",
     "program": "biola_university",
     "roles": {
@@ -180,7 +180,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 77.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261023-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261031-BiolaUniversity-Private-2_unverified.csv",
     "name": "Ben Ricketts",
     "program": "biola_university",
     "roles": {
@@ -525,7 +525,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 76.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261024-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261031-BiolaUniversity-Private-2_unverified.csv",
     "name": "Griffin Brown",
     "program": "biola_university",
     "roles": {
@@ -776,7 +776,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 70.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261023-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261031-BiolaUniversity-Private-2_unverified.csv",
     "name": "Jayden Rojas",
     "program": "biola_university",
     "roles": {
@@ -804,7 +804,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 70.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261024-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261031-BiolaUniversity-Private-2_unverified.csv",
     "name": "John Iacono",
     "program": "biola_university",
     "roles": {
@@ -910,6 +910,21 @@
     "school": "Long Beach State",
     "weight_lbs": 185.0
   },
+  "matt_ibrahim_jr": {
+    "comps": {},
+    "grad_year": null,
+    "height_in": 72.0,
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261031-BiolaUniversity-Private-2_unverified.csv",
+    "name": "Matt Ibrahim Jr.",
+    "program": "biola_university",
+    "roles": {
+      "pitch": {
+        "position": "RHP"
+      }
+    },
+    "school": "Biola University",
+    "weight_lbs": 205.0
+  },
   "nick_brown": {
     "comps": {},
     "grad_year": null,
@@ -940,7 +955,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 71.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261024-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261031-BiolaUniversity-Private-2_unverified.csv",
     "name": "Noe Novella",
     "program": "biola_university",
     "roles": {
@@ -966,7 +981,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 74.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261023-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261031-BiolaUniversity-Private-2_unverified.csv",
     "name": "Oscar Knapp",
     "program": "biola_university",
     "roles": {
@@ -1341,7 +1356,7 @@
     "comps": {},
     "grad_year": 2030,
     "height_in": 73.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261024-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261031-BiolaUniversity-Private-2_unverified.csv",
     "name": "Zachary Berntsen",
     "program": "biola_university",
     "roles": {
