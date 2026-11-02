@@ -58,6 +58,7 @@ BASIC_HIT = [
     ('b_ab', 'At Bats', 'AB', 'Plate appearances minus walks, hit-by-pitch and sacrifices.', 'int'),
     ('b_h', 'Hits', 'H', 'Hits. Needs a result (tag or Trackman PlayResult) on every ball in play, otherwise left blank.', 'int'),
     ('b_bb', 'Walks', 'BB', 'Walks, from the count.', 'int'),
+    ('b_hbp', 'Hit By Pitch', 'HBP', 'Times hit by a pitch.', 'int'),
     ('b_k', 'Strikeouts', 'K', 'Strikeouts, from the count.', 'int'),
     ('b_bb_pct', 'Walk %', 'BB%', 'Walks / plate appearances.', 'pct'),
     ('b_k_pct', 'Strikeout %', 'K%', 'Strikeouts / plate appearances.', 'pct'),

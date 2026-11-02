@@ -55,9 +55,9 @@
   <div class="ptitle">{{ team_label }} &middot; {{ title }} &middot; <span id="pdate"></span></div>
   {% if not rows %}<p style="color:var(--muted);margin-top:24px;">No {{ title|lower }} tracked for this team yet. They appear automatically once a session is uploaded.</p>{% else %}
   <div class="tw"><table id="st"><thead>
-    <tr class="g"><th class="jn"></th><th class="nm"></th>{% if side != 'pitching' %}<th></th>{% endif %}{% for g in groups %}<th colspan="{{ g.n }}" data-g="{{ g.name }}">{{ g.name }}</th>{% endfor %}</tr>
-    <tr class="c"><th class="jn s" data-t="n" title="Jersey number: not entered yet.">#</th><th class="nm s" data-t="s">Name</th>{% if side != 'pitching' %}<th class="s" data-t="n" title="Pitches: total pitches seen.">Seen</th>{% endif %}{% for c in cols %}<th class="s" data-t="n" data-c="{{ c.id }}" title="{{ c.label }}: {{ c.def }}">{{ c.abbr }}</th>{% endfor %}</tr></thead>
-  <tbody>{% for r in rows %}<tr data-s="{{ r.name|lower }}"><td class="jn {{ '' if r.jersey else 'na' }}" data-v="{{ r.jersey }}">{{ r.jersey or '—' }}</td><td class="nm" data-v="{{ r.disp|lower }}"><a href="{{ r.url }}">{{ r.disp }}</a></td>{% if side != 'pitching' %}<td data-v="{{ r.n }}">{{ r.n }}</td>{% endif %}
+    <tr class="g"><th class="jn"></th><th class="nm"></th>{% if side != 'pitching' and stats_mode != 'basic' %}<th></th>{% endif %}{% for g in groups %}<th colspan="{{ g.n }}" data-g="{{ g.name }}">{{ g.name }}</th>{% endfor %}</tr>
+    <tr class="c"><th class="jn s" data-t="n" title="Jersey number: not entered yet.">#</th><th class="nm s" data-t="s">Name</th>{% if side != 'pitching' and stats_mode != 'basic' %}<th class="s" data-t="n" title="Pitches: total pitches seen.">Seen</th>{% endif %}{% for c in cols %}<th class="s" data-t="n" data-c="{{ c.id }}" title="{{ c.label }}: {{ c.def }}">{{ c.abbr }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for r in rows %}<tr data-s="{{ r.name|lower }}"><td class="jn {{ '' if r.jersey else 'na' }}" data-v="{{ r.jersey }}">{{ r.jersey or '—' }}</td><td class="nm" data-v="{{ r.disp|lower }}"><a href="{{ r.url }}">{{ r.disp }}</a></td>{% if side != 'pitching' and stats_mode != 'basic' %}<td data-v="{{ r.n }}">{{ r.n }}</td>{% endif %}
     {% for c in cols %}{% set x = r.cells.get(c.id) %}{% if x %}<td data-c="{{ c.id }}" data-v="{{ x[1] if x[1] is not none else '' }}">{{ x[0] }}</td>{% else %}<td class="na" data-c="{{ c.id }}" data-v="">—</td>{% endif %}{% endfor %}</tr>{% endfor %}</tbody></table></div>{% endif %}
 </div>
 <script>

@@ -375,7 +375,7 @@ def basic_stats(pitches):
             continue                                     # cut off mid-count
         pa += 1
     ab = pa - bb - hbp - sac
-    out = {'b_pa': pa, 'b_ab': ab, 'b_bb': bb, 'b_k': k,
+    out = {'b_pa': pa, 'b_ab': ab, 'b_bb': bb, 'b_hbp': hbp, 'b_k': k,
            'b_bb_pct': 100.0 * bb / pa if pa else None, 'b_k_pct': 100.0 * k / pa if pa else None,
            'b_h': None, 'b_2b': None, 'b_3b': None, 'b_hr': None, 'b_avg': None, 'b_obp': None, 'b_slg': None, 'b_ops': None}
     if pa and not unresolved:
