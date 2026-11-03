@@ -58,7 +58,8 @@ SCHOOL_BADGES = [
     (('ventura college', 'ventura'), 'ventura_college.png', '#FFFFFF'),
     (('utah valley', 'uvu'), 'utah_valley.png', '#FFFFFF'),
     (('santa barbara', 'ucsb'), 'uc_santa_barbara.png', '#FFFFFF'),
-    (('san diego', 'ucsd'), 'uc_san_diego.png', '#FFFFFF'),
+    (('university of san diego', 'toreros'), 'university_of_san_diego.png', '#FFFFFF'),    # drop the PNG into assets/schools/ to turn this on
+    (('uc san diego', 'ucsd', 'uc-san diego', 'california, san diego', 'california san diego', 'san diego tritons', 'tritons'), 'uc_san_diego.png', '#FFFFFF'),
     (('sacramento', 'sac state'), 'sacramento_state.png', '#FFFFFF'),
     (('northridge', 'csun'), 'cal_state_northridge.png', '#FFFFFF'),
     (('fullerton', 'csuf'), 'cal_state_fullerton.png', '#FFFFFF'),

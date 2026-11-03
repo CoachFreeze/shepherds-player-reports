@@ -122,6 +122,30 @@ def outing_log(outs, name):
     return log
 
 
+PMP_SAMPLE = 90          # most dots the movement plot draws; averages, usage and every other number still use all pitches
+
+
+def _sample_points(types, cap=PMP_SAMPLE, floor=6):
+    """Thin the movement plot's dots to about `cap`, split across pitch types by how often each is thrown (every type keeps at
+    least `floor` dots so a rare pitch still shows its pattern). Dots are taken at even spacing through each type's pitches, so every
+    outing is represented. The type's average movement (hb/vb) is untouched and is still computed from every pitch."""
+    total = sum(len(t['points']) for t in types)
+    if total <= cap:
+        return types
+    quota = {i: min(len(t['points']), max(floor, round(cap * len(t['points']) / total))) for i, t in enumerate(types)}
+    while sum(quota.values()) > cap:                 # floors can overshoot: trim the biggest share first
+        i = max((k for k in quota if quota[k] > floor), key=lambda k: quota[k], default=None)
+        if i is None:
+            break
+        quota[i] -= 1
+    out = []
+    for i, t in enumerate(types):
+        pts, q = t['points'], quota[i]
+        keep = pts if q >= len(pts) else [pts[min(len(pts) - 1, int((j + 0.5) * len(pts) / q))] for j in range(q)]
+        out.append({**t, 'points': keep})
+    return out
+
+
 def build(slug, bio, retag=False, frm=None, to=None):
     """The whole pitcher profile model, kept until the stored data or this player's bio changes (see cache.py)."""
     import json
@@ -149,8 +173,11 @@ def _build(slug, bio, retag=False, frm=None, to=None):
         pts = [{'type': t['type'], 'color': t['color'], 'hb': t['hb'], 'vb': t['ivb'], 'points': ([(h, v, ve, *pid) for (h, v, ve), pid in zip(t['points'], t['pids'])] if retag and len(t.get('pids') or []) == len(t['points'])
                            else [(h, v, ve) for h, v, ve in t['points']])}
                for t in st if t['points']]
-        return (sc.movement_plot_caption_html() + sc.movement_plot_svg(
-            pts, width=680, height=680, all_pitches=True, r24_frac=0.80, font_scale=1.3, pt_r=9, arm_badge=arm_badge)
+        n_all, shown = sum(len(p['points']) for p in pts), _sample_points(pts)
+        n_shown = sum(len(p['points']) for p in shown)
+        note = (f'<div style="text-align:center;font-size:12px;color:#6b7680;margin:2px 0 4px;">Showing a {n_shown}-pitch sample of {n_all}. Averages use every pitch.</div>' if n_shown < n_all else '')
+        return (sc.movement_plot_caption_html() + note + sc.movement_plot_svg(
+            shown, width=680, height=680, all_pitches=True, r24_frac=0.80, font_scale=1.3, pt_r=9, arm_badge=arm_badge)
             + sc.pitch_usage_legend_html(st)) if pts else ''
 
     movement_html = _pmp(rows)
