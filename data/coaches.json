@@ -56,6 +56,13 @@
     "program_label": "Biola University",
     "role": "assistant"
   },
+  "nick.jorgensen": {
+    "display_name": "Nick Jorgensen",
+    "password_hash": "scrypt:32768:8:1$sP0A8oOD2fgAEdJu$5de819b2f20b25d0753d16f0084a8a05dbc7e30e68733325ee0909b93d24ef38851c009122ebd34be029bbd8ba5d49bd13a5624df85b26627751250acc2a1b13",
+    "program": "the_master_s_university",
+    "program_label": "The Master's University",
+    "role": "program"
+  },
   "sebastian.garcia": {
     "display_name": "Sebastian Garcia",
     "password_hash": "scrypt:32768:8:1$DltZjQ0tOoPyOO2D$bd2cc4e80fb1bc49b2cbf82911f33f33cbbf5433912f610e207f81d2911ea38463ce607c6f314da99e0c11ec82eff54ccf7c20941583e113b20349af083a28d7",
