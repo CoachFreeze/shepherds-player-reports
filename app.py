@@ -277,7 +277,7 @@ def staff_checks():
     return None
 
 
-_DEMO_BLOCKED = {'team_game_edit', 'team_coaches', 'team_appearance', 'roster_page', 'upload_log_page', 'intake_bulk', 'intake_bulk_run', 'edit_profile', 'account', 'change_password',
+_DEMO_BLOCKED = {'team_armcare', 'team_armcare_confirm', 'team_game_edit', 'team_coaches', 'team_appearance', 'roster_page', 'upload_log_page', 'intake_bulk', 'intake_bulk_run', 'edit_profile', 'account', 'change_password',
                  'admin_status', 'hitters_sort', 'team_customize'}
 
 
@@ -1180,7 +1180,14 @@ def _pitcher_page(slug, bio, public=False, token=None):
             ins = insights.pitcher(slug, bio.get('program') or ('demo_university' if store.is_demo(slug) else 'shepherds'))
         except Exception:
             ins = None
-    return render_template('player_overview.html', ins=ins, dr=_dr, public=public, photo_src=(url_for('public_share_photo', token=token) if public else None),
+    wl = None
+    if not public and not is_player():
+        try:
+            import workload
+            wl = workload.card(slug)
+        except Exception:
+            wl = None
+    return render_template('player_overview.html', ins=ins, wl=wl, dr=_dr, public=public, photo_src=(url_for('public_share_photo', token=token) if public else None),
                            share=(None if public else _share_ctx('pitcher', slug, _prog)), share_team=store.program_label(_prog) if (public and _prog) else '',
                            can_retag=can_retag, retag_types=[l for l, _ in outings_mod.RETAG_TYPES], pr_ent=(None if public else prs.for_pitcher(slug)), b=b, bio=bio, slug=slug, css=css, hitter_url=hitter_url, has_photo=has_photo, badge=badge,
                            photo_v=int(os.path.getmtime(headshots.path(slug))) if has_photo else 0,
@@ -1436,6 +1443,116 @@ def team_outings(program):
         days.append({'date': d, 'pretty': pretty, 'items': sorted(by[d], key=lambda x: x['name'].split()[-1].lower()),
                      'total': sum(x['n'] for x in by[d])})
     return render_template('team_outings.html', program=program, team_label=store.program_label(program), days=days)
+
+
+@app.template_filter('md')
+def _md_filter(s):
+    import datetime as _dt
+    try:
+        return _dt.date.fromisoformat(str(s)[:10]).strftime('%b %-d')
+    except ValueError:
+        return s
+
+
+def _wl_ok(program):
+    """Workload and ArmCare pages: coaches of the program and admins only (never players)."""
+    _team_ok(program)
+    if is_player():
+        abort(403)
+
+
+@app.route('/team/<program>/workload')
+@login_required
+def team_workload(program):
+    _wl_ok(program)
+    import datetime as _dt
+    import workload
+    g.theme_program = program
+    asof = request.args.get('asof', '')
+    try:
+        _dt.date.fromisoformat(asof)
+    except ValueError:
+        asof = _dt.date.today().isoformat()
+    return render_template('team_workload.html', program=program, team_label=store.program_label(program), rows=workload.team_rows(program, asof), asof=asof,
+                           today=_dt.date.today().isoformat(), can_upload=not (is_assistant() or is_player()), msg=request.args.get('msg'),
+                           drop=__import__('armcare').ARM_DROP_PCT)
+
+
+def _armcare_candidates(program):
+    return {s: b.get('name', s) for s, b in store.list_players_view().items() if (b.get('program') or 'shepherds') == program}
+
+
+@app.route('/team/<program>/armcare', methods=['GET', 'POST'])
+@login_required
+@head_required
+def team_armcare(program):
+    _wl_ok(program)
+    import json
+    import secrets
+    import armcare
+    g.theme_program = program
+    ctx = {'program': program, 'team_label': store.program_label(program)}
+    if request.method == 'GET':
+        return render_template('armcare_upload.html', step='form', message=request.args.get('msg'), **ctx)
+    files = [f for f in request.files.getlist('file') if f and f.filename]
+    if not files:
+        return render_template('armcare_upload.html', step='form', message='Choose an ArmCare export (.csv) or player report (.pdf) first.', **ctx)
+    token = secrets.token_hex(8)
+    batches, errors = [], []
+    for n, f in enumerate(files):
+        ext = os.path.splitext(f.filename)[1].lower()
+        tmp = os.path.join(UPLOAD_DIR, f'armcare_{token}_{n}{ext}')
+        f.save(tmp)
+        try:
+            batches.append(armcare.parse_pdf(tmp) if ext == '.pdf' else armcare.parse(tmp))
+        except Exception as exc:
+            errors.append(f'{f.filename}: {exc}')
+        finally:
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+    aths = armcare.combine(batches)
+    if not aths:
+        return render_template('armcare_upload.html', step='form', message="Couldn't read " + ('that file' if len(files) == 1 else 'those files') + ': ' + ' '.join(errors or ['no exams were found.']), **ctx)
+    cands = _armcare_candidates(program)
+    armcare.match(aths, cands)
+    with open(os.path.join(UPLOAD_DIR, f'armcare_{token}.json'), 'w', encoding='utf-8') as fh:
+        json.dump(aths, fh)
+    return render_template('armcare_upload.html', step='preview', athletes=aths, token=token, cands=sorted(cands.items(), key=lambda kv: kv[1].split()[-1].lower()),
+                           types=armcare.TYPES, errors=errors, **ctx)
+
+
+@app.route('/team/<program>/armcare/confirm', methods=['POST'])
+@login_required
+@head_required
+def team_armcare_confirm(program):
+    _wl_ok(program)
+    import json
+    import armcare
+    token = request.form.get('token', '')
+    if not re.fullmatch(r'[0-9a-f]{16}', token):
+        abort(400)
+    path = os.path.join(UPLOAD_DIR, f'armcare_{token}.json')
+    try:
+        with open(path, encoding='utf-8') as fh:
+            aths = json.load(fh)
+    except Exception:
+        return redirect(url_for('team_armcare', program=program, msg='That upload timed out. Choose the file again.'))
+    cands = _armcare_candidates(program)
+    new = people = 0
+    with github_sync.batch('Add ArmCare exams'):
+        for i, a in enumerate(aths):
+            slug = request.form.get(f'map_{i}', '')
+            if slug in cands:
+                new += armcare.save(slug, cands[slug], a['exams'])
+                people += 1
+    try:
+        os.remove(path)
+    except OSError:
+        pass
+    return redirect(url_for('team_workload', program=program, msg=f"Added {new} ArmCare exam{'' if new == 1 else 's'} for {people} pitcher{'' if people == 1 else 's'}." if people else 'No pitchers were matched, so nothing was saved.'))
+
 
 
 @app.route('/team/<program>/catchers')
