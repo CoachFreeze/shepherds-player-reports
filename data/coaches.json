@@ -50,8 +50,7 @@
     "created": "2026-11-03",
     "display_name": "Joey Notch",
     "head": "coachfreeze",
-    "must_change": true,
-    "password_hash": "scrypt:32768:8:1$27CcxJqt8MVEKPiZ$79485267f5000d4fc9a1e49d9caa521b1fe362f82da19ea0cc5c9dc2eb8502ddc4d2f557c20bb4d43ce7d615bc8bd8d01859d5276d3f59e2e8cf8b38bb8e13cd",
+    "password_hash": "scrypt:32768:8:1$EKVEutgPPXkJiKuz$d1f8d3f66ec64ffb682f33660f989d63d828eb7f91d3b9ed805645b5a247b24b8bcc72810dd460233d238994d0154ffb96614a980ef809e0dda624541f1e14f7",
     "program": "long_beach_state",
     "program_label": "Long Beach State",
     "role": "assistant"
