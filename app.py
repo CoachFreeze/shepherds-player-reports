@@ -586,7 +586,7 @@ def _team_tiles(groups):
     coaches = store.list_coaches().values()
     tiles = []
     for pk, label, plist in groups:
-        if not plist and pk == 'shepherds':
+        if (not plist and pk == 'shepherds') or pk in store.SCOUTING_ONLY_PROGRAMS:
             continue
         _b = pipeline.school_badge_file(label, pk)
         tiles.append({'key': pk, 'label': label, 'players': len(plist),
