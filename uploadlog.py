@@ -50,3 +50,18 @@ def mark_removed(upload_id):
     with open(PATH, 'w', encoding='utf-8') as f:
         f.write(text)
     github_sync.put_file('data/upload_log.json', text.encode('utf-8'))
+
+
+def rename_opponent(program, old, new):
+    """Keeps the Opponent suggestions on the upload page in step with a renamed game."""
+    d = _load()
+    hit = False
+    for e in d:
+        if e.get('program') == program and e.get('opponent') == old:
+            e['opponent'] = new
+            hit = True
+    if hit:
+        text = json.dumps(d, separators=(',', ':'))
+        with open(PATH, 'w', encoding='utf-8') as f:
+            f.write(text)
+        github_sync.put_file('data/upload_log.json', text.encode('utf-8'))

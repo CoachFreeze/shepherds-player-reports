@@ -277,7 +277,7 @@ def staff_checks():
     return None
 
 
-_DEMO_BLOCKED = {'team_coaches', 'team_appearance', 'roster_page', 'upload_log_page', 'intake_bulk', 'intake_bulk_run', 'edit_profile', 'account', 'change_password',
+_DEMO_BLOCKED = {'team_game_edit', 'team_coaches', 'team_appearance', 'roster_page', 'upload_log_page', 'intake_bulk', 'intake_bulk_run', 'edit_profile', 'account', 'change_password',
                  'admin_status', 'hitters_sort', 'team_customize'}
 
 
@@ -1412,8 +1412,9 @@ def team_games(program):
     for s in rest:
         d = _dt.date.fromisoformat(s['date'])
         upcoming.append({**s, 'date_pretty': d.strftime('%a %b %-d, %Y'), 'past': s['date'] < today, 'today': s['date'] == today,
+                         'up': url_for('intake_bulk', program=program, session_type='Game', **({} if s.get('tournament') else {'opponent': s['opp']})),
                          'logo': None if s.get('tournament') else _opp_logo_url(program, store.slugify(s['opp']) or 'unlabeled', s['opp'])})
-    return render_template('games.html', program=program, team_label=store.program_label(program), games=out, schedule=upcoming)
+    return render_template('games.html', program=program, team_label=store.program_label(program), games=out, schedule=upcoming, msg=request.args.get('msg'), can_edit=not (is_assistant() or is_player()))
 
 
 @app.route('/team/<program>/outings')
@@ -1460,6 +1461,22 @@ def team_catcher(program, key):
         abort(404)
     return render_template('catcher_profile.html', program=program, team_label=store.program_label(program), c=c, team_call=B['team_call'],
                            zone_svg=catcher.zone_svg(c['recv']['points']), res_ids=catcher.RESULT_IDS)
+
+
+@app.route('/team/<program>/game/<gid>/edit', methods=['POST'])
+@login_required
+@head_required
+def team_game_edit(program, gid):
+    _team_ok(program)
+    import gamereport as gr
+    with github_sync.batch('Rename a game opponent'):
+        res = gr.rename_game(program, gid, request.form.get('opponent', ''))
+        if res and res['rows']:
+            gamenotes.move(program, res['moved'])
+            uploadlog.rename_opponent(program, res['old'], res['new'])
+    if not res or not res['rows']:
+        return redirect(url_for('team_games', program=program, msg='Enter an opponent name to save.'))
+    return redirect(url_for('team_games', program=program, msg=f"Opponent changed to {res['new']} ({res['rows']} pitches updated)."))
 
 
 @app.route('/team/<program>/game/<gid>/notes', methods=['POST'])
@@ -3069,8 +3086,8 @@ BULK_UPLOAD_PAGE = BULK_STYLE + """
 {% if message %}<div class="card" style="color:#9c3a3a;">{{ message }}</div>{% endif %}
 <form method="post" enctype="multipart/form-data">{% if programs %}<p><label style="font-weight:600;">Upload to: <select name="program">{% for s, l in programs %}<option value="{{ s }}" {{ 'selected' if s == prog }}>{{ l }}</option>{% endfor %}</select></label></p>{% endif %}
 <div class="card"><label style="font-weight:700;font-size:16px;display:block;margin-bottom:6px;">What kind of session is this?</label>
-<select name="session_type" required style="padding:9px 12px;border:1px solid #dde2e5;border-radius:10px;font:600 15px Barlow,sans-serif;"><option value="" disabled selected>Choose one…</option><option>Bullpen</option><option>Intrasquad</option><option>Scrimmage</option><option>Game</option><option value="Scouting">Scouting only (two other teams)</option></select>
-<div id="opp-row" style="display:none;margin-top:12px;"><label style="font-weight:600;font-size:14px;">Opponent <span style="font-weight:400;color:#6b7680;">(optional)</span><br><input type="text" name="opponent" list="opp-list" placeholder="e.g. UCLA" autocomplete="off" style="margin-top:4px;padding:9px 12px;border:1px solid #dde2e5;border-radius:10px;font:500 15px Barlow,sans-serif;width:260px;max-width:100%;"></label><datalist id="opp-list">{% for o in opponents %}<option value="{{ o }}">{% endfor %}</datalist></div>
+<select name="session_type" required style="padding:9px 12px;border:1px solid #dde2e5;border-radius:10px;font:600 15px Barlow,sans-serif;"><option value="" disabled {{ '' if pre_type else 'selected' }}>Choose one…</option>{% for t in ['Bullpen', 'Intrasquad', 'Scrimmage', 'Game'] %}<option {{ 'selected' if pre_type == t }}>{{ t }}</option>{% endfor %}<option value="Scouting" {{ 'selected' if pre_type == 'Scouting' }}>Scouting only (two other teams)</option></select>
+<div id="opp-row" style="display:none;margin-top:12px;"><label style="font-weight:600;font-size:14px;">Opponent <span style="font-weight:400;color:#6b7680;">(optional)</span><br><input type="text" name="opponent" list="opp-list" value="{{ pre_opp or '' }}" placeholder="e.g. UCLA" autocomplete="off" style="margin-top:4px;padding:9px 12px;border:1px solid #dde2e5;border-radius:10px;font:500 15px Barlow,sans-serif;width:260px;max-width:100%;"></label><datalist id="opp-list">{% for o in opponents %}<option value="{{ o }}">{% endfor %}</datalist></div>
 <script>(function(){var s=document.querySelector('select[name=session_type]'),r=document.getElementById('opp-row');function f(){r.style.display=(s.value==='Scrimmage'||s.value==='Game')?'block':'none';}s.addEventListener('change',f);f();})();</script>
 <div style="color:#6b7680;font-size:13px;margin-top:8px;line-height:1.5;"><b>Bullpen</b>: pitching only, no hitters are added. <b>Intrasquad</b>: everyone in the file is on your team. <b>Scouting only</b>: a file between two other programs; both teams go into Scouting and nothing is added to your dashboards. <b>Scrimmage / Game</b>: you pick your pitchers on the next screen. Hitters facing them are treated as the opponent and left out, and your own hitters are picked up from the opposing pitchers' pitches.</div></div>
 {% for sid, lab, note in sources %}<div class="card"><label style="font-weight:700;font-size:16px;display:block;margin-bottom:6px;">{{ lab }} CSV</label><input type="file" name="file_{{ sid }}" accept=".csv"><div style="color:#6b7680;font-size:13px;margin-top:6px;">{{ note }}</div></div>{% endfor %}
@@ -3204,7 +3221,9 @@ def _opponent():
 def intake_bulk():
     if request.method == 'GET':
         _wel = bool(request.args.get('welcome')) or store.needs_first_upload(session.get('coach'))
+        _pt = request.args.get('session_type', '')
         return render_template_string(BULK_UPLOAD_PAGE, message=None, welcome=_wel, welcome_name=(current_coach() or {}).get('display_name', ''),
+                                      pre_type=_pt if _pt in SESSION_TYPES else '', pre_opp=re.sub(r'\s+', ' ', request.args.get('opponent', '')).strip()[:60],
                                       **_bulk_ctx((request.args.get('program') if is_admin() and request.args.get('program') else None) or my_program() or 'long_beach_state'))
     src, f = None, None
     for sid, _l, _n in UPLOAD_SOURCES:

@@ -1,6 +1,7 @@
 """Full Game Report (beta): rebuilds one game from the stored Game / Scrimmage pitches.
 Both teams' pitches are needed: our pitchers' files hold the opponent's at-bats, the opposing pitchers' files ('opp-...') hold ours.
 Uses the Trackman columns Inning, Top/Bottom, PAofInning, Outs, PlayResult, KorBB, RunsScored when they are there."""
+import re
 import html
 import os
 
@@ -73,6 +74,35 @@ def collect(program):
             g.update({'gid': gid, 'n': len(g['rows']), 'label': store.program_label(program)})
             out[gid] = g
     return out
+
+
+def rename_game(program, gid, new_opp):
+    """Changes the opponent name on every stored pitch of one game (every game that date against the same opponent, so a doubleheader
+    stays together). Returns {'rows': n, 'old': old name, 'new': new name, 'moved': [(old gid, new gid)]} or None when the game isn't found."""
+    games = collect(program)
+    gm = games.get(gid)
+    new_opp = re.sub(r'\s+', ' ', (new_opp or '').strip())[:60]
+    if not gm or not new_opp:
+        return None
+    date, old_slug, new_slug = gm['date'], store.slugify(gm['opp']) or 'unlabeled', store.slugify(new_opp) or 'unlabeled'
+    n = 0
+    for slug, _side, data in _our_files(program):
+        hit = 0
+        for o in data.get('outings', []):
+            if o['date'][:10] != date:
+                continue
+            for r in o['rows']:
+                if r.get('SessionType') in GAME_TYPES and (store.slugify(r.get('Opponent') or 'Unlabeled opponent') or 'unlabeled') == old_slug:
+                    r['Opponent'] = new_opp
+                    hit += 1
+        if hit:
+            outings_mod._save(slug, data)
+            n += hit
+    moved = []
+    if n and new_slug != old_slug:
+        old_p, new_p = f'{date}--{old_slug}', f'{date}--{new_slug}'
+        moved = [(k, new_p + k[len(old_p):]) for k in games if k == old_p or k.startswith(old_p + '-g')]
+    return {'rows': n, 'old': gm['opp'], 'new': new_opp, 'moved': moved}
 
 
 # ------------------------------------------------------------------- results

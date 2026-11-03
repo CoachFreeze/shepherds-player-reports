@@ -38,3 +38,22 @@ def save(program, key, text, user=''):
     with open(PATH, 'w', encoding='utf-8') as f:
         f.write(body)
     github_sync.put_file('data/game_notes.json', body.encode('utf-8'))
+
+
+def move(program, pairs):
+    """Re-keys notes when a game's id changes (its opponent was renamed). pairs = [(old gid, new gid)]. Never overwrites an existing note."""
+    d = _load()
+    prog = d.get(program) or {}
+    changed = False
+    for old, new in pairs:
+        for side in ('us', 'opp'):
+            k, nk = f'{old}--{side}', f'{new}--{side}'
+            if k in prog and nk not in prog:
+                prog[nk] = prog.pop(k)
+                changed = True
+    if not changed:
+        return
+    body = json.dumps(d, separators=(',', ':'), ensure_ascii=False, sort_keys=True)
+    with open(PATH, 'w', encoding='utf-8') as f:
+        f.write(body)
+    github_sync.put_file('data/game_notes.json', body.encode('utf-8'))
