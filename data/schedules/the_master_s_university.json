@@ -1,0 +1,431 @@
+{
+ "program": "the_master_s_university",
+ "season": "2027",
+ "source": "2027 Baseball Schedule - The Master's University Athletics.pdf",
+ "games": [
+  {
+   "date": "2027-01-28",
+   "time": "2:00 PM",
+   "at": "Home",
+   "opp": "William Carey University",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-01-29",
+   "time": "2:00 PM",
+   "at": "Home",
+   "opp": "William Carey University",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-01-30",
+   "time": "11:00 AM",
+   "at": "Home",
+   "opp": "William Carey University",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-01-30",
+   "time": "After Game 1",
+   "at": "Home",
+   "opp": "William Carey University",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-05",
+   "time": "2:00 PM",
+   "at": "Away",
+   "opp": "Westcliff University",
+   "loc": "Irvine, CA",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-06",
+   "time": "11:00 AM",
+   "at": "Away",
+   "opp": "Westcliff University",
+   "loc": "Irvine, CA",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-06",
+   "time": "After Game 1",
+   "at": "Away",
+   "opp": "Westcliff University",
+   "loc": "Irvine, CA",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-12",
+   "time": "11:00 AM",
+   "at": "Home",
+   "opp": "Simpson University",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-12",
+   "time": "After Game 1",
+   "at": "Home",
+   "opp": "Simpson University",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-13",
+   "time": "11:00 AM",
+   "at": "Home",
+   "opp": "Simpson University",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-13",
+   "time": "After Game 1",
+   "at": "Home",
+   "opp": "Simpson University",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-18",
+   "time": "TBA",
+   "at": "Neutral",
+   "opp": "St. Thomas University",
+   "loc": "Fresno, CA",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-18",
+   "time": "TBA",
+   "at": "Neutral",
+   "opp": "St. Thomas University",
+   "loc": "Fresno, CA",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-19",
+   "time": "TBA",
+   "at": "Neutral",
+   "opp": "Bushnell University",
+   "loc": "Fresno, CA",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-19",
+   "time": "TBA",
+   "at": "Neutral",
+   "opp": "Bushnell University",
+   "loc": "Fresno, CA",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-24",
+   "time": "2:00 PM",
+   "at": "Home",
+   "opp": "Missouri Baptist University",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-25",
+   "time": "11:00 AM",
+   "at": "Home",
+   "opp": "Missouri Baptist University",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-25",
+   "time": "After Game 1",
+   "at": "Home",
+   "opp": "Missouri Baptist University",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-26",
+   "time": "2:00 PM",
+   "at": "Home",
+   "opp": "Missouri Baptist University",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-04",
+   "time": "2:00 PM",
+   "at": "Home",
+   "opp": "Hope International University",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-05",
+   "time": "11:00 AM",
+   "at": "Home",
+   "opp": "Hope International University",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-05",
+   "time": "After Game 1",
+   "at": "Home",
+   "opp": "Hope International University",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-06",
+   "time": "12:00 PM",
+   "at": "Home",
+   "opp": "Hope International University",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-11",
+   "time": "3:00 PM",
+   "at": "Away",
+   "opp": "Arizona Christian University",
+   "loc": "Glendale, AZ",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-12",
+   "time": "2:00 PM",
+   "at": "Away",
+   "opp": "Arizona Christian University",
+   "loc": "Glendale, AZ",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-12",
+   "time": "After Game 1",
+   "at": "Away",
+   "opp": "Arizona Christian University",
+   "loc": "Glendale, AZ",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-13",
+   "time": "12:00 PM",
+   "at": "Away",
+   "opp": "Arizona Christian University",
+   "loc": "Glendale, AZ",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-18",
+   "time": "2:00 PM",
+   "at": "Away",
+   "opp": "Embry-Riddle Aeronautical University",
+   "loc": "Prescott, AZ",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-19",
+   "time": "12:00 PM",
+   "at": "Away",
+   "opp": "Embry-Riddle Aeronautical University",
+   "loc": "Prescott, AZ",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-19",
+   "time": "After Game 1",
+   "at": "Away",
+   "opp": "Embry-Riddle Aeronautical University",
+   "loc": "Prescott, AZ",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-20",
+   "time": "11:00 AM",
+   "at": "Away",
+   "opp": "Embry-Riddle Aeronautical University",
+   "loc": "Prescott, AZ",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-29",
+   "time": "3:00 PM",
+   "at": "Home",
+   "opp": "Bethesda University of California",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-02",
+   "time": "11:00 AM",
+   "at": "Away",
+   "opp": "Park University Gilbert",
+   "loc": "Gilbert, AZ",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-02",
+   "time": "After Game 1",
+   "at": "Away",
+   "opp": "Park University Gilbert",
+   "loc": "Gilbert, AZ",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-03",
+   "time": "11:00 AM",
+   "at": "Away",
+   "opp": "Park University Gilbert",
+   "loc": "Gilbert, AZ",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-03",
+   "time": "After Game 1",
+   "at": "Away",
+   "opp": "Park University Gilbert",
+   "loc": "Gilbert, AZ",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-09",
+   "time": "11:00 AM",
+   "at": "Home",
+   "opp": "Benedictine University Mesa",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-09",
+   "time": "After Game 1",
+   "at": "Home",
+   "opp": "Benedictine University Mesa",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-10",
+   "time": "11:00 AM",
+   "at": "Home",
+   "opp": "Benedictine University Mesa",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-10",
+   "time": "After Game 1",
+   "at": "Home",
+   "opp": "Benedictine University Mesa",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-15",
+   "time": "11:00 AM",
+   "at": "Away",
+   "opp": "La Sierra University",
+   "loc": "Riverside, CA",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-15",
+   "time": "After Game 1",
+   "at": "Away",
+   "opp": "La Sierra University",
+   "loc": "Riverside, CA",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-16",
+   "time": "11:00 AM",
+   "at": "Away",
+   "opp": "La Sierra University",
+   "loc": "Riverside, CA",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-16",
+   "time": "After Game 1",
+   "at": "Away",
+   "opp": "La Sierra University",
+   "loc": "Riverside, CA",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-22",
+   "time": "2:00 PM",
+   "at": "Home",
+   "opp": "Ottawa University Arizona",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-23",
+   "time": "12:00 PM",
+   "at": "Home",
+   "opp": "Ottawa University Arizona",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-23",
+   "time": "After Game 1",
+   "at": "Home",
+   "opp": "Ottawa University Arizona",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-24",
+   "time": "11:00 AM",
+   "at": "Home",
+   "opp": "Ottawa University Arizona",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-28",
+   "time": "11:00 AM",
+   "at": "Home",
+   "opp": "Bethesda University of California",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-28",
+   "time": "After Game 1",
+   "at": "Home",
+   "opp": "Bethesda University of California",
+   "loc": "Santa Clarita, CA / Lou Herwaldt Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-05-03",
+   "time": "TBA",
+   "at": "Neutral",
+   "opp": "GSAC Championship Tournament",
+   "loc": "Great Park / Irvine, CA",
+   "tournament": "Great Southwest Athletic Conference Tournament"
+  },
+  {
+   "date": "2027-05-10",
+   "time": "TBA",
+   "at": "Neutral",
+   "opp": "NAIA Opening Round",
+   "loc": "TBD",
+   "tournament": "NAIA Opening Round"
+  },
+  {
+   "date": "2027-05-27",
+   "time": "TBA",
+   "at": "Neutral",
+   "opp": "NAIA World Series",
+   "loc": "Lewiston, ID",
+   "tournament": "NAIA Championships"
+  }
+ ]
+}
