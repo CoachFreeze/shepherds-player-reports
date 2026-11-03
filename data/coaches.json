@@ -44,6 +44,18 @@
     "program_label": "Northwest Nazarene University",
     "role": "program"
   },
+  "joey.notch": {
+    "active": true,
+    "can_upload": true,
+    "created": "2026-11-03",
+    "display_name": "Joey Notch",
+    "head": "coachfreeze",
+    "must_change": true,
+    "password_hash": "scrypt:32768:8:1$27CcxJqt8MVEKPiZ$79485267f5000d4fc9a1e49d9caa521b1fe362f82da19ea0cc5c9dc2eb8502ddc4d2f557c20bb4d43ce7d615bc8bd8d01859d5276d3f59e2e8cf8b38bb8e13cd",
+    "program": "long_beach_state",
+    "program_label": "Long Beach State",
+    "role": "assistant"
+  },
   "josh.frye": {
     "active": true,
     "can_upload": true,
