@@ -66,7 +66,15 @@ SCHOOL_BADGES = [
     (('bakersfield', 'csub'), 'cal_state_bakersfield.png', '#FFFFFF'),
     (('california baptist', 'cal baptist', 'cbu'), 'california_baptist.png', '#FFFFFF'),
     (('cal poly', 'san luis obispo'), 'cal_poly.png', '#FFFFFF'),
-    (('riverside', 'ucr'), 'uc_riverside.png', '#FFFFFF'),
+    (('uc riverside', 'ucr', 'california, riverside', 'california riverside', 'highlanders'), 'uc_riverside.png', '#FFFFFF'),
+    (('arizona christian', 'firestorm'), 'arizona_christian.png', '#FFFFFF'),
+    (('benedictine',), 'benedictine_mesa.png', '#FFFFFF'),
+    (('la sierra', 'golden eagles'), 'la_sierra.png', '#FFFFFF'),
+    (('embry-riddle', 'embry riddle', 'erau'), 'embry_riddle.png', '#FFFFFF'),
+    (('hope international',), 'hope_international.png', '#FFFFFF'),
+    (('ouaz', 'ottawa university arizona', 'ottawa university - arizona', 'ottawa arizona'), 'ouaz.png', '#FFFFFF'),
+    (("master's university", 'masters university', 'the master', 'master\'s'), 'masters.png', '#FFFFFF'),
+    (('park university', 'park gilbert', 'park-gilbert', 'park u'), 'park_gilbert.png', '#FFFFFF'),
 ]
 
 

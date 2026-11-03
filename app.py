@@ -1401,7 +1401,19 @@ def team_games(program):
                     'us': m['score']['us'], 'them': m['score']['opp'], 'partial': not (m['pitchers']['us'] and m['pitchers']['opp']),
                     'logo': _opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp'])})
     out.sort(key=lambda x: x['date'], reverse=True)
-    return render_template('games.html', program=program, team_label=store.program_label(program), games=out)
+    import schedule as _sched
+    matches, rest = _sched.split(program, out)
+    for x in out:
+        s = matches.get(id(x))
+        if s:
+            x['at'], x['loc'] = s.get('at'), s.get('loc')
+    today = _dt.date.today().isoformat()
+    upcoming = []
+    for s in rest:
+        d = _dt.date.fromisoformat(s['date'])
+        upcoming.append({**s, 'date_pretty': d.strftime('%a %b %-d, %Y'), 'past': s['date'] < today, 'today': s['date'] == today,
+                         'logo': None if s.get('tournament') else _opp_logo_url(program, store.slugify(s['opp']) or 'unlabeled', s['opp'])})
+    return render_template('games.html', program=program, team_label=store.program_label(program), games=out, schedule=upcoming)
 
 
 @app.route('/team/<program>/outings')

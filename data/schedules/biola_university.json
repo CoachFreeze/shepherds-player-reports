@@ -1,0 +1,463 @@
+{
+ "program": "biola_university",
+ "season": "2027",
+ "source": "2027 Baseball Schedule - Biola University Athletics.pdf",
+ "games": [
+  {
+   "date": "2026-10-09",
+   "time": "12:00 PM",
+   "at": "Home",
+   "opp": "Riverside City College",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2026-10-17",
+   "time": "12:00 PM",
+   "at": "Away",
+   "opp": "Cal State San Bernardino",
+   "loc": "San Bernardino, CA / Fiscalini Field",
+   "tournament": ""
+  },
+  {
+   "date": "2026-10-30",
+   "time": "1:30 PM",
+   "at": "Home",
+   "opp": "Palomar College",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-01-29",
+   "time": "6:00 PM",
+   "at": "Away",
+   "opp": "Cal State LA",
+   "loc": "Los Angeles, CA / Reeder Field",
+   "tournament": ""
+  },
+  {
+   "date": "2027-01-30",
+   "time": "11:00 AM",
+   "at": "Home",
+   "opp": "Cal State LA",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-01-30",
+   "time": "2:00 PM",
+   "at": "Home",
+   "opp": "Cal State LA",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-02",
+   "time": "1:00 PM",
+   "at": "Home",
+   "opp": "Cedarville",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-04",
+   "time": "2:00 PM",
+   "at": "Home",
+   "opp": "Montana State University Billings",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-05",
+   "time": "11:00 AM",
+   "at": "Home",
+   "opp": "Montana State University Billings",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-05",
+   "time": "2:00 PM",
+   "at": "Home",
+   "opp": "Montana State University Billings",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-06",
+   "time": "12:00 PM",
+   "at": "Home",
+   "opp": "Montana State University Billings",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-12",
+   "time": "1:00 PM",
+   "at": "Home",
+   "opp": "Cal State San Bernardino",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-13",
+   "time": "12:00 PM",
+   "at": "Away",
+   "opp": "Cal State San Bernardino",
+   "loc": "San Bernardino, CA / Fiscalini Field",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-13",
+   "time": "3:00 PM",
+   "at": "Away",
+   "opp": "Cal State San Bernardino",
+   "loc": "San Bernardino, CA / Fiscalini Field",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-19",
+   "time": "2:00 PM",
+   "at": "Away",
+   "opp": "Cal State San Marcos",
+   "loc": "San Marcos, CA / Dennis A. Pugh Baseball Field",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-20",
+   "time": "11:00 AM",
+   "at": "Home",
+   "opp": "Cal State San Marcos",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-20",
+   "time": "2:00 PM",
+   "at": "Home",
+   "opp": "Cal State San Marcos",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-25",
+   "time": "6:00 PM",
+   "at": "Away",
+   "opp": "Hope International",
+   "loc": "Fullerton, CA / Amerige Park",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-26",
+   "time": "11:00 AM",
+   "at": "Home",
+   "opp": "Hope International",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-26",
+   "time": "2:00 PM",
+   "at": "Home",
+   "opp": "Hope International",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-02-27",
+   "time": "1:00 PM",
+   "at": "Away",
+   "opp": "Hope International",
+   "loc": "Fullerton, CA / Amerige Park",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-05",
+   "time": "TBA",
+   "at": "Away",
+   "opp": "Hawaii Hilo",
+   "loc": "Hilo, HI / James \"Jimmy\" Correa Ballfield at Dr. Francis F.C. Wong Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-05",
+   "time": "TBA",
+   "at": "Away",
+   "opp": "Hawaii Hilo",
+   "loc": "Hilo, HI / James \"Jimmy\" Correa Ballfield at Dr. Francis F.C. Wong Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-06",
+   "time": "TBA",
+   "at": "Away",
+   "opp": "Hawaii Hilo",
+   "loc": "Hilo, HI / James \"Jimmy\" Correa Ballfield at Dr. Francis F.C. Wong Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-06",
+   "time": "TBA",
+   "at": "Away",
+   "opp": "Hawaii Hilo",
+   "loc": "Hilo, HI / James \"Jimmy\" Correa Ballfield at Dr. Francis F.C. Wong Stadium",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-12",
+   "time": "TBA",
+   "at": "Away",
+   "opp": "Concordia",
+   "loc": "Irvine, CA / Eagles Field (baseball)",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-12",
+   "time": "TBA",
+   "at": "Away",
+   "opp": "Concordia",
+   "loc": "Irvine, CA / Eagles Field (baseball)",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-13",
+   "time": "11:00 AM",
+   "at": "Home",
+   "opp": "Concordia",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-13",
+   "time": "2:00 PM",
+   "at": "Home",
+   "opp": "Concordia",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-26",
+   "time": "12:00 PM",
+   "at": "Home",
+   "opp": "Chaminade",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-26",
+   "time": "3:00 PM",
+   "at": "Home",
+   "opp": "Chaminade",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-27",
+   "time": "12:00 PM",
+   "at": "Home",
+   "opp": "Chaminade",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-03-27",
+   "time": "3:00 PM",
+   "at": "Home",
+   "opp": "Chaminade",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-02",
+   "time": "12:00 PM",
+   "at": "Home",
+   "opp": "Hawaii Pacific",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-02",
+   "time": "3:00 PM",
+   "at": "Home",
+   "opp": "Hawaii Pacific",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-03",
+   "time": "12:00 PM",
+   "at": "Home",
+   "opp": "Hawaii Pacific",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-03",
+   "time": "3:00 PM",
+   "at": "Home",
+   "opp": "Hawaii Pacific",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-09",
+   "time": "TBA",
+   "at": "Away",
+   "opp": "Point Loma",
+   "loc": "San Diego, CA / Carroll B. Land Baseball Field",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-09",
+   "time": "TBA",
+   "at": "Away",
+   "opp": "Point Loma",
+   "loc": "San Diego, CA / Carroll B. Land Baseball Field",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-10",
+   "time": "12:00 PM",
+   "at": "Home",
+   "opp": "Point Loma",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-10",
+   "time": "3:00 PM",
+   "at": "Home",
+   "opp": "Point Loma",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-16",
+   "time": "TBA",
+   "at": "Away",
+   "opp": "Jessup",
+   "loc": "Rocklin, CA / McBean Park",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-16",
+   "time": "TBA",
+   "at": "Away",
+   "opp": "Jessup",
+   "loc": "Rocklin, CA / McBean Park",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-17",
+   "time": "TBA",
+   "at": "Away",
+   "opp": "Jessup",
+   "loc": "Rocklin, CA / McBean Park",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-17",
+   "time": "TBA",
+   "at": "Away",
+   "opp": "Jessup",
+   "loc": "Rocklin, CA / McBean Park",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-23",
+   "time": "12:00 PM",
+   "at": "Home",
+   "opp": "Westmont",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-23",
+   "time": "3:00 PM",
+   "at": "Home",
+   "opp": "Westmont",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-24",
+   "time": "TBA",
+   "at": "Away",
+   "opp": "Westmont",
+   "loc": "Santa Barbara, CA / Russell Carr Field",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-24",
+   "time": "TBA",
+   "at": "Away",
+   "opp": "Westmont",
+   "loc": "Santa Barbara, CA / Russell Carr Field",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-30",
+   "time": "TBA",
+   "at": "Away",
+   "opp": "Vanguard",
+   "loc": "Costa Mesa, CA / Dean Harvey Field",
+   "tournament": ""
+  },
+  {
+   "date": "2027-04-30",
+   "time": "TBA",
+   "at": "Away",
+   "opp": "Vanguard",
+   "loc": "Costa Mesa, CA / Dean Harvey Field",
+   "tournament": ""
+  },
+  {
+   "date": "2027-05-01",
+   "time": "12:00 PM",
+   "at": "Home",
+   "opp": "Vanguard",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-05-01",
+   "time": "3:00 PM",
+   "at": "Home",
+   "opp": "Vanguard",
+   "loc": "La Mirada, CA / Eagles Diamond",
+   "tournament": ""
+  },
+  {
+   "date": "2027-05-12",
+   "time": "TBA",
+   "at": "Neutral",
+   "opp": "PacWest Baseball Championship",
+   "loc": "Irvine, CA / Eagles Field (baseball)",
+   "tournament": "PacWest Baseball Championships"
+  },
+  {
+   "date": "2027-05-20",
+   "time": "TBA",
+   "at": "Neutral",
+   "opp": "NCAA Division II Baseball Regionals",
+   "loc": "TBD",
+   "tournament": "NCAA Division II Baseball Regionals"
+  },
+  {
+   "date": "2027-05-27",
+   "time": "TBA",
+   "at": "Neutral",
+   "opp": "NCAA Division II Baseball Super Regionals",
+   "loc": "TBD",
+   "tournament": "NCAA Division II Baseball Super Regionals"
+  },
+  {
+   "date": "2027-06-04",
+   "time": "TBA",
+   "at": "Neutral",
+   "opp": "NCAA Division II Baseball Finals",
+   "loc": "Cary, NC / USA Baseball National Training Complex",
+   "tournament": "NCAA Division II Baseball Finals"
+  }
+ ]
+}
