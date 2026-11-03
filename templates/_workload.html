@@ -4,7 +4,7 @@
 .wlc table{width:100%;border-collapse:collapse;font-size:13.5px;} .wlc th{font:600 10.5px Oswald;letter-spacing:.1em;text-transform:uppercase;color:#6b7680;text-align:right;padding:6px;} .wlc td{padding:6px;text-align:right;border-top:1px solid #eef0f1;font-variant-numeric:tabular-nums;} .wlc th:first-child,.wlc td:first-child{text-align:left;} .wlc .scroll{overflow-x:auto;} .wlc .note{font-size:12px;color:#6b7680;margin-top:10px;line-height:1.45;} @media print{.wlc{display:none;}}</style>
 {% set w = wl.w %}{% set a = wl.arm %}{% set l = wl.lim %}
 <div class="wlc"><h2>Workload &amp; Arm Care</h2>
-<p class="sub">Coach view only. This card is not on shared links or the player&rsquo;s own page. As of {{ wl.as_of }}.</p>
+<p class="sub">Coach view only. This card is not on shared links or the player&rsquo;s own page. As of {{ wl.as_of }}. <a href="{{ armcare_url }}" target="_blank" rel="noopener" style="font-weight:700;color:var(--accent-ink,#3f7a8c);text-decoration:none;">Open ArmCare &#8599;</a></p>
 {% if w %}<h3>Tracked pitches</h3>
 <div class="nums"><div><b>{{ w.d7 }}</b><span>last 7 days</span></div><div><b>{{ w.d14 }}</b><span>last 14 days</span></div><div><b>{{ w.d30 }}</b><span>last 30 days</span></div>{% if w.last %}<div><b>{{ w.last.days }}</b><span>days since {{ w.last.pitches }} pitches</span></div>{% endif %}</div>
 {{ wl.bars|safe }}{% endif %}

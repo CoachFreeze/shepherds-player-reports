@@ -17,7 +17,7 @@
 <div class="w">
 {% if msg %}<div class="msg">{{ msg }}</div>{% endif %}
 <div class="bar"><form method="get" action="{{ url_for('team_workload', program=program) }}"><label for="asof">As of</label><input type="date" id="asof" name="asof" value="{{ asof }}" max="{{ today }}"><button class="btn alt" type="submit">Go</button>{% if asof != today %}<a class="btn alt" href="{{ url_for('team_workload', program=program) }}">Today</a>{% endif %}</form>
-{% if can_upload %}<a class="btn sp" href="{{ url_for('team_armcare', program=program) }}">Upload ArmCare data</a>{% endif %}</div>
+<a class="btn sp" href="{{ armcare_url }}" target="_blank" rel="noopener">Open ArmCare &#8599;</a>{% if can_upload %}<a class="btn alt" href="{{ url_for('team_armcare', program=program) }}">Upload ArmCare data</a>{% endif %}</div>
 {% if rows %}<div class="wrap"><table class="tbl"><thead><tr><th>Pitcher</th><th>Last outing</th><th>7 d</th><th>14 d</th><th>30 d</th><th>Year</th><th>Arm Score</th><th>vs own avg</th><th>Last post-throw</th><th>ArmCare limit</th></tr></thead><tbody>
 {% for r in rows %}{% set w = r.w %}{% set a = r.arm %}{% set l = r.lim %}<tr>
 <td class="nm"><a href="{{ url_for('player_overview', slug=r.slug) }}">{{ r.name }}</a></td>

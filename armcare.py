@@ -12,6 +12,7 @@ import github_sync
 import store
 
 DIR = os.path.join(store.DATA_DIR, 'armcare')
+URL = 'https://lab.armcare.com/players/dashboard'   # the team's ArmCare dashboard (coaches sign in there)
 ARM_DROP_PCT = 10        # latest Arm Score this far (%) under the pitcher's own earlier average gets a "check in" flag
 MIN_BASE = 3             # earlier exams needed before that average means anything
 GROUPS = (('ir', 'IRTARM', 'Internal rotation'), ('er', 'ERTARM', 'External rotation'), ('st', 'STARM', 'Scaption'), ('gr', 'GTARM', 'Grip'))

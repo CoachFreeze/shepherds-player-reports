@@ -1187,7 +1187,8 @@ def _pitcher_page(slug, bio, public=False, token=None):
             wl = workload.card(slug)
         except Exception:
             wl = None
-    return render_template('player_overview.html', ins=ins, wl=wl, dr=_dr, public=public, photo_src=(url_for('public_share_photo', token=token) if public else None),
+    arm_link = (not public and not is_player() and (bio.get('program') or 'shepherds') == 'shepherds')
+    return render_template('player_overview.html', ins=ins, wl=wl, arm_link=arm_link, armcare_url=__import__('armcare').URL, dr=_dr, public=public, photo_src=(url_for('public_share_photo', token=token) if public else None),
                            share=(None if public else _share_ctx('pitcher', slug, _prog)), share_team=store.program_label(_prog) if (public and _prog) else '',
                            can_retag=can_retag, retag_types=[l for l, _ in outings_mod.RETAG_TYPES], pr_ent=(None if public else prs.for_pitcher(slug)), b=b, bio=bio, slug=slug, css=css, hitter_url=hitter_url, has_photo=has_photo, badge=badge,
                            photo_v=int(os.path.getmtime(headshots.path(slug))) if has_photo else 0,
@@ -1475,7 +1476,7 @@ def team_workload(program):
         asof = _dt.date.today().isoformat()
     return render_template('team_workload.html', program=program, team_label=store.program_label(program), rows=workload.team_rows(program, asof), asof=asof,
                            today=_dt.date.today().isoformat(), can_upload=not (is_assistant() or is_player()), msg=request.args.get('msg'),
-                           drop=__import__('armcare').ARM_DROP_PCT)
+                           drop=__import__('armcare').ARM_DROP_PCT, armcare_url=__import__('armcare').URL)
 
 
 def _armcare_candidates(program):

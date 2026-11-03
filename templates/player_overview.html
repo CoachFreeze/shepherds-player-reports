@@ -64,7 +64,7 @@
 {{ prm.banner(pr_ent, url_for('player_prs', slug=slug)) }}
 {% if dr and not scouting %}{% include '_daterange.html' %}{% endif %}
 {% if ins and not public %}{% include '_insights.html' %}{% endif %}
-{% if wl and not public %}{% include '_workload.html' %}{% endif %}
+{% if wl and not public %}{% include '_workload.html' %}{% elif arm_link %}<div style="margin:14px 0;font:600 13.5px Barlow,sans-serif;"><a href="{{ armcare_url }}" target="_blank" rel="noopener" style="color:var(--accent-ink,#3f7a8c);text-decoration:none;">Open ArmCare &#8599;</a></div>{% endif %}
 {% if is_fs(bio.program) %}<p style="margin:0 0 10px;font:500 12.5px 'Barlow',sans-serif;color:#6b7680;">Full Swing Live At Bat session: results are predicted from the batted ball, not actual outcomes. Pitch type, location and counts are not in this data.</p>{% endif %}
 <div class="pn" id="stats"><div class="pn-t">Pitching Profile</div><div class="pn-s">{{ 'Selected range: ' if dr and (dr.frm or dr.to) else 'Last ' }}{{ b.n_outings }} outing{{ 's' if b.n_outings != 1 }}{% if can_edit %} &middot; <a href="#" id="stOpen" style="color:var(--accent-teal);font-weight:700;">Customize stats</a>{% endif %}</div>
   <div class="tiles">
