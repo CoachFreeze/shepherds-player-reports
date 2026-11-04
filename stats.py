@@ -171,7 +171,9 @@ def compute(rows):
     base = e.outing_summary(rows) or {}
     for k in ('pitches', 'bf', 'ip', 'hits', 'walks', 'hbp'):
         out[k] = (str(base.get(k, '-')), '')
-    ks = sum(1 for r, x in zip(rows, o) if r.get('Strikes') == '2' and x in ('whiff', 'cs'))
+    ks = base.get('ks')
+    if not isinstance(ks, int):
+        ks = sum(1 for r, x in zip(rows, o) if r.get('Strikes') == '2' and x in ('whiff', 'cs'))
     out['ks'] = (str(ks), '')
     out['strike_pct'] = _pct(c['strikes'], c['known'])
     out['ball_pct'] = _pct(c['balls'] + o.count('hbp'), c['known'])

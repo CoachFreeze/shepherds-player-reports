@@ -996,11 +996,34 @@ def outing_summary(rows):
             outside += 1
             if o in ('whiff', 'foul', 'inplay'):
                 chases += 1
-    hits = sum(1 for r in rows if _tags(r) & _HIT_TAGS)
-    walks = sum(1 for r, o in zip(rows, outs_) if r.get('Balls') == '3' and o == 'ball')
+    def _res(r):
+        v = (r.get('PlayResult') or '').strip()
+        return '' if v == 'Undefined' else v
+    def _kb(r):
+        return (r.get('KorBB') or '').strip()
+    explicit = any(_res(r) or _kb(r) in ('Strikeout', 'Walk') for r in rows)       # the export carries real results: use them, else infer from tags and counts
+    if explicit:
+        hits = sum(1 for r in rows if _res(r) in ('Single', 'Double', 'Triple', 'HomeRun'))
+        walks = sum(1 for r in rows if _kb(r) == 'Walk')
+        ks = sum(1 for r in rows if _kb(r) == 'Strikeout')
+        hr = sum(1 for r in rows if _res(r) == 'HomeRun')
+        xbh = sum(1 for r in rows if _res(r) in ('Double', 'Triple', 'HomeRun'))
+    else:
+        hits = sum(1 for r in rows if _tags(r) & _HIT_TAGS)
+        walks = sum(1 for r, o in zip(rows, outs_) if r.get('Balls') == '3' and o == 'ball')
+        ks = sum(1 for r, o in zip(rows, outs_) if r.get('Strikes') == '2' and o in ('whiff', 'cs'))
+        hr = sum(1 for r in rows if 'PR_HomeRun' in _tags(r))
+        xbh = sum(1 for r in rows if _tags(r) & {'PR_Double', 'PR_Triple', 'PR_HomeRun'})
     hbp = sum(1 for o in outs_ if o == 'hbp')
-    ks = sum(1 for r, o in zip(rows, outs_) if r.get('Strikes') == '2' and o in ('whiff', 'cs'))
-    outs = sum(1 for r in rows if 'PR_Out' in _tags(r)) + ks
+    if explicit:        # the pitch that ends an at-bat or a baserunner's out says how many outs it made (a double play is 2); a strikeout is 1
+        outs = 0
+        for r in rows:
+            oop = int(_fnum(r.get('OutsOnPlay')) or 0)
+            outs += oop if oop else (1 if _kb(r) == 'Strikeout' else 0)
+    else:
+        outs = sum(1 for r in rows if 'PR_Out' in _tags(r)) + ks
+    has_runs = any(r.get('RunsScored') not in (None, '') for r in rows)
+    runs = sum(int(_fnum(r.get('RunsScored')) or 0) for r in rows) if has_runs else None
     evs = [_fnum(r.get('ExitSpeed')) for r, o in zip(rows, outs_) if o == 'inplay']
     evs = [v for v in evs if v]
     fs = all((r.get('Source') or '') == 'fullswing' for r in rows)       # Full Swing: swings only -- no calls, counts or locations
@@ -1009,7 +1032,9 @@ def outing_summary(rows):
     def pct(a, b):
         return f'{100 * a / b:.1f}%' if b else '-'
     return {
-        'ip': '-' if fs else f'{outs // 3}.{outs % 3}', 'bf': bf, 'pitches': n, 'hits': hits, 'walks': walks, 'hbp': hbp,
+        'ip': '-' if fs else f'{outs // 3}.{outs % 3}', 'bf': '-' if fs else bf, 'pitches': n, 'hits': '-' if fs else hits, 'walks': '-' if fs else walks, 'hbp': '-' if fs else hbp,
+        'ks': '-' if fs else ks, 'hr': '-' if fs else hr, 'xbh': '-' if fs else xbh, 'runs': '-' if runs is None or fs else runs,
+        'max_ev': f'{max(evs):.1f}' if evs else '-', 'hard': sum(1 for v in evs if v >= 95),
         'strike_pct': pct(strikes, known), 'fps_pct': pct(fps, len(fp)), 'zone_pct': pct(inzone, loc_n),
         'whiff_pct': pct(whiffs, swings), 'chase_pct': pct(chases, outside),
         'avg_ev': f'{sum(evs) / len(evs):.1f}' if evs else '-',

@@ -59,15 +59,17 @@
       <div class="chart-title chart-title-center">Outing Summary</div>
       <div class="outing-grid">
         {% for label, val, sub in [
-          ('Innings Pitched', p.outing.ip, ''), ('Batters Faced', p.outing.bf, ''), ('Total Pitches', p.outing.pitches, ''),
-          ('Hits', p.outing.hits, ''), ('Walks', p.outing.walks, ''), ('HBP', p.outing.hbp, ''),
-          ('Strike %', p.outing.strike_pct, p.outing.detail.strikes), ('First-Pitch Strike %', p.outing.fps_pct, p.outing.detail.fps),
+          ('Innings Pitched', p.outing.ip, ''), ('Hits', p.outing.hits, ''), ('Runs', p.outing.runs, ''),
+          ('Strikeouts', p.outing.ks, ''), ('Walks', p.outing.walks, ''), ('HBP', p.outing.hbp, ''),
+          ('Batters Faced', p.outing.bf, ''), ('Total Pitches', p.outing.pitches, ''), ('Home Runs', p.outing.hr, ''),
+          ('Extra-Base Hits', p.outing.xbh, ''), ('Strike %', p.outing.strike_pct, p.outing.detail.strikes), ('First-Pitch Strike %', p.outing.fps_pct, p.outing.detail.fps),
           ('In-Zone Rate', p.outing.zone_pct, p.outing.detail.zone), ('Whiff Rate', p.outing.whiff_pct, p.outing.detail.whiff),
-          ('Chase Rate', p.outing.chase_pct, p.outing.detail.chase), ('Avg Exit Velo', p.outing.avg_ev, p.outing.detail.ev)] %}
+          ('Chase Rate', p.outing.chase_pct, p.outing.detail.chase), ('Avg Exit Velo', p.outing.avg_ev, p.outing.detail.ev),
+          ('Max Exit Velo', p.outing.max_ev, p.outing.detail.ev), ('Hard Hit (95+)', p.outing.hard, p.outing.detail.ev)] %}
         <div class="oc"><div class="oc-v">{{ val }}</div><div class="oc-l">{{ label }}</div>{% if sub %}<div class="oc-s">{{ sub }}</div>{% endif %}</div>
         {% endfor %}
       </div>
-      <div class="oc-note">IP, hits, walks and batters faced are estimated from pitch tags and the count.</div>
+      <div class="oc-note">Counting stats come from the results in the file when it has them, and are otherwise estimated from pitch tags and the count. Runs are those scored on his pitches, earned or not.</div>
     </div>
     {% endif %}
 
