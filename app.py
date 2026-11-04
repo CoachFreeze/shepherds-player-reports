@@ -277,7 +277,7 @@ def staff_checks():
     return None
 
 
-_DEMO_BLOCKED = {'team_armcare', 'team_armcare_confirm', 'team_game_edit', 'team_coaches', 'team_appearance', 'roster_page', 'upload_log_page', 'intake_bulk', 'intake_bulk_run', 'edit_profile', 'account', 'change_password',
+_DEMO_BLOCKED = {'team_game_umpire_set', 'team_armcare', 'team_armcare_confirm', 'team_game_edit', 'team_coaches', 'team_appearance', 'roster_page', 'upload_log_page', 'intake_bulk', 'intake_bulk_run', 'edit_profile', 'account', 'change_password',
                  'admin_status', 'hitters_sort', 'team_customize'}
 
 
@@ -1640,6 +1640,47 @@ def team_game(program, gid):
 
 
 
+
+@app.route('/team/<program>/game/<gid>/umpire')
+@login_required
+def team_game_umpire(program, gid):
+    """Staff-only home plate umpire report for one game: every called ball and strike graded against the zone."""
+    _wl_ok(program)
+    if not plans.allowed(program, 'hitting'):
+        return _upgrade('hitting')
+    import gamereport as gr
+    import datetime as _dt
+    import umpire
+    gm = gr.collect(program).get(gid)
+    if not gm:
+        abort(404)
+    g.theme_program = program
+    c, calls = umpire.grade(gm['rows'])
+    name = umpire.game_umpire(gm['rows'])
+    led = umpire.ledger(program)
+    hist = next((u for u in led['umps'] if umpire.key(u['name']) == umpire.key(name)), None) if name else None
+    d = _dt.date.fromisoformat(gm['date'])
+    tl = store.program_label(program)
+    return render_template('game_umpire.html', program=program, team_label=tl, gid=gid, opp=gm['opp'], date_pretty=d.strftime('%A, %B %-d, %Y'), c=c, svg=umpire.zone_svg(calls),
+                           name=name, hist=hist, game_lean=umpire.lean(1, c['calls'], c['net100']), names=umpire.names(program), msg=request.args.get('msg'),
+                           can_edit=can_upload() and not is_player(), back_url=url_for('team_game_scorebook', program=program, gid=gid),
+                           scout_url=url_for('team_scouting', program=program) + '#umpires', min_calls=umpire.MIN_CALLS, min_games=umpire.MIN_GAMES)
+
+
+@app.route('/team/<program>/game/<gid>/umpire/set', methods=['POST'])
+@login_required
+@upload_required
+def team_game_umpire_set(program, gid):
+    _wl_ok(program)
+    import umpire
+    with github_sync.batch('Set the home plate umpire'):
+        n = umpire.set_umpire(program, gid, request.form.get('umpire', ''))
+    if n is None:
+        abort(404)
+    nm = umpire.clean(request.form.get('umpire', ''))
+    return redirect(url_for('team_game_umpire', program=program, gid=gid, msg=(f'Home plate umpire set to {nm}.' if nm else 'Umpire name cleared.')))
+
+
 @app.route('/team/<program>/game/<gid>')
 @login_required
 def team_game_scorebook(program, gid):
@@ -1681,7 +1722,7 @@ def team_game_scorebook(program, gid):
     m['hits'], m['errs'] = hits, errs
     d = _dt.date.fromisoformat(gm['date'])
     return render_template('game_scorebook.html', m=m, sheets=sheets, gid=gid, program=program, team_label=tl, opp=gm['opp'], date_pretty=d.strftime('%A, %B %-d, %Y'),
-                           back_url=url_for('team_games', program=program), analysis_url=url_for('team_game', program=program, gid=gid), order=[('us', tl), ('opp', gm['opp'])])
+                           back_url=url_for('team_games', program=program), analysis_url=url_for('team_game', program=program, gid=gid), umpire_url=(None if is_player() else url_for('team_game_umpire', program=program, gid=gid)), order=[('us', tl), ('opp', gm['opp'])])
 
 
 
@@ -1695,7 +1736,8 @@ def team_scouting(program):
     for o in opps:
         o['logo'] = _opp_logo_url(program, o['slug'], o['label'])
         o['initials'] = ''.join(w[0] for w in o['label'].split()[:3]).upper()
-    return render_template('scouting.html', program=program, team_label=store.program_label(program), opps=opps, opp=None)
+    import umpire
+    return render_template('scouting.html', program=program, team_label=store.program_label(program), opps=opps, opp=None, ump=(None if is_player() else umpire.ledger(program)))
 
 
 def _scout_opp(program, opp):
@@ -3226,7 +3268,8 @@ BULK_REVIEW_PAGE = BULK_STYLE + """
 <input type="hidden" name="session_type" value="{{ session_type }}"><p style="font-weight:600;margin:0 0 8px;">Session type: {{ session_type }}{% if session_type in ('Scrimmage', 'Game') %} <span style="font-weight:400;color:#6b7680;">&mdash; check only your own pitchers. Everyone else is treated as the opponent.</span>{% endif %}</p>
 {% if session_type in ('Scrimmage', 'Game') %}<div class="card" style="margin-top:10px;"><div class="row">
   {% if codes %}<div><label>Which team is yours in this file?</label><select id="myteam" name="my_team"><option value="" {{ 'selected' if not my_team }} disabled>Choose…</option>{% for code, n in codes.items() %}<option value="{{ code }}" {{ 'selected' if code == my_team }}>{{ code }} ({{ n }} pitchers)</option>{% endfor %}</select></div>{% endif %}
-  <div><label>Opponent</label><input type="text" name="opponent" value="{{ opponent }}" placeholder="e.g. UCLA" style="width:220px;"></div></div>
+  <div><label>Opponent</label><input type="text" name="opponent" value="{{ opponent }}" placeholder="e.g. UCLA" style="width:220px;"></div>
+  <div><label>Home plate umpire <span style="font-weight:400;color:#6b7680;">(optional)</span></label><input type="text" name="umpire" list="ump-list" placeholder="e.g. John Smith" autocomplete="off" style="width:220px;"><datalist id="ump-list">{% for u in umpires or [] %}<option value="{{ u }}">{% endfor %}</datalist></div></div>
   {% if codes %}<p style="font-size:13px;color:#6b7680;margin:8px 0 0;">Pitchers on your team are checked below and the other team's are left out. Your choice is remembered for next time.</p>{% endif %}</div>
 {% else %}<input type="hidden" name="opponent" value="">{% endif %}
 <div class="row" style="margin-top:10px;"><div><label>School</label><input type="text" name="school" value="{{ prog_label }}"></div></div>
@@ -3329,6 +3372,11 @@ def _session_type():
     return v if v in SESSION_TYPES else 'Intrasquad'
 
 
+def _umpire():
+    import umpire
+    return umpire.clean(request.form.get('umpire')) if _session_type() in ('Scrimmage', 'Game') else ''
+
+
 def _opponent():
     return re.sub(r'\s+', ' ', (request.form.get('opponent') or '').strip())[:60] if _session_type() in ('Scrimmage', 'Game') else ''
 
@@ -3383,7 +3431,7 @@ def intake_bulk():
     _others = [k for k in codes if k != my_team]
     _opp = _opponent() or (_others[0] if my_team and len(_others) == 1 else '')
     return render_template_string(BULK_REVIEW_PAGE, pitchers=pitchers, path=fname, session_type=_st, opponent=_opp,
-                                  codes=codes if len(codes) >= 2 else {}, my_team=my_team, **_bulk_ctx(prog))
+                                  codes=codes if len(codes) >= 2 else {}, my_team=my_team, umpires=__import__('umpire').names(prog) if _st in ('Scrimmage', 'Game') else [], **_bulk_ctx(prog))
 
 
 def _scouting_run(path, f):
@@ -3469,13 +3517,13 @@ def intake_bulk_run():
         _stype = _session_type()
         if _stype in ('Scrimmage', 'Game') and (request.form.get('my_team') or '').strip():
             cleanup.set_team_code(prog, request.form['my_team'].strip())
-        outings_mod.CURRENT_UPLOAD, outings_mod.CURRENT_SESSION, outings_mod.CURRENT_OPPONENT = _upload_id, _stype, _opponent()
+        outings_mod.CURRENT_UPLOAD, outings_mod.CURRENT_SESSION, outings_mod.CURRENT_OPPONENT, outings_mod.CURRENT_UMPIRE = _upload_id, _stype, _opponent(), _umpire()
         try:
             results = pipeline.process_trackman_bulk(path, specs, live_ab=(_stype != 'Bullpen') or fullswing.is_converted(path), reassign=reassign, program=prog)
             if _stype in ('Scrimmage', 'Game'):          # the opposing pitchers' pitches carry your hitters' at-bats
                 cleanup.store_opponent_rows(path, prog, {s_['name'] for s_ in specs}, exclude=drop)
         finally:
-            outings_mod.CURRENT_UPLOAD = outings_mod.CURRENT_SESSION = outings_mod.CURRENT_OPPONENT = None
+            outings_mod.CURRENT_UPLOAD = outings_mod.CURRENT_SESSION = outings_mod.CURRENT_OPPONENT = outings_mod.CURRENT_UMPIRE = None
         try:
             _ros = roster_mod.load(prog)
             if _ros and roster_mod.apply_to_players(prog, _ros['players'], store.list_players()):

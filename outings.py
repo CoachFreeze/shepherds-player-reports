@@ -16,6 +16,7 @@ import store
 
 OUTINGS_DIR = os.path.join(store.DATA_DIR, 'outings')
 CURRENT_OPPONENT = None   # opponent name for Scrimmage / Game uploads
+CURRENT_UMPIRE = None     # home plate umpire's name for Game / Scrimmage uploads (optional), stamped on new rows
 CURRENT_SESSION = None    # Bullpen / Intrasquad / Scrimmage / Game, stamped on new rows the same way
 CURRENT_UPLOAD = None     # set by the upload route so every new pitch row remembers which upload added it
 MAX_OUTINGS = 10          # the player overview aggregates this many most recent outings
@@ -127,6 +128,8 @@ def add_rows(slug, rows, live_ab=False, push=True):
                 nr['SessionType'] = CURRENT_SESSION
             if CURRENT_OPPONENT:
                 nr['Opponent'] = CURRENT_OPPONENT
+            if CURRENT_UMPIRE:
+                nr['Umpire'] = CURRENT_UMPIRE
             o['rows'].append(nr)
         if oid not in touched:
             touched.append(oid)
