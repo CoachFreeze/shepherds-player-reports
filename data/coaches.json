@@ -30,6 +30,11 @@
     "program_label": "Demo University (sample)",
     "role": "program"
   },
+  "david.craig": {
+    "display_name": "David Craig",
+    "password_hash": "scrypt:32768:8:1$J17Jn5KJC7knz6El$d6a64aab4e4859fcfc1a721397d0c36bfe74a9a70d6de148402570c396e5a43159a46cc89e7480472257ed53d88b2f88c03deb59b3122ffaf96694dc3ad0c7d5",
+    "role": "admin"
+  },
   "jesse.rodgers": {
     "display_name": "Jesse Rodgers",
     "password_hash": "scrypt:32768:8:1$wYiMeJJpPrLw1xpB$1ca2f0c8f75b3c69213da07fed3eb45593dbb268336e267538878c674a8acb8da9cbc4027fe37cd17dbc67cc67100b4298ef061f8e2f05166470941b637f9fca",
