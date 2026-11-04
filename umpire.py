@@ -144,8 +144,8 @@ def names(program):
 
 
 def zone_svg(calls, w=360):
-    """Catcher's view of the plate. Light dots are correct calls; red = strike called outside the zone, blue = ball called inside it."""
-    X0, X1, Z0, Z1 = -1.75, 1.75, 0.6, 4.4
+    """Catcher's view of the plate: Trackman's PlateLocSide is positive toward the right-handed hitter, so x is flipped (checked against hit-by-pitches) and the RHH side draws on the left. Light dots are correct calls; red = strike called outside the zone, blue = ball called inside it."""
+    X0, X1, Z0, Z1 = -1.75, 1.75, 0.0, 4.4
     h = round(w * (Z1 - Z0) / (X1 - X0))
     sx, sz = w / (X1 - X0), h / (Z1 - Z0)
     px = lambda x: (x - X0) * sx
@@ -153,7 +153,7 @@ def zone_svg(calls, w=360):
     s = [f'<svg viewBox="0 0 {w} {h}" width="100%" style="max-width:{w}px;display:block;" role="img" aria-label="Called pitches against the strike zone">',
          f'<rect x="{px(-HALF):.1f}" y="{pz(TOP):.1f}" width="{(2 * HALF) * sx:.1f}" height="{(TOP - BOT) * sz:.1f}" fill="none" stroke="#9aa3aa" stroke-width="1" stroke-dasharray="4 3"/>',
          f'<rect x="{px(-17 / 24):.1f}" y="{pz(3.5):.1f}" width="{(17 / 12) * sx:.1f}" height="{2 * sz:.1f}" fill="#f7f6f2" fill-opacity=".6" stroke="#22303a" stroke-width="1.6"/>',
-         f'<path d="M{px(-17 / 24):.1f} {pz(0.75):.1f}L{px(17 / 24):.1f} {pz(0.75):.1f}L{px(17 / 24):.1f} {pz(0.55):.1f}L{px(0):.1f} {pz(0.4):.1f}L{px(-17 / 24):.1f} {pz(0.55):.1f}Z" fill="#dfe4e7"/>']
+         f'<path d="M{px(-17 / 24):.1f} {pz(0.8):.1f}L{px(17 / 24):.1f} {pz(0.8):.1f}L{px(17 / 24):.1f} {pz(0.5):.1f}L{px(0):.1f} {pz(0.15):.1f}L{px(-17 / 24):.1f} {pz(0.5):.1f}Z" fill="#fff" stroke="#22303a" stroke-width="1.6" stroke-linejoin="round"/>']
     for order in ('ok', 'border', 'ms', 'mb'):
         for c in calls:
             if c['v'] != order:
@@ -162,5 +162,8 @@ def zone_svg(calls, w=360):
             what = ('Strike called' if c['strike'] else 'Ball called') + {'ms': ', outside the zone', 'mb': ', inside the zone'}.get(order, '')
             who = ' &middot; '.join(x for x in (f"{c['pitcher']} to {c['batter']}" if c['pitcher'] or c['batter'] else '', f"{c['count']} count") if x)
             s.append(f'<circle cx="{px(c["x"]):.1f}" cy="{pz(c["z"]):.1f}" r="{rad}" fill="{col}" fill-opacity="{op}"><title>{what}. {who}</title></circle>')
+    lab = 'font-size="11" fill="#6b7680" font-family="Barlow,sans-serif"'
+    s.append(f'<text x="{w / 2:.0f}" y="14" text-anchor="middle" {lab} font-weight="700">CATCHER\'S VIEW</text>'
+             f'<text x="6" y="14" {lab}>&#9664; 3B (RHH)</text><text x="{w - 6}" y="14" text-anchor="end" {lab}>1B (LHH) &#9654;</text>')
     s.append('</svg>')
     return ''.join(s)
