@@ -1181,7 +1181,7 @@ def _pitcher_page(slug, bio, public=False, token=None):
         except Exception:
             ins = None
     wl = None
-    if not public and not is_player():
+    if not public and not is_player() and (bio.get('program') or 'shepherds') == 'shepherds':      # workload + ArmCare is a Shepherds-only section
         try:
             import workload
             wl = workload.card(slug)
@@ -1455,6 +1455,13 @@ def _md_filter(s):
         return s
 
 
+def _arm_ok(program):
+    """Workload and ArmCare pages exist for the Shepherds only."""
+    _wl_ok(program)
+    if program != 'shepherds':
+        abort(404)
+
+
 def _wl_ok(program):
     """Workload and ArmCare pages: coaches of the program and admins only (never players)."""
     _team_ok(program)
@@ -1465,7 +1472,7 @@ def _wl_ok(program):
 @app.route('/team/<program>/workload')
 @login_required
 def team_workload(program):
-    _wl_ok(program)
+    _arm_ok(program)
     import datetime as _dt
     import workload
     g.theme_program = program
@@ -1487,7 +1494,7 @@ def _armcare_candidates(program):
 @login_required
 @head_required
 def team_armcare(program):
-    _wl_ok(program)
+    _arm_ok(program)
     import json
     import secrets
     import armcare
@@ -1528,7 +1535,7 @@ def team_armcare(program):
 @login_required
 @head_required
 def team_armcare_confirm(program):
-    _wl_ok(program)
+    _arm_ok(program)
     import json
     import armcare
     token = request.form.get('token', '')
