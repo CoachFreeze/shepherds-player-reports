@@ -246,7 +246,8 @@ def build(rows):
         pa['result'] = _result(pa['rows'])
         pa['runs'] = sum(_int(r.get('RunsScored')) for r in pa['rows'])
         oop = _int(last.get('OutsOnPlay'))
-        pa['outs_made'] = oop if oop else (1 if pa['result'] in ('K swinging', 'K looking') else 0)
+        mid = sum(_int(r.get('OutsOnPlay')) for r in pa['rows'][:-1])           # a runner thrown out or picked off in the middle of the at-bat is an out too
+        pa['outs_made'] = mid + (oop if oop else (1 if pa['result'] in ('K swinging', 'K looking') else 0))
         pa['margin'] = score[pa['bat']] - score['opp' if pa['bat'] == 'us' else 'us']
         score[pa['bat']] += pa['runs']
         line[(pa['inn'], pa['tb'])] = line.get((pa['inn'], pa['tb']), 0) + pa['runs']
@@ -307,7 +308,7 @@ def _totals(ent, slot, is_sub):
                k=sum(1 for p in ps if p['result'].startswith('K ')), rbi=sum(p['runs'] for p in ps if p['result'] != 'Out' or p['runs']),
                hr=sum(1 for p in ps if p['result'] == 'HomeRun'), bip=len(xs),
                xba=(sum(xs) / len(xs)) if xs else None, ev=(sum(evs) / len(evs)) if evs else None,
-               pa_n=len(ent['pas']))
+               pa_n=len(ps))
     return ent
 
 
@@ -336,7 +337,7 @@ def _pitchers(pas, side):
         velos = [e._fnum(r.get('RelSpeed')) for r in rows]
         velos = [v for v in velos if v]
         fb = [e._fnum(r.get('RelSpeed')) for r in rows if any(t in (pitchfx._label(r) or '').lower() for t in ('seam', 'sinker', 'cutter')) and e._fnum(r.get('RelSpeed'))]
-        out.append({'name': _flip(k), 'raw': k, 'slug': d['slug'], 'first_inn': d['first_inn'], 'bf': len(d['pas']), 'np': len(rows),
+        out.append({'name': _flip(k), 'raw': k, 'slug': d['slug'], 'first_inn': d['first_inn'], 'bf': len(ps), 'np': len(rows),
                     'strike_pct': round(100 * strikes / len(rows)) if rows else None, 'ip': _ip(outs),
                     'h': sum(1 for p in ps if p['result'] in HITS), 'bb': sum(1 for p in ps if p['result'] in ('Walk', 'HBP')),
                     'k': sum(1 for p in ps if p['result'].startswith('K ')), 'r': sum(p['runs'] for p in d['pas']),

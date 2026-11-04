@@ -982,6 +982,9 @@ def outing_summary(rows):
     strikes = sum(1 for o in outs_ if o not in ('ball', 'hbp', 'unk'))
     known = sum(1 for o in outs_ if o != 'unk')
     bf = sum(1 for r in rows if (r.get('Balls'), r.get('Strikes')) == ('0', '0'))
+    if any((r.get('PlayResult') or '').strip() not in ('', 'Undefined') or (r.get('KorBB') or '').strip() in ('Strikeout', 'Walk') for r in rows):
+        # the file has real results: a batter faced is an at-bat that finished (the pitch that ends one carries the result), so a missing 0-0 pitch can't lose one
+        bf = sum(1 for r in rows if (r.get('PlayResult') or '').strip() not in ('', 'Undefined') or (r.get('KorBB') or '').strip() in ('Strikeout', 'Walk') or r.get('PitchCall') == 'HitByPitch')
     fp = [o for r, o in zip(rows, outs_) if (r.get('Balls'), r.get('Strikes')) == ('0', '0')]
     fps = sum(1 for o in fp if o not in ('ball', 'hbp', 'unk'))
     inzone = outside = chases = loc_n = 0

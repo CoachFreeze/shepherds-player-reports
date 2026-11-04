@@ -63,6 +63,8 @@ def _norm_trackman(r):
         'balls': r.get('Balls'), 'strikes': r.get('Strikes'), 'src': 'trackman',
         'hit': bool(e._tags(r) & e._HIT_TAGS), 'has_result': any(t.startswith('PR_') for t in e._tags(r)),
         'result': _play_result(r),
+        'kb': (r.get('KorBB') or '').strip(),      # Trackman's own strikeout / walk flag, set on the pitch that ends the at-bat
+        'pa_key': ((r.get('Date') or '')[:10], r.get('GameUID'), r.get('Inning'), r.get('Top/Bottom'), r.get('PAofInning')) if r.get('Inning') and r.get('PAofInning') else None,
     }
 
 
@@ -344,7 +346,8 @@ def basic_stats(pitches):
     when every ball in play for the hitter has one; sacrifices are not at-bats; otherwise they are left blank rather than guessed. HBP counts toward on-base %."""
     pas, cur = [], []
     for p in pitches:
-        if (p.get('balls'), p.get('strikes')) == ('0', '0') and cur:
+        new_pa = ((p.get('balls'), p.get('strikes')) == ('0', '0')) or (bool(cur) and bool(p.get('pa_key')) and bool(cur[-1].get('pa_key')) and p['pa_key'] != cur[-1]['pa_key'])     # a 0-0 pitch always opens an at-bat; the file's numbering catches one whose first pitch is missing
+        if new_pa and cur:
             pas.append(cur)
             cur = []
         cur.append(p)
@@ -356,9 +359,9 @@ def basic_stats(pitches):
         cc = count_ctx(last)
         if last['outcome'] == 'hbp':
             hbp += 1
-        elif last['outcome'] == 'ball' and cc is not None and cc[0] == 3:
+        elif last.get('kb') == 'Walk' or (last['outcome'] == 'ball' and cc is not None and cc[0] == 3):
             bb += 1
-        elif last['outcome'] in ('whiff', 'cs') and cc is not None and cc[1] == 2:
+        elif last.get('kb') == 'Strikeout' or (last['outcome'] in ('whiff', 'cs') and cc is not None and cc[1] == 2):
             k += 1
         elif last['outcome'] == 'inplay':
             res = last.get('result')
