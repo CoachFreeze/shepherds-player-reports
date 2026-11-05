@@ -1,4 +1,4 @@
-"""Exit Velocity by Quadrant: the strike zone cut into 9 pockets (catcher's view), each showing how hard the ball was hit there and how often hitters swung and missed.
+"""Exit Velocity by Location: the strike zone cut into 9 pockets (catcher's view), each showing how hard the ball was hit there and how often hitters swung and missed.
 One grid per pitch type plus an All view; a row of buttons switches between them."""
 import extract as e
 import pitchfx
@@ -69,17 +69,16 @@ def _grid(rows, label):
             h.append(f'<div class="zg-c{thin}" style="background:{bg};color:{fg}" title="{tip}"><b>{ev:.1f}</b><small>mph &middot; {n_b} BIP</small>' if ev is not None
                      else f'<div class="zg-c{thin}" style="background:{bg};color:{fg}" title="{tip}"><b>&mdash;</b><small>no balls in play</small>')
             h.append(f'<em>{wh:.0f}% whiff <i>({c["wh"]}/{c["sw"]})</i></em></div>' if wh is not None else '<em>no swings</em></div>')
+    h.append('<svg class="zg-plate" viewBox="0 0 100 42" preserveAspectRatio="none" aria-label="Home plate, catcher\'s view"><polygon points="1,2 99,2 99,20 50,40 1,20" fill="#fff" stroke="#9aa7ad" stroke-width="1.6" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>')
     h.append('</div></div></div>')
     return ''.join(h)
 
 
-def build(rows, order, colors):
-    """-> {'views': [{'key','label','color','html'}]} (All first) or None when no pitch landed in the zone."""
-    views = []
+def _views(rows, order, colors):
     allh = _grid(rows, 'All')
     if not allh:
         return None
-    views.append({'key': 'all', 'label': 'All pitches', 'color': None, 'html': allh, 'n': len(rows)})
+    views = [{'key': 'all', 'label': 'All pitches', 'color': None, 'html': allh, 'n': len(rows)}]
     by = {}
     for r in rows:
         t = pitchfx._label(r)
@@ -91,4 +90,21 @@ def build(rows, order, colors):
                 g = _grid(by[t], t)
                 if g:
                     views.append({'key': t, 'label': t, 'color': colors.get(t, '#555'), 'html': g, 'n': len(by[t])})
-    return {'views': views}
+    return views
+
+
+def build(rows, order, colors):
+    """-> {'sides': [{'key','label','n','views':[{'key','label','color','html','n'}]}]} (All batters first, then vs RHB / vs LHB when the file has batter side), or None."""
+    sides = []
+    v = _views(rows, order, colors)
+    if not v:
+        return None
+    sides.append({'key': 'all', 'label': 'All batters', 'n': len(rows), 'views': v})
+    for k, lab in (('R', 'vs RHB'), ('L', 'vs LHB')):
+        sub = pitchfx.by_side(rows, k)
+        sv = _views(sub, order, colors) if sub else None
+        if sv:
+            sides.append({'key': k, 'label': lab, 'n': len(sub), 'views': sv})
+    if len(sides) == 2:       # only one side has data: nothing to switch between
+        sides = sides[:1]
+    return {'sides': sides}
