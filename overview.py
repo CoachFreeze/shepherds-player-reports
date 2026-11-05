@@ -192,6 +192,8 @@ def _build(slug, bio, retag=False, frm=None, to=None):
     location_html = sc.location_heatmap_html(tm, width=340, uid='loc')
 
     colors = {t['type']: t['color'] for t in tm}
+    import zonegrid
+    zone_ev = zonegrid.build(rows, [t['type'] for t in tm], colors)
     effect = pitchfx.effectiveness(rows, [t['type'] for t in tm], colors)
     if effect and not any(s.get('n') for s in effect):       # no batter-side data in the file (Full Swing today): nothing to split
         effect = None
@@ -229,15 +231,15 @@ def _build(slug, bio, retag=False, frm=None, to=None):
     if fs_prog:        # Full Swing files carry no pitch type, so the single line is every pitch
         series = {('All pitches' if k == 'Untagged' else k): v for k, v in series.items()}
         spin_series = {('All pitches' if k == 'Untagged' else k): v for k, v in spin_series.items()}
-    trend_html = trend_svg(series, dates, height=250)
-    spin_html = trend_svg(spin_series, dates, height=250, ylabel='Avg spin rate (rpm)', unit='rpm', dec=0, nice=[50, 100, 200, 250, 500])
+    trend_html = trend_svg(series, dates, width=360, height=220)
+    spin_html = trend_svg(spin_series, dates, width=360, height=220, ylabel='Avg spin rate (rpm)', unit='rpm', dec=0, nice=[50, 100, 200, 250, 500])
     legend = [{'type': k, 'color': v['color']} for k, v in series.items()]
     spin_legend = [{'type': k, 'color': v['color']} for k, v in spin_series.items()]
     trend_note = _trend_note(series)
     spin_note = _trend_note(spin_series, label='spin', unit=' rpm', dec=0, flat=15)
 
     log = outing_log(recent, name)
-    return {'name': name, 'meta': meta, 'trend_note': trend_note, 'summary': summ, 'stat_tiles': stat_tiles, 'stat_catalog': stat_catalog, 'movement_html': movement_html, 'movement_views': movement_views, 'effect': effect, 'comps_html': comps_html, 'ideas_html': ideas_html, 'location_html': location_html,
+    return {'name': name, 'meta': meta, 'trend_note': trend_note, 'summary': summ, 'stat_tiles': stat_tiles, 'stat_catalog': stat_catalog, 'movement_html': movement_html, 'movement_views': movement_views, 'effect': effect, 'comps_html': comps_html, 'ideas_html': ideas_html, 'location_html': location_html, 'zone_ev': zone_ev,
             'trend_html': trend_html, 'legend': legend, 'spin_html': spin_html, 'spin_legend': spin_legend, 'spin_note': spin_note, 'log': log, 'n_outings': len(recent), 'n_pitches': len(rows),
             'range': (_long_date(recent[-1]['date']) + ' – ' + _long_date(recent[0]['date'])) if len(recent) > 1 else _long_date(recent[0]['date'])}
 
