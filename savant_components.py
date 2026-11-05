@@ -860,9 +860,10 @@ def location_heatmap_html(pitches, width=340, uid='loc'):
     btns = ''.join(f'<button type="button" class="{uid}-btn{" on" if i == 0 else ""}" data-view="{name}"'
                    + (f' style="--c:{pitches[i - 1]["color"]}"' if i else '') + f'>{name}</button>'
                    for i, name in enumerate(view_names))
-    css = (f'<style>.{uid}-btns{{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:2px 0 8px;}}'
-           f'.{uid}-btn{{font:600 12px/1 var(--f-heading);border:1.5px solid var(--c,#5c7585);background:#fff;color:#26343b;border-radius:999px;padding:6px 12px;cursor:pointer;}}'
-           f'.{uid}-btn.on{{background:var(--c,#5c7585);color:#fff;}}'
+    css = (f'<style>.{uid}-btns{{display:flex;gap:0;width:max-content;max-width:100%;margin:2px auto 8px;background:#eef2f4;border-radius:999px;padding:3px;overflow-x:auto;scrollbar-width:none;}}'
+           f'.{uid}-btn{{font:700 12px/1 var(--f-heading);border:0;background:transparent;color:#5b6b75;border-radius:999px;padding:6px 12px;cursor:pointer;white-space:nowrap;transition:background .12s,color .12s;}}'
+           f'.{uid}-btn[style]::before{{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--c);margin-right:5px;}}'
+           f'.{uid}-btn.on{{background:#fff;color:#26343b;box-shadow:0 1px 3px rgba(0,0,0,.14);}}'
            f'.{uid}-row{{display:flex;gap:10px;}} .{uid}-col{{flex:1 1 0;min-width:0;}}'
            f'.{uid}-title{{font:700 13px/1 var(--f-heading);text-align:center;color:#26343b;margin:0 0 6px;letter-spacing:.02em;}}'
            f'.{uid}-stats{{font:500 11.5px/1.3 var(--f-heading);color:var(--muted);text-align:center;margin-top:6px;}}</style>')
