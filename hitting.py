@@ -342,8 +342,8 @@ def qab_stats(pitches):
 
 def basic_stats(pitches):
     """The traditional stat line, rebuilt from the pitch sequence (see qab_stats): PA, AB, BB, K and the walk and strikeout rates come from the
-    counts alone. Hits, extra-base hits and AVG/OBP/SLG/OPS also need a result for the ball in play (the operator's tags, else Trackman's PlayResult column), so they show only
-    when every ball in play for the hitter has one; sacrifices are not at-bats; otherwise they are left blank rather than guessed. HBP counts toward on-base %."""
+    counts alone. Hits, extra-base hits and AVG/OBP/SLG/OPS also need a result for the ball in play (the operator's tags, else Trackman's PlayResult column), so an
+    at-bat whose ball in play has no result is left out of the whole line (counted in b_unres), not guessed; sacrifices are not at-bats. HBP counts toward on-base %."""
     pas, cur = [], []
     for p in pitches:
         new_pa = ((p.get('balls'), p.get('strikes')) == ('0', '0')) or (bool(cur) and bool(p.get('pa_key')) and bool(cur[-1].get('pa_key')) and p['pa_key'] != cur[-1]['pa_key'])     # a 0-0 pitch always opens an at-bat; the file's numbering catches one whose first pitch is missing
@@ -367,6 +367,7 @@ def basic_stats(pitches):
             res = last.get('result')
             if res is None:
                 unresolved += 1
+                continue                                 # a ball in play with no result can't be a hit or an out: leave that at-bat out of the line, and say so in the definitions
             elif res == 'SAC':
                 sac += 1
             else:
@@ -381,7 +382,8 @@ def basic_stats(pitches):
     out = {'b_pa': pa, 'b_ab': ab, 'b_bb': bb, 'b_hbp': hbp, 'b_k': k,
            'b_bb_pct': 100.0 * bb / pa if pa else None, 'b_k_pct': 100.0 * k / pa if pa else None,
            'b_h': None, 'b_2b': None, 'b_3b': None, 'b_hr': None, 'b_avg': None, 'b_obp': None, 'b_slg': None, 'b_ops': None}
-    if pa and not unresolved:
+    out['b_unres'] = unresolved
+    if pa:
         tb = (h - d2 - d3 - hr) + 2 * d2 + 3 * d3 + 4 * hr
         out.update({'b_h': h, 'b_2b': d2, 'b_3b': d3, 'b_hr': hr})
         if ab:

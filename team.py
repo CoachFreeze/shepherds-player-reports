@@ -54,22 +54,22 @@ HIT_CATALOG = {
 }
 # The Basic view of the Hitters stat sheet, in this order: id -> (label, abbreviation, definition, kind). Values come from hitting.basic_stats (xBA from hitter_stats).
 BASIC_HIT = [
-    ('b_pa', 'Plate Appearances', 'PA', 'Finished plate appearances: a ball in play, walk, hit-by-pitch or strikeout.', 'int'),
+    ('b_pa', 'Plate Appearances', 'PA', 'Finished plate appearances: a ball in play, walk, hit-by-pitch or strikeout. A ball in play with no result (no tag, and no Trackman PlayResult) is left out of every stat on this line, so these cover the at-bats whose result is known.', 'int'),
     ('b_ab', 'At Bats', 'AB', 'Plate appearances minus walks, hit-by-pitch and sacrifices.', 'int'),
-    ('b_h', 'Hits', 'H', 'Hits. Needs a result (tag or Trackman PlayResult) on every ball in play, otherwise left blank.', 'int'),
+    ('b_h', 'Hits', 'H', 'Hits, from the result of each ball in play (tag or Trackman PlayResult). A ball in play with no result is left out.', 'int'),
     ('b_bb', 'Walks', 'BB', 'Walks, from the count.', 'int'),
     ('b_hbp', 'Hit By Pitch', 'HBP', 'Times hit by a pitch.', 'int'),
     ('b_k', 'Strikeouts', 'K', 'Strikeouts, from the count.', 'int'),
     ('b_bb_pct', 'Walk %', 'BB%', 'Walks / plate appearances.', 'pct'),
     ('b_k_pct', 'Strikeout %', 'K%', 'Strikeouts / plate appearances.', 'pct'),
-    ('b_avg', 'Batting Average', 'AVG', 'Hits / at bats. Needs a result on every ball in play.', 'avg'),
-    ('b_obp', 'On Base Percentage', 'OBP', '(Hits + walks + hit-by-pitch) / (at bats + walks + hit-by-pitch). Needs a result on every ball in play.', 'avg'),
-    ('b_slg', 'Slugging Percentage', 'SLG', 'Total bases / at bats. Needs a result on every ball in play.', 'avg'),
-    ('b_ops', 'On Base Plus Slugging', 'OPS', 'On-base percentage plus slugging percentage. Needs a result on every ball in play.', 'avg'),
+    ('b_avg', 'Batting Average', 'AVG', 'Hits / at bats. At-bats whose ball in play has no result are left out.', 'avg'),
+    ('b_obp', 'On Base Percentage', 'OBP', '(Hits + walks + hit-by-pitch) / (at bats + walks + hit-by-pitch). At-bats whose ball in play has no result are left out.', 'avg'),
+    ('b_slg', 'Slugging Percentage', 'SLG', 'Total bases / at bats. At-bats whose ball in play has no result are left out.', 'avg'),
+    ('b_ops', 'On Base Plus Slugging', 'OPS', 'On-base percentage plus slugging percentage. At-bats whose ball in play has no result are left out.', 'avg'),
     ('xba', 'xBA', 'xBA', 'Expected batting average from exit velocity and launch angle.', 'avg'),
-    ('b_2b', 'Doubles', '2B', 'Doubles. Needs a result on every ball in play.', 'int'),
-    ('b_3b', 'Triples', '3B', 'Triples. Needs a result on every ball in play.', 'int'),
-    ('b_hr', 'Home Runs', 'HR', 'Home runs. Needs a result on every ball in play.', 'int'),
+    ('b_2b', 'Doubles', '2B', 'Doubles. At-bats whose ball in play has no result are left out.', 'int'),
+    ('b_3b', 'Triples', '3B', 'Triples. At-bats whose ball in play has no result are left out.', 'int'),
+    ('b_hr', 'Home Runs', 'HR', 'Home runs. At-bats whose ball in play has no result are left out.', 'int'),
 ]
 HIT_DEFAULT = ['avg_ev', 'hard_hit_pct', 'xba', 'score', 'chase_pct', 'whiff_pct']
 
