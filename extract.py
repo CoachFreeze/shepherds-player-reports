@@ -969,6 +969,57 @@ def _outcome(r):
             'strikecalled': 'cs', 'calledstrike': 'cs', 'strikeswinging': 'whiff', 'swingingstrike': 'whiff'}.get(pc, 'unk')
 
 
+def _res(r):
+    v = (r.get('PlayResult') or '').strip()
+    return '' if v == 'Undefined' else v
+
+
+def _kb(r):
+    return (r.get('KorBB') or '').strip()
+
+
+def _counting_one(rows):
+    """Counting stats for the pitches of ONE session. A file with real results (Trackman PlayResult / KorBB) uses them; a file without them
+    (a Live AB tagged by hand) infers hits from the tags and strikeouts and walks from the count."""
+    outs_ = [_outcome(r) for r in rows]
+    explicit = any(_res(r) or _kb(r) in ('Strikeout', 'Walk') for r in rows)
+    hbp = sum(1 for o in outs_ if o == 'hbp')
+    if explicit:
+        c = {'hits': sum(1 for r in rows if _res(r) in ('Single', 'Double', 'Triple', 'HomeRun')),
+             'walks': sum(1 for r in rows if _kb(r) == 'Walk'), 'ks': sum(1 for r in rows if _kb(r) == 'Strikeout'),
+             'hr': sum(1 for r in rows if _res(r) == 'HomeRun'), 'xbh': sum(1 for r in rows if _res(r) in ('Double', 'Triple', 'HomeRun'))}
+        # a batter faced is an at-bat that finished (the pitch that ends one carries the result), so a missing 0-0 pitch can't lose one
+        c['bf'] = sum(1 for r in rows if _res(r) or _kb(r) in ('Strikeout', 'Walk') or r.get('PitchCall') == 'HitByPitch')
+        outs = 0        # the pitch that ends an at-bat or a baserunner's out says how many outs it made (a double play is 2); a strikeout is 1
+        for r in rows:
+            oop = int(_fnum(r.get('OutsOnPlay')) or 0)
+            outs += oop if oop else (1 if _kb(r) == 'Strikeout' else 0)
+        c['outs'] = outs
+    else:
+        ks = sum(1 for r, o in zip(rows, outs_) if r.get('Strikes') == '2' and o in ('whiff', 'cs'))
+        c = {'hits': sum(1 for r in rows if _tags(r) & _HIT_TAGS), 'ks': ks,
+             'walks': sum(1 for r, o in zip(rows, outs_) if r.get('Balls') == '3' and o == 'ball'),
+             'hr': sum(1 for r in rows if 'PR_HomeRun' in _tags(r)), 'xbh': sum(1 for r in rows if _tags(r) & {'PR_Double', 'PR_Triple', 'PR_HomeRun'}),
+             'bf': sum(1 for r in rows if (r.get('Balls'), r.get('Strikes')) == ('0', '0')),
+             'outs': sum(1 for r in rows if 'PR_Out' in _tags(r)) + ks}
+    c['hbp'] = hbp
+    c['scored'] = int(explicit or any(t.startswith('PR_') for r in rows for t in _tags(r)))       # nothing says how the at-bats ended, so innings can't be worked out
+    return c
+
+
+def _counting(rows):
+    """Counting stats over any mix of sessions: each session is counted its own way (see _counting_one), then added up. Sessions are told apart by
+    date, session type, opponent and game id, so a pitcher with a tagged scrimmage and a Trackman game gets both counted properly."""
+    groups = {}
+    for r in rows:
+        groups.setdefault(((r.get('Date') or '')[:10], r.get('SessionType'), r.get('Opponent'), r.get('GameUID')), []).append(r)
+    tot = {k: 0 for k in ('bf', 'hits', 'walks', 'ks', 'hr', 'xbh', 'hbp', 'outs', 'scored')}
+    for g in groups.values():
+        for k, v in _counting_one(g).items():
+            tot[k] += v
+    return tot
+
+
 def outing_summary(rows):
     """Box-score style summary for one pitcher's rows. Inferred where the export has no
     explicit result: strikeouts/walks come from the count, outs from PR_Out tags + strikeouts,
@@ -981,10 +1032,6 @@ def outing_summary(rows):
     whiffs = sum(1 for o in outs_ if o == 'whiff')
     strikes = sum(1 for o in outs_ if o not in ('ball', 'hbp', 'unk'))
     known = sum(1 for o in outs_ if o != 'unk')
-    bf = sum(1 for r in rows if (r.get('Balls'), r.get('Strikes')) == ('0', '0'))
-    if any((r.get('PlayResult') or '').strip() not in ('', 'Undefined') or (r.get('KorBB') or '').strip() in ('Strikeout', 'Walk') for r in rows):
-        # the file has real results: a batter faced is an at-bat that finished (the pitch that ends one carries the result), so a missing 0-0 pitch can't lose one
-        bf = sum(1 for r in rows if (r.get('PlayResult') or '').strip() not in ('', 'Undefined') or (r.get('KorBB') or '').strip() in ('Strikeout', 'Walk') or r.get('PitchCall') == 'HitByPitch')
     fp = [o for r, o in zip(rows, outs_) if (r.get('Balls'), r.get('Strikes')) == ('0', '0')]
     fps = sum(1 for o in fp if o not in ('ball', 'hbp', 'unk'))
     inzone = outside = chases = loc_n = 0
@@ -999,32 +1046,8 @@ def outing_summary(rows):
             outside += 1
             if o in ('whiff', 'foul', 'inplay'):
                 chases += 1
-    def _res(r):
-        v = (r.get('PlayResult') or '').strip()
-        return '' if v == 'Undefined' else v
-    def _kb(r):
-        return (r.get('KorBB') or '').strip()
-    explicit = any(_res(r) or _kb(r) in ('Strikeout', 'Walk') for r in rows)       # the export carries real results: use them, else infer from tags and counts
-    if explicit:
-        hits = sum(1 for r in rows if _res(r) in ('Single', 'Double', 'Triple', 'HomeRun'))
-        walks = sum(1 for r in rows if _kb(r) == 'Walk')
-        ks = sum(1 for r in rows if _kb(r) == 'Strikeout')
-        hr = sum(1 for r in rows if _res(r) == 'HomeRun')
-        xbh = sum(1 for r in rows if _res(r) in ('Double', 'Triple', 'HomeRun'))
-    else:
-        hits = sum(1 for r in rows if _tags(r) & _HIT_TAGS)
-        walks = sum(1 for r, o in zip(rows, outs_) if r.get('Balls') == '3' and o == 'ball')
-        ks = sum(1 for r, o in zip(rows, outs_) if r.get('Strikes') == '2' and o in ('whiff', 'cs'))
-        hr = sum(1 for r in rows if 'PR_HomeRun' in _tags(r))
-        xbh = sum(1 for r in rows if _tags(r) & {'PR_Double', 'PR_Triple', 'PR_HomeRun'})
-    hbp = sum(1 for o in outs_ if o == 'hbp')
-    if explicit:        # the pitch that ends an at-bat or a baserunner's out says how many outs it made (a double play is 2); a strikeout is 1
-        outs = 0
-        for r in rows:
-            oop = int(_fnum(r.get('OutsOnPlay')) or 0)
-            outs += oop if oop else (1 if _kb(r) == 'Strikeout' else 0)
-    else:
-        outs = sum(1 for r in rows if 'PR_Out' in _tags(r)) + ks
+    cnt = _counting(rows)
+    bf, hits, walks, ks, hr, xbh, hbp, outs = (cnt[k] for k in ('bf', 'hits', 'walks', 'ks', 'hr', 'xbh', 'hbp', 'outs'))
     has_runs = any(r.get('RunsScored') not in (None, '') for r in rows)
     runs = sum(int(_fnum(r.get('RunsScored')) or 0) for r in rows) if has_runs else None
     evs = [_fnum(r.get('ExitSpeed')) for r, o in zip(rows, outs_) if o == 'inplay']
@@ -1035,7 +1058,7 @@ def outing_summary(rows):
     def pct(a, b):
         return f'{100 * a / b:.1f}%' if b else '-'
     return {
-        'ip': '-' if fs else f'{outs // 3}.{outs % 3}', 'bf': '-' if fs else bf, 'pitches': n, 'hits': '-' if fs else hits, 'walks': '-' if fs else walks, 'hbp': '-' if fs else hbp,
+        'ip': '-' if fs or not cnt['scored'] else f'{outs // 3}.{outs % 3}', 'bf': '-' if fs else bf, 'pitches': n, 'hits': '-' if fs else hits, 'walks': '-' if fs else walks, 'hbp': '-' if fs else hbp,
         'ks': '-' if fs else ks, 'hr': '-' if fs else hr, 'xbh': '-' if fs else xbh, 'runs': '-' if runs is None or fs else runs,
         'max_ev': f'{max(evs):.1f}' if evs else '-', 'hard': sum(1 for v in evs if v >= 95),
         'strike_pct': pct(strikes, known), 'fps_pct': pct(fps, len(fp)), 'zone_pct': pct(inzone, loc_n),
