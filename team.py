@@ -206,13 +206,17 @@ def delete_goal(program, gid):
 
 
 # ------------------------------------------------------------------ pitching
-def _pitchers(program):
-    """[(slug, bio, [outings newest first])] for a program's pitchers that have stored data."""
+def _pitchers(program, win='season'):
+    """[(slug, bio, [outings newest first])] for a program's pitchers that have stored data, limited to the season being viewed (win=None: every season)."""
+    import season
+    win = season.window(program) if win == 'season' else win
     out = []
     for slug, bio in store.list_players_view().items():
         if (bio.get('program') or 'shepherds') != program:
             continue
         outs = outings_mod.outings(slug)
+        if win:
+            outs = [o for o in outs if season.in_window(o['date'], win)]
         if outs:
             out.append((slug, bio, outs))
     return out
@@ -231,9 +235,14 @@ def _pitch_session_series(outs, trend=None):
     return res
 
 
-@cache.memo
 def pitching_data(program):
-    return pitching_from(_pitchers(program), fs=store.is_fullswing(program))
+    import season
+    return _pitching_data(program, season.window(program))
+
+
+@cache.memo
+def _pitching_data(program, win):
+    return pitching_from(_pitchers(program, win), fs=store.is_fullswing(program))
 
 
 def pitching_from(ps, fs=False):
@@ -288,8 +297,20 @@ def pitching_from(ps, fs=False):
 
 
 # ------------------------------------------------------------------ hitting
-def _hitters(program, include_demo):
-    return {k: h for k, h in hitting._collect(include_demo).items() if h['program'] == program}
+def _hitters(program, include_demo, win='season'):
+    import season
+    win = season.window(program) if win == 'season' else win
+    out = {}
+    for k, h in hitting._collect(include_demo).items():
+        if h['program'] != program:
+            continue
+        if win:
+            ps = [p for p in h['pitches'] if season.in_window(p.get('date'), win)]
+            if not ps:
+                continue
+            h = dict(h, pitches=ps)
+        out[k] = h
+    return out
 
 
 def _hit_session_series(pitches):
@@ -309,9 +330,14 @@ def _hit_session_series(pitches):
     return res
 
 
-@cache.memo
 def hitting_data(program, include_demo):
-    return hitting_from(_hitters(program, include_demo), fs=store.is_fullswing(program))
+    import season
+    return _hitting_data(program, include_demo, season.window(program))
+
+
+@cache.memo
+def _hitting_data(program, include_demo, win):
+    return hitting_from(_hitters(program, include_demo, win), fs=store.is_fullswing(program))
 
 
 def hitting_from(hs, fs=False):

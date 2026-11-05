@@ -21,6 +21,8 @@ def _opp_pitcher_files(program):
 
 def opponents(program):
     """{opp_slug: {'label', 'hitters': [...], 'pitchers': [...], 'dates': [...]}} for one program."""
+    import season
+    win = season.window(program)
     out = {}
 
     def slot(label):
@@ -28,6 +30,8 @@ def opponents(program):
         return out.setdefault(k, {'slug': k, 'label': label, 'hitters': [], 'pitchers': [], 'dates': set()})
 
     for key, h in hitting.collect_scouting(program).items():
+        if not any(season.in_window(p.get('date'), win) for p in h['pitches']):
+            continue
         s = slot(h['opponent'])
         s['hitters'].append({'key': key, 'name': hitting.display_name(h['name']), 'n': len(h['pitches'])})
         s['dates'] |= {p['date'] for p in h['pitches'] if p.get('date')}
@@ -37,6 +41,8 @@ def opponents(program):
             continue
         by = {}
         for o in data['outings']:
+            if not season.in_window(o['date'], win):
+                continue
             for r in o['rows']:
                 by.setdefault(r.get('Opponent') or 'Unlabeled opponent', []).append(r)
                 s_ = None
@@ -58,6 +64,8 @@ def team_data(program, opp_slug):
     """Team-dashboard numbers for one opponent: {'pitching': ..., 'hitting': ...} in the same shape as team.pitching_data / hitting_data.
     Pitching = the opposing pitchers we tracked; hitting = the opposing hitters our pitchers faced."""
     import team
+    import season
+    win = season.window(program)
     ps = []
     for slug in _opp_pitcher_files(program):
         data = outings.load(slug, real_only=True)
@@ -65,6 +73,8 @@ def team_data(program, opp_slug):
             continue
         outs = []
         for o in data['outings']:
+            if not season.in_window(o['date'], win):
+                continue
             rows = [r for r in o['rows'] if (store.slugify(r.get('Opponent') or '') or 'unlabeled') == opp_slug]
             if rows:
                 outs.append({'date': o['date'], 'rows': rows})
@@ -72,6 +82,8 @@ def team_data(program, opp_slug):
             outs.sort(key=lambda x: x['date'], reverse=True)
             ps.append((slug, {'name': _flip(outs[0]['rows'][0].get('Pitcher')) or slug}, outs))
     hs = {k: h for k, h in hitting.collect_scouting(program).items() if h['opp_slug'] == opp_slug}
+    hs = {k: dict(h, pitches=[p for p in h['pitches'] if season.in_window(p.get('date'), win)]) for k, h in hs.items()}
+    hs = {k: h for k, h in hs.items() if h['pitches']}
     return {'pitching': team.pitching_from(ps), 'hitting': team.hitting_from(hs), 'cfg': team.load(program)}
 
 

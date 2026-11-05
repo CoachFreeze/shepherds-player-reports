@@ -86,7 +86,7 @@ def team_rows(program, as_of):
     """One row per pitcher with stored pitches or ArmCare exams: windows, last outing, arm summary. Sorted by last name."""
     import store
     rows, seen = [], set()
-    for slug, bio, _outs in team_mod._pitchers(program):
+    for slug, bio, _outs in team_mod._pitchers(program, None):
         seen.add(slug)
         rows.append(_row(slug, bio.get('name', slug), as_of))
     for slug, bio in store.list_players_view().items():          # ArmCare data for a pitcher with no stored pitches yet

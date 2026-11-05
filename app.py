@@ -277,7 +277,7 @@ def staff_checks():
     return None
 
 
-_DEMO_BLOCKED = {'team_game_umpire_set', 'team_armcare', 'team_armcare_confirm', 'team_game_edit', 'team_coaches', 'team_appearance', 'roster_page', 'upload_log_page', 'intake_bulk', 'intake_bulk_run', 'edit_profile', 'account', 'change_password',
+_DEMO_BLOCKED = {'team_seasons', 'team_game_umpire_set', 'team_armcare', 'team_armcare_confirm', 'team_game_edit', 'team_coaches', 'team_appearance', 'roster_page', 'upload_log_page', 'intake_bulk', 'intake_bulk_run', 'edit_profile', 'account', 'change_password',
                  'admin_status', 'hitters_sort', 'team_customize'}
 
 
@@ -999,6 +999,66 @@ APPEARANCE_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name
 </div></body></html>"""
 
 
+@app.template_global()
+def season_ui(program):
+    """Season picker model for the top nav: only shown to staff, and only once a second season has started."""
+    import season
+    if not program or is_player() or not session.get('coach'):
+        return None
+    ss = season.seasons(program)
+    if len(ss) < 2:
+        return None
+    sel = season.selected(program)
+    return {'seasons': list(reversed(ss)), 'sel': sel, 'cur': ss[-1], 'archived': sel['key'] != ss[-1]['key']}
+
+
+@app.route('/team/<program>/season')
+@login_required
+def team_season_switch(program):
+    _team_ok(program)
+    import season
+    from urllib.parse import urlparse
+    season.pick(program, request.args.get('set'))
+    nxt = request.args.get('next') or ''
+    u = urlparse(nxt)
+    if u.netloc or u.scheme or not nxt.startswith('/') or nxt.startswith('//'):
+        nxt = url_for('team_dashboard', program=program)
+    return redirect(nxt)
+
+
+SEASONS_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Seasons</title>
+<style>body{font:15px/1.5 'Barlow',system-ui,sans-serif;background:#f4f6f7;color:#22303a;margin:0;padding:24px 16px}.c{max-width:640px;margin:0 auto;background:#fff;border-radius:14px;padding:24px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+h1{margin:0 0 6px;font-size:22px}p{color:#5b6b75;margin:6px 0 14px}.r{display:flex;gap:8px;margin:8px 0}.r input{padding:8px;border:1px solid #cdd5d8;border-radius:8px;font:inherit}.r input[type=date]{width:160px}.r input[type=text]{flex:1}
+button{background:#22303a;color:#fff;border:0;border-radius:999px;padding:9px 18px;font:600 14px inherit;cursor:pointer}a{color:#2d6f84}.ok{background:#e6f4ea;border-radius:8px;padding:8px 12px}</style></head><body><div class="c">
+<a href="{{ url_for('team_dashboard', program=program) }}">&larr; {{ team_label }}</a><h1>Seasons</h1>
+{% if msg %}<div class="ok">{{ msg }}</div>{% endif %}
+<p>Each start date begins a new season. Team pages (Dashboard, Hitters, Pitchers, Game Reports, Scouting) show the current season; everything before it is archived, still one click away in the season picker. Player profiles always keep every season together and can be switched year to year. Leave a row blank to remove it. Nothing is deleted or moved.</p>
+<p><b>Starts before the first date:</b> {{ first }}</p>
+<form method="post">{% for b in rows %}<div class="r"><input type="date" name="start" value="{{ b.start }}"><input type="text" name="label" value="{{ b.label }}" maxlength="40" placeholder="Label"></div>{% endfor %}
+{% for i in range(2) %}<div class="r"><input type="date" name="start"><input type="text" name="label" maxlength="40" placeholder="Label (e.g. Fall 2027)"></div>{% endfor %}
+<button type="submit">Save seasons</button>{% if custom %} <button type="submit" name="reset" value="1" style="background:#8a98a0">Reset to every Jan 1</button>{% endif %}</form></div></body></html>"""
+
+
+@app.route('/team/<program>/seasons', methods=['GET', 'POST'])
+@login_required
+@head_required
+def team_seasons(program):
+    _team_ok(program)
+    import season
+    g.theme_program = program
+    if request.method == 'POST':
+        if is_demo_viewer():
+            abort(403)
+        if request.form.get('reset'):
+            season.save(program, [])
+        else:
+            season.save(program, [{'start': a, 'label': b} for a, b in zip(request.form.getlist('start'), request.form.getlist('label'))])
+        return redirect(url_for('team_seasons', program=program, msg='Saved.'))
+    bs = season.boundaries(program)
+    return render_template_string(SEASONS_PAGE, program=program, team_label=store.program_label(program), rows=bs, custom=bool(season.custom(program)),
+                                  first=season.seasons(program, __import__('datetime').date(9999, 1, 1))[0]['label'], msg=request.args.get('msg'))
+
+
 @app.route('/team/<program>/appearance')
 @login_required
 @head_required
@@ -1101,7 +1161,7 @@ def brand_logo(fname):
     return send_file(path, mimetype='image/png', max_age=86400)
 
 
-def _date_range(dates, extra=None, empty=False):
+def _date_range(dates, extra=None, empty=False, program=None):
     """Model for templates/_daterange.html from ?frm= / ?to= (ISO dates) and the list of dates the player has data for."""
     import datetime as _dt
     from urllib.parse import urlencode
@@ -1124,7 +1184,11 @@ def _date_range(dates, extra=None, empty=False):
             q['to'] = t
         return urlencode(q)
     presets = [('All', None, None), ('Last 7 days', (today - _dt.timedelta(days=7)).isoformat(), None), ('Last 30 days', (today - _dt.timedelta(days=30)).isoformat(), None)]
-    if ds:
+    import season as _season
+    sp = _season.presets_for(program, ds) if program else []
+    if sp:
+        presets += sp           # one preset per season the player has data in, so growth can be compared year to year
+    elif ds:
         yr = ds[-1][:4]
         presets.append((f'{yr} season', f'{yr}-01-01', f'{yr}-12-31'))
     return {'frm': frm, 'to': to, 'min': ds[0] if ds else '', 'max': ds[-1] if ds else '', 'empty': empty, 'extra': extra, 'presets': presets, 'qs': qs}
@@ -1153,10 +1217,10 @@ def _share_ctx(kind, ref, program):
 
 def _pitcher_page(slug, bio, public=False, token=None):
     can_retag = (not public) and can_manage(slug) and not store.is_demo(slug) and not is_player()
-    _dr = _date_range([o['date'] for o in outings_mod.outings(slug)])
+    _dr = _date_range([o['date'] for o in outings_mod.outings(slug)], program=bio.get('program'))
     b = overview.build(slug, bio, retag=can_retag, frm=_dr['frm'], to=_dr['to']) if (_dr['frm'] or _dr['to']) else None
     if (_dr['frm'] or _dr['to']) and not b:
-        _dr = _date_range([o['date'] for o in outings_mod.outings(slug)], empty=True)
+        _dr = _date_range([o['date'] for o in outings_mod.outings(slug)], empty=True, program=bio.get('program'))
         _dr['frm'] = _dr['to'] = None
     b = b or overview.build(slug, bio, retag=can_retag)
     if not b:
@@ -1402,7 +1466,11 @@ def team_games(program):
     import datetime as _dt
     g.theme_program = program
     out = []
+    import season
+    _win = season.window(program)
     for gid, gm in gr.collect(program).items():
+        if not season.in_window(gm['date'], _win):
+            continue
         m = gr.build(gm['rows'])
         d = _dt.date.fromisoformat(gm['date'])
         out.append({'gid': gid, 'opp': gm['opp'], 'date': gm['date'], 'date_pretty': d.strftime('%a %b %-d, %Y'), 'n': gm['n'],
@@ -2009,7 +2077,7 @@ def _hitter_render(key, h, public=False, token=None):
     g.theme_program = h['program']
     css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
     _ps = h['bio']['photo_slug']
-    _dr = _date_range(h['dates'], {'vs': h['vs'] if h['vs'] != 'all' else '', 'side': request.args.get('side') if request.args.get('side') in ('L', 'R') else ''}, empty=h.get('range_empty', False))
+    _dr = _date_range(h['dates'], {'vs': h['vs'] if h['vs'] != 'all' else '', 'side': request.args.get('side') if request.args.get('side') in ('L', 'R') else ''}, empty=h.get('range_empty', False), program=h['program'])
     def hurl(vs=None):
         if public:
             return url_for('public_share', token=token, vs=vs, frm=_dr['frm'], to=_dr['to'])
