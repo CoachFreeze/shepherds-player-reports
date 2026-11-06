@@ -15,6 +15,7 @@
   .side h3{font:700 13px 'Oswald',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;} .side h3:first-child{margin-top:0;}
   .score{font:700 54px 'Oswald',sans-serif;line-height:1;} .score small{font:600 14px Barlow,sans-serif;color:var(--muted);margin-left:8px;}
   select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:10px;font:500 14px Barlow,sans-serif;background:#fff;}
+  .why{font-size:13px;line-height:1.5;color:var(--muted);margin-top:8px;} .why b{color:var(--ink);} .why ul{margin:6px 0 0;padding-left:18px;} .why li{margin:2px 0;}
   .tg{display:flex;flex-wrap:wrap;gap:6px;} .tg label{font:600 13px Barlow,sans-serif;border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px;} .tg input{display:none;} .tg label:has(input:checked){background:var(--ink);color:#fff;border-color:var(--ink);}
   .sw{display:inline-block;width:11px;height:11px;border-radius:50%;} .cnt{font-size:13.5px;color:var(--muted);line-height:1.8;}
   .cnt b{color:var(--ink);} .leg{font-size:12.5px;color:var(--muted);line-height:1.7;margin-top:12px;}
@@ -32,8 +33,9 @@
   <div class="layout">
     <div class="plate">{{ D.svg|safe }}</div>
     <div class="side">
-      <h3>Swing Decision Rating</h3>
-      <div class="score">{{ '%.0f'|format(D.score) if D.score is not none else '–' }}<small>{{ D.grade or '' }}</small></div>
+      <h3 id="sc-h">Swing Decision Rating &middot; Whole team</h3>
+      <div class="score"><span id="sc-n">{{ '%.0f'|format(D.score) if D.score is not none else '–' }}</span><small id="sc-g">{{ D.grade or '' }}</small></div>
+      <div class="why" id="why"></div>
       <h3>Hitter</h3>
       <select id="f-p"><option value="">Whole team</option>{% for p in D.players %}<option>{{ p }}</option>{% endfor %}</select>
       <h3>Show</h3>
@@ -48,6 +50,7 @@
 <div id="tip"></div>
 <script>
 (function(){
+  var WHY={{ D.why|tojson }}; function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   var dots=[].slice.call(document.querySelectorAll('.dot')), tip=document.getElementById('tip'); if(!dots.length)return;
   function checked(id){return [].slice.call(document.querySelectorAll('#'+id+' input:checked')).map(function(i){return i.value;});}
   function apply(){
@@ -56,6 +59,10 @@
       var ok=(!p||d.dataset.n===p)&&a.indexOf(d.dataset.a)>-1&&v.indexOf(d.dataset.v)>-1;
       d.style.display=ok?'':'none'; if(ok){n++; if(d.dataset.a==='Swing')sw++; if(d.dataset.v==='good')g++; if(d.dataset.v==='bad')b++;}
     });
+    var w=WHY[p]||WHY[''], hd=document.getElementById('sc-h');
+    if(w){document.getElementById('sc-n').textContent=w.score==null?'–':w.score; document.getElementById('sc-g').textContent=w.grade||'';
+      document.getElementById('why').innerHTML='<b>'+esc(w.summary)+'</b><ul>'+w.lines.map(function(l){return '<li>'+esc(l)+'</li>';}).join('')+'</ul>';}
+    hd.innerHTML='Swing Decision Rating &middot; '+esc(p||'Whole team');
     document.getElementById('cnt').innerHTML='<b>'+n+'</b> pitches &middot; <b>'+sw+'</b> swings, <b>'+(n-sw)+'</b> takes<br><b>'+g+'</b> good &middot; <b>'+b+'</b> bad';
   }
   document.querySelectorAll('.side select,.side input').forEach(function(e){e.addEventListener('change',apply);}); apply();

@@ -522,13 +522,15 @@ def goal_metric_options(side):
 def swing_decision_page_data(program):
     """Every judged pitch the team's hitters saw, for the big plate view."""
     hs = _hitters(program, True)
-    items, players = [], []
+    items, players, why = [], [], {}
     for key, h in hs.items():
         nm = hitting.display_name(h['name'])
         players.append(nm)
         items += [(nm, p) for p in h['pitches']]
+        why[nm] = hitting.explain_sdr(hitting.hitter_stats(h['pitches']))
     items.sort(key=lambda x: x[0])
     svg, n = hitting.team_decision_chart_svg(items)
     s = hitting.hitter_stats([p for _, p in items]) if items else None
+    why[''] = hitting.explain_sdr(s) if s else None
     return {'svg': svg, 'n': n, 'players': sorted(set(players), key=lambda x: x.split()[-1].lower()),
-            'score': s['score'] if s else None, 'grade': s['grade'] if s else None}
+            'score': s['score'] if s else None, 'grade': s['grade'] if s else None, 'why': why}

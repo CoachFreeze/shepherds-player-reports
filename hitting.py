@@ -195,6 +195,36 @@ def judge(p):
     return reg, swung, v, w, why
 
 
+def explain_sdr(s, who='He'):
+    """A short, plain-English reason for a hitter's (or the team's) Swing Decision Rating: {'score','grade','summary','lines':[...]}."""
+    parts = [('Chase discipline', s.get('disc'), s.get('disc_g')), ('Swinging at hittable pitches', s.get('hit'), s.get('hit_g')), ('Damage on contact', s.get('dmg'), s.get('dmg_g'))]
+    live = [(n, v, g) for n, v, g in parts if v is not None]
+    lines = []
+    if s.get('disc') is not None:
+        lines.append(f"Chase discipline {s['disc']} ({s['disc_g']}): chased {s.get('chases', 0)} of {s['disc_n']} pitches off the zone ({s.get('chase_pct', 0):.0f}%).")
+    else:
+        lines.append('Chase discipline: not enough pitches off the zone yet.')
+    if s.get('hit') is not None:
+        extra = f" Took {s['fb_hc_takes']} fastball{'s' if s['fb_hc_takes'] != 1 else ''} in the heart in a hitter's count." if s.get('fb_hc_takes') else ''
+        lines.append(f"Hittable pitches {s['hit']} ({s['hit_g']}): swung at {s.get('heart_swing_pct', 0):.0f}% of the {s['hit_n']} pitches down the middle.{extra}")
+    else:
+        lines.append('Hittable pitches: not enough pitches down the middle yet.')
+    if s.get('dmg') is not None:
+        lines.append(f"Damage {s['dmg']} ({s['dmg_g']}): expected average of {s['xbacon']:.3f} on {s['dmg_n']} balls in play off hittable pitches.")
+    else:
+        lines.append('Damage: fewer than 3 balls in play off hittable pitches so far.')
+    if s.get('score') is None or s.get('grade') is None:
+        summary = f"Only {s.get('decisions', 0)} judged pitches so far, so there is no rating yet (it needs about 15)."
+    elif len(live) >= 2:
+        lo, hi = min(live, key=lambda x: x[1]), max(live, key=lambda x: x[1])
+        summary = (f"{s['score']} is {s['grade']}. Best part: {hi[0].lower()} ({hi[1]}). Weakest: {lo[0].lower()} ({lo[1]})." if hi[1] != lo[1]
+                   else f"{s['score']} is {s['grade']}, with every part about even.")
+    else:
+        summary = f"{s['score']} is {s['grade']}, from {s['decisions']} judged pitches."
+    rated = s.get('score') is not None and s.get('grade') is not None
+    return {'score': s.get('score') if rated else None, 'grade': s.get('grade') if rated else 'Small sample', 'summary': summary, 'lines': lines}
+
+
 def grade(score):
     if score is None:
         return None
