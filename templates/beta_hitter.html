@@ -22,7 +22,7 @@
   .card h2{font:700 15px 'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;margin:0 0 4px;} .card .hint{color:#76828a;font-size:12.5px;margin:0 0 12px;}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;} @media(max-width:820px){.grid{grid-template-columns:1fr;}}
   .hero2{display:flex;gap:22px;align-items:center;flex-wrap:wrap;}
-  .ring{position:relative;width:132px;height:132px;flex:none;} .ring b{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 38px 'Oswald';line-height:1;} .ring b span{font:600 11px 'Barlow';letter-spacing:.08em;text-transform:uppercase;color:#76828a;margin-top:4px;}
+  .ring{position:relative;width:132px;height:132px;flex:none;} .ring b{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 38px 'Oswald';line-height:1;} .ring b span{font:600 10px 'Barlow';letter-spacing:.04em;text-transform:uppercase;color:#76828a;margin-top:4px;max-width:84px;text-align:center;line-height:1.15;}
   .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;flex:1;min-width:260px;} .tile{background:#f7f6f2;border-radius:12px;padding:10px 12px;} .tile .v{font:700 22px 'Oswald';} .tile .l{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#76828a;font-weight:600;}
   .subs{margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;} @media(max-width:700px){.subs{grid-template-columns:1fr;}}
   .sub-row{background:#f7f6f2;border-radius:12px;padding:10px 12px;} .sub-h{display:flex;align-items:baseline;gap:8px;} .sub-h b{font:700 13px 'Barlow';} .sub-w{font-size:11px;color:#8a959b;font-weight:600;} .sub-v{margin-left:auto;font:700 22px 'Oswald',sans-serif;}
@@ -167,14 +167,14 @@ var ZD = {{ h.zone_ev|tojson }};
         <li>Chasing a pitch off the zone is bad, and counts extra in a hitter's count. With two strikes, chasing a pitch that was close counts half.</li>
         <li>Laying off a bad pitch is good, and counts extra with two strikes. Swinging at a borderline pitch with two strikes (protecting the plate) is a small plus.</li>
       </ul>
-      <p><b>Letter grades.</b> A+ 93 and up, A 88, A- 85, B+ 80, B 77, B- 75, C+ 71, C 68, C- 65, D+ 61, D 58, D- 55, and F below 55. The overall labels use the same cutoffs: Elite 85, Strong 75, Solid 65, Developing 55, Needs work below that.</p>
+      <p><b>Letter grades.</b> A+ 96 and up, A 93, A- 90, B+ 87, B 84, B- 82, C+ 79, C 76, C- 74, D+ 71, D 68, D- 66, and F below 66. The overall labels use the same cutoffs: Elite 90, Above Average 82, Average 74, Below Average 66, Concerning below that. Keep in mind the scale starts near 50: a hitter who never swings, always swings or guesses scores about 50.</p>
       <p class="how-n">A part needs at least 5 pitches (Damage needs 3 balls in play) before it is graded, and the overall rating needs about 15 decisions. These cutoffs are starting points and will be tuned as more data comes in.</p>
     </div>
     <p class="hint">Did he swing at pitches he can drive and take pitches he can't, in the right counts? The score blends chase discipline, swings at hittable pitches, and damage on contact.</p>
     {% if s.score is none %}<div class="empty">Not enough tracked pitches yet.</div>{% else %}
     <div class="hero2">
       <div class="ring"><svg viewBox="0 0 44 44" width="132" height="132"><circle cx="22" cy="22" r="18" fill="none" stroke="#e8eef1" stroke-width="5"/>
-        <circle cx="22" cy="22" r="18" fill="none" stroke="{{ '#2f9e6b' if s.score >= 75 else '#c8a132' if s.score >= 60 else '#d0503f' }}" stroke-width="5" stroke-linecap="round" stroke-dasharray="{{ (113.1 * s.score / 100)|round(1) }} 113.1" transform="rotate(-90 22 22)"/></svg>
+        <circle cx="22" cy="22" r="18" fill="none" stroke="{{ '#2f9e6b' if s.score >= 82 else '#c8a132' if s.score >= 66 else '#d0503f' }}" stroke-width="5" stroke-linecap="round" stroke-dasharray="{{ (113.1 * s.score / 100)|round(1) }} 113.1" transform="rotate(-90 22 22)"/></svg>
         <b>{{ s.score }}<span>{{ s.grade or 'Small sample' }}</span></b></div>
       <div class="tiles">
         <div class="tile"><div class="v">{{ s.chase_pct if s.chase_pct is not none else '–' }}{{ '%' if s.chase_pct is not none }}</div><div class="l">Chase rate</div></div>

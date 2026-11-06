@@ -200,14 +200,14 @@ def judge(p):
 def grade(score):
     if score is None:
         return None
-    return 'Elite' if score >= 85 else 'Strong' if score >= 75 else 'Solid' if score >= 65 else 'Developing' if score >= 55 else 'Needs work'
+    return 'Elite' if score >= 90 else 'Above Average' if score >= 82 else 'Average' if score >= 74 else 'Below Average' if score >= 66 else 'Concerning'
 
 
-_LETTERS = ((93, 'A+'), (88, 'A'), (85, 'A-'), (80, 'B+'), (77, 'B'), (75, 'B-'), (71, 'C+'), (68, 'C'), (65, 'C-'), (61, 'D+'), (58, 'D'), (55, 'D-'))
+_LETTERS = ((96, 'A+'), (93, 'A'), (90, 'A-'), (87, 'B+'), (84, 'B'), (82, 'B-'), (79, 'C+'), (76, 'C'), (74, 'C-'), (71, 'D+'), (68, 'D'), (66, 'D-'))
 
 
 def letter_grade(score):
-    """0-100 -> A+ ... F. The minus grades start exactly where the overall labels do: A- 85 (Elite), B- 75 (Strong), C- 65 (Solid), D- 55 (Developing)."""
+    """0-100 -> A+ ... F. The minus grades start exactly where the overall labels do: A- 90 (Elite), B- 82 (Above Average), C- 74 (Average), D- 66 (Below Average)."""
     if score is None:
         return None
     for cut, g in _LETTERS:

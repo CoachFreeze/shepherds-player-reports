@@ -49,7 +49,7 @@ HITTING = [
         ('Damage', 'The expected batting average (xBA) of the balls he put in play off pitches in the zone, turned into a 0 to 100 scale where about .330 is 50, and .530 is 100. It rewards squaring up pitches he can hit, not just swinging.'),
         ('Hitter\'s count, pitcher\'s count', 'A hitter\'s count has more balls than strikes (1-0, 2-0, 2-1, 3-0, 3-1). A pitcher\'s count has more strikes than balls, or two strikes. Even counts are the rest.'),
         ('Fastballs vs breaking balls / off-speed', 'Fastballs include four-seamers, sinkers and cutters. Everything else (sliders, curveballs, changeups, splitters) is breaking or off-speed. Both groups are shown as separate decision scores once there are at least 8 pitches in each.'),
-        ('Grade', 'Elite 85+, Strong 75+, Solid 65+, Developing 55+, Needs work below that. These cutoffs are starting points and will be tuned as data builds. '
+        ('Grade', 'Elite 90+, Above Average 82+, Average 74+, Below Average 66+, Concerning below that. The scale starts near 50 (a hitter who never swings, always swings or guesses scores about 50), so the bar for a good grade sits well above that. These cutoffs are starting points and will be tuned as data builds. '
          'No grade is shown under 15 judged pitches.'),
         ('Heart', 'The middle of the zone: the inner two-thirds, about 1.1 ft wide and 1.4 ft tall. A hittable pitch. Taking one is a missed chance.'),
         ('Shadow', 'The edges of the zone plus a quarter foot (about 3 inches) just outside it. Hard to judge, so it counts as neither good nor bad.'),
