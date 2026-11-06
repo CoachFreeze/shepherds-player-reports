@@ -128,8 +128,7 @@ def save(program, rows):
     d[store.program_slug(program)] = sorted({r['start']: r for r in clean}.values(), key=lambda r: r['start'])
     text = json.dumps(d, indent=1, ensure_ascii=False)
     os.makedirs(os.path.dirname(FILE), exist_ok=True)
-    with open(FILE, 'w', encoding='utf-8') as f:
-        f.write(text)
+    github_sync.atomic_write(FILE, text)
     github_sync.put_file('data/seasons.json', text.encode('utf-8'))
 
 

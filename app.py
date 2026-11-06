@@ -36,6 +36,12 @@ import uuid
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-only-change-me')
+app.config.update(MAX_CONTENT_LENGTH=150 * 1024 * 1024,                                   # a runaway or hostile upload can't fill the server's memory
+                  SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax',          # a site-forged POST can't ride a coach's login
+                  SESSION_COOKIE_SECURE=bool(os.environ.get('RENDER')))                 # Render serves https; plain http locally still works
+if os.environ.get('RENDER'):                      # behind Render's proxy: use the visitor's real address (the wrong-password lockout keys on it)
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 if app.secret_key == 'dev-only-change-me' and not app.debug:
     print('WARNING: SECRET_KEY env var is not set -- using the insecure default. '
           'Set a real SECRET_KEY in your host\'s environment variables before sharing this URL.')
@@ -240,6 +246,14 @@ _FAILS = {}      # (username, ip) -> [timestamps of recent wrong passwords]; per
 _LOCK_AFTER, _LOCK_WINDOW = 6, 600
 
 
+def _safe_next(nxt):
+    """Only a path on this site may be returned to after signing in (a link like /login?next=https://elsewhere must not leave the site)."""
+    nxt = (nxt or '').strip()
+    if not nxt.startswith('/') or nxt.startswith('//') or '\\' in nxt or any(ord(ch) < 32 for ch in nxt):
+        return None
+    return nxt
+
+
 def _locked(key):
     import time
     now = time.time()
@@ -328,9 +342,9 @@ def login():
             _FAILS.pop(_key, None)
             session['coach'] = username
             plans.track('login', username, _prog)
-            if not request.args.get('next') and store.needs_first_upload(username):
+            if not _safe_next(request.args.get('next')) and store.needs_first_upload(username):
                 return redirect(url_for('intake_bulk') + '?welcome=1')
-            return redirect(request.args.get('next') or url_for('dashboard'))
+            return redirect(_safe_next(request.args.get('next')) or url_for('dashboard'))
         else:
             _fail(_key)
             plans.track('login_fail', username[:40], _prog)

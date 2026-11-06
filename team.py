@@ -135,8 +135,7 @@ def load(program):
 def save(program, data):
     os.makedirs(TEAM_DIR, exist_ok=True)
     text = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
-    with open(_path(program), 'w', encoding='utf-8') as f:
-        f.write(text)
+    github_sync.atomic_write(_path(program), text)
     github_sync.put_file(f'data/team/{program}.json', text.encode('utf-8'))
 
 

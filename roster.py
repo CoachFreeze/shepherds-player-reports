@@ -287,8 +287,7 @@ def save(program, players, source=None, season=None):
     os.makedirs(ROSTER_DIR, exist_ok=True)
     data = {'program': program, 'season': season, 'source': source, 'updated': datetime.date.today().isoformat(), 'players': players}
     text = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
-    with open(_path(program), 'w', encoding='utf-8') as f:
-        f.write(text)
+    github_sync.atomic_write(_path(program), text)
     github_sync.put_file(f'data/rosters/{program}.json', text.encode('utf-8'))
     return data
 

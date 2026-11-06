@@ -62,8 +62,7 @@ def _load(path, default):
 
 def _save(path, data):
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, 'w') as f:
-        json.dump(data, f, indent=2, sort_keys=True)
+    github_sync.atomic_write(path, json.dumps(data, indent=2, sort_keys=True))
 
 
 # --- Programs ---------------------------------------------------------------

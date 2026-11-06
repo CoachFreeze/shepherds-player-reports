@@ -47,8 +47,7 @@ def _load(path):
 def _save(path, data, repo_path=None):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     text = json.dumps(data, indent=1, sort_keys=True)
-    with open(path, 'w', encoding='utf-8') as f:
-        f.write(text)
+    github_sync.atomic_write(path, text)
     if repo_path:
         github_sync.put_file(repo_path, text.encode('utf-8'))
 
@@ -159,15 +158,19 @@ def track(event, user, program=None, **meta):
     try:
         d = _load(USAGE_PATH) or {}
         ev = d.setdefault('events', [])
-        ev.append({'t': int(time.time()), 'u': user, 'p': program or '', 'e': event, **meta})
+        now = int(time.time())
+        ev.append({'t': now, 'u': user, 'p': program or '', 'e': event, **meta})
         del ev[:-MAX_EVENTS]
+        # The time of the last GitHub push lives in the file itself, so a restart or redeploy can't make it push again right away
+        # (each push is a commit, each commit redeploys the site, and each redeploy used to trigger the next push).
+        push = github_sync.enabled() and now - int(d.get('pushed') or 0) > 86400
+        if push:
+            d['pushed'] = now
         os.makedirs(os.path.dirname(USAGE_PATH), exist_ok=True)
         text = json.dumps(d, separators=(',', ':'))
-        with open(USAGE_PATH, 'w', encoding='utf-8') as f:
-            f.write(text)
-        if time.time() - _last_push[0] > 86400 and github_sync.enabled():     # at most one commit a day
-            _last_push[0] = time.time()
-            github_sync.put_file('data/usage.json', text.encode('utf-8'))
+        github_sync.atomic_write(USAGE_PATH, text)
+        if push:                                                  # at most one commit a day; the tag asks Render not to redeploy for it
+            github_sync.put_file('data/usage.json', text.encode('utf-8'), message='Update data/usage.json [skip render]')
     except Exception as exc:
         print(f'WARNING: usage not tracked: {exc}')
 

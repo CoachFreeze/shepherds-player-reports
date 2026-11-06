@@ -221,8 +221,7 @@ def save(slug, name, exams):
     d['exams'].sort(key=lambda e: (e['date'], 0 if e['type'] != 'post' else 1, e.get('time') or ''))
     os.makedirs(DIR, exist_ok=True)
     text = json.dumps(d, separators=(',', ':'), ensure_ascii=False)
-    with open(_path(slug), 'w', encoding='utf-8') as f:
-        f.write(text)
+    github_sync.atomic_write(_path(slug), text)
     github_sync.put_file(f'data/armcare/{slug}.json', text.encode('utf-8'))
     return new
 

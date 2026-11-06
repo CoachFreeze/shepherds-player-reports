@@ -46,6 +46,17 @@ def _log(what, ok, detail=''):
 
 
 
+def atomic_write(path, text):
+    """Write a data file so another worker (or a crash) can never see it half-written: temp file in the same folder, then an atomic rename.
+    Every data file is read by two gunicorn workers; a half-written file used to read as empty and could be saved back over the real data."""
+    d = os.path.dirname(path) or '.'
+    os.makedirs(d, exist_ok=True)
+    tmp = os.path.join(d, f'.{os.path.basename(path)}.{os.getpid()}.tmp')
+    with open(tmp, 'w', encoding='utf-8') as f:
+        f.write(text)
+    os.replace(tmp, path)
+
+
 def enabled():
     # SHEPSAVANT_GITHUB_BACKUP=off turns commits off (e.g. once a persistent disk holds the data, so saves stop redeploying).
     if (os.environ.get('SHEPSAVANT_GITHUB_BACKUP') or '').lower() in ('off', '0', 'false', 'no'):
@@ -189,7 +200,7 @@ def delete_file(repo_path):
         print(f'WARNING: GitHub delete of {repo_path} raised: {exc}')
 
 
-def put_file(repo_path, content_bytes):
+def put_file(repo_path, content_bytes, message=None):
     """Best-effort create/update of one file in the repo."""
     if not enabled():
         return
@@ -199,7 +210,7 @@ def put_file(repo_path, content_bytes):
     try:
         url = f'{API_BASE}/repos/{GITHUB_REPO}/contents/{repo_path}'
         g = requests.get(url, headers=_headers(), params={'ref': GITHUB_BRANCH}, timeout=10)
-        payload = {'message': f'Update {repo_path}', 'branch': GITHUB_BRANCH,
+        payload = {'message': message or f'Update {repo_path}', 'branch': GITHUB_BRANCH,
                    'content': base64.b64encode(content_bytes).decode()}
         if g.status_code == 200:
             payload['sha'] = g.json()['sha']

@@ -35,8 +35,7 @@ def save(program, key, text, user=''):
         d.pop(program, None)
     body = json.dumps(d, separators=(',', ':'), ensure_ascii=False, sort_keys=True)
     os.makedirs(os.path.dirname(PATH), exist_ok=True)
-    with open(PATH, 'w', encoding='utf-8') as f:
-        f.write(body)
+    github_sync.atomic_write(PATH, body)
     github_sync.put_file('data/game_notes.json', body.encode('utf-8'))
 
 
@@ -54,6 +53,5 @@ def move(program, pairs):
     if not changed:
         return
     body = json.dumps(d, separators=(',', ':'), ensure_ascii=False, sort_keys=True)
-    with open(PATH, 'w', encoding='utf-8') as f:
-        f.write(body)
+    github_sync.atomic_write(PATH, body)
     github_sync.put_file('data/game_notes.json', body.encode('utf-8'))

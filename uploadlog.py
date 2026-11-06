@@ -28,8 +28,7 @@ def record(user, program, filename, source, rows, players, upload_id='', new_pla
         d = d[-MAX_ENTRIES:]
         text = json.dumps(d, separators=(',', ':'))
         os.makedirs(os.path.dirname(PATH), exist_ok=True)
-        with open(PATH, 'w', encoding='utf-8') as f:
-            f.write(text)
+        github_sync.atomic_write(PATH, text)
         github_sync.put_file('data/upload_log.json', text.encode('utf-8'))
     except Exception as exc:
         print(f'WARNING: upload not logged: {exc}')
@@ -47,8 +46,7 @@ def mark_removed(upload_id):
         if e.get('id') == upload_id:
             e['removed'] = int(time.time())
     text = json.dumps(d, separators=(',', ':'))
-    with open(PATH, 'w', encoding='utf-8') as f:
-        f.write(text)
+    github_sync.atomic_write(PATH, text)
     github_sync.put_file('data/upload_log.json', text.encode('utf-8'))
 
 
@@ -62,6 +60,5 @@ def rename_opponent(program, old, new):
             hit = True
     if hit:
         text = json.dumps(d, separators=(',', ':'))
-        with open(PATH, 'w', encoding='utf-8') as f:
-            f.write(text)
+        github_sync.atomic_write(PATH, text)
         github_sync.put_file('data/upload_log.json', text.encode('utf-8'))

@@ -672,14 +672,37 @@ def _chaikin(ring, rounds=2):
     return ring
 
 
+def _rdp(pts, eps):
+    """Douglas-Peucker: drops points that sit within eps pixels of the straight line between their neighbours (keeps both ends)."""
+    if len(pts) < 3:
+        return pts
+    keep = [False] * len(pts)
+    keep[0] = keep[-1] = True
+    stack = [(0, len(pts) - 1)]
+    while stack:
+        a, b = stack.pop()
+        (x1, y1), (x2, y2) = pts[a], pts[b]
+        dx, dy = x2 - x1, y2 - y1
+        n = (dx * dx + dy * dy) ** 0.5 or 1e-9
+        best, bi = 0.0, -1
+        for i in range(a + 1, b):
+            d = abs(dy * (pts[i][0] - x1) - dx * (pts[i][1] - y1)) / n
+            if d > best:
+                best, bi = d, i
+        if best > eps and bi > 0:
+            keep[bi] = True
+            stack += [(a, bi), (bi, b)]
+    return [p for p, k in zip(pts, keep) if k]
+
+
 def contour_layers(F, xs, ys, levels, colors, X, Y, opacity=1.0):
     """Stacked filled contour regions (lowest level first). X / Y turn feet into pixels. Returns SVG <path> markup."""
     out = []
     for L, col in zip(levels, colors):
         d = []
         for ring in _contour_rings(F, xs, ys, L):
-            ring = _chaikin(ring)
-            d.append('M' + 'L'.join(f'{X(x):.1f},{Y(y):.1f}' for x, y in ring) + 'Z')
+            ring = _rdp([(X(x), Y(y)) for x, y in _chaikin(ring)], 0.25)       # same shape to the eye, a fraction of the points
+            d.append('M' + 'L'.join(f'{x:.1f},{y:.1f}' for x, y in ring) + 'Z')
         if d:
             out.append(f'<path d="{"".join(d)}" fill="{col}" fill-opacity="{opacity}" fill-rule="evenodd" stroke="#fff" stroke-opacity=".35" stroke-width=".6"/>')
     return ''.join(out)

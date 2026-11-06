@@ -94,8 +94,7 @@ def load(slug, real_only=False):
 def _save(slug, data, push=True):
     os.makedirs(OUTINGS_DIR, exist_ok=True)
     text = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
-    with open(_path(slug), 'w', encoding='utf-8') as f:
-        f.write(text)
+    github_sync.atomic_write(_path(slug), text)
     if push:
         github_sync.put_file(f'data/outings/{slug}.json', text.encode('utf-8'))
 

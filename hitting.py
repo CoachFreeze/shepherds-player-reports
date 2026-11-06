@@ -993,8 +993,7 @@ def save_bio(key, fields):
     e.update({k: v for k, v in fields.items()})
     os.makedirs(os.path.dirname(HITTER_BIOS_PATH), exist_ok=True)
     text = json.dumps(d, separators=(',', ':'), ensure_ascii=False)
-    with open(HITTER_BIOS_PATH, 'w', encoding='utf-8') as f:
-        f.write(text)
+    github_sync.atomic_write(HITTER_BIOS_PATH, text)
     github_sync.put_file('data/hitters.json', text.encode('utf-8'))
 
 
