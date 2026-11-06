@@ -43,7 +43,7 @@ HITTING = [
     {'title': 'Swing decisions', 'items': [
         ('Swing decision score', 'One 0 to 100 number blending three sub-scores: Chase discipline (35%), Hittable pitches (35%) and Damage (30%). '
          'A sub-score that doesn\'t have enough pitches yet (5 pitches, or 3 balls in play for Damage) is left out and the rest are re-weighted.'),
-        ('Chase discipline', 'On pitches well off the zone (chase and waste areas), the weighted share where he laid off. Chasing is a little worse in a hitter\'s count, forgiven by half on a close pitch with two strikes, and laying off with two strikes counts extra.'),
+        ('Chase discipline', 'On pitches well off the zone (chase and waste areas), the weighted share where he laid off. Chasing is a little worse in a hitter\'s count, and it is not excused with two strikes: only the shadow (the neutral area on the edge of the zone) counts as close, anything past it is a chase. Laying off with two strikes counts extra.'),
         ('Hittable pitches', 'On pitches in the heart, the weighted share where he swung. Taking a fastball in the heart in a hitter\'s count (more balls than strikes) counts double, and taking any hittable pitch with two strikes counts 1.5 times. '
          'Taking a breaking ball or off-speed pitch in the heart early in the count is not held against him: on 0-0 it doesn\'t count at all, and in other early counts it counts half.'),
         ('Damage', 'The expected batting average (xBA) of the balls he put in play off pitches in the zone, turned into a 0 to 100 scale where about .330 is 50, and .530 is 100. It rewards squaring up pitches he can hit, not just swinging.'),

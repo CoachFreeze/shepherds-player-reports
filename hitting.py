@@ -147,8 +147,8 @@ def judge(p):
         except a fastball on 3-0, which is never held against him (taking is the right play there);
       * taking a breaking ball / off-speed pitch in the heart early in the count is not held against him (0-0 not at all,
         other early counts at half weight), unless he has two strikes;
-      * swinging at a pitch off the zone is bad, a little worse in a hitter's count, and forgiven by half when it is
-        close (chase zone) and he has two strikes;
+      * swinging at a pitch off the zone is bad, a little worse in a hitter's count. Only the shadow (the neutral
+        area on the edge) is "close"; past it, a swing is a chase even with two strikes;
       * taking a pitch off the zone is good, and counts extra with two strikes;
       * swinging at a borderline pitch with two strikes is protecting the plate, a small plus."""
     o = p['outcome']
@@ -184,9 +184,7 @@ def judge(p):
             v, w = 'bad', 1.0
     else:
         if swung:
-            if two and reg == 'chase':
-                v, w, why = 'bad', 0.5, 'Chased a close pitch with two strikes (half weight)'
-            elif hitters:
+            if hitters:
                 v, w, why = 'bad', 1.25, "Chased in a hitter's count (counts extra)"
             else:
                 v, w = 'bad', 1.0
