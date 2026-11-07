@@ -731,6 +731,9 @@ def pitcher_trackman_summary(trackman_rows, pitcher_name):
             'date': _tm_get(row, _TM_DATE_COLS),
             'balls': _tm_num(_tm_get(row, _TM_BALLS_COLS)),
             'call': _call,
+            'inning': _tm_num(_tm_get(row, ['Inning'])), 'half': (_tm_get(row, ['Top/Bottom']) or '').strip().lower(),
+            'play': (_tm_get(row, ['PlayResult']) or '').strip(), 'hit_type': (_tm_get(row, ['TaggedHitType', 'HitType', 'AutoHitType']) or '').strip(),
+            'kb': (_tm_get(row, ['KorBB']) or '').strip(), 'oop': _tm_num(_tm_get(row, ['OutsOnPlay'])),
         })
         if velo is not None:
             d['velo'].append(velo)

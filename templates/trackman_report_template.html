@@ -34,7 +34,8 @@
 .school-badge + .identity{ padding-top:16px; }
 .pitch-log{ font-size:11px; } .pitch-log th{ font-size:10px; padding:5px 3px; } .pitch-log td{ padding:5px 3px; white-space:nowrap; }
 .log-row{ cursor:pointer; } .log-row:hover{ background:#eef4f7; } .log-row.pin{ background:#dbe9f0; box-shadow:inset 3px 0 0 var(--accent-teal); }
-.pl-ring{ pointer-events:none; } .log-day td{ background:#e8f1f4; color:var(--accent-teal); font:700 10px/1 var(--f-heading); text-transform:uppercase; letter-spacing:.06em; text-align:left!important; padding:6px!important; }
+.pl-ring{ pointer-events:none; } .log-inn td{ background:#f3f5f6; color:#55626b; font:700 10px/1 var(--f-heading); text-transform:uppercase; letter-spacing:.06em; text-align:left!important; padding:5px 8px!important; border-top:1px solid #d9e0e3; } .log-inn td span{ font-weight:600; opacity:.7; } .play-hit{ color:#c0392b; font-weight:700; } .play-out{ color:#2f8a5f; font-weight:700; } .play-bb{ color:#b57f1b; font-weight:700; }
+.log-day td{ background:#e8f1f4; color:var(--accent-teal); font:700 10px/1 var(--f-heading); text-transform:uppercase; letter-spacing:.06em; text-align:left!important; padding:6px!important; }
 </style></head>
 <body>
 <div class="sheet sheet-pitcher tm-mini">
@@ -124,6 +125,7 @@
         <tr><th>#</th><th style="text-align:left;">Batter</th><th>Bats</th><th style="text-align:left;">Pitch Type</th><th>Velo</th><th>IVB</th><th>HB</th><th>Spin Rate</th><th>Spin Dir.</th><th>Ext.</th><th>VAA</th><th>Exit Velo</th><th style="text-align:left;">Result</th></tr>
         {% for r in p.log %}
         {% if r.new_day %}<tr class="log-day"><td colspan="13">{{ r.new_day }}</td></tr>{% endif %}
+        {% if r.new_inning %}<tr class="log-inn"><td colspan="13">{{ r.new_inning }} <span>&middot; {{ r.inning_pitches }} pitch{{ '' if r.inning_pitches == 1 else 'es' }}</span></td></tr>{% endif %}
         <tr class="log-row" data-pn="{{ r.n }}" title="Hover or click to find this pitch in Pitch Location">
           <td>{{ r.pno }}</td>
           <td style="text-align:left;">{{ r.batter or '—' }}</td>
@@ -137,7 +139,7 @@
           <td>{{ ('%.1f'|format(r.ext) ~ ' ft') if r.ext is not none else '—' }}</td>
           <td>{{ ('%.1f'|format(r.vaa) ~ '°') if r.vaa is not none else '—' }}</td>
           <td>{% if r.ev is not none %}{{ '%.1f'|format(r.ev) }}{% if r.ev >= 95 %} 🔥{% elif r.ev <= 75 %} ❄️{% endif %}{% else %}—{% endif %}</td>
-          <td style="text-align:left;">{{ r.result }}</td>
+          <td style="text-align:left;">{% if r.play_label %}<span class="play-{{ r.play_kind }}">{{ r.play_label }}</span>{% else %}{{ r.result }}{% endif %}</td>
         </tr>
         {% endfor %}
       </table>

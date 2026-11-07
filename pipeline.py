@@ -242,6 +242,39 @@ def _short_date(d):
         return str(d or '')
 
 
+_HIT_OUT = {'groundball': 'Groundout', 'linedrive': 'Lineout', 'flyball': 'Flyout', 'popup': 'Pop out', 'bunt': 'Bunt out'}
+
+
+def _play_label(r):
+    """What happened on the last pitch of an at-bat: the ball in play's outcome, a strikeout or a walk. None when the pitch didn't end one
+    (or the file doesn't say how a ball in play turned out)."""
+    call = (r.get('call') or '').replace('_', '').lower()
+    play = (r.get('play') or '').replace(' ', '').lower()
+    ht = (r.get('hit_type') or '').replace(' ', '').lower()
+    kb = (r.get('kb') or '').lower()
+    if call == 'inplay':
+        oop = int(r['oop']) if r.get('oop') else 0
+        if play in ('single', 'double', 'triple'):
+            return play.capitalize(), 'hit'
+        if play == 'homerun':
+            return 'Home run', 'hit'
+        if play == 'out':
+            lab = _HIT_OUT.get(ht, 'Out')
+            return (lab + (', double play' if oop == 2 else ', triple play' if oop >= 3 else '')), 'out'
+        if play == 'sacrifice':
+            return ('Sac bunt' if ht == 'bunt' else 'Sac fly'), 'out'
+        if play == 'fielderschoice':
+            return "Fielder's choice", 'out'
+        if play == 'error':
+            return 'Reached on error', 'bb'
+        return None, None
+    if kb == 'strikeout':
+        return ('Strikeout looking' if call == 'strikecalled' else 'Strikeout swinging' if call == 'strikeswinging' else 'Strikeout'), 'out'
+    if kb == 'walk':
+        return 'Walk', 'bb'
+    return None, None
+
+
 def _pitch_log_rows(log):
     """Pitch-by-pitch rows for the Pitch Log table: adds the pitch-type colour
     and a readable result label to what extract.pitcher_trackman_summary collected."""
@@ -261,7 +294,22 @@ def _pitch_log_rows(log):
         # A ball thrown with 3 balls already in the count is ball four: a walk.
         if r['result'] == 'Ball' and r.get('balls') is not None and r['balls'] >= 3:
             r['result'] = 'BB'
+        r['play_label'], r['play_kind'] = _play_label(r)
         rows.append(r)
+    # Inning breaks: a header row where the inning (or half) changes, with the pitches thrown in it
+    key = lambda x: (x.get('date'), x.get('inning'), x.get('half'))
+    counts = {}
+    for r in rows:
+        counts[key(r)] = counts.get(key(r), 0) + 1
+    prev = None
+    for r in rows:
+        k = key(r)
+        if r.get('inning') and k != prev:
+            half = {'top': 'Top', 'bottom': 'Bottom', 'bot': 'Bottom'}.get(r.get('half') or '')
+            r['new_inning'] = f"{half + ' ' if half else 'Inning '}{int(r['inning'])}" if half else f"Inning {int(r['inning'])}"
+            r['inning_pitches'] = counts[k]
+        if r.get('inning'):
+            prev = k
     return rows
 
 
