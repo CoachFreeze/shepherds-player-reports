@@ -287,7 +287,13 @@ def movement_plot_caption_html():
             '</div>')
 
 
-MOVEMENT_ISO_JS = '''<style>.movement-legend [data-ptype]{cursor:pointer;transition:opacity .12s;} .mv-plot .mv-pt{transition:opacity .12s;}</style>
+MOVEMENT_ISO_JS = '''<style>.movement-legend [data-ptype]{cursor:pointer;transition:opacity .12s;} .mv-plot .mv-pt{transition:opacity .12s;}
+.movement-legend .ml-ab{display:none;}
+@media (max-width:640px){.movement-legend .ml-full{display:none;} .movement-legend .ml-ab{display:inline;}
+ .movement-legend .ml-label,.pmp-panel .movement-legend .ml-label{flex:0 0 46px !important;width:46px !important;font-size:9.5px !important;letter-spacing:0 !important;}
+ .movement-legend .ml-cell,.pmp-panel .movement-legend .ml-cell{font-size:12px !important;min-width:0;padding:0 1px;white-space:nowrap;}
+ .movement-legend .ml-header .ml-cell,.pmp-panel .movement-legend .ml-header .ml-cell{font-size:11.5px !important;font-weight:700;}
+ .movement-legend .ml-pill{max-width:100%;height:7px;}}</style>
 <script>(function(){document.querySelectorAll('.movement-legend:not([data-iso])').forEach(function(lg){lg.setAttribute('data-iso','1');
 var box=lg.parentNode,svg=box.querySelector('svg.mv-plot');if(!svg)return;
 var pts=svg.querySelectorAll('.mv-pt'),hls=svg.querySelectorAll('.mv-hl'),cells=lg.querySelectorAll('[data-ptype]'),cur=null;
@@ -296,6 +302,15 @@ function off(){cur=null;pts.forEach(function(p){p.style.opacity='';});hls.forEac
 cells.forEach(function(c){c.addEventListener('mouseenter',function(){on(c.getAttribute('data-ptype'));});c.addEventListener('click',function(e){e.stopPropagation();var t=c.getAttribute('data-ptype');if(cur===t)off();else on(t);});});
 lg.addEventListener('mouseleave',off);document.addEventListener('click',function(e){if(cur&&!lg.contains(e.target))off();});
 });})();</script>'''
+
+
+_ABBR = {'4-seam': 'FB', 'four-seam': 'FB', 'fastball': 'FB', '2-seam': 'SI', 'two-seam': 'SI', 'sinker': 'SI', 'cutter': 'CT', 'slider': 'SL',
+         'sweeper': 'SW', 'curve': 'CB', 'curveball': 'CB', 'changeup': 'CH', 'change': 'CH', 'split': 'SPL', 'splitter': 'SPL', 'knuckleball': 'KN', 'slurve': 'SLV'}
+
+
+def _pitch_abbr(t):
+    k = str(t).strip().lower().replace(' ', '-').replace('-seam-fastball', '-seam').replace('-fastball', '')
+    return _ABBR.get(k) or _ABBR.get(k.replace('-', ' ')) or str(t)[:3].upper()
 
 
 def pitch_usage_legend_html(pitches):
@@ -316,7 +331,7 @@ def pitch_usage_legend_html(pitches):
         pill_w = 20 + round(38 * (pct / max_pct))
         color = p['color']
         d = f'data-ptype="{p["type"]}"'
-        cells_header.append(f'<div class="ml-cell ml-name" {d}>{p["type"]}</div>')
+        cells_header.append(f'<div class="ml-cell ml-name" {d}><span class="ml-full">{p["type"]}</span><span class="ml-ab">{_pitch_abbr(p["type"])}</span></div>')
         cells_pill.append(f'<div class="ml-cell" {d}><span class="ml-pill" style="width:{pill_w}px;background:{color};"></span></div>')
         cells_usage.append(f'<div class="ml-cell" {d}>{pct:.1f}%</div>')
         cells_mph.append(f'<div class="ml-cell" {d}>{p["velo"]:.1f}</div>' if p.get('velo') is not None else f'<div class="ml-cell" {d}>&mdash;</div>')

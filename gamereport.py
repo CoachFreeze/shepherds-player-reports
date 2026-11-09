@@ -76,6 +76,40 @@ def collect(program):
     return out
 
 
+INTRA_MIN = 30
+
+
+def collect_intrasquads(program):
+    """Intrasquad scrimmages, kept apart from collect() so umpire, scouting and the games list never see them. Both teams are our own
+    pitchers, so a pitch is assigned to a side by the half-inning: Top rows -> 'us' (Home pitches, Visitors bat), Bottom -> 'opp'.
+    Same shape as collect(); each entry also has kind='intrasquad'."""
+    groups = {}
+    for slug, side, data in _our_files(program):
+        for o in data.get('outings', []):
+            for r in o['rows']:
+                if r.get('SessionType') != 'Intrasquad' or not r.get('Inning') or not r.get('Top/Bottom'):
+                    continue
+                k = (o['date'][:10], (r.get('GameUID') or '').strip())
+                half = str(r.get('Top/Bottom')).strip().lower()
+                groups.setdefault(k, []).append({'r': r, 'pit': 'us' if half.startswith('t') else 'opp', 'slug': slug})
+    per = {}
+    for k, rows in groups.items():
+        if len(rows) >= INTRA_MIN:
+            per.setdefault(k[0], []).append(k)
+    out = {}
+    for d, ks in per.items():
+        ks.sort(key=lambda k: min((x['r'].get('Time') or '') for x in groups[k]))
+        for i, k in enumerate(ks):
+            gid = f"{d}--intrasquad" + (f"-g{i + 1}" if len(ks) > 1 else '')
+            out[gid] = {'gid': gid, 'date': d, 'opp': 'Visitors', 'label': 'Home', 'n': len(groups[k]), 'rows': groups[k], 'kind': 'intrasquad'}
+    return out
+
+
+def find(program, gid):
+    """A game or an intrasquad by id (None when neither exists)."""
+    return collect(program).get(gid) or collect_intrasquads(program).get(gid)
+
+
 def rename_game(program, gid, new_opp):
     """Changes the opponent name on every stored pitch of one game (every game that date against the same opponent, so a doubleheader
     stays together). Returns {'rows': n, 'old': old name, 'new': new name, 'moved': [(old gid, new gid)]} or None when the game isn't found."""

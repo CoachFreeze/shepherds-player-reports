@@ -1491,6 +1491,16 @@ def team_games(program):
                     'us': m['score']['us'], 'them': m['score']['opp'], 'partial': not (m['pitchers']['us'] and m['pitchers']['opp']),
                     'logo': _opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp'])})
     out.sort(key=lambda x: x['date'], reverse=True)
+    intra = []
+    for gid, gm in gr.collect_intrasquads(program).items():
+        if not season.in_window(gm['date'], _win):
+            continue
+        m = gr.build(gm['rows'])
+        intra.append({'gid': gid, 'date': gm['date'], 'date_pretty': _dt.date.fromisoformat(gm['date']).strftime('%a %b %-d, %Y'), 'n': gm['n'],
+                      'home': m['score']['us'], 'vis': m['score']['opp']})
+    intra.sort(key=lambda x: (x['date'], x['gid']), reverse=True)
+    if intra:
+        intra[0]['latest'] = True
     import schedule as _sched
     matches, rest = _sched.split(program, out)
     for x in out:
@@ -1504,7 +1514,7 @@ def team_games(program):
         upcoming.append({**s, 'date_pretty': d.strftime('%a %b %-d, %Y'), 'past': s['date'] < today, 'today': s['date'] == today,
                          'up': url_for('intake_bulk', program=program, session_type='Game', **({} if s.get('tournament') else {'opponent': s['opp']})),
                          'logo': None if s.get('tournament') else _opp_logo_url(program, store.slugify(s['opp']) or 'unlabeled', s['opp'])})
-    return render_template('games.html', program=program, team_label=store.program_label(program), games=out, schedule=upcoming, msg=request.args.get('msg'), can_edit=not (is_assistant() or is_player()))
+    return render_template('games.html', program=program, team_label=store.program_label(program), games=out, intra=intra, schedule=upcoming, msg=request.args.get('msg'), can_edit=not (is_assistant() or is_player()))
 
 
 @app.route('/team/<program>/outings')
@@ -1708,24 +1718,25 @@ def team_game(program, gid):
         return _upgrade('hitting')
     import gamereport as gr
     import datetime as _dt
-    gm = gr.collect(program).get(gid)
+    gm = gr.find(program, gid)
     if not gm:
         abort(404)
+    intra = gm.get('kind') == 'intrasquad'
     g.theme_program = program
     m = _game_decorate(gr.build(gm['rows']), program)
     for side in ('us', 'opp'):
         for p in m['pitchers'][side]:
             p['ars'], p['prev_n'] = None, 0
             if p['np'] >= 8:
-                ars, pn = gr.arsenal(p, gm['date'], program, 'us' if side == 'us' else 'opp')
+                ars, pn = gr.arsenal(p, gm['date'], program, 'us' if (side == 'us' or intra) else 'opp')
                 p['ars'], p['prev_n'] = gr.arsenal_svg(ars), pn
     d = _dt.date.fromisoformat(gm['date'])
-    tl = store.program_label(program)
+    tl = 'Home' if intra else store.program_label(program)
     complete = bool(m['pitchers']['us'] and m['pitchers']['opp']) and all(v is not None for v in m['linescore']['us'] + m['linescore']['opp'])
-    return render_template('game_report.html', m=m, program=program, team_label=tl, opp=gm['opp'], date_pretty=d.strftime('%A, %B %-d, %Y'),
-                           n_pitches=gm['n'], complete=complete, gid=gid, abbr=gr.ABBR, logo=_opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp']),
+    return render_template('game_report.html', m=m, program=program, team_label=tl, opp=gm['opp'], date_pretty=d.strftime('%A, %B %-d, %Y') + (' · Intrasquad' if intra else ''),
+                           n_pitches=gm['n'], complete=complete, gid=gid, abbr=gr.ABBR, logo=(None if intra else _opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp'])),
                            order=[('us', tl), ('opp', gm['opp'])], maxpa={s: max([x['pa_n'] for x in m['teams'][s]['slots']] or [1]) for s in ('us', 'opp')},
-                           back_url=url_for('team_games', program=program))
+                           back_url=url_for('team_games', program=program) + ('#intrasquads' if intra else ''), intra=intra)
 
 
 
@@ -1778,12 +1789,13 @@ def team_game_scorebook(program, gid):
         return _upgrade('hitting')
     import gamereport as gr
     import datetime as _dt
-    gm = gr.collect(program).get(gid)
+    gm = gr.find(program, gid)
     if not gm:
         abort(404)
+    intra = gm.get('kind') == 'intrasquad'
     g.theme_program = program
     m = _game_decorate(gr.build(gm['rows']), program)
-    tl = store.program_label(program)
+    tl = 'Home' if intra else store.program_label(program)
     sheets = []
     hits = {s: sum(1 for p in m['teams'][s]['pas'] if p['result'] in gr.HITS) for s in ('us', 'opp')}
     errs = {s: sum(1 for p in m['teams']['opp' if s == 'us' else 'us']['pas'] if p['result'] == 'Error') for s in ('us', 'opp')}
@@ -1810,8 +1822,8 @@ def team_game_scorebook(program, gid):
                        'bb': sum(r['bb'] for r in sb['rows']), 'k': sum(r['k'] for r in sb['rows'])})
     m['hits'], m['errs'] = hits, errs
     d = _dt.date.fromisoformat(gm['date'])
-    return render_template('game_scorebook.html', m=m, sheets=sheets, gid=gid, program=program, team_label=tl, opp=gm['opp'], date_pretty=d.strftime('%A, %B %-d, %Y'),
-                           back_url=url_for('team_games', program=program), analysis_url=url_for('team_game', program=program, gid=gid), umpire_url=(None if is_player() else url_for('team_game_umpire', program=program, gid=gid)), order=[('us', tl), ('opp', gm['opp'])])
+    return render_template('game_scorebook.html', m=m, sheets=sheets, gid=gid, program=program, team_label=tl, opp=gm['opp'], date_pretty=d.strftime('%A, %B %-d, %Y') + (' · Intrasquad' if intra else ''),
+                           back_url=url_for('team_games', program=program) + ('#intrasquads' if intra else ''), analysis_url=url_for('team_game', program=program, gid=gid), umpire_url=(None if (is_player() or intra) else url_for('team_game_umpire', program=program, gid=gid)), order=[('us', tl), ('opp', gm['opp'])])
 
 
 
@@ -3434,6 +3446,8 @@ def _after_upload(results, was_first, prog=None):
     if _first_upload_done(results, was_first):
         store.set_coach_flag(session['coach'], 'uploaded_first', True)
         return redirect(url_for('dashboard') + '?tour=dash&first=1')
+    if prog and (request.form.get('session_type') or '').strip().title() == 'Intrasquad':
+        return redirect(url_for('team_games', program=prog, msg='Intrasquad uploaded. Its report is the top card under Intrasquads.') + '#intrasquads')
     if prog:                                   # straight to the team the file was uploaded to
         return redirect(url_for('team_dashboard', program=prog))
     return redirect(url_for('dashboard'))
