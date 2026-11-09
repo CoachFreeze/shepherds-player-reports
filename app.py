@@ -291,7 +291,7 @@ def staff_checks():
     return None
 
 
-_DEMO_BLOCKED = {'team_seasons', 'team_game_umpire_set', 'team_armcare', 'team_armcare_confirm', 'team_game_edit', 'team_game_reschedule', 'team_game_delete', 'team_coaches', 'team_appearance', 'roster_page', 'upload_log_page', 'intake_bulk', 'intake_bulk_run', 'edit_profile', 'account', 'change_password',
+_DEMO_BLOCKED = {'team_seasons', 'team_game_umpire_set', 'team_armcare', 'team_armcare_confirm', 'team_game_edit', 'team_game_reschedule', 'team_game_delete', 'team_sched_edit', 'team_sched_delete', 'team_coaches', 'team_appearance', 'roster_page', 'upload_log_page', 'intake_bulk', 'intake_bulk_run', 'edit_profile', 'account', 'change_password',
                  'admin_status', 'hitters_sort', 'team_customize'}
 
 
@@ -1511,7 +1511,7 @@ def team_games(program):
     upcoming = []
     for s in rest:
         d = _dt.date.fromisoformat(s['date'])
-        upcoming.append({**s, 'date_pretty': d.strftime('%a %b %-d, %Y'), 'past': s['date'] < today, 'today': s['date'] == today,
+        upcoming.append({**s, 'sid': _sched.sid(s), 'date_pretty': d.strftime('%a %b %-d, %Y'), 'past': s['date'] < today, 'today': s['date'] == today,
                          'up': url_for('intake_bulk', program=program, session_type='Game', **({} if s.get('tournament') else {'opponent': s['opp']})),
                          'logo': None if s.get('tournament') else _opp_logo_url(program, store.slugify(s['opp']) or 'unlabeled', s['opp'])})
     return render_template('games.html', program=program, team_label=store.program_label(program), games=out, intra=intra, schedule=upcoming, msg=request.args.get('msg'), can_edit=not (is_assistant() or is_player()))
@@ -1728,6 +1728,35 @@ def team_game_delete(program, gid):
     if n is None:
         abort(404)
     return redirect(url_for('team_games', program=program, msg=f'Game deleted ({n} pitches removed).') + ('#intrasquads' if '--intrasquad' in gid else ''))
+
+
+@app.route('/team/<program>/schedule/edit', methods=['POST'])
+@login_required
+@head_required
+def team_sched_edit(program):
+    """Edit (opponent, time, location, home/away) or reschedule (date, time) one scheduled game that has no pitch data yet."""
+    _team_ok(program)
+    import schedule as _sched
+    f = request.form
+    fields = {k: f[k] for k in ('opp', 'time', 'loc', 'at', 'date') if k in f}
+    with github_sync.batch('Edit a scheduled game'):
+        res = _sched.update(program, f.get('sid', ''), **fields)
+    if not res:
+        return redirect(url_for('team_games', program=program, msg="Couldn't save that change. Check the date and opponent.") + '#schedule')
+    return redirect(url_for('team_games', program=program, msg=f"Scheduled game updated: {res['opp']}, {res['date']}.") + '#schedule')
+
+
+@app.route('/team/<program>/schedule/delete', methods=['POST'])
+@login_required
+@head_required
+def team_sched_delete(program):
+    _team_ok(program)
+    import schedule as _sched
+    with github_sync.batch('Remove a scheduled game'):
+        ok = _sched.remove(program, request.form.get('sid', ''))
+    if not ok:
+        abort(404)
+    return redirect(url_for('team_games', program=program, msg='Scheduled game removed.') + '#schedule')
 
 
 @app.route('/team/<program>/game/<gid>/notes', methods=['POST'])
