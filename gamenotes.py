@@ -55,3 +55,19 @@ def move(program, pairs):
     body = json.dumps(d, separators=(',', ':'), ensure_ascii=False, sort_keys=True)
     github_sync.atomic_write(PATH, body)
     github_sync.put_file('data/game_notes.json', body.encode('utf-8'))
+
+
+def drop_game(program, gid):
+    """Removes both teams' notes for a deleted game."""
+    d = _load()
+    prog = d.get(program) or {}
+    hit = [k for k in (f'{gid}--us', f'{gid}--opp') if k in prog]
+    if not hit:
+        return
+    for k in hit:
+        prog.pop(k)
+    if not prog:
+        d.pop(program, None)
+    body = json.dumps(d, separators=(',', ':'), ensure_ascii=False, sort_keys=True)
+    github_sync.atomic_write(PATH, body)
+    github_sync.put_file('data/game_notes.json', body.encode('utf-8'))

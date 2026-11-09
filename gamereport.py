@@ -139,6 +139,86 @@ def rename_game(program, gid, new_opp):
     return {'rows': n, 'old': gm['opp'], 'new': new_opp, 'moved': moved}
 
 
+def _match(program, gid):
+    """(game, {(slug, uid)}) for a game or intrasquad, or (None, None). Pitches are matched by slug + PitchUID/Date/PitchNo/Time so nothing else on the day is touched."""
+    gm = find(program, gid)
+    if not gm:
+        return None, None
+    return gm, {(x['slug'], outings_mod._uid(x['r'])) for x in gm['rows']}
+
+
+def delete_game(program, gid):
+    """Removes every stored pitch of one game or intrasquad. Emptied outings go; an emptied opposing-pitcher file is deleted, but one of our
+    own pitchers' files never is. Returns the number of pitches removed, or None when the game isn't found."""
+    gm, keys = _match(program, gid)
+    if not gm:
+        return None
+    n = 0
+    for slug, _side, data in _our_files(program):
+        hit = 0
+        for o in data.get('outings', []):
+            if o['date'][:10] != gm['date']:
+                continue
+            keep = [r for r in o['rows'] if (slug, outings_mod._uid(r)) not in keys]
+            hit += len(o['rows']) - len(keep)
+            o['rows'] = keep
+        if hit:
+            data['outings'] = [o for o in data['outings'] if o['rows']]
+            if not data['outings'] and slug.startswith('opp-'):
+                outings_mod.delete(slug)
+            else:
+                outings_mod._save(slug, data)
+            n += hit
+    return n
+
+
+def reschedule_game(program, gid, new_date):
+    """Moves every pitch of one game or intrasquad to another date (merging into an outing already on that date). Returns
+    {'rows','old','new','moved':[(old gid, new gid)]} or None for an unknown game or a date that isn't YYYY-MM-DD."""
+    import datetime
+    try:
+        new_date = datetime.date.fromisoformat((new_date or '').strip()).isoformat()
+    except ValueError:
+        return None
+    gm, keys = _match(program, gid)
+    if not gm:
+        return None
+    old = gm['date']
+    if new_date == old:
+        return {'rows': 0, 'old': old, 'new': new_date, 'moved': []}
+    n = 0
+    for slug, _side, data in _our_files(program):
+        outs = data.get('outings', [])
+        src = next((o for o in outs if o['date'][:10] == old), None)
+        if not src:
+            continue
+        mv = [r for r in src['rows'] if (slug, outings_mod._uid(r)) in keys]
+        if not mv:
+            continue
+        src['rows'] = [r for r in src['rows'] if (slug, outings_mod._uid(r)) not in keys]
+        dst = next((o for o in outs if o['date'][:10] == new_date), None)
+        if dst is None:
+            dst = {'id': new_date, 'date': new_date, 'live_ab': bool(src.get('live_ab')), 'rows': []}
+            outs.append(dst)
+        have = {outings_mod._uid(x) for x in dst['rows']}
+        for r in mv:
+            r = dict(r)
+            if r.get('Date'):
+                r['Date'] = new_date
+            if outings_mod._uid(r) not in have:
+                dst['rows'].append(r)
+        dst['rows'].sort(key=lambda x: (x.get('Time') or '', int(x.get('PitchNo') or 0) if str(x.get('PitchNo') or '').isdigit() else 0))
+        data['outings'] = sorted([o for o in outs if o['rows']], key=lambda o: o['date'], reverse=True)
+        outings_mod._save(slug, data)
+        n += len(mv)
+    moved = []
+    if n:
+        cand = new_date + gid[len(old):]
+        if cand in (collect(program) if gm.get('kind') != 'intrasquad' else collect_intrasquads(program)):
+            moved = [(gid, cand)]
+    return {'rows': n, 'old': old, 'new': new_date, 'moved': moved}
+
+
 # ------------------------------------------------------------------- results
 OUTCOME = {'HomeRun': 100, 'Triple': 95, 'Double': 90, 'Single': 78, 'Walk': 68, 'HBP': 62, 'Sacrifice': 60, 'Error': 50,
            'FieldersChoice': 40, 'Out': 22, 'K swinging': 8, 'K looking': 4}

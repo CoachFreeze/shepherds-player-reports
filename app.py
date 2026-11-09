@@ -291,7 +291,7 @@ def staff_checks():
     return None
 
 
-_DEMO_BLOCKED = {'team_seasons', 'team_game_umpire_set', 'team_armcare', 'team_armcare_confirm', 'team_game_edit', 'team_coaches', 'team_appearance', 'roster_page', 'upload_log_page', 'intake_bulk', 'intake_bulk_run', 'edit_profile', 'account', 'change_password',
+_DEMO_BLOCKED = {'team_seasons', 'team_game_umpire_set', 'team_armcare', 'team_armcare_confirm', 'team_game_edit', 'team_game_reschedule', 'team_game_delete', 'team_coaches', 'team_appearance', 'roster_page', 'upload_log_page', 'intake_bulk', 'intake_bulk_run', 'edit_profile', 'account', 'change_password',
                  'admin_status', 'hitters_sort', 'team_customize'}
 
 
@@ -1694,6 +1694,40 @@ def team_game_edit(program, gid):
     if not res or not res['rows']:
         return redirect(url_for('team_games', program=program, msg='Enter an opponent name to save.'))
     return redirect(url_for('team_games', program=program, msg=f"Opponent changed to {res['new']} ({res['rows']} pitches updated)."))
+
+
+@app.route('/team/<program>/game/<gid>/reschedule', methods=['POST'])
+@login_required
+@head_required
+def team_game_reschedule(program, gid):
+    _team_ok(program)
+    import gamereport as gr
+    import datetime as _dt
+    with github_sync.batch('Reschedule a game'):
+        res = gr.reschedule_game(program, gid, request.form.get('date', ''))
+        if res and res['moved']:
+            gamenotes.move(program, res['moved'])
+    back = url_for('team_games', program=program)
+    if not res:
+        return redirect(url_for('team_games', program=program, msg='Pick a valid date to reschedule.') + ('#intrasquads' if gid.endswith('intrasquad') or '--intrasquad' in gid else ''))
+    pretty = _dt.date.fromisoformat(res['new']).strftime('%b %-d, %Y')
+    msg = 'That is already the game date.' if not res['rows'] else f"Game moved to {pretty} ({res['rows']} pitches)."
+    return redirect(url_for('team_games', program=program, msg=msg) + ('#intrasquads' if '--intrasquad' in gid else ''))
+
+
+@app.route('/team/<program>/game/<gid>/delete', methods=['POST'])
+@login_required
+@head_required
+def team_game_delete(program, gid):
+    _team_ok(program)
+    import gamereport as gr
+    with github_sync.batch('Delete a game'):
+        n = gr.delete_game(program, gid)
+        if n:
+            gamenotes.drop_game(program, gid)
+    if n is None:
+        abort(404)
+    return redirect(url_for('team_games', program=program, msg=f'Game deleted ({n} pitches removed).') + ('#intrasquads' if '--intrasquad' in gid else ''))
 
 
 @app.route('/team/<program>/game/<gid>/notes', methods=['POST'])
