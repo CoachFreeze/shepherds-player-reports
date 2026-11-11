@@ -1251,6 +1251,7 @@ def _pitcher_page(slug, bio, public=False, token=None):
     if not public and _prog and not store.is_demo(slug) and (is_admin() or (_prog == my_program() and plans.allowed(_prog, 'hitting'))):
         _hk = hitting.hitter_key_for(bio['name'], _prog)
         hitter_url = url_for('beta_hitter', key=_hk) if _hk else None
+    roles = [] if (public or store.is_demo(slug)) else _roles_for(_prog, bio['name'], 'Pitcher', pitcher_slug=slug)
     ins = None
     if not public:
         try:
@@ -1268,7 +1269,7 @@ def _pitcher_page(slug, bio, public=False, token=None):
     arm_link = (not public and not is_player() and (bio.get('program') or 'shepherds') == 'shepherds')
     return render_template('player_overview.html', ins=ins, wl=wl, arm_link=arm_link, armcare_url=__import__('armcare').URL, dr=_dr, public=public, photo_src=(url_for('public_share_photo', token=token) if public else None),
                            share=(None if public else _share_ctx('pitcher', slug, _prog)), share_team=store.program_label(_prog) if (public and _prog) else '',
-                           can_retag=can_retag, retag_types=[l for l, _ in outings_mod.RETAG_TYPES], pr_ent=(None if public else prs.for_pitcher(slug)), b=b, bio=bio, slug=slug, css=css, hitter_url=hitter_url, has_photo=has_photo, badge=badge,
+                           can_retag=can_retag, retag_types=[l for l, _ in outings_mod.RETAG_TYPES], pr_ent=(None if public else prs.for_pitcher(slug)), b=b, bio=bio, slug=slug, css=css, hitter_url=hitter_url, roles=roles, has_photo=has_photo, badge=badge,
                            photo_v=int(os.path.getmtime(headshots.path(slug))) if has_photo else 0,
                            initials=(first[:1] + last[:1]).upper(), pos=_player_pos(bio), is_coach=(not public) and bool(session.get('coach')) and not is_player(), can_edit=(not public) and can_manage(slug), is_demo=store.is_demo(slug),
                            tour_next='' if public else ((url_for('view_outing', slug=slug, date=b['log'][0]['id']) + '?tour=report') if b.get('log') else ''))
@@ -1676,7 +1677,7 @@ def team_catcher(program, key):
     c = B['catchers'].get(key)
     if not c:
         abort(404)
-    return render_template('catcher_profile.html', program=program, team_label=store.program_label(program), c=c, team_call=B['team_call'],
+    return render_template('catcher_profile.html', roles=_roles_for(program, c['name'], 'Catcher'), program=program, team_label=store.program_label(program), c=c, team_call=B['team_call'],
                            zone_svg=catcher.zone_svg(c['recv']['points']), res_ids=catcher.RESULT_IDS)
 
 
@@ -2145,6 +2146,36 @@ def _scout_hitter_page(key, h):
                            note=scoutnotes.get(prog, key), back_url=url_for('team_scouting_hitters', program=prog, opp=h['opp_slug']))
 
 
+def _roles_for(program, name, current, pitcher_slug=None, hitter_key=None):
+    """The Hitter / Pitcher / Catcher switch for one person: [{'label','url','on'}] for the roles he has in this program, or [] when he has only one.
+    `current` is the page being shown; its own role always counts."""
+    import catcher
+    import roster as roster_mod
+    if not program:
+        return []
+    roles = {}
+    if current == 'Hitter' or (plans.allowed(program, 'hitting') and (is_admin() or program == my_program())):
+        hk = hitter_key or hitting.hitter_key_for(name, program)
+        if hk:
+            roles['Hitter'] = url_for('beta_hitter', key=hk)
+    ps = pitcher_slug
+    if ps is None:
+        cands = [(b.get('name', ''), sl) for sl, b in store.list_players_view().items()
+                 if b.get('program') == program and (b.get('roles') or {}).get('pitch') and b.get('name')]
+        m = roster_mod.match_name(name, cands) if cands else None
+        ps = m[0] if m else None
+    if ps:
+        roles['Pitcher'] = url_for('player_overview', slug=ps)
+    ck = catcher.key_for(name, program)
+    if ck:
+        roles['Catcher'] = url_for('team_catcher', program=program, key=ck)
+    if current not in roles:
+        roles[current] = ''
+    if len(roles) < 2:
+        return []
+    return [{'label': l, 'url': roles[l], 'on': l == current} for l in ('Hitter', 'Pitcher', 'Catcher') if l in roles]
+
+
 @app.route('/hitter/<key>')
 @login_required
 def beta_hitter(key):
@@ -2178,7 +2209,8 @@ def _hitter_render(key, h, public=False, token=None):
             ins = insights.hitter(key)
         except Exception:
             ins = None
-    return render_template('beta_hitter.html', ins=ins, dr=_dr, public=public, hurl=hurl, photo_src=(url_for('public_share_photo', token=token) if public and _ps else None),
+    roles = [] if (public or h['demo'] or h.get('opp_slug')) else _roles_for(h['program'], h['bio']['name'], 'Hitter', pitcher_slug=(h['bio'].get('pitcher_slug') if h['bio'].get('two_way') else ''), hitter_key=key)
+    return render_template('beta_hitter.html', roles=roles, ins=ins, dr=_dr, public=public, hurl=hurl, photo_src=(url_for('public_share_photo', token=token) if public and _ps else None),
                            share=(None if public else _share_ctx('hitter', key, h['program'])), share_team=store.program_label(h['program']) if public else '',
                            pr_ent=(None if public else prs.for_hitter(key)), h=h, css=css, can_edit=((not public) and not h['demo'] and not h.get('opp_slug') and not is_player() and (is_admin() or h['program'] == my_program())),
                            photo_v=int(os.path.getmtime(headshots.path(_ps))) if _ps else 0,

@@ -265,3 +265,12 @@ def build(program):
         out[k] = {'key': k, 'name': c['name'], 'n': len(rows), 'games': len({d for d in c['dates'] if d}), 'pitchers': len(c['pitchers']),
                   'recv': receiving(rows, model), 'arm': arm(rows), 'call': calling(rows), 'res': results(rows), 'splits': pitcher_split(c)}
     return {'catchers': out, 'team_call': team_call, 'model': model, 'n_rows': len(all_rows)}
+
+
+def key_for(name, program):
+    """The catcher key for a player (same person, same program), or None. Drives the Hitter / Pitcher / Catcher switch on profiles."""
+    import roster as roster_mod
+    cs = build(program)['catchers']
+    cands = [(c['name'], k) for k, c in cs.items()]
+    m = roster_mod.match_name(name, cands) if cands else None
+    return m[0] if m else None
