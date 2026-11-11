@@ -9,7 +9,7 @@
   body{font-family:'Barlow',Arial,sans-serif;background:#f7f6f2;color:#22303a;margin:0;}
   .top{max-width:1040px;margin:0 auto;padding:16px 16px 0;display:flex;justify-content:space-between;align-items:center;} .top a.back{color:var(--accent-ink,var(--accent,#5c97a8));font-weight:600;font-size:13px;text-decoration:none;}
   .wrap{max-width:1040px;margin:0 auto;padding:6px 16px 50px;}
-  .vsw{display:inline-flex;background:#eef1f0;border-radius:999px;padding:3px;margin:0 10px 0 0;vertical-align:middle;} .vsw a,.vsw b{padding:6px 16px;border-radius:999px;font:600 13px 'Barlow',sans-serif;text-decoration:none;color:#55626b;} .vsw b{background:var(--accent,#5c97a8);color:var(--on-accent,#fff);box-shadow:0 1px 3px rgba(26,31,36,.15);}
+  .vsw{display:inline-flex;background:#eef1f0;border-radius:999px;padding:3px;margin:0 10px 0 0;vertical-align:middle;} .vsw a,.vsw b{padding:6px 16px;border-radius:999px;font:600 13px 'Barlow',sans-serif;text-decoration:none;color:#55626b;} .vsw button{border:0;background:none;padding:6px 16px;border-radius:999px;font:600 13px 'Barlow',sans-serif;color:#55626b;cursor:pointer;} .vsw button.on,.vsw b{background:var(--accent,#5c97a8);color:var(--on-accent,#fff);box-shadow:0 1px 3px rgba(26,31,36,.15);}
   .swt{margin:0 0 14px;} .swt .hint{font-size:12.5px;color:#6b7680;line-height:1.45;max-width:760px;} .swt .seg{display:inline-flex;flex-wrap:wrap;gap:3px;background:#eef1f0;border-radius:999px;padding:3px;} .swt .seg a{padding:5px 13px;border-radius:999px;font:700 12px 'Barlow',sans-serif;color:#5b6b75;text-decoration:none;white-space:nowrap;} .swt .seg a small{font-weight:500;opacity:.75;} .swt .seg a em{font-style:normal;font-size:11px;opacity:.6;margin-left:4px;} .swt .seg a.on{background:#fff;color:#22303a;box-shadow:0 1px 3px rgba(0,0,0,.14);}
   .phead{background:#fff;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);border-radius:16px;border-top:4px solid var(--accent,#5c97a8);padding:18px;display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin:8px 0 14px;}
   .hs{width:128px;height:128px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#e1e7e8,#c3ced1);display:flex;align-items:center;justify-content:center;flex:none;} .hs img{width:100%;height:100%;object-fit:cover;} .hs span{font:700 46px 'Oswald',sans-serif;color:#fff;}
@@ -68,10 +68,11 @@
       <div class="sub">{% set bt = {'R':'Right','L':'Left','S':'Switch'}.get(bio.bats) %}{% if bt %}<b>Bats:</b> {{ bt }}{% endif %}{% if bio.throws %} &middot; <b>Throws:</b> {{ {'R':'Right','L':'Left'}.get(bio.throws, bio.throws) }}{% endif %}{% if bio.height_in %} &middot; {{ (bio.height_in//12)|int }}'{{ (bio.height_in%12)|int }}"{% endif %}{% if bio.weight_lbs %} &middot; {{ bio.weight_lbs|int }} lb{% endif %}{% if bio.hometown %} &middot; {{ bio.hometown }}{% endif %}</div>
       <div class="rng">{{ s.pitches }} pitches seen &middot; {% if s.pa %}{{ s.pa }} plate appearances{% else %}Full Swing tracked{% endif %} &middot; {% if dr and (dr.frm or dr.to) and not dr.empty %}{{ h.dates|length }} sessions on file &middot; showing {{ dr.frm or h.dates[0] }} to {{ dr.to or h.dates[-1] }}{% else %}{{ h.dates|length }} session{{ '' if h.dates|length == 1 else 's' }}{% if h.dates %} &middot; {{ h.dates[0] }}{% if h.dates|length > 1 %} to {{ h.dates[-1] }}{% endif %}{% endif %}{% endif %}{% if h.demo %} &middot; sample data{% endif %}</div>
 {% if share and not public %}{% include '_share.html' %}{% endif %}
-      <div class="photo-form">{% if roles %}<span class="vsw">{% for r in roles %}{% if r.on %}<b>{{ r.label }}</b>{% else %}<a href="{{ r.url }}">{{ r.label }}</a>{% endif %}{% endfor %}</span>{% endif %}{% if can_edit %}<a class="editbtn" href="{{ url_for('hitter_edit', key=h.key) }}">Edit Profile</a> {% endif %}</div>
+      <div class="photo-form">{% if roles %}<span class="vsw">{% for r in roles %}{% if r.view %}<button type="button" data-v="{{ r.view }}"{{ ' class=on' if r.on }}>{{ r.label }}</button>{% elif r.on %}<b>{{ r.label }}</b>{% else %}<a href="{{ r.url }}">{{ r.label }}</a>{% endif %}{% endfor %}</span>{% endif %}{% if can_edit %}<a class="editbtn" href="{{ url_for('hitter_edit', key=h.key) }}">Edit Profile</a> {% endif %}</div>
     </div>
     {% if pr_ent %}<div style="margin-left:auto;align-self:flex-end;">{{ prm.button(url_for('hitter_prs', key=h.key)) }}</div>{% endif %}
   </div>
+<div id="hv">
 
   {{ prm.banner(pr_ent, url_for('hitter_prs', key=h.key)) }}
     {% if dr %}{% include '_daterange.html' %}{% endif %}
@@ -213,6 +214,8 @@ var ZD = {{ h.zone_ev|tojson }};
 
   {% endif %}
 </div>
+{% if cat %}{% include '_catcher_sections.html' %}{% endif %}
+</div>
 <div id="tip"></div>
 <script>(function(){var b=document.getElementById('howbtn'),p=document.getElementById('how');if(!b||!p)return;b.addEventListener('click',function(){var o=p.hasAttribute('hidden');if(o)p.removeAttribute('hidden');else p.setAttribute('hidden','');b.setAttribute('aria-expanded',o?'true':'false');b.title=o?'Hide':'How is this calculated?';});})();</script>
 <script>
@@ -239,4 +242,7 @@ var ZD = {{ h.zone_ev|tojson }};
   svg.addEventListener('click',function(e){if(e.target.classList&&e.target.classList.contains('dot')){show(e);}});
 })();
 </script>
+<script>(function(){var sw=document.querySelector('.vsw'),cv=document.getElementById('cv'),hv=document.getElementById('hv');if(!sw||!cv||!hv)return;var bt=[].slice.call(sw.querySelectorAll('button[data-v]'));
+function show(v){var c=v==='catcher';cv.classList.toggle('on',c);hv.style.display=c?'none':'';bt.forEach(function(b){b.classList.toggle('on',b.getAttribute('data-v')===v);});try{history.replaceState(null,'',c?'#catcher':location.pathname+location.search);}catch(e){}}
+bt.forEach(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-v'));});});if(location.hash==='#catcher')show('catcher');})();</script>
 </body></html>

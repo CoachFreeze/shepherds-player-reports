@@ -1677,7 +1677,7 @@ def team_catcher(program, key):
     c = B['catchers'].get(key)
     if not c:
         abort(404)
-    return render_template('catcher_profile.html', roles=_roles_for(program, c['name'], 'Catcher'), program=program, team_label=store.program_label(program), c=c, team_call=B['team_call'],
+    return render_template('catcher_profile.html', program=program, team_label=store.program_label(program), c=c, team_call=B['team_call'],
                            zone_svg=catcher.zone_svg(c['recv']['points']), res_ids=catcher.RESULT_IDS)
 
 
@@ -2168,12 +2168,15 @@ def _roles_for(program, name, current, pitcher_slug=None, hitter_key=None):
         roles['Pitcher'] = url_for('player_overview', slug=ps)
     ck = catcher.key_for(name, program)
     if ck:
-        roles['Catcher'] = url_for('team_catcher', program=program, key=ck)
+        roles['Catcher'] = (roles['Hitter'] + '#catcher') if 'Hitter' in roles else url_for('team_catcher', program=program, key=ck)
     if current not in roles:
         roles[current] = ''
     if len(roles) < 2:
         return []
-    return [{'label': l, 'url': roles[l], 'on': l == current} for l in ('Hitter', 'Pitcher', 'Catcher') if l in roles]
+    # on the hitter page, Hitter and Catcher swap in place (the catching data is on the same page); everything else is a link
+    inpage = current == 'Hitter' and 'Catcher' in roles
+    return [{'label': l, 'url': roles[l], 'on': l == current, 'view': (l.lower() if inpage and l in ('Hitter', 'Catcher') else '')}
+            for l in ('Hitter', 'Pitcher', 'Catcher') if l in roles]
 
 
 @app.route('/hitter/<key>')
@@ -2210,7 +2213,14 @@ def _hitter_render(key, h, public=False, token=None):
         except Exception:
             ins = None
     roles = [] if (public or h['demo'] or h.get('opp_slug')) else _roles_for(h['program'], h['bio']['name'], 'Hitter', pitcher_slug=(h['bio'].get('pitcher_slug') if h['bio'].get('two_way') else ''), hitter_key=key)
-    return render_template('beta_hitter.html', roles=roles, ins=ins, dr=_dr, public=public, hurl=hurl, photo_src=(url_for('public_share_photo', token=token) if public and _ps else None),
+    cat = None
+    if roles and any(r['view'] for r in roles):
+        import catcher
+        _B = catcher.build(h['program'])
+        _ck = catcher.key_for(h['bio']['name'], h['program'])
+        if _ck and _ck in _B['catchers']:
+            cat = {'c': _B['catchers'][_ck], 'team_call': _B['team_call'], 'zone_svg': catcher.zone_svg(_B['catchers'][_ck]['recv']['points']), 'res_ids': catcher.RESULT_IDS}
+    return render_template('beta_hitter.html', roles=roles, cat=cat, **(cat or {}), ins=ins, dr=_dr, public=public, hurl=hurl, photo_src=(url_for('public_share_photo', token=token) if public and _ps else None),
                            share=(None if public else _share_ctx('hitter', key, h['program'])), share_team=store.program_label(h['program']) if public else '',
                            pr_ent=(None if public else prs.for_hitter(key)), h=h, css=css, can_edit=((not public) and not h['demo'] and not h.get('opp_slug') and not is_player() and (is_admin() or h['program'] == my_program())),
                            photo_v=int(os.path.getmtime(headshots.path(_ps))) if _ps else 0,
