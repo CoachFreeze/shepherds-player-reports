@@ -43,6 +43,13 @@ def safe_round(v, n):
 # circle background colour). Add a line + drop the PNG in assets/schools/ to support another school.
 SCHOOL_BADGES = [
     # most specific names first: the generic keys further down ('golden eagles', 'irvine') would otherwise claim these schools
+    (('oregon state', 'beavers'), 'oregon_state.png', '#FFFFFF'),
+    (('uc davis', 'uc-davis', 'california, davis', 'california davis', 'ucd'), 'uc_davis.png', '#FFFFFF'),
+    (('fresno',), 'fresno_state.png', '#FFFFFF'),
+    (('san diego state', 'sdsu', 'aztecs'), 'san_diego_state.png', '#FFFFFF'),
+    (('washington state', 'wsu'), 'washington_state.png', '#FFFFFF'),
+    (('byu', 'brigham young'), 'byu.png', '#FFFFFF'),
+    (('san jose state', 'sjsu', 'san josé'), 'san_jose_state.png', '#FFFFFF'),
     (('pacwest',), 'pacwest.png', '#FFFFFF'),
     (('vanguard',), 'vanguard.png', '#FFFFFF'),
     (('jessup',), 'jessup.png', '#FFFFFF'),
