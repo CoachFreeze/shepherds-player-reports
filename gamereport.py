@@ -711,7 +711,10 @@ def cell2(pa, new_pitcher='', end_inning=False, new_batter=False, ink='#2a2118',
     P = {'h': (hx, hy), 'f': (hx + rad, hy - rad), 's': (hx, hy - 2 * rad), 't': (hx - rad, hy - rad)}
     o.append(f'<path d="M{P["h"][0]} {P["h"][1]} L{P["f"][0]} {P["f"][1]} L{P["s"][0]} {P["s"][1]} L{P["t"][0]} {P["t"][1]} Z" fill="none" stroke="#c9bfae" stroke-width="1.2"/>')
     for k_, (x, y) in P.items():
-        o.append(f'<rect x="{x - 3.5}" y="{y - 3.5}" width="7" height="7" fill="#fdfbf6" stroke="#9c917f" stroke-width="1"/>')
+        if k_ == 'h':       # home plate: flat edge toward the pitcher, point toward the catcher
+            o.append(f'<path d="M{x - 4} {y - 3.5} L{x + 4} {y - 3.5} L{x + 4} {y + 0.5} L{x} {y + 4.5} L{x - 4} {y + 0.5} Z" fill="#fdfbf6" stroke="#9c917f" stroke-width="1" stroke-linejoin="miter"/>')
+        else:
+            o.append(f'<rect x="{x - 3.5}" y="{y - 3.5}" width="7" height="7" fill="#fdfbf6" stroke="#9c917f" stroke-width="1" transform="rotate(45 {x} {y})"/>')
     res = pa['result']
     nb = pa['reach'] if 'reach' in pa else _BASES.get(res, 0)
     order_ = ['h', 'f', 's', 't', 'h']
