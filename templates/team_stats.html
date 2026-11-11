@@ -56,7 +56,7 @@
   {% if not rows %}<p style="color:var(--muted);margin-top:24px;">No {{ title|lower }} tracked for this team yet. They appear automatically once a session is uploaded.</p>{% else %}
   <div class="tw"><table id="st"><thead>
     <tr class="g"><th class="jn"></th><th class="nm"></th>{% if side != 'pitching' and stats_mode != 'basic' %}<th></th>{% endif %}{% for g in groups %}<th colspan="{{ g.n }}" data-g="{{ g.name }}">{{ g.name }}</th>{% endfor %}</tr>
-    <tr class="c"><th class="jn s" data-t="n" title="Jersey number: not entered yet.">#</th><th class="nm s" data-t="s">Name</th>{% if side != 'pitching' and stats_mode != 'basic' %}<th class="s" data-t="n" title="Pitches: total pitches seen.">Seen</th>{% endif %}{% for c in cols %}<th class="s" data-t="n" data-c="{{ c.id }}" title="{{ c.label }}: {{ c.def }}">{{ c.abbr }}</th>{% endfor %}</tr></thead>
+    <tr class="c"><th class="jn s" data-t="n" title="Jersey number: not entered yet.">#</th><th class="nm s" data-t="s">Name</th>{% if side != 'pitching' and stats_mode != 'basic' %}<th class="s" data-t="n" title="Pitches: total pitches seen.">Seen</th>{% endif %}{% for c in cols %}<th class="s" data-t="n" data-c="{{ c.id }}"{% if c.id in low_ids %} data-low="1"{% endif %} title="{{ c.label }}: {{ c.def }}">{{ c.abbr }}</th>{% endfor %}</tr></thead>
   <tbody>{% for r in rows %}<tr data-s="{{ r.name|lower }}"><td class="jn {{ '' if r.jersey else 'na' }}" data-v="{{ r.jersey }}">{{ r.jersey or '—' }}</td><td class="nm" data-v="{{ r.disp|lower }}"><a href="{{ r.url }}">{{ r.disp }}</a></td>{% if side != 'pitching' and stats_mode != 'basic' %}<td data-v="{{ r.n }}">{{ r.n }}</td>{% endif %}
     {% for c in cols %}{% set x = r.cells.get(c.id) %}{% if x %}<td data-c="{{ c.id }}" data-v="{{ x[1] if x[1] is not none else '' }}">{{ x[0] }}</td>{% else %}<td class="na" data-c="{{ c.id }}" data-v="">—</td>{% endif %}{% endfor %}</tr>{% endfor %}</tbody></table></div>{% endif %}
 </div>
@@ -64,7 +64,7 @@
 (function(){var t=document.getElementById('st');if(!t)return;var q=document.getElementById('q');
 q.addEventListener('input',function(){var v=this.value.toLowerCase().trim();t.querySelectorAll('tbody tr').forEach(function(r){r.style.display=(!v||r.dataset.s.indexOf(v)>-1)?'':'none';});});
 var hs=t.querySelectorAll('thead tr.c th');
-hs.forEach(function(h,i){h.addEventListener('click',function(){var asc=!h.classList.contains('asc');hs.forEach(function(x){x.classList.remove('asc','desc');});h.classList.add(asc?'asc':'desc');
+hs.forEach(function(h,i){h.addEventListener('click',function(){var asc=h.classList.contains('asc')?false:h.classList.contains('desc')?true:(h.dataset.t==='s'||h.classList.contains('jn')||h.dataset.low==='1');hs.forEach(function(x){x.classList.remove('asc','desc');});h.classList.add(asc?'asc':'desc');
  var tb=t.tBodies[0],rows=Array.prototype.slice.call(tb.rows),txt=h.dataset.t==='s';
  rows.sort(function(a,b){var x=a.cells[i].dataset.v,y=b.cells[i].dataset.v;
   if(txt){return asc?x.localeCompare(y):y.localeCompare(x);}

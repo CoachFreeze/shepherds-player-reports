@@ -776,6 +776,13 @@ _PITCH_LINEUP = [  # (stat id, header, hover text "Full name: definition", secti
 ]
 
 
+# Columns where the better end is the smaller number, so a first click on the header sorts smallest first (everything else sorts largest first).
+_LOW_BETTER = {
+    'pitching': {'era', 'whip', 'fip', 'balls', 'hits', 'walks', 'hbp', 'contact_pct', 'avg_ev', 'hh_pct', 'ld_pct', 'fb_pct'},
+    'hitting': {'b_k', 'b_k_pct', 'chase_pct', 'whiff_pct', 'gb_pct', 'pu_pct', 'ev_gap'},
+}
+
+
 def _stat_table(program, side, basic=False):
     """Columns + rows for the sortable team stat tables. side = 'pitching' | 'hitting'. Each cell is (text, number-for-sorting)."""
     cols, rows = [], []
@@ -884,7 +891,7 @@ def team_pitchers(program):
     if request.args.get('view') == 'cards':
         return _team_players_page(program, 'Pitchers', pitchers_only=True)
     cols, groups, rows = _stat_table(program, 'pitching')
-    return render_template('team_stats.html', side='pitching', title='Pitchers', fs=store.is_fullswing(program), cols=cols, groups=groups, rows=rows, program=program,
+    return render_template('team_stats.html', side='pitching', title='Pitchers', fs=store.is_fullswing(program), cols=cols, groups=groups, rows=rows, program=program, low_ids=_LOW_BETTER['pitching'],
                            team_label=store.program_label(program), colsets=_colsets('pitching'))
 
 
@@ -901,7 +908,7 @@ def team_hitters(program):
     fs = store.is_fullswing(program)
     basic = (not fs) and request.args.get('stats', 'basic') != 'advanced'
     cols, groups, rows = _stat_table(program, 'hitting', basic=basic)
-    return render_template('team_stats.html', side='hitting', title='Hitters', fs=fs, stats_mode=None if fs else ('basic' if basic else 'advanced'), cols=cols, groups=groups, rows=rows, program=program,
+    return render_template('team_stats.html', side='hitting', title='Hitters', fs=fs, stats_mode=None if fs else ('basic' if basic else 'advanced'), cols=cols, groups=groups, rows=rows, program=program, low_ids=_LOW_BETTER['hitting'],
                            team_label=store.program_label(program), colsets=_colsets('hitting'))
 
 
