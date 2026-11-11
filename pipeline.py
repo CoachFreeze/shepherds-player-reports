@@ -42,6 +42,19 @@ def safe_round(v, n):
 # School logos for the badge at the top of a report: (match keywords, logo file in assets/schools/,
 # circle background colour). Add a line + drop the PNG in assets/schools/ to support another school.
 SCHOOL_BADGES = [
+    # most specific names first: the generic keys further down ('golden eagles', 'irvine') would otherwise claim these schools
+    (('pacwest',), 'pacwest.png', '#FFFFFF'),
+    (('vanguard',), 'vanguard.png', '#FFFFFF'),
+    (('jessup',), 'jessup.png', '#FFFFFF'),
+    (('westmont',), 'westmont.png', '#FFFFFF'),
+    (('point loma', 'plnu'), 'point_loma.png', '#FFFFFF'),
+    (('chaminade',), 'chaminade.png', '#FFFFFF'),
+    (('concordia',), 'concordia_irvine.png', '#FFFFFF'),
+    (('san marcos', 'csusm'), 'cal_state_san_marcos.png', '#FFFFFF'),
+    (('billings', 'msub'), 'montana_state_billings.png', '#FFFFFF'),
+    (('san bernardino', 'csusb'), 'cal_state_san_bernardino.png', '#FFFFFF'),
+    (('cedarville',), 'cedarville.png', '#FFFFFF'),
+    (('cal state la', 'cal state los angeles', 'csula', 'california state university, los angeles', 'cal state, la'), 'cal_state_la.png', '#FFFFFF'),
     (('long beach state', 'lbsu', 'csulb'), 'long_beach_state.png', '#FFB81C'),
     (('pepperdine',), 'pepperdine.png', '#FFFFFF'),
     (('hawaii pacific', 'hawai\'i pacific', 'hpu'), 'hawaii_pacific.png', '#FFFFFF'),

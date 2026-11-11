@@ -1513,7 +1513,7 @@ def team_games(program):
         d = _dt.date.fromisoformat(s['date'])
         upcoming.append({**s, 'sid': _sched.sid(s), 'date_pretty': d.strftime('%a %b %-d, %Y'), 'past': s['date'] < today, 'today': s['date'] == today,
                          'up': url_for('intake_bulk', program=program, session_type='Game', **({} if s.get('tournament') else {'opponent': s['opp']})),
-                         'logo': None if s.get('tournament') else _opp_logo_url(program, store.slugify(s['opp']) or 'unlabeled', s['opp'])})
+                         'logo': _opp_logo_url(program, store.slugify(s['opp']) or 'unlabeled', s['opp'])})
     return render_template('games.html', program=program, team_label=store.program_label(program), games=out, intra=intra, schedule=upcoming, msg=request.args.get('msg'), can_edit=not (is_assistant() or is_player()))
 
 
