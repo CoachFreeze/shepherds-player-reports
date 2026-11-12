@@ -430,6 +430,8 @@ def inject_prs():
 
 
 app.jinja_env.globals['is_fs'] = lambda program: store.is_fullswing(program)
+from section_info import info as _section_info
+app.jinja_env.globals['info'] = _section_info
 
 # Every subject heading shows with each word capitalized (Top Exit Velocity), without touching the stored text.
 _TITLE_CSS = 'h1,h2,h3,h4,.half-head,.fx-h,.g-t,.board h4,.card>.head,.sh,.sect-title{text-transform:capitalize;}'

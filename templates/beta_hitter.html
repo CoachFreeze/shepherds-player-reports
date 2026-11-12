@@ -87,7 +87,7 @@
 
   <div class="cols">
   <div class="col">
-  <div class="card"><h2>Batted-ball quality</h2><p class="hint">{{ s.bip }} tracked ball{{ '' if s.bip == 1 else 's' }} in play{% if h.vs != 'all' %} against {{ 'right-handed' if h.vs == 'R' else 'left-handed' }} pitchers{% endif %}.</p>
+  <div class="card"><h2>Batted-ball quality{{ info('batted_ball') }}</h2><p class="hint">{{ s.bip }} tracked ball{{ '' if s.bip == 1 else 's' }} in play{% if h.vs != 'all' %} against {{ 'right-handed' if h.vs == 'R' else 'left-handed' }} pitchers{% endif %}.</p>
     <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(120px,1fr));">
       {% set b_ = bd.bbq.get('xba') if bd else none %}<div class="tile" style="background:#e8f1f4;">{% if b_ %}<span class="rtag rtag-{{ b_.tier }}" title="{{ b_.title }}">{{ b_.txt }}</span>{% endif %}<div class="v">{{ ('%.3f' % s.xba).lstrip('0') if s.xba is not none else '–' }}</div><div class="l">xBA</div>{% if s.xba is not none %}<div style="font-size:11px;color:#55626b;margin-top:2px;">{% if s.ba is not none %}BA {{ ('%.3f' % s.ba).lstrip('0') if s.ba < 1 else '1.000' }} · {% endif %}{{ s.ab }} AB</div>{% endif %}</div>
       {% for l, v, u, k in [('Avg exit velo', s.avg_ev, ' mph', 'avg_ev'), ('Max exit velo', s.max_ev, ' mph', 'max_ev'), ('EV90', s.ev90, ' mph', 'ev90'), ('Hard-hit (95+)', s.hard_hit_pct, '%', 'hard_hit_pct'), ('Barrel %', s.brl_pct, '%', 'brl_pct'), ('Avg launch angle', s.avg_la, '°', ''), ('Sweet spot (8–32°)', s.sweet_spot_pct, '%', 'sweet_spot_pct'), ('Ground ball', s.gb_pct, '%', 'gb_pct'), ('Line drive', s.ld_pct, '%', 'ld_pct'), ('Fly ball', s.fb_pct, '%', ''), ('Pop-up', s.pu_pct, '%', 'pu_pct')] %}
@@ -97,7 +97,7 @@
     {% if bd %}{{ rkleg(true) }}{% endif %}
   </div>
   {% set pt = h.pt_table %}{% if pt.rows %}
-  <div class="card"><h2>Batted balls by pitch type</h2>
+  <div class="card"><h2>Batted balls by pitch type{{ info('by_pitch_type') }}</h2>
     <p class="hint">How he hits each pitch he has seen{% if h.vs != 'all' %} from {{ 'right-handed' if h.vs == 'R' else 'left-handed' }} pitchers{% endif %}. Rows with fewer than 5 balls in play are greyed out; treat them as a first look. EV and Max are exit velocity in mph, HH% is hard-hit (95+), Brl% is barrel rate, LA is launch angle, GB/LD/FB are ground ball, line drive and fly ball shares, Whf% is whiffs per swing.</p>
     <div class="ptwrap"><table class="ptt"><thead><tr><th class="l">Pitch</th><th title="Pitches seen">Seen</th><th title="Whiff % (swings and misses per swing)">Whf%</th><th title="Balls in play">BIP</th><th title="Average exit velocity (mph)">EV</th><th title="Max exit velocity (mph)">Max</th><th title="Hard-hit % (95+ mph)">HH%</th><th title="Barrel %">Brl%</th><th title="Average launch angle">LA</th><th title="Ground ball %">GB</th><th title="Line drive %">LD</th><th title="Fly ball %">FB</th><th title="Expected batting average">xBA</th></tr></thead><tbody>
     {% for r in [pt.all] + pt.rows %}<tr class="{{ 'tot' if loop.first }}{{ ' lo' if r.bip < 5 }}"><td class="l">{{ r.label }}</td><td>{{ r.seen }}</td>
@@ -114,7 +114,7 @@
   </div>
   {% endif %}
 
-    {% if has_loc %}    <div class="card"><h2>Exit velo heat map</h2>
+    {% if has_loc %}    <div class="card"><h2>Exit velo heat map{{ info('ev_heatmap') }}</h2>
       <div id="pm-heat"><p class="hint">Catcher's view. The box is the strike zone. Color is the average exit velocity of the balls he put in play near each spot, from blue (soft) to red (hard); it includes pitches up to a foot outside the zone. Move over the map to read the local average.</p>
         <div class="chips" id="zt"></div>
         <div style="max-width:400px;margin:0 auto;position:relative;">{{ h.zone_ev.svg|safe }}</div>
@@ -145,12 +145,12 @@ var ZD = {{ h.zone_ev|tojson }};
 </script>{% endif %}
   </div>
   <div class="col">
-    <div class="card"><h2>Spray chart</h2><p class="hint">Every tracked ball in play. Color is exit velocity; tap a dot for the details.</p>
+    <div class="card"><h2>Spray chart{{ info('spray') }}</h2><p class="hint">Every tracked ball in play. Color is exit velocity; tap a dot for the details.</p>
       <div class="center">{{ h.spray|safe }}</div>
       {% if s.pull_pct is not none %}<div style="margin-top:14px;"><div class="splitl"><b>Pull {{ '%.1f' % s.pull_pct }}%</b><b>Center {{ '%.1f' % s.center_pct }}%</b><b>Oppo {{ '%.1f' % s.oppo_pct }}%</b></div>
         <div class="split"><span style="width:{{ s.pull_pct }}%;background:var(--accent,#5c97a8)"></span><span style="width:{{ s.center_pct }}%;background:#b7cfd6"></span><span style="width:{{ s.oppo_pct }}%;background:#22303a"></span></div></div>{% endif %}
     </div>
-  {% if has_loc %}  <div class="card sdcard"><h2>Swing decisions</h2>
+  {% if has_loc %}  <div class="card sdcard"><h2>Swing decisions{{ info('swing_decisions') }}</h2>
     <button type="button" class="plus" id="howbtn" aria-expanded="false" aria-controls="how" title="How is this calculated?">+</button>
     <div class="how" id="how" hidden>
       <h3>How the Swing Decision Rating is calculated</h3>
@@ -192,20 +192,20 @@ var ZD = {{ h.zone_ev|tojson }};
         <div class="sub-b">{{ blurb if val is not none else 'Not enough pitches yet' }}</div></div><span class="gr g-{{ gr[0] if gr else 'n' }}" title="{{ ('Score ' ~ val ~ ' out of 100') if val is not none else '' }}">{{ gr or '–' }}</span></div>{% endfor %}
     </div>
     {% endif %}
-    <h3 class="mh">Pitch map</h3>
+    <h3 class="mh">Pitch map{{ info('pitch_map') }}</h3>
     <div id="pm-dec"><p class="hint">Catcher's view. Every pitch he saw. Hover or tap a dot for the count, pitch and why it was judged that way.</p>
         <div class="tg" id="f-a"><label><input type="checkbox" value="Swing" checked>Swings</label><label><input type="checkbox" value="Take" checked>Takes</label></div>
         <div class="tg" id="f-v" style="margin:6px 0 10px;"><label><input type="checkbox" value="good" checked><span class="sw" style="background:var(--good)"></span>Good</label><label><input type="checkbox" value="bad" checked><span class="sw" style="background:var(--bad)"></span>Bad</label><label><input type="checkbox" value="neutral" checked><span class="sw" style="background:#9aa5ab"></span>Neutral</label></div>
         <div style="max-width:420px;margin:0 auto;position:relative;">{{ h.decision_svg_i|safe }}</div>
         <div class="cnt" id="cnt" style="margin-top:8px;text-align:center;"></div>
         <div class="legend"><span><i style="background:var(--good)"></i>Good</span><span><i style="background:var(--bad)"></i>Bad</span><span><i style="background:var(--neu)"></i>Borderline</span><span><i style="background:#fff;border:2px solid #55626b"></i>Take</span><span><i style="background:#55626b"></i>Swing</span></div></div>
-    {% if h.notes %}<h3 class="mh">Player Insights</h3><ul class="notes" style="margin-top:6px;">{% for n in h.notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
+    {% if h.notes %}<h3 class="mh">Player Insights{{ info('player_insights') }}</h3><ul class="notes" style="margin-top:6px;">{% for n in h.notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
   </div>{% endif %}
 
   </div>
   </div>
 
-  {% if s.bs_n %}<div class="card"><h2>Swing tracking</h2><p class="hint">{{ s.bs_n }} tracked swing{{ '' if s.bs_n == 1 else 's' }} (bat speed is logged on every swing, contact or not).</p>
+  {% if s.bs_n %}<div class="card"><h2>Swing tracking{{ info('swing_tracking') }}</h2><p class="hint">{{ s.bs_n }} tracked swing{{ '' if s.bs_n == 1 else 's' }} (bat speed is logged on every swing, contact or not).</p>
     <div class="tiles" style="grid-template-columns:repeat(auto-fill,minmax(120px,1fr));">
       {% for l, v, u in [('Avg bat speed', s.avg_bs, ' mph'), ('Max bat speed', s.max_bs, ' mph'), ('Squared-up', s.sq_pct, '%'), ('Smash factor', s.avg_smash, ''), ('EV left on table', s.ev_gap, ' mph')] %}
       <div class="tile"><div class="v">{{ v if v is not none else '–' }}<span style="font-size:13px;color:#76828a;">{{ u if v is not none }}</span></div><div class="l">{{ l }}</div></div>{% endfor %}
@@ -245,4 +245,4 @@ var ZD = {{ h.zone_ev|tojson }};
 <script>(function(){var sw=document.querySelector('.vsw'),cv=document.getElementById('cv'),hv=document.getElementById('hv');if(!sw||!cv||!hv)return;var bt=[].slice.call(sw.querySelectorAll('button[data-v]'));
 function show(v){var c=v==='catcher';cv.classList.toggle('on',c);hv.style.display=c?'none':'';bt.forEach(function(b){b.classList.toggle('on',b.getAttribute('data-v')===v);});try{history.replaceState(null,'',c?'#catcher':location.pathname+location.search);}catch(e){}}
 bt.forEach(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-v'));});});if(location.hash==='#catcher')show('catcher');})();</script>
-</body></html>
+{% include '_info_ui.html' %}</body></html>

@@ -983,9 +983,6 @@ def arsenal_comps_html(comps, ours, throws, colors):
            '.ac-them td{color:#5c7585;font-weight:500;font-size:12px;padding-top:0;padding-bottom:6px;}'
            '.ac-note{font:400 12px/1.5 var(--f-heading);color:var(--muted);margin-top:12px;}</style>')
     return (css + '<div class="ac-row">' + ''.join(cards) + '</div>'
-            '<div class="ac-note info-src">Matched on pitch shape: induced vertical break and horizontal break, with spin counting less, against 2026 MLB pitch-arsenal data and weighted by how often each pitch is thrown. '
-            'Velocity is not part of the match, so a comp can throw harder and still be the right model for the movement. '
-            'HB: A = arm-side, G = glove-side, so lefties and righties compare directly.</div>'
             + ('<div class="ac-note"><b>Heads up:</b> none of these are a close match, so read them as the nearest shape family, not a true comp.</div>' if comps and comps[0].get('match', 100) < 40 else ''))
 
 
@@ -1072,9 +1069,7 @@ def arsenal_ideas_html(ideas, colors, fb_velo=None, throws='R'):
            '.ai-wh{margin-top:8px;background:#f1f6f8;border-left:3px solid var(--accent-teal);border-radius:0 6px 6px 0;padding:7px 9px;} .ai-wh ul{margin:4px 0 0;padding-left:15px;} .ai-wh li{margin:0 0 3px;color:#26343b;line-height:1.35;}'
            '.ai-clips{margin-top:4px;} .ai-ex a.ai-clip{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-top:1px solid #e6eef2;white-space:normal;color:#26343b!important;font-weight:500!important;line-height:1.3;} .ai-clip:first-child{border-top:0;} .ai-clip b{font-weight:700;color:var(--accent-teal);} .ai-clip>span:last-child{min-width:0;} .ai-play{flex:0 0 18px;height:18px;border-radius:50%;background:var(--accent-teal);color:#fff;font-size:8px;line-height:18px;text-align:center;margin-top:1px;} .ai-cs{font-size:10px;color:var(--muted);}</style>')
     return (css + '<div class="ai-row">' + ''.join(cards) + '</div>'
-            '<div class="info-src">Ranked by how common the pitch is among MLB pitchers with a similar fastball shape and arm slot, '
-            'how differently it would move from the current arsenal, how well his spin suits it, and whether the arsenal is missing a breaking ball or offspeed pitch. Target shapes are the MLB averages for that group; the speed gap off the fastball is scaled to his own fastball, and the clips show the shape to copy, not the velocity. '
-            'Video clips are real 2026 MLB pitches of this type from Baseball Savant, picked for the closest shape to the target and a swing-and-miss or strikeout result; each opens the clip on Savant.</div>')
+            )
 
 
 # ---------------------------------------------------------------- arm-angle badge (Savant style)

@@ -31,7 +31,7 @@
 #cv .rtip{position:absolute;pointer-events:none;background:#22303a;color:#fff;font:600 12.5px Barlow;padding:6px 10px;border-radius:8px;white-space:nowrap;opacity:0;transform:translate(-50%,-130%);transition:opacity .1s;z-index:5;}
 @media (max-width:640px){ #cv .rz{flex-direction:column;}#cv .rzf{width:100%;border-left:0;padding-left:0;}}</style>
 <div id="cv"><p class="catintro" style="margin:0 0 14px;color:#6b7680;font-size:13.5px;">Catching report: Game, Scrimmage and Intrasquad pitches only (the date filter above applies to his hitting). {{ c.n }} pitches across {{ c.games }} session{{ "" if c.games == 1 else "s" }} with {{ c.pitchers }} pitcher{{ "" if c.pitchers == 1 else "s" }}.</p>{% set r = c.recv %}
-<div class="card"><h2>Receiving</h2><p class="n">Of the pitches a hitter took, how many strikes did he get on borderline calls? Compared with how often pitches that same distance from the edge are called strikes for the whole program.</p>
+<div class="card"><h2>Receiving{{ info('c_receiving') }}</h2><p class="n">Of the pitches a hitter took, how many strikes did he get on borderline calls? Compared with how often pitches that same distance from the edge are called strikes for the whole program.</p>
 <div class="big"><div><b class="{{ 'pos' if r.per100 and r.per100 > 0 else 'neg' if r.per100 and r.per100 < 0 }}" title="Called strikes above what a typical catcher gets on takes within half a foot of the zone edge, per 100 takes">{{ '%+.1f'|format(r.per100) if r.per100 is not none else '–' }}</b><span>Extra strikes /100 takes</span></div>
 <div><b title="Called strikes on takes within 3 inches of the edge, inside or out">{{ r.border_pct if r.border_pct is not none else '–' }}{{ '%' if r.border_pct is not none }}</b><span>Borderline called-strike % ({{ r.border_n }})</span></div>
 <div><b title="Called strikes on takes just outside the zone">{{ r.out_pct if r.out_pct is not none else '–' }}{{ '%' if r.out_pct is not none }}</b><span>Just outside ({{ r.out_n }})</span></div>
@@ -47,13 +47,13 @@ document.getElementById('rza').onclick=function(){types.forEach(function(t){on[t
 function draw(){var n=0,cs=0;pts.forEach(function(p){var v=on[p.dataset.t];p.classList.toggle('dim',!v);if(v){n++;if(p.dataset.cs==='1')cs++;}});[].forEach.call(L.children,function(b,i){b.classList.toggle('off',!on[types[i]]);});S.innerHTML='<b>'+(n?Math.round(100*cs/n):0)+'%</b>called strikes on '+n+' takes shown';}
 pts.forEach(function(p){p.addEventListener('mouseenter',function(){tip.textContent=p.dataset.tip;var a=p.getBoundingClientRect(),b=P.getBoundingClientRect();tip.style.left=(a.left-b.left+a.width/2)+'px';tip.style.top=(a.top-b.top)+'px';tip.style.opacity=1;});p.addEventListener('mouseleave',function(){tip.style.opacity=0;});});draw();})();</script>
 
-<div class="card"><h2>Pitch calling</h2><p class="n">What gets thrown while he is catching, by count, next to the program-wide mix. Pitch families: fastball (incl. cutter, sinker), breaking (curve, slider, sweeper), offspeed (change, splitter).</p>
+<div class="card"><h2>Pitch calling{{ info('c_pitch_calling') }}</h2><p class="n">What gets thrown while he is catching, by count, next to the program-wide mix. Pitch families: fastball (incl. cutter, sinker), breaking (curve, slider, sweeper), offspeed (change, splitter).</p>
 <table class="tbl"><tr><th>Count</th><th>Pitches</th><th>Fastball %</th><th>Breaking %</th><th>Offspeed %</th></tr>
 {% for b in c.call.bands %}{% set tb = team_call.bands[loop.index0] %}<tr><td>{{ b.name }}</td><td>{{ b.n }}</td><td>{{ b.Fastball if b.Fastball is not none else '–' }}{% if tb.Fastball is not none %} <small style="color:#9aa3aa;">({{ tb.Fastball }})</small>{% endif %}</td><td>{{ b.Breaking if b.Breaking is not none else '–' }}{% if tb.Breaking is not none %} <small style="color:#9aa3aa;">({{ tb.Breaking }})</small>{% endif %}</td><td>{{ b.Offspeed if b.Offspeed is not none else '–' }}{% if tb.Offspeed is not none %} <small style="color:#9aa3aa;">({{ tb.Offspeed }})</small>{% endif %}</td></tr>{% endfor %}
 <tr><td><b>All pitches</b></td><td>{{ c.call.n }}</td><td>{{ c.call.overall.Fastball }}</td><td>{{ c.call.overall.Breaking }}</td><td>{{ c.call.overall.Offspeed }}</td></tr></table>
 <p class="n" style="margin-top:8px;">Grey numbers in brackets are the program average.</p>
-<h2 style="margin-top:16px;">Results with him catching</h2>
+<h2 style="margin-top:16px;">Results with him catching{{ info('c_results') }}</h2>
 <div class="big">{% for id, lab in res_ids %}<div><b>{{ c.res[id] }}</b><span>{{ lab }}</span></div>{% endfor %}</div>
-<h2 style="margin-top:6px;">By pitcher</h2>
+<h2 style="margin-top:6px;">By pitcher{{ info('c_by_pitcher') }}</h2>
 <table class="tbl"><tr><th>Pitcher</th><th>Pitches</th><th>Strike %</th><th>Whiff %</th><th>CSW %</th></tr>{% for p in c.splits %}<tr><td>{{ p.name }}</td><td>{{ p.n }}</td><td>{{ p.strike }}</td><td>{{ p.whiff }}</td><td>{{ p.csw }}</td></tr>{% endfor %}</table>
 <p class="n" style="margin-top:8px;">Calling tendencies reflect the whole battery (pitcher and catcher together), since the pitcher can shake off or call his own game.</p></div></div>
