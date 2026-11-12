@@ -106,8 +106,8 @@
 <div class="cols">
 <div class="colL">
 {% if b.movement_html %}<div class="pn pmp-panel"><div class="pn-t">Pitch Movement Profile</div>{% if can_retag %}<div class="rt-bar"><button type="button" id="rtOn" title="Pick pitches on the plot and change their pitch type">&#9998; Retag pitches</button></div>{% endif %}
-  {% if b.movement_views %}<div class="seg" role="tablist" aria-label="Batter side">{% for v in b.movement_views %}<button type="button" class="{{ 'on' if loop.first }}" data-hand="{{ v.key }}">{{ v.label }} <small>{{ v.n }}</small></button>{% endfor %}</div>
-  {% for v in b.movement_views %}<div class="pmp-view" data-hand="{{ v.key }}"{% if not loop.first %} style="display:none;"{% endif %}>{{ v.html|safe }}</div>{% endfor %}
+  {% if b.movement_views %}{% set _o = (b.movement_views|selectattr('key','equalto','L')|list) + (b.movement_views|selectattr('key','equalto','all')|list) + (b.movement_views|selectattr('key','equalto','R')|list) %}<div style="text-align:center;"><div class="seg" role="tablist" aria-label="Batter side">{% for v in _o %}<button type="button" class="{{ 'on' if v.key == 'all' }}" data-hand="{{ v.key }}">{{ v.label }} <small>{{ v.n }}</small></button>{% endfor %}</div></div>
+  {% for v in b.movement_views %}<div class="pmp-view" data-hand="{{ v.key }}"{% if v.key != 'all' %} style="display:none;"{% endif %}>{{ v.html|safe }}</div>{% endfor %}
   <script>(function(){var p=document.currentScript.parentNode;p.querySelectorAll('.seg button').forEach(function(b){b.onclick=function(){p.querySelectorAll('.seg button').forEach(function(x){x.classList.toggle('on',x===b);});p.querySelectorAll('.pmp-view').forEach(function(v){v.style.display=v.dataset.hand===b.dataset.hand?'':'none';});};});})();</script>
   {% else %}{{ b.movement_html|safe }}{% endif %}</div>{% endif %}
 {% if b.effect %}<div class="pn"><div class="pn-t">Pitch Effectiveness</div><div class="pn-s">Every pitch he throws, split by the batter's side &middot; grey rows are under 10 pitches</div>
@@ -122,8 +122,8 @@
 <div class="colR">
 {% if b.location_html %}<div class="pn loc-wrap"><div class="pn-t">Pitch Location</div><div class="pn-s">Catcher's view &middot; vs left- and right-handed batters</div>{{ b.location_html|safe }}</div>{% endif %}
 {% if b.zone_ev %}<div class="pn zg-panel"><div class="pn-t">Exit Velocity by Location</div><div class="pn-s">How hard each pitch gets hit and how often hitters swing and miss, in each pocket of the strike zone &middot; pitches in the zone only</div>
-  {% if b.zone_ev.sides|length > 1 %}<div class="seg wrap zg-sides" role="tablist" aria-label="Batter side">{% for sd in b.zone_ev.sides %}<button type="button" class="{{ 'on' if loop.first }}" data-s="{{ sd.key }}">{{ sd.label }} <small>{{ sd.n }}</small></button>{% endfor %}</div>{% endif %}
-  {% for sd in b.zone_ev.sides %}<div class="zg-side-blk" data-s="{{ sd.key }}"{% if not loop.first %} style="display:none;"{% endif %}>
+  {% if b.zone_ev.sides|length > 1 %}{% set _o = (b.zone_ev.sides|selectattr('key','equalto','L')|list) + (b.zone_ev.sides|selectattr('key','equalto','all')|list) + (b.zone_ev.sides|selectattr('key','equalto','R')|list) %}<div style="text-align:center;"><div class="seg wrap zg-sides" role="tablist" aria-label="Batter side">{% for sd in _o %}<button type="button" class="{{ 'on' if sd.key == 'all' }}" data-s="{{ sd.key }}">{{ sd.label }} <small>{{ sd.n }}</small></button>{% endfor %}</div></div>{% endif %}
+  {% for sd in b.zone_ev.sides %}<div class="zg-side-blk" data-s="{{ sd.key }}"{% if sd.key != 'all' %} style="display:none;"{% endif %}>
   {% if sd.views|length > 1 %}<div class="seg zg-types" style="margin-top:6px" role="tablist" aria-label="Pitch type">{% for v in sd.views %}<button type="button" class="{{ 'on' if loop.first }}" data-v="{{ v.key }}">{% if v.color %}<i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:{{ v.color }};margin-right:5px;"></i>{% endif %}{{ v.label }} <small>{{ v.n }}</small></button>{% endfor %}</div>{% endif %}
   {% for v in sd.views %}<div class="zg-view" data-v="{{ v.key }}"{% if not loop.first %} style="display:none;"{% endif %}>{{ v.html|safe }}</div>{% endfor %}</div>{% endfor %}
   <div class="zg-key"><span>Softer contact</span><i></i><span>Harder contact</span></div>
