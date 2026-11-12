@@ -29,6 +29,9 @@
   .cp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;} .cp-gt{font:700 11px Oswald,sans-serif;letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px;color:#22303a;}
   .cp-g label{display:block;font-size:13px;padding:2px 0;cursor:pointer;} .cp-g small{color:var(--muted);}
   .cp-act{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;border-top:1px solid #eef1f0;padding-top:12px;} .cp-act input[type=text]{padding:8px 12px;border:1px solid var(--line);border-radius:999px;min-width:230px;font:500 13px Barlow,sans-serif;}
+  /* group separators: a clear vertical rule where each stat section starts, plus a note that the table scrolls sideways */
+  th.gs,td.gs{border-left:2px solid #aab6bd;} thead tr.g th.gs{border-left:2px solid #aab6bd;} thead tr.g th[data-g]{box-shadow:inset 0 -3px 0 var(--teal);}
+  .scrollnote{display:none;align-items:center;justify-content:flex-end;gap:6px;margin:0 2px 8px;font:600 12.5px 'Barlow',sans-serif;color:var(--muted);} .scrollnote.on{display:flex;} .scrollnote b{display:inline-block;animation:nudge 1.4s ease-in-out infinite;color:var(--accent-ink,#5c97a8);font-size:15px;} @keyframes nudge{0%,100%{transform:translateX(0);}50%{transform:translateX(5px);}} @media print{.scrollnote{display:none!important;}}
   .ptitle{display:none;}
   @media print{
     @page{size:landscape;margin:.35in;}
@@ -54,6 +57,7 @@
   </div>
   <div class="ptitle">{{ team_label }} &middot; {{ title }} &middot; <span id="pdate"></span></div>
   {% if not rows %}<p style="color:var(--muted);margin-top:24px;">No {{ title|lower }} tracked for this team yet. They appear automatically once a session is uploaded.</p>{% else %}
+  <div class="scrollnote" id="sn">Scroll right to see more stats <b>&rarr;</b></div>
   <div class="tw"><table id="st"><thead>
     <tr class="g"><th class="jn"></th><th class="nm"></th>{% if side != 'pitching' and stats_mode != 'basic' %}<th></th>{% endif %}{% for g in groups %}<th colspan="{{ g.n }}" data-g="{{ g.name }}">{{ g.name }}</th>{% endfor %}</tr>
     <tr class="c"><th class="jn s" data-t="n" title="Jersey number: not entered yet.">#</th><th class="nm s" data-t="s">Name</th>{% if side != 'pitching' and stats_mode != 'basic' %}<th class="s" data-t="n" title="Pitches: total pitches seen.">Seen</th>{% endif %}{% for c in cols %}<th class="s" data-t="n" data-c="{{ c.id }}"{% if c.id in low_ids %} data-low="1"{% endif %} title="{{ c.label }}: {{ c.def }}">{{ c.abbr }}</th>{% endfor %}</tr></thead>
@@ -76,13 +80,19 @@ hs.forEach(function(h,i){h.addEventListener('click',function(){var asc=h.classLi
 var SIDE="{{ side }}",PROG="{{ program }}",SAVED={{ colsets|tojson }},sets=SAVED.sets||{},active=SAVED.active||'';
 var panel=document.getElementById('colPanel'),boxes=[].slice.call(panel.querySelectorAll('input[type=checkbox]')),msg=document.getElementById('cpMsg');
 var allIds=boxes.map(function(b){return b.value;});
+var order={{ cols|map(attribute='id')|list|tojson }},grp={{ (cols|map(attribute='group')|list)|tojson }};
+
 function apply(ids){var on={};ids.forEach(function(i){on[i]=1;});
  t.querySelectorAll('[data-c]').forEach(function(el){el.style.display=on[el.dataset.c]?'':'none';});
  boxes.forEach(function(b){b.checked=!!on[b.value];});
  var gr=t.querySelectorAll('thead tr.g th[data-g]');
- var order={{ cols|map(attribute='id')|list|tojson }},grp={{ (cols|map(attribute='group')|list)|tojson }};
  var cnt={};order.forEach(function(id,i){if(on[id])cnt[grp[i]]=(cnt[grp[i]]||0)+1;});
- gr.forEach(function(g){var n=cnt[g.dataset.g]||0;g.style.display=n?'':'none';g.colSpan=n||1;});}
+ gr.forEach(function(g){var n=cnt[g.dataset.g]||0;g.style.display=n?'':'none';g.colSpan=n||1;});marks(on);if(window.chkScroll)chkScroll();}
+function marks(on){t.querySelectorAll('.gs').forEach(function(e){e.classList.remove('gs');});var prev=null,firstOf={};
+ order.forEach(function(id,i){if(on[id]&&grp[i]!==prev){firstOf[grp[i]]=id;prev=grp[i];t.querySelectorAll('[data-c="'+id+'"]').forEach(function(e){e.classList.add('gs');});}});
+ t.querySelectorAll('thead tr.g th[data-g]').forEach(function(g){if(firstOf[g.dataset.g])g.classList.add('gs');});}
+var tw=t.parentNode,sn=document.getElementById('sn');window.chkScroll=function(){if(!sn)return;sn.classList.toggle('on',tw.scrollWidth>tw.clientWidth+8&&tw.scrollLeft<24);};
+tw.addEventListener('scroll',chkScroll,{passive:true});window.addEventListener('resize',chkScroll);
 function checked(){return boxes.filter(function(b){return b.checked;}).map(function(b){return b.value;});}
 boxes.forEach(function(b){b.addEventListener('change',function(){active='';render();apply(checked());});});
 function persist(){fetch('/team/'+PROG+'/'+SIDE+'/colsets',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sets:sets,active:active})}).then(function(r){msg.textContent=r.ok?'Saved.':'Could not save.';}).catch(function(){msg.textContent='Could not save.';});}
@@ -99,7 +109,7 @@ document.getElementById('prBtn').onclick=function(){window.print();};
 var d=new Date();document.getElementById('pdate').textContent=d.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'});
 window.addEventListener('beforeprint',function(){var w=t.parentNode.scrollWidth,tw=t.scrollWidth;t.style.zoom='';var avail=1000;if(tw>avail)t.style.zoom=(avail/tw).toFixed(3);});
 window.addEventListener('afterprint',function(){t.style.zoom='';});
-render();if(active&&sets[active])apply(sets[active]);
+render();apply(active&&sets[active]?sets[active]:allIds);
 })();
 </script>
 </body></html>
