@@ -6,19 +6,13 @@
 </head><body><div class="ov">
 <div class="top"><a class="bk" href="{{ back_url }}">&larr; Hitters</a><span class="acts"><button class="btn ghost" type="button" onclick="window.print()">Print scouting sheet</button>{% include '_usermenu.html' %}</span></div>
 {% set s = r.stats %}{% set sp = r.spray %}
-<div class="head">
-  <div class="hs">{% if logo %}<img src="{{ logo }}" alt="">{% else %}<span>{{ initials }}</span>{% endif %}</div>
-  <div><h1>{{ h.name }}</h1>
-    <div class="sub"><b>Hitter</b> &middot; {{ h.opponent }}{% if h.bio.bats %} &middot; Bats {{ 'Switch' if h.bio.bats == 'S' else h.bio.bats }}{% endif %}</div>
-    <div class="sub" style="font-size:13px;">{{ r.n }} pitches seen{% if h.dates %} &middot; {{ h.dates|length }} session{{ 's' if h.dates|length != 1 }} ({{ h.dates[0] }}{% if h.dates|length > 1 %} to {{ h.dates[-1] }}{% endif %}){% endif %}</div></div>
-  <div class="chips">
+{% set name = h.name %}{% set opp = h.opponent %}{% set bats = h.bio.bats %}{% set dates = h.dates %}{% set n_label = r.n ~ ' pitches seen' %}{% include '_scout_head.html' %}
+<div class="chips" style="margin-top:12px;">
     <div class="chip2"><b>{{ '%.0f%%'|format(r.all.swing) if r.all.swing is not none else '—' }}</b><span>Swing %</span></div>
     <div class="chip2"><b>{{ '%.0f%%'|format(r.all.whiff) if r.all.whiff is not none else '—' }}</b><span>Whiff %</span></div>
     <div class="chip2"><b>{{ '%.0f%%'|format(r.all.chase) if r.all.chase is not none else '—' }}</b><span>Chase %</span></div>
     <div class="chip2"><b>{{ '%.0f'|format(r.all.ev) if r.all.ev is not none else '—' }}</b><span>Avg exit velo</span></div>
-  </div>
 </div>
-{% include '_scout_bio.html' %}
 {% include '_scout_notes.html' %}
 {% if r.small %}<div class="small-warn">Small sample ({{ r.n }} pitches). Read this as a first look; it gets sharper with every game you upload.</div>{% endif %}
 <div class="cols">

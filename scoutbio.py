@@ -132,6 +132,9 @@ def from_roster(name, program=None, ctx=None):
     y = norm_year(p.get('class_year'))
     if y:
         out['y'], out['ys'] = y, school_year(upd)
+    for k, f in (('pos', 'position'), ('home', 'hometown'), ('thr', 'throws'), ('bat', 'bats')):
+        if p.get(f):
+            out[k] = p[f]
     return out
 
 
@@ -147,6 +150,9 @@ def resolved(program, key, name, ctx=None):
     for k in ('h', 'w'):
         if k not in out and rost.get(k):
             out[k], out['src'][k] = rost[k], 'roster'
+    for k in ('pos', 'home', 'thr', 'bat'):
+        if rost.get(k):
+            out[k] = rost[k]
     base, bys, from_roster_y = None, None, False
     if mine.get('y'):
         base, bys = mine['y'], mine.get('ys') or school_year(mine.get('at'))

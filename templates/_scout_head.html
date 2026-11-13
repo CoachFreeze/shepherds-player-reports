@@ -1,0 +1,17 @@
+{# The scouted player's bio card, built like every team bio card (photo/badge circle, name, position · school · class, Throws/Bats · height · weight, session line, Edit Profile).
+   Needs: name, is_pitcher, opp (team name), logo, logo_bg, initials, sbio, program, note_key, back_url, dates, n_label ("pitches tracked" etc.), plus throws (pitcher) or bats (hitter). #}
+{% set cls = sbio.y if sbio.y else ('Graduated' if sbio.gone else None) %}
+{% set pos_txt = (('RHP' if throws == 'R' else 'LHP' if throws == 'L' else 'Pitcher') if is_pitcher else (sbio.pos or 'Hitter')) %}
+{% set thr = (throws if is_pitcher else None) or sbio.thr %}
+{% set bt = (bats if not is_pitcher else None) or sbio.bat %}
+<div class="head" style="position:relative;">
+  <div class="hs">{% if logo %}<img src="{{ logo }}" alt="" style="width:100%;height:100%;object-fit:contain;padding:18%;background:{{ logo_bg or '#fff' }};">{% else %}<span>{{ initials }}</span>{% endif %}</div>
+  <div style="flex:1;min-width:220px;">
+    <h1>{{ name }}</h1>
+    <div class="sub"><b>{{ pos_txt }}</b> &middot; {{ opp }}{% if cls %} &middot; {{ cls }}{% endif %}</div>
+    <div class="sub">{% set bits = [] %}{% if bt %}{% set _ = bits.append('<b>Bats:</b> ' ~ {'R':'Right','L':'Left','S':'Switch'}.get(bt, bt)) %}{% endif %}{% if thr %}{% set _ = bits.append('<b>Throws:</b> ' ~ {'R':'Right','L':'Left'}.get(thr, thr)) %}{% endif %}{% if sbio.h %}{% set _ = bits.append((sbio.h // 12)|int ~ "'" ~ ((sbio.h % 12)|round(1))|string|replace('.0', '') ~ '"') %}{% endif %}{% if sbio.w %}{% set _ = bits.append(sbio.w ~ ' lb') %}{% endif %}{% if sbio.home %}{% set _ = bits.append(sbio.home) %}{% endif %}{{ bits|join(' &middot; ')|safe if bits else '' }}{% if not bits %}<span class="noprint">No height or weight yet</span>{% endif %}</div>
+    <div class="rng">{{ n_label }}{% if dates %} &middot; {{ dates|length }} session{{ 's' if dates|length != 1 }} &middot; {{ dates[0] }}{% if dates|length > 1 %} to {{ dates[-1] }}{% endif %}{% endif %}{% if is_pitcher and slot %} &middot; Arm angle {{ '%.0f'|format(slot.angle) }}&deg; ({{ slot.label }}){% elif is_pitcher %}<span class="noprint"> &middot; {{ 'no release data in these files, so no arm angle' if sbio.h else 'add a height to see his arm angle' }}</span>{% endif %}</div>
+    <div class="photo-form noprint"><button type="button" class="editbtn" id="sbb" onclick="document.getElementById('sbf').style.display='flex';this.style.display='none';">Edit Profile</button></div>
+  </div>
+</div>
+{% include '_scout_bio.html' %}

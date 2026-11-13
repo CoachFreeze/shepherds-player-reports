@@ -7,19 +7,13 @@
 <style>.loc-wrap svg,.pmp-panel svg{max-width:100%;height:auto;} .pmp-panel svg{width:92%;max-width:560px;display:block;margin:0 auto;} .pmp-panel .movement-legend{margin:14px 8px 0;}</style>
 </head><body><div class="ov">
 <div class="top"><a class="bk" href="{{ back_url }}">&larr; Pitchers</a><span class="acts"><button class="btn ghost" type="button" onclick="window.print()">Print scouting sheet</button>{% include '_usermenu.html' %}</span></div>
-<div class="head">
-  <div class="hs">{% if logo %}<img src="{{ logo }}" alt="">{% else %}<span>{{ initials }}</span>{% endif %}</div>
-  <div><h1>{{ name }}</h1>
-    <div class="sub"><b>{{ 'RHP' if throws == 'R' else 'LHP' if throws == 'L' else 'Pitcher' }}</b> &middot; {{ opp }}</div>
-    <div class="sub" style="font-size:13px;">{{ r.n }} pitches tracked{% if dates %} &middot; {{ dates|length }} session{{ 's' if dates|length != 1 }} ({{ dates[0] }}{% if dates|length > 1 %} to {{ dates[-1] }}{% endif %}){% endif %}</div></div>
-  <div class="chips">
+{% set n_label = r.n ~ ' pitches tracked' %}{% include '_scout_head.html' %}
+<div class="chips" style="margin-top:12px;">
     <div class="chip2"><b>{{ '%.1f'|format(fb_velo) if fb_velo else '—' }}</b><span>Fastball avg</span></div>
     <div class="chip2"><b>{{ '%.1f'|format(top_velo) if top_velo else '—' }}</b><span>Top velo</span></div>
     <div class="chip2"><b>{{ '%.0f%%'|format(r.zone_pct) if r.zone_pct is not none else '—' }}</b><span>In zone</span></div>
     <div class="chip2"><b>{{ '%.0f%%'|format(r.whiff) if r.whiff is not none else '—' }}</b><span>Whiff %</span></div>
-  </div>
 </div>
-{% include '_scout_bio.html' %}
 {% include '_scout_notes.html' %}
 {% if r.small %}<div class="small-warn">Small sample ({{ r.n }} pitches). Read this as a first look; it gets sharper with every game you upload.</div>{% endif %}
 <div class="cols">

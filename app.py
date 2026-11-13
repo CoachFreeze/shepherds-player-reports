@@ -2052,6 +2052,14 @@ def _opp_own_logo(program, opp_slug):
     return src[1] if src and src[0] in ('custom', 'builtin') else None
 
 
+def _opp_logo_bg(program, opp_slug, label):
+    """Backing colour behind the opponent's logo, the same one team cards use for that school's badge (white for an uploaded logo)."""
+    if _opp_own_logo(program, opp_slug):
+        return '#fff'
+    b = pipeline.school_badge_file(label, None)
+    return b[1] if b else '#fff'
+
+
 def _opp_logo_url(program, opp_slug, label):
     """URL of the opponent's logo (a coach's upload, that team's own logo, else the school library), or None."""
     p = _opp_own_logo(program, opp_slug)
@@ -2220,7 +2228,7 @@ def scouting_pitcher(slug):
     fb = next((t_ for t_ in tm if any(k in t_['type'].lower() for k in ('seam', 'sinker'))), None)
     css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
     g.theme_program = prog
-    return render_template('scout_pitcher.html', name=nm, opp=opp, r=rep, css=css, initials=_initials(nm), logo=_opp_logo_url(prog, opp_slug, opp),
+    return render_template('scout_pitcher.html', name=nm, opp=opp, r=rep, css=css, initials=_initials(nm), logo=_opp_logo_url(prog, opp_slug, opp), logo_bg=_opp_logo_bg(prog, opp_slug, opp), opp_name=opp,
                            throws=(meta.get('throws') or '')[:1].upper(), arsenal=tm, fb_velo=(fb or {}).get('velo'),
                            top_velo=max([t_['top_velo'] for t_ in tm if t_.get('top_velo')] or [0]) or None,
                            dates=sorted({(r.get('Date') or '')[:10] for r in rows if r.get('Date')}),
@@ -2244,7 +2252,7 @@ def _scout_hitter_page(key, h):
     rep = scoutplan.hitter_report(ps, bats=bats if bats in ('L', 'R') else None)
     opp = h['opponent']
     return render_template('scout_hitter.html', h=h, r=rep, zone_svg=scoutplan.zone_map_svg(rep['cells'], bats=bats if bats in ('L', 'R') else None),
-                           initials=_initials(h['name']), logo=_opp_logo_url(prog, h['opp_slug'], opp), program=prog, note_key=key,
+                           initials=_initials(h['name']), logo=_opp_logo_url(prog, h['opp_slug'], opp), logo_bg=_opp_logo_bg(prog, h['opp_slug'], opp), program=prog, note_key=key,
                            sbio=scoutbio.resolved(prog, key, h['name']), is_pitcher=False, slot=None,
                            note=scoutnotes.get(prog, key), back_url=url_for('team_scouting_hitters', program=prog, opp=h['opp_slug']))
 
