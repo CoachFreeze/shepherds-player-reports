@@ -4,7 +4,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>{{ css }}</style>
 {% include '_scout_css.html' %}
-<style>.loc-wrap svg{max-width:100%;height:auto;}</style>
+<style>.loc-wrap svg,.pmp-panel svg{max-width:100%;height:auto;} .pmp-panel svg{width:92%;max-width:560px;display:block;margin:0 auto;} .pmp-panel .movement-legend{margin:14px 8px 0;}</style>
 </head><body><div class="ov">
 <div class="top"><a class="bk" href="{{ back_url }}">&larr; Pitchers</a><span class="acts"><button class="btn ghost" type="button" onclick="window.print()">Print scouting sheet</button>{% include '_usermenu.html' %}</span></div>
 <div class="head">
@@ -36,6 +36,7 @@
       <div style="font-size:11.5px;color:#6b7680;margin-top:3px;text-align:left;">{% for t in arsenal %}{% set v = m.mix.get(t.type) or 0 %}{% if v >= 8 %}{{ t.type }} {{ '%.0f'|format(v) }}%{{ ' · ' if not loop.last }}{% endif %}{% endfor %}</div></td></tr>{% endfor %}</table></div></div>
 </div>
 <div>
+  {% if movement_html %}<div class="pn pmp-panel"><div class="pn-t">Pitch Movement Profile{{ info('pitch_movement') }}</div>{{ movement_html|safe }}</div>{% endif %}
   {% if location_html %}<div class="pn loc-wrap"><div class="pn-t">Pitch Location</div><div class="pn-s">Catcher's view &middot; vs left- and right-handed batters</div>{{ location_html|safe }}</div>{% endif %}
   {% if effect %}<div class="pn"><div class="pn-t">Pitch Effectiveness</div><div class="pn-s">How hitters did against each pitch, split by batter side &middot; grey rows are under 10 pitches</div>
     {% for s in effect %}<div style="font:700 20px 'Oswald',sans-serif;margin:14px 4px 0;">{{ s.title }}<small style="font:600 12px 'Barlow',sans-serif;color:#8a959b;margin-left:6px;">{{ s.n }} pitches</small></div>
@@ -47,4 +48,4 @@
 </div>
 </div>
 {% include '_mvtip.html' %}
-</body></html>
+{% include '_info_ui.html' %}</body></html>

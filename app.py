@@ -2099,6 +2099,23 @@ def _initials(name):
     return ((w[0][:1] + w[-1][:1]) if len(w) > 1 else (w[0][:2] if w else '')).upper()
 
 
+
+def _scout_movement_html(tm):
+    """The Pitch Movement Profile for an opposing pitcher: every tracked pitch's break, no retag controls, and no
+    arm-angle badge (an opponent has no listed height)."""
+    import overview as ov_mod
+    pts = [{'type': t['type'], 'color': t['color'], 'hb': t['hb'], 'vb': t['ivb'], 'points': [(h, v, ve) for h, v, ve in t['points']]}
+           for t in tm if t.get('points') and t.get('hb') is not None and t.get('ivb') is not None]
+    if not pts:
+        return ''
+    n_all = sum(len(p['points']) for p in pts)
+    shown = ov_mod._sample_points(pts)
+    n_shown = sum(len(p['points']) for p in shown)
+    note = (f'<div style="text-align:center;font-size:12px;color:#6b7680;margin:2px 0 4px;">Showing a {n_shown}-pitch sample of {n_all}. Averages use every pitch.</div>' if n_shown < n_all else '')
+    return (sc_mod.movement_plot_caption_html() + note + sc_mod.movement_plot_svg(shown, width=680, height=680, all_pitches=True, r24_frac=0.80, font_scale=1.3, pt_r=9)
+            + sc_mod.pitch_usage_legend_html(tm))
+
+
 @app.route('/scouting/pitcher/<slug>')
 @login_required
 def scouting_pitcher(slug):
@@ -2134,6 +2151,7 @@ def scouting_pitcher(slug):
                            top_velo=max([t_['top_velo'] for t_ in tm if t_.get('top_velo')] or [0]) or None,
                            dates=sorted({(r.get('Date') or '')[:10] for r in rows if r.get('Date')}),
                            location_html=sc_mod.location_heatmap_html(tm, width=340, uid='loc'),
+                           movement_html=_scout_movement_html(tm),
                            effect=pitchfx.effectiveness(rows, [t_['type'] for t_ in tm], colors),
                            program=prog, note_key='p--' + slug, note=scoutnotes.get(prog, 'p--' + slug), back_url=url_for('team_scouting_pitchers', program=prog, opp=opp_slug))
 
