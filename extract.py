@@ -822,6 +822,70 @@ def _shoulder_fracs(release_frac):
     return pts[-1][1], pts[-1][2]
 
 
+# ---- Arm angle, v2 (fit to Baseball Savant's measured shoulder positions, 219 MLB pitchers, 2026) ----------------
+# In Savant's data the shoulder is predictable from release height (height 0.19 ft, side 0.18 ft left over), and the
+# shoulder-to-ball distance is almost constant (2.32 ft +/- 0.11, from submarine to over the top): the arm is a rigid
+# rod. TrackMan's release side is measured from the middle of the rubber, so it also carries wherever the pitcher
+# happens to stand on the rubber (a foot either way), which Savant's shoulder-relative numbers do not. So the angle is
+# solved from all of it together: the shoulder sits near where Savant's pitchers put it for that release height, the
+# hand is one arm length from it, and the release side may be off by a stance offset (sd 0.4 ft). Cross-validated on
+# the 217 MLB pitchers with a release above 4.7 ft this is within about 6 degrees (RMS), and unlike a pure
+# release-side formula it stays within about 7 when release side is off by half a foot (that one goes to 9+).
+# Everything is scaled by (reference height / his height) first, because the angle is unchanged by scaling.
+# Releases below about 4.4 ft (few MLB examples) keep the older height-fraction model, blended across 4.4-4.9 ft.
+_REF_H = 6.25                                   # ft: roughly the average MLB pitcher
+_FZ = (0.12229, -1.05693, 6.35941)              # shoulder height = FZ[0]*h^2 + FZ[1]*h + FZ[2]   (h = release height)
+_FX = (0.00588, -0.40254, 2.21525)              # shoulder, toward the arm side of the rubber
+_SD_Z, _SD_X, _D0, _SD_D, _SD_T = 0.189, 0.1767, 2.3168, 0.1087, 0.4
+
+
+def _fused_angle(side, h):
+    """side: arm-side release distance from the middle of the rubber, h: release height, both already scaled to the
+    reference height. Damped Gauss-Newton on (shoulder x, shoulder z, stance offset t)."""
+    mz = _FZ[0] * h * h + _FZ[1] * h + _FZ[2]
+    mx = _FX[0] * h * h + _FX[1] * h + _FX[2]
+    x, z, t, lam = mx, mz, 0.0, 1.0
+
+    def cost(x, z, t):
+        d = math.hypot(side - t - x, h - z)
+        return ((x - mx) / _SD_X) ** 2 + ((z - mz) / _SD_Z) ** 2 + (t / _SD_T) ** 2 + ((d - _D0) / _SD_D) ** 2
+
+    c = cost(x, z, t)
+    for _ in range(40):
+        dx_, dz_ = (side - t - x), (h - z)
+        d = math.hypot(dx_, dz_) or 1e-9
+        r = [(x - mx) / _SD_X, (z - mz) / _SD_Z, t / _SD_T, (d - _D0) / _SD_D]
+        J = [[1 / _SD_X, 0, 0], [0, 1 / _SD_Z, 0], [0, 0, 1 / _SD_T], [-dx_ / d / _SD_D, -dz_ / d / _SD_D, -dx_ / d / _SD_D]]
+        A = [[sum(J[k][i] * J[k][j] for k in range(4)) for j in range(3)] for i in range(3)]
+        g = [sum(J[k][i] * r[k] for k in range(4)) for i in range(3)]
+        for i in range(3):
+            A[i][i] *= (1 + lam)
+        # solve A step = -g (3x3, Cramer's rule)
+        def det(m):
+            return (m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
+                    + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]))
+        D = det(A)
+        if abs(D) < 1e-12:
+            break
+        step = []
+        for i in range(3):
+            M = [row[:] for row in A]
+            for k in range(3):
+                M[k][i] = -g[k]
+            step.append(det(M) / D)
+        nc = cost(x + step[0], z + step[1], t + step[2])
+        if nc < c:
+            x, z, t, c, lam = x + step[0], z + step[1], t + step[2], nc, max(lam * 0.4, 1e-6)
+            if max(abs(v) for v in step) < 1e-5:
+                break
+        else:
+            lam *= 4
+            if lam > 1e8:
+                break
+    reach = side - t - x
+    return math.degrees(math.atan2(h - z, reach if reach > 0.05 else 0.05))
+
+
 def arm_slot_label(angle):
     if angle is None:
         return None
@@ -847,11 +911,15 @@ def arm_slot_stats(release, height_in):
     mean_side = sum(r['s'] for r in release) / len(release)
     sgn = 1 if mean_side >= 0 else -1            # +1: arm-side release is on the positive RelSide
     per = []
+    k = _REF_H / H
     for r in release:
         sf, of = _shoulder_fracs(r['h'] / H)
         sh_y, sh_x = sf * H, of * H
-        reach = r['s'] * sgn - sh_x                 # horizontal distance shoulder -> hand
-        a = math.degrees(math.atan2(r['h'] - sh_y, reach)) if reach > 0.05 else 90.0
+        reach = r['s'] * sgn - sh_x                 # horizontal distance shoulder -> hand (older model, used for low releases)
+        a_old = math.degrees(math.atan2(r['h'] - sh_y, reach)) if reach > 0.05 else 90.0
+        hs = r['h'] * k
+        w = max(0.0, min(1.0, (hs - 4.4) / 0.5))    # 0 below 4.4 ft (older model), 1 above 4.9 ft (fitted to Savant)
+        a = a_old if w <= 0 else (w * _fused_angle(r['s'] * sgn * k, hs) + (1 - w) * a_old)
         per.append(max(-80.0, min(100.0, a)))
     # A pitcher who throws from two slots: describe the one he uses most (angles within 20 deg of the median)
     med = sorted(per)[len(per) // 2]
@@ -864,9 +932,12 @@ def arm_slot_stats(release, height_in):
     avg_s = sum(abs(r['s']) for r in release) / len(release)
     exts = [r['ext'] for r in release if r.get('ext') is not None]
     ang = sum(angles) / len(angles)
-    return {'angle': ang, 'label': arm_slot_label(ang), 'rel_height': avg_h, 'rel_side': avg_s,
+    sd = (sum((a - ang) ** 2 for a in angles) / len(angles)) ** 0.5
+    half = max(6.0, sd)                              # honest plus/minus: the model is good to about 6 degrees, more if his slot moves around
+    return {'angle': ang, 'range': (max(-80.0, ang - half), min(90.0, ang + half)), 'limited': len(angles) < 15,
+            'label': arm_slot_label(ang), 'rel_height': avg_h, 'rel_side': avg_s,
             'extension': (sum(exts) / len(exts)) if exts else None, 'n': len(angles),
-            'sd': (sum((a - ang) ** 2 for a in angles) / len(angles)) ** 0.5,
+            'sd': sd,
             'height_in': height_in, 'shoulder_y': sh_y, 'shoulder_x': sh_x, 'sgn': sgn, 'other_slot_n': other_n,
             'points': [{'type': r['type'], 'h': r['h'], 's': r['s']} for r in release]}
 

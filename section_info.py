@@ -13,7 +13,7 @@ INFO = {
         'These are the fastest read on whether he is throwing strikes, missing bats and getting hitters to expand the zone.'),
     'pitch_movement': (
         'How each pitch moves: horizontal break against induced vertical break (the movement beyond what gravity alone would do), with one dot per pitch.',
-        'Dots come from the tracked movement of each pitch, grouped and colored by pitch type. Large samples are thinned to a representative set of dots; the averages in the table use every pitch. The arm-angle badge is his release slope.',
+        'Dots come from the tracked movement of each pitch, grouped and colored by pitch type. Large samples are thinned to a representative set of dots; the averages in the table use every pitch. The arm-angle badge is his release slope, estimated from his release height and side and his listed height. Measured against Baseball Savant\'s pose-tracked angles, this runs within about 6 degrees of it, and steep slots tend to read a few degrees low. Short samples are less reliable.',
         'Pitches with a distinct shape are harder to sit on. Overlapping clusters mean two pitches look alike to a hitter, and stray dots can point to a mis-tagged pitch.'),
     'pitch_effectiveness': (
         'How each of his pitch types performs, split by whether the batter is left- or right-handed.',
