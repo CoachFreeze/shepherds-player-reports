@@ -18,6 +18,7 @@
     <div class="chip2"><b>{{ '%.0f'|format(r.all.ev) if r.all.ev is not none else '—' }}</b><span>Avg exit velo</span></div>
   </div>
 </div>
+{% include '_scout_bio.html' %}
 {% include '_scout_notes.html' %}
 {% if r.small %}<div class="small-warn">Small sample ({{ r.n }} pitches). Read this as a first look; it gets sharper with every game you upload.</div>{% endif %}
 <div class="cols">

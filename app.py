@@ -28,6 +28,8 @@ import shares
 import cleanup
 import scouting
 import scoutnotes
+import scoutbio
+import scoutroster
 import gamenotes
 import scoutplan
 import pitchfx
@@ -575,6 +577,9 @@ def _build_groups():
         _b = pipeline.school_badge_file(p.get('school'), p.get('program'))
         p['badge'] = {'file': _b[0], 'bg': _b[1]} if _b else None
         p['can_edit'] = can_manage(slug) and not store.is_demo(slug)
+        import classyear
+        _cs = classyear.player_state(p.get('program'), p.get('name'), (p.get('roster') or {}).get('class_year'), p.get('roster_ys'), p.get('grad_year'))
+        p['class_now'], p['graduated'], p['class_note'] = _cs['label'], _cs['graduated'], _cs['note']
         p['has_photo'] = headshots.exists(slug)
         p['photo_v'] = int(os.path.getmtime(headshots.path(slug))) if p['has_photo'] else 0
         last, first = _split_name(p['name'])
@@ -647,15 +652,37 @@ def _team_ok(program):
         abort(404)
 
 
+def _has_current_data(slug, bio, program):
+    """Did he throw or hit in the season being viewed? A graduated player who did is kept on the list (he came back)."""
+    import season
+    win = season.window(program)
+    try:
+        if any(season.in_window(o['date'], win) for o in outings_mod.outings(slug)):
+            return True
+        hk = hitting.hitter_key_for(bio.get('name'), program)
+        h = hitting._collect(False).get(hk) if hk else None
+        return bool(h and any(season.in_window(p.get('date'), win) for p in h['pitches']))
+    except Exception:
+        return True
+
+
 def _team_players_page(program, page_title, pitchers_only=False):
     groups = [g for g in _build_groups() if g[0] == program]
     if not groups:
         abort(404)
+    hidden = 0
+    if not request.args.get('grads'):             # graduated players leave the current list; their profiles and past seasons stay
+        keep_g = []
+        for k, l, pl in groups:
+            kept = [t for t in pl if not (t[1].get('graduated') and not _has_current_data(t[0], t[1], k))]
+            hidden += len(pl) - len(kept)
+            keep_g.append((k, l, kept))
+        groups = keep_g
     if pitchers_only:      # hitters who never pitched belong on the Hitters page only
         groups = [(k, l, [t for t in pl if not t[1].get('roles') or (t[1].get('roles') or {}).get('pitch')]) for k, l, pl in groups]
     return render_template('dashboard.html', mode='players', groups=[(l, p) for _, l, p in groups], team_label=groups[0][1], tiles=[],
                            is_coach=True, is_admin=is_admin(), coach_key=session.get('coach') or '', tour_next=_tour_next_player(groups),
-                           team_program=program, page_title=page_title)
+                           team_program=program, page_title=page_title, grads_hidden=hidden, grads_shown=bool(request.args.get('grads')))
 
 
 @app.route('/team/<program>')
@@ -1276,7 +1303,9 @@ def _pitcher_page(slug, bio, public=False, token=None):
         except Exception:
             wl = None
     arm_link = (not public and not is_player() and (bio.get('program') or 'shepherds') == 'shepherds')
-    return render_template('player_overview.html', ins=ins, wl=wl, arm_link=arm_link, armcare_url=__import__('armcare').URL, dr=_dr, public=public, photo_src=(url_for('public_share_photo', token=token) if public else None),
+    import classyear
+    _cs = classyear.player_state(bio.get('program'), bio.get('name'), (bio.get('roster') or {}).get('class_year'), bio.get('roster_ys'), bio.get('grad_year'))
+    return render_template('player_overview.html', class_now=_cs['label'], class_grad=_cs['graduated'], ins=ins, wl=wl, arm_link=arm_link, armcare_url=__import__('armcare').URL, dr=_dr, public=public, photo_src=(url_for('public_share_photo', token=token) if public else None),
                            share=(None if public else _share_ctx('pitcher', slug, _prog)), share_team=store.program_label(_prog) if (public and _prog) else '',
                            can_retag=can_retag, retag_types=[l for l, _ in outings_mod.RETAG_TYPES], pr_ent=(None if public else prs.for_pitcher(slug)), b=b, bio=bio, slug=slug, css=css, hitter_url=hitter_url, roles=roles, has_photo=has_photo, badge=badge,
                            photo_v=int(os.path.getmtime(headshots.path(slug))) if has_photo else 0,
@@ -1946,6 +1975,7 @@ def team_scouting_opp(program, opp):
     sessions = sorted(set(D['pitching']['sessions']) | set(D['hitting']['sessions']))
     return render_template('scout_team.html', program=program, team_label=store.program_label(program), opp=o, halves=halves,
                            last_session=sessions[-1] if sessions else None,
+                           roster_rec=scoutroster.get(program, opp), roster_msg=request.args.get('roster'), roster_n=request.args.get('n'),
                            defense=scouting.defense_data(program, opp) if is_admin() else [])   # Defensive Positioning is admin-only while in beta
 
 
@@ -2094,15 +2124,57 @@ def scout_notes_save():
     return redirect(back if back.startswith('/') and not back.startswith('//') else url_for('team_scouting', program=prog))
 
 
+@app.route('/team/<program>/scouting/<opp>/roster', methods=['POST'])
+@login_required
+@upload_required
+def scout_roster_save(program, opp):
+    """A coach uploads the opposing team's roster (PDF, Excel or CSV). Kept private to the scouting program, per opponent."""
+    blocked = _scouting_ok(program)
+    if blocked:
+        return blocked
+    _scout_opp(program, opp)
+    back = url_for('team_scouting_opp', program=program, opp=opp)
+    if request.form.get('clear'):
+        scoutroster.clear(program, opp)
+        return redirect(back + '?roster=cleared')
+    f = request.files.get('roster_file')
+    if not f or not f.filename:
+        return redirect(back + '?roster=none')
+    try:
+        players = roster_mod.parse_file(f.filename, f.read())
+    except Exception:
+        players = []
+    if not players:
+        return redirect(back + '?roster=unreadable')
+    scoutroster.save(program, opp, players, f.filename, (current_coach() or {}).get('display_name') or session.get('coach') or '')
+    return redirect(back + f'?roster=ok&n={min(len(players), scoutroster.MAX_PLAYERS)}')
+
+
+@app.route('/scout/bio', methods=['POST'])
+@login_required
+def scout_bio_save():
+    prog = request.form.get('program', '')
+    blocked = _scouting_ok(prog)
+    if blocked:
+        return blocked
+    key = request.form.get('key', '')
+    ok = key.startswith(f'scout--{prog}--') or (key.startswith('p--') and outings_mod.load(key[3:], real_only=True).get('program') == prog)
+    if not ok:
+        abort(400)
+    scoutbio.save(prog, key, scoutbio.parse(request.form), (current_coach() or {}).get('display_name') or session.get('coach') or '')
+    back = request.form.get('back', '')
+    return redirect(back if back.startswith('/') and not back.startswith('//') else url_for('team_scouting', program=prog))
+
+
 def _initials(name):
     w = [x for x in re.split(r'\s+', name or '') if x]
     return ((w[0][:1] + w[-1][:1]) if len(w) > 1 else (w[0][:2] if w else '')).upper()
 
 
 
-def _scout_movement_html(tm):
-    """The Pitch Movement Profile for an opposing pitcher: every tracked pitch's break, no retag controls, and no
-    arm-angle badge (an opponent has no listed height)."""
+def _scout_movement_html(tm, arm_badge=None):
+    """The Pitch Movement Profile for an opposing pitcher: every tracked pitch's break, no retag controls. The arm-angle badge
+    appears once a coach has typed in his height."""
     import overview as ov_mod
     pts = [{'type': t['type'], 'color': t['color'], 'hb': t['hb'], 'vb': t['ivb'], 'points': [(h, v, ve) for h, v, ve in t['points']]}
            for t in tm if t.get('points') and t.get('hb') is not None and t.get('ivb') is not None]
@@ -2112,7 +2184,7 @@ def _scout_movement_html(tm):
     shown = ov_mod._sample_points(pts)
     n_shown = sum(len(p['points']) for p in shown)
     note = (f'<div style="text-align:center;font-size:12px;color:#6b7680;margin:2px 0 4px;">Showing a {n_shown}-pitch sample of {n_all}. Averages use every pitch.</div>' if n_shown < n_all else '')
-    return (sc_mod.movement_plot_caption_html() + note + sc_mod.movement_plot_svg(shown, width=680, height=680, all_pitches=True, r24_frac=0.80, font_scale=1.3, pt_r=9)
+    return (sc_mod.movement_plot_caption_html() + note + sc_mod.movement_plot_svg(shown, width=680, height=680, all_pitches=True, r24_frac=0.80, font_scale=1.3, pt_r=9, arm_badge=arm_badge)
             + sc_mod.pitch_usage_legend_html(tm))
 
 
@@ -2140,6 +2212,8 @@ def scouting_pitcher(slug):
     meta, tm = e_mod.pitcher_trackman_summary(rows, nm)
     for t_ in tm:
         t_['color'] = e_mod.MINI_PITCH_COLORS.get(t_['type'], '#555')
+    sbio = scoutbio.resolved(prog, 'p--' + slug, nm)
+    slot = e_mod.arm_slot_stats(meta.get('release'), sbio.get('h'))
     ps = scoutplan.prep_pitcher(rows)
     rep = scoutplan.pitcher_report(ps)
     colors = {t_['type']: t_['color'] for t_ in tm}
@@ -2151,7 +2225,8 @@ def scouting_pitcher(slug):
                            top_velo=max([t_['top_velo'] for t_ in tm if t_.get('top_velo')] or [0]) or None,
                            dates=sorted({(r.get('Date') or '')[:10] for r in rows if r.get('Date')}),
                            location_html=sc_mod.location_heatmap_html(tm, width=340, uid='loc'),
-                           movement_html=_scout_movement_html(tm),
+                           movement_html=_scout_movement_html(tm, ({'angle': slot['angle'], 'throws': meta.get('throws') or 'R'} if slot else None)),
+                           sbio=sbio, slot=slot, is_pitcher=True,
                            effect=pitchfx.effectiveness(rows, [t_['type'] for t_ in tm], colors),
                            program=prog, note_key='p--' + slug, note=scoutnotes.get(prog, 'p--' + slug), back_url=url_for('team_scouting_pitchers', program=prog, opp=opp_slug))
 
@@ -2170,6 +2245,7 @@ def _scout_hitter_page(key, h):
     opp = h['opponent']
     return render_template('scout_hitter.html', h=h, r=rep, zone_svg=scoutplan.zone_map_svg(rep['cells'], bats=bats if bats in ('L', 'R') else None),
                            initials=_initials(h['name']), logo=_opp_logo_url(prog, h['opp_slug'], opp), program=prog, note_key=key,
+                           sbio=scoutbio.resolved(prog, key, h['name']), is_pitcher=False, slot=None,
                            note=scoutnotes.get(prog, key), back_url=url_for('team_scouting_hitters', program=prog, opp=h['opp_slug']))
 
 
@@ -2320,6 +2396,8 @@ def roster_page():
     if cur:
         ctx['current'] = {'n': len(cur['players']), 'source': cur.get('source'), 'updated': cur.get('updated'),
                           'rows': _roster_matches(prog, cur['players'])}
+        ctx['history'] = [{'updated': h_.get('updated'), 'source': h_.get('source'), 'season': h_.get('season'), 'n': len(h_.get('players') or []), 'players': h_.get('players') or []}
+                          for h_ in reversed(cur.get('history') or [])]
     return render_template('roster.html', **ctx)
 
 

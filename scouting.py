@@ -19,10 +19,40 @@ def _opp_pitcher_files(program):
     return [f[:-5] for f in sorted(os.listdir(d)) if f.startswith(cleanup.OPP_PREFIX) and f.endswith('.json')]
 
 
+def _returning_ctx(program):
+    """Lookups for the 'returning from last season' rule, or None when this view has no earlier season to carry forward from
+    (an older season was picked, or there is only one season)."""
+    import season
+    ss = season.seasons(program)
+    if len(ss) < 2 or season.selected(program)['key'] != ss[-1]['key']:
+        return None
+    import roster as roster_mod
+    import scoutroster
+    prev = ss[-2]
+    return {'prev': (prev['start'], prev['end']), 'cur_start': ss[-1]['start'], 'rosters': roster_mod.all_rosters(), 'scout': scoutroster.all_for(program)}
+
+
+def _carry(program, rc, opp_slug, key, name):
+    """Does a player seen only last season stay on this season's scouting page? Not once he is past Gr, and not when this season's
+    uploaded roster for his team no longer lists him. Returns (keep, class-year label or '')."""
+    import scoutbio
+    b = scoutbio.resolved(program, key, name, rc)
+    if b.get('gone'):
+        return False, ''
+    rec = rc['scout'].get(opp_slug)
+    if rec and (rec.get('updated') or '') >= (rc['cur_start'] or '') and rec.get('players'):
+        import roster as roster_mod
+        if not roster_mod.match_name(name, [(p['name'], p) for p in rec['players']]):
+            return False, ''
+    return True, b.get('y') or ''
+
+
 def opponents(program):
-    """{opp_slug: {'label', 'hitters': [...], 'pitchers': [...], 'dates': [...]}} for one program."""
+    """{opp_slug: {'label', 'hitters': [...], 'pitchers': [...], 'dates': [...]}} for one program.
+    Players seen last season and not yet this season stay on the page flagged 'returning', with their class year moved up."""
     import season
     win = season.window(program)
+    rc = _returning_ctx(program)
     out = {}
 
     def slot(label):
@@ -31,6 +61,11 @@ def opponents(program):
 
     for key, h in hitting.collect_scouting(program).items():
         if not any(season.in_window(p.get('date'), win) for p in h['pitches']):
+            if rc and any(season.in_window(p.get('date'), rc['prev']) for p in h['pitches']):
+                nm = hitting.display_name(h['name'])
+                keep, yr = _carry(program, rc, h['opp_slug'], key, nm)
+                if keep:
+                    slot(h['opponent'])['hitters'].append({'key': key, 'name': nm, 'n': len(h['pitches']), 'returning': True, 'year': yr})
             continue
         s = slot(h['opponent'])
         s['hitters'].append({'key': key, 'name': hitting.display_name(h['name']), 'n': len(h['pitches'])})
@@ -39,13 +74,14 @@ def opponents(program):
         data = outings.load(slug, real_only=True)
         if data.get('program') != program:
             continue
-        by = {}
+        by, prev_by = {}, {}
         for o in data['outings']:
-            if not season.in_window(o['date'], win):
-                continue
-            for r in o['rows']:
-                by.setdefault(r.get('Opponent') or 'Unlabeled opponent', []).append(r)
-                s_ = None
+            if season.in_window(o['date'], win):
+                for r in o['rows']:
+                    by.setdefault(r.get('Opponent') or 'Unlabeled opponent', []).append(r)
+            elif rc and season.in_window(o['date'], rc['prev']):
+                for r in o['rows']:
+                    prev_by.setdefault(r.get('Opponent') or 'Unlabeled opponent', []).append(r)
         for opp, rows in by.items():
             s = slot(opp)
             name = _flip(rows[0].get('Pitcher'))
@@ -53,6 +89,17 @@ def opponents(program):
             s['pitchers'].append({'slug': slug, 'opp': s['slug'], 'name': name, 'n': len(rows), 'top': max(velos) if velos else None,
                                   'throws': (rows[0].get('PitcherThrows') or '')[:1].upper()})
             s['dates'] |= {(r.get('Date') or '')[:10] for r in rows if r.get('Date')}
+        for opp, rows in prev_by.items():
+            if opp in by:
+                continue
+            name = _flip(rows[0].get('Pitcher'))
+            keep, yr = _carry(program, rc, store.slugify(opp) or 'unlabeled', 'p--' + slug, name)
+            if not keep:
+                continue
+            s = slot(opp)
+            velos = [float(r['RelSpeed']) for r in rows if str(r.get('RelSpeed') or '').replace('.', '', 1).isdigit()]
+            s['pitchers'].append({'slug': slug, 'opp': s['slug'], 'name': name, 'n': len(rows), 'top': max(velos) if velos else None,
+                                  'throws': (rows[0].get('PitcherThrows') or '')[:1].upper(), 'returning': True, 'year': yr})
     for s in out.values():
         s['hitters'].sort(key=lambda x: x['name'].split()[-1].lower())
         s['pitchers'].sort(key=lambda x: x['name'].split()[-1].lower())

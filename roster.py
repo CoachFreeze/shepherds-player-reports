@@ -282,10 +282,20 @@ def load(program):
         return None
 
 
+HISTORY_KEEP = 8
+
+
 def save(program, players, source=None, season=None):
+    """Stores the program's roster. The roster it replaces is kept as a dated snapshot (newest last, up to HISTORY_KEEP), unless it was
+    saved today, in which case this is a correction and just replaces it."""
     import datetime
     os.makedirs(ROSTER_DIR, exist_ok=True)
-    data = {'program': program, 'season': season, 'source': source, 'updated': datetime.date.today().isoformat(), 'players': players}
+    today = datetime.date.today().isoformat()
+    prev = load(program) or {}
+    history = list(prev.get('history') or [])
+    if prev.get('players') and prev.get('updated') != today:
+        history.append({k: prev.get(k) for k in ('season', 'source', 'updated', 'players')})
+    data = {'program': program, 'season': season, 'source': source, 'updated': today, 'players': players, 'history': history[-HISTORY_KEEP:]}
     text = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
     github_sync.atomic_write(_path(program), text)
     github_sync.put_file(f'data/rosters/{program}.json', text.encode('utf-8'))

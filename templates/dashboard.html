@@ -39,15 +39,17 @@
     </a>
   {% endfor %}</div>
   {% endif %}
+  {% if grads_hidden or grads_shown %}<p style="margin:10px 4px 0;font:500 13px 'Barlow',sans-serif;color:#6b7680;">{% if grads_shown %}Showing graduated players too. <a href="{{ request.path }}">Hide them</a>{% else %}{{ grads_hidden }} graduated player{{ 's' if grads_hidden != 1 }} not shown (profiles and past seasons are kept). <a href="{{ request.path }}?grads=1">Show them</a>{% endif %}</p>{% endif %}
   {% for label, plist in groups %}{% if plist %}
   <div class="group-title">{{ label }}</div>
   <div class="grid">
   {% for slug, p, href, last, first, pos in plist %}{% set ro = p.roster or {} %}{% set two = p.roles and p.roles.get('hit') and p.roles.get('pitch') %}
     {% set thr = ro.throws or ('R' if pos == 'RHP' else 'L' if pos == 'LHP' else None) %}
-    {% call card(href, last, first, p.school, ('Class of ' ~ p.grad_year) if p.grad_year else ro.class_year, 'TWP' if two else pos, p.height_in, p.weight_lbs,
+    {% call card(href, last, first, p.school, ('Class of ' ~ p.grad_year) if p.grad_year else (p.class_now or ('Graduated' if p.graduated else ('' if p.class_note else ro.class_year))), 'TWP' if two else pos, p.height_in, p.weight_lbs,
                  (('B/T ' ~ ro.bats ~ '/' ~ thr) if (two and ro.bats and thr) else ('Throws ' ~ thr if thr else '')),
                  (p.name ~ ' ' ~ (p.school or '') ~ ' ' ~ (pos or '') ~ ' ' ~ (p.grad_year or '') ~ (' two-way twp' if two else ''))|lower,
                  (url_for('headshot', slug=slug) ~ '?v=' ~ p.photo_v) if p.has_photo else none, p.badge, (first[:1] ~ last[:1])|upper, pr=pr_new('p', slug)) %}
+      {% if p.graduated and not p.grad_year %}<div class="links"><span style="font:700 11px 'Barlow',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#8a959b;">Graduated{% if p.class_note %} &middot; {{ p.class_note }}{% endif %}</span></div>{% endif %}
       {% if p.shep_links %}<div class="links">{% for t, u in p.shep_links %}<a href="{{ u }}">{{ t }}</a>{% endfor %}</div>{% endif %}
       {% if p.can_edit %}<div class="mg">
         <form method="post" action="{{ url_for('delete_player_route', slug=slug) }}" onsubmit="return confirm('Delete {{ p.name|e }} and all their data? This cannot be undone.');"><button type="submit" class="del">Delete</button></form></div>{% endif %}

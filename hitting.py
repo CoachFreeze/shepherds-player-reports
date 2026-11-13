@@ -1044,13 +1044,16 @@ def _bio(key, h, players_idx, bats_seen):
     pr = pl.get('roster') or {}
     cy = ov.get('class_year') or pr.get('class_year') or rost.get('class_year')
     gy = ov.get('grad_year') or pl.get('grad_year')
+    import classyear
+    _cs = classyear.player_state(h['program'], h['name'], cy, pl.get('roster_ys'), gy)
+    cy = _cs['label'] or (None if (_cs['graduated'] or _cs['note']) else cy)
     two_way = bool(pslug and (pl.get('roles') or {}).get('pitch'))       # a real pitcher profile exists too (not just a name match)
     return {'name': display_name(h['name']), 'school': h.get('school_override') or pl.get('school') or label, 'program': prog, 'position': pos, 'two_way': two_way,
             'bats': ov.get('bats') or rost.get('bats') or pr.get('bats') or bats_seen,
             'throws': ov.get('throws') or rost.get('throws') or pr.get('throws'),
             'height_in': ov.get('height_in') or pl.get('height_in') or rost.get('height_in'),
             'weight_lbs': ov.get('weight_lbs') or pl.get('weight_lbs') or rost.get('weight_lbs'),
-            'grad_year': gy, 'class_year': cy, 'class_label': (f'Class of {gy}' if gy else (cy or None)),
+            'grad_year': gy, 'class_year': cy, 'class_label': (f'Class of {gy}' if gy else (cy or ('Graduated' if _cs['graduated'] else None))), 'graduated': _cs['graduated'], 'class_note': _cs['note'],
             'number': ov.get('number') or rost.get('number') or pr.get('number'),
             'hometown': rost.get('hometown') or pr.get('hometown'),
             'pitcher_slug': pslug, 'photo_slug': pslug if (pslug and headshots.exists(pslug)) else (f'h_{key}' if headshots.exists(f'h_{key}') else None),

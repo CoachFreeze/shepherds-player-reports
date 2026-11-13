@@ -70,6 +70,16 @@
   <div class="jump"><a href="{{ url_for('team_scouting', program=program) }}">&larr; All opponents</a>{% if defense %}<a href="#defense">Defensive Positioning (Beta)</a>{% endif %}</div></div></div>
 
 <div class="wrap">
+<div class="rostbox noprint" style="background:#fff;border:1px solid #dfe7ea;border-radius:14px;padding:12px 16px;margin:12px 0;font:500 14px 'Barlow',sans-serif;color:#44525a;">
+  <b style="font:700 13px 'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#22303a;">{{ opp.label }} roster</b>
+  {% if roster_msg == 'ok' %}<span style="color:#1f7a3d;font-weight:600;"> &middot; Loaded {{ roster_n }} players.</span>{% elif roster_msg == 'cleared' %}<span> &middot; Roster removed.</span>{% elif roster_msg == 'none' %}<span style="color:#b3261e;"> &middot; Choose a file first.</span>{% elif roster_msg == 'unreadable' %}<span style="color:#b3261e;"> &middot; Couldn't read any players from that file. A PDF, Excel or CSV roster with names, class, height and weight works best.</span>{% endif %}
+  <div style="margin-top:4px;">{% if roster_rec %}{{ roster_rec.players|length }} players from {{ roster_rec.source or 'an upload' }}, uploaded {{ roster_rec.updated }}. It fills height, weight and class year on their scouted players, moves class years up each school year, and hides returning players who are no longer on it.{% else %}Upload their roster (PDF, Excel or CSV) to fill height, weight and class year on their scouted players, which also feeds each pitcher's arm angle. Next season it moves class years up for you and keeps last season's players on this page.{% endif %}</div>
+  {% if roster_rec and roster_rec.history %}<div style="margin-top:6px;font-size:12.5px;color:#6b7680;">Earlier uploads kept: {% for h in roster_rec.history|reverse %}{{ h.updated }} ({{ h.players|length }} players){{ ', ' if not loop.last }}{% endfor %}</div>{% endif %}
+  <form method="post" action="{{ url_for('scout_roster_save', program=program, opp=opp.slug) }}" enctype="multipart/form-data" style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <input type="file" name="roster_file" accept=".pdf,.xlsx,.xls,.csv" style="font:500 13px 'Barlow',sans-serif;max-width:100%;">
+    <button class="btn" type="submit" style="padding:5px 14px;">{{ 'Replace roster' if roster_rec else 'Upload roster' }}</button>
+    {% if roster_rec %}<button class="btn ghost" type="submit" name="clear" value="1" style="padding:5px 14px;" onclick="return confirm('Remove this roster?');">Remove</button>{% endif %}
+  </form></div>
 {% if not opp.logo or opp.custom %}<form class="lg" method="post" action="{{ url_for('scouting_logo_save', program=program, opp=opp.slug) }}" enctype="multipart/form-data">{{ 'Logo for ' ~ opp.label ~ ':' if not opp.logo else 'Custom logo in use.' }}<input type="file" name="logo" accept="image/png,image/jpeg,image/webp" required><button type="submit">{{ 'Replace logo' if opp.custom else 'Add logo' }}</button>{% if opp.custom %}<button type="submit" name="remove" value="1" formnovalidate>Remove</button>{% endif %}</form>{% endif %}
 <div class="cols">
 {% for H in halves %}{% set side = H.side %}{% set D = H.D %}

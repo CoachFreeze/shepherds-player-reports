@@ -19,6 +19,7 @@
     <div class="chip2"><b>{{ '%.0f%%'|format(r.whiff) if r.whiff is not none else '—' }}</b><span>Whiff %</span></div>
   </div>
 </div>
+{% include '_scout_bio.html' %}
 {% include '_scout_notes.html' %}
 {% if r.small %}<div class="small-warn">Small sample ({{ r.n }} pitches). Read this as a first look; it gets sharper with every game you upload.</div>{% endif %}
 <div class="cols">

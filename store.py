@@ -596,6 +596,8 @@ def apply_roster_bio(slug, rp):
     if hpos and not (roles.get('hit') or {}).get('position'):
         roles.setdefault('hit', {})['position'] = {'UTL': 'INF', 'DH': 'INF'}.get(hpos, hpos)
     e['roster'] = {k: rp.get(k) for k in ('number', 'bats', 'throws', 'class_year', 'hometown', 'major', 'high_school', 'prev_school', 'pos_raw') if rp.get(k)}
+    import scoutbio
+    e['roster_ys'] = scoutbio.school_year()                      # class years roll forward from this school year
     players[slug] = e
     _save(PLAYERS_PATH, players)
     return True

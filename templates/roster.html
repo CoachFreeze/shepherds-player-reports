@@ -57,5 +57,14 @@
         <td class="n">{{ ("%d'%d\"" % (p.height_in // 12, p.height_in % 12)) if p.height_in else '–' }}</td><td class="n">{{ p.weight_lbs or '–' }}</td><td>{{ p.class_year or '–' }}</td>
         <td>{% if r.status == 'player' %}<span class="chip c-player">On dashboard</span>{% elif r.status == 'hitter' %}<span class="chip c-hitter">Hitter in your data</span>{% else %}<span class="chip c-new">Waiting for data</span>{% endif %}</td></tr>{% endfor %}
     </table></div></div>
+  {% if history %}
+  <div class="card"><h2>Earlier rosters</h2>
+    <p class="lead">Each time you upload a new roster the one it replaces is kept here, and class years for past seasons are read from it.</p>
+    {% for h in history %}<details style="margin:8px 0;"><summary style="cursor:pointer;font-weight:600;">{{ h.updated }} &middot; {{ h.n }} players{% if h.season %} &middot; season {{ h.season }}{% endif %}{% if h.source %} &middot; {{ h.source }}{% endif %}</summary>
+      <div class="scroll"><table><tr><th>#</th><th>Name</th><th>Position</th><th>B/T</th><th>Ht</th><th>Wt</th><th>Yr</th></tr>
+      {% for p in h.players %}<tr><td class="n">{{ p.number or '–' }}</td><td><b>{{ p.name }}</b></td><td>{{ p.pos_raw or '–' }}</td><td class="n">{{ (p.bats or '?') ~ '/' ~ (p.throws or '?') }}</td>
+        <td class="n">{{ ("%d'%d\"" % (p.height_in // 12, p.height_in % 12)) if p.height_in else '–' }}</td><td class="n">{{ p.weight_lbs or '–' }}</td><td>{{ p.class_year or '–' }}</td></tr>{% endfor %}
+      </table></div></details>{% endfor %}</div>
+  {% endif %}
   {% endif %}
 </div></body></html>

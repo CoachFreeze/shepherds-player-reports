@@ -38,12 +38,12 @@
     {% if view != 'pitchers' %}<h2>Hitters<small>{{ opp.hitters|length }}</small></h2>
     {% if not opp.hitters %}<p class="empty">No hitters yet. They come from your pitchers' pitches in games and scrimmages, or a scouting-only upload.</p>{% endif %}
     <div class="grid">{% for x in opp.hitters %}{% set parts = x.name.split() %}
-      {{ card(url_for('beta_hitter', key=x.key), parts[-1], parts[:-1]|join(' '), opp.label, None, None, None, None, x.n ~ ' pitches seen' ~ (' · notes' if x.noted else ''), (x.name ~ ' ' ~ opp.label)|lower, None, None, (parts[0][:1] ~ parts[-1][:1])|upper, opp.logo) }}{% endfor %}</div>
+      {{ card(url_for('beta_hitter', key=x.key), parts[-1], parts[:-1]|join(' '), opp.label, None, None, None, None, x.n ~ ' pitches seen' ~ (' · returning' ~ (' · ' ~ x.year if x.year else '') if x.returning else '') ~ (' · notes' if x.noted else ''), (x.name ~ ' ' ~ opp.label)|lower, None, None, (parts[0][:1] ~ parts[-1][:1])|upper, opp.logo) }}{% endfor %}</div>
     {% endif %}
     {% if view != 'hitters' %}<h2>Pitchers<small>{{ opp.pitchers|length }}</small></h2>
     {% if not opp.pitchers %}<p class="empty">No pitchers yet. When you upload a Game or Scrimmage, the other team's pitchers are kept here, so don't check them on the review screen.</p>{% endif %}
     <div class="grid">{% for x in opp.pitchers %}{% set parts = x.name.split() %}
-      {{ card(url_for('scouting_pitcher', slug=x.slug, opp=x.opp), parts[-1], parts[:-1]|join(' '), opp.label, None, ('RHP' if x.throws == 'R' else 'LHP' if x.throws == 'L' else None), None, None, (x.n ~ ' pitches' ~ (' · top ' ~ ('%.1f'|format(x.top)) ~ ' mph' if x.top else '') ~ (' · notes' if x.noted else '')), x.name|lower, None, None, (parts[0][:1] ~ parts[-1][:1])|upper, opp.logo) }}{% endfor %}</div>
+      {{ card(url_for('scouting_pitcher', slug=x.slug, opp=x.opp), parts[-1], parts[:-1]|join(' '), opp.label, None, ('RHP' if x.throws == 'R' else 'LHP' if x.throws == 'L' else None), None, None, (x.n ~ ' pitches' ~ (' · returning' ~ (' · ' ~ x.year if x.year else '') if x.returning else '') ~ (' · top ' ~ ('%.1f'|format(x.top)) ~ ' mph' if x.top else '') ~ (' · notes' if x.noted else '')), x.name|lower, None, None, (parts[0][:1] ~ parts[-1][:1])|upper, opp.logo) }}{% endfor %}</div>
     {% endif %}
   {% endif %}
 </div></body></html>
