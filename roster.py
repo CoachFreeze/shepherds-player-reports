@@ -60,6 +60,8 @@ def match_name(name, candidates):
 
 # --------------------------------------------------------------- positions
 def _pos_token(t):
+    if re.sub(r'[^a-z0-9]', '', t.lower()) in ('1b', '2b', '3b', 'ss', 'mi', 'if'):
+        return 'INF'
     s = re.sub(r'[^a-z ]', ' ', t.lower())
     s = re.sub(r'\s+', ' ', s).strip()
     if not s:
@@ -156,17 +158,25 @@ def parse_pdf(data):
     """School-athletics-site roster printed to PDF (columns: # IMAGE NAME POS. B/T HT. WT. MAJOR YR. HOMETOWN HIGH SCHOOL PREVIOUS SCHOOL)."""
     import pdfplumber
     heads = {'#': 'num', 'IMAGE': 'img', 'NAME': 'name', 'POS.': 'pos', 'B/T': 'bt', 'HT.': 'ht', 'WT.': 'wt', 'MAJOR': 'major',
-             'YR.': 'yr', 'HOMETOWN': 'home', 'HIGH': 'hs', 'PREVIOUS': 'prev'}
+             'YR.': 'yr', 'HOMETOWN': 'home', 'HIGH': 'hs', 'PREVIOUS': 'prev',
+             'FULL': 'name', 'ACADEMIC': 'yr', 'YEAR': 'yr', 'CLASS': 'yr', 'CL.': 'yr', 'POSITION': 'pos', 'HEIGHT': 'ht', 'WEIGHT': 'wt', 'NO.': 'num'}
     with pdfplumber.open(io.BytesIO(data)) as pdf:
         pages = [pg.extract_words(keep_blank_chars=False) for pg in pdf.pages]
-    edges = None
+    edges, combined = None, False
     for ws in pages:
         found = {}
         for w in ws:
             k = heads.get(w['text'].upper())
             if k and k not in found:
                 found[k] = (w['x0'], w['top'])
-        if 'name' in found and 'pos' in found and 'bt' in found:
+        if 'name' in found:                                      # only words on the header line count as headers
+            found = {k: v for k, v in found.items() if abs(v[1] - found['name'][1]) < 8}
+        hw = [w for w in ws if w['text'].upper() == 'HOMETOWN']
+        if hw and 'home' in found and 'hs' in found:             # 'HOMETOWN / HIGH SCHOOL' is one combined column
+            nxt = [w for w in ws if abs(w['top'] - hw[0]['top']) < 3 and hw[0]['x1'] <= w['x0'] <= found['hs'][0]]
+            if any(w['text'] == '/' for w in nxt):
+                found.pop('hs'); combined = True
+        if 'name' in found and 'pos' in found and ('bt' in found or ('yr' in found and ('ht' in found or 'wt' in found))):
             edges = sorted(((x - 3, k) for k, (x, _) in found.items()), key=lambda t: t[0])
             head_top = found['name'][1]
             break
@@ -212,8 +222,20 @@ def parse_pdf(data):
             if not has_core or (j.get('num') and not j['num'].isdigit()):
                 continue                                         # page titles, staff tables, repeated headers
             out.append(j)
-    return [_player(j.get('num'), j['name'], j.get('pos'), j.get('bt'), j.get('ht'), j.get('wt'), j.get('major'), j.get('yr'),
-                    j.get('home'), j.get('hs'), j.get('prev')) for j in out if j.get('name')]
+    res = []
+    for j in out:
+        if not j.get('name'):
+            continue
+        if combined and j.get('home') and '/' in j['home']:
+            j['home'], j['hs'] = [t.strip() for t in j['home'].split('/', 1)]
+        p = _player(j.get('num'), j['name'], j.get('pos'), j.get('bt'), j.get('ht'), j.get('wt'), j.get('major'), j.get('yr'),
+                    j.get('home'), j.get('hs'), j.get('prev'))
+        if not p['throws']:                                      # no B/T column: a single RHP/LHP position still tells us the throwing hand
+            pit = [t for t in p['positions'] if t in ('RHP', 'LHP')]
+            if len(pit) == 1:
+                p['throws'] = pit[0][0]
+        res.append(p)
+    return res
 
 
 _ALIASES = {
