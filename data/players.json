@@ -24,6 +24,7 @@
       "prev_school": "Tustin HS",
       "throws": "L"
     },
+    "roster_ys": 2027,
     "school": "Biola University",
     "weight_lbs": 210.0
   },
@@ -72,6 +73,7 @@
       "prev_school": "Los Osos HS",
       "throws": "L"
     },
+    "roster_ys": 2027,
     "school": "Biola University",
     "weight_lbs": 205.0
   },
@@ -97,6 +99,7 @@
       "prev_school": "St. John Bosco HS",
       "throws": "R"
     },
+    "roster_ys": 2027,
     "school": "Biola University",
     "weight_lbs": 200.0
   },
@@ -173,6 +176,7 @@
       "prev_school": "Irvine Valley College",
       "throws": "R"
     },
+    "roster_ys": 2027,
     "school": "Biola University",
     "weight_lbs": 180.0
   },
@@ -198,6 +202,7 @@
       "prev_school": "Crean Lutheran HS",
       "throws": "R"
     },
+    "roster_ys": 2027,
     "school": "Biola University",
     "weight_lbs": 190.0
   },
@@ -396,6 +401,7 @@
       "pos_raw": "Right-Handed Pitcher",
       "prev_school": "Chaminade"
     },
+    "roster_ys": 2027,
     "school": "Biola University",
     "weight_lbs": 175.0
   },
@@ -450,7 +456,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 76.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261106-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261113-BiolaUniversity-Private-1_unverified.csv",
     "name": "Dylan Proost",
     "program": "biola_university",
     "roles": {
@@ -468,6 +474,7 @@
       "prev_school": "Long Beach CC",
       "throws": "R"
     },
+    "roster_ys": 2027,
     "school": "Biola University",
     "weight_lbs": 230.0
   },
@@ -515,6 +522,7 @@
       "prev_school": "Walnut HS",
       "throws": "R"
     },
+    "roster_ys": 2027,
     "school": "Biola University",
     "weight_lbs": 175.0
   },
@@ -554,6 +562,7 @@
       "prev_school": "Cathedral Catholic HS",
       "throws": "R"
     },
+    "roster_ys": 2027,
     "school": "Biola University",
     "weight_lbs": 195.0
   },
@@ -640,6 +649,7 @@
       "prev_school": "Arcadia HS",
       "throws": "R"
     },
+    "roster_ys": 2027,
     "school": "Biola University",
     "weight_lbs": 160.0
   },
@@ -740,7 +750,7 @@
     "comps": {},
     "grad_year": null,
     "height_in": 72.0,
-    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261106-BiolaUniversity-Private-1_unverified.csv",
+    "last_trackman_path": "/opt/render/project/src/data/uploads/bulk_20261113-BiolaUniversity-Private-1_unverified.csv",
     "name": "Jacob Talbott",
     "program": "biola_university",
     "roles": {
@@ -762,6 +772,7 @@
       "prev_school": "Yorba Linda HS",
       "throws": "R"
     },
+    "roster_ys": 2027,
     "school": "Biola University",
     "weight_lbs": 185.0
   },
@@ -805,6 +816,7 @@
       "prev_school": "Bell HS",
       "throws": "R"
     },
+    "roster_ys": 2027,
     "school": "Biola University",
     "weight_lbs": 190.0
   },
@@ -831,6 +843,7 @@
       "prev_school": "Palisades Charter HS",
       "throws": "R"
     },
+    "roster_ys": 2027,
     "school": "Biola University",
     "weight_lbs": 165.0
   },
@@ -956,6 +969,7 @@
       "prev_school": "Allan Hancock College",
       "throws": "R"
     },
+    "roster_ys": 2027,
     "school": "Biola University",
     "weight_lbs": 215.0
   },
@@ -982,6 +996,7 @@
       "prev_school": "Midway University",
       "throws": "R"
     },
+    "roster_ys": 2027,
     "school": "Biola University",
     "weight_lbs": 190.0
   },
@@ -1011,6 +1026,7 @@
       "prev_school": "Cabrillo",
       "throws": "L"
     },
+    "roster_ys": 2027,
     "school": "Biola University",
     "weight_lbs": 205.0
   },
@@ -1254,6 +1270,7 @@
       "prev_school": "Maranatha Christian Schools",
       "throws": "R"
     },
+    "roster_ys": 2027,
     "school": "Biola University",
     "weight_lbs": 210.0
   },
@@ -1308,6 +1325,7 @@
       "prev_school": "Pepperdine",
       "throws": "R"
     },
+    "roster_ys": 2027,
     "school": "Biola University",
     "stat_ids": [
       "strike_pct",
