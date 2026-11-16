@@ -150,7 +150,9 @@ def judge(p):
       * swinging at a pitch off the zone is bad, a little worse in a hitter's count. Only the shadow (the neutral
         area on the edge) is "close"; past it, a swing is a chase even with two strikes;
       * taking a pitch off the zone is good, and counts extra with two strikes;
-      * swinging at a borderline pitch with two strikes is protecting the plate, a small plus."""
+      * swinging at a borderline pitch with two strikes is protecting the plate, a small plus;
+      * his approach (hot / cold zones, p['hz']), before two strikes only: taking a hittable pitch in one of his cold zones costs
+        half, and attacking an edge pitch in one of his hot zones is a small plus. Chases and two-strike takes are never excused."""
     o = p['outcome']
     reg = region(p['x'], p['z'])
     if reg is None or (o not in SWING and o not in TAKE):
@@ -162,10 +164,13 @@ def judge(p):
     two = st == 2
     early = cc is not None and (b + st) <= 2 and st < 2
     cls = pitch_class(p)
+    hz = p.get('hz') if (cc is not None and not two) else None
     v, w, why = 'neutral', 0.0, None
     if reg == 'shadow':
         if swung and two:
             v, w, why = 'good', 0.5, 'Protecting the plate with two strikes'
+        elif swung and hz == 'hot':
+            v, w, why = 'good', 0.5, 'Attacked an edge pitch in his hot zone (sticking to his approach)'
     elif reg == 'heart':
         if swung:
             v, w = 'good', 1.0
@@ -182,6 +187,8 @@ def judge(p):
             v, w, why = 'bad', 1.5, 'Took a hittable pitch with two strikes (counts extra)'
         else:
             v, w = 'bad', 1.0
+        if v == 'bad' and hz == 'cold':
+            w, why = w / 2, 'Took a pitch in his cold zone before two strikes (half penalty, sticking to his approach)'
     else:
         if swung:
             if hitters:
@@ -209,6 +216,13 @@ def explain_sdr(s, who='He'):
         lines.append(f"Hittable pitches {s['hit']} ({s['hit_g']}): swung at {s.get('heart_swing_pct', 0):.0f}% of the {s['hit_n']} pitches down the middle.{extra}")
     else:
         lines.append('Hittable pitches: not enough pitches down the middle yet.')
+    if s.get('appr_takes') or s.get('appr_swings'):
+        bits = []
+        if s.get('appr_takes'):
+            bits.append(f"{s['appr_takes']} take{'s' if s['appr_takes'] != 1 else ''} in a cold zone counted half")
+        if s.get('appr_swings'):
+            bits.append(f"{s['appr_swings']} swing{'s' if s['appr_swings'] != 1 else ''} at edge pitches in a hot zone counted as good")
+        lines.append('Approach: ' + ' and '.join(bits) + ' (before two strikes).')
     if s.get('dmg') is not None:
         lines.append(f"Damage {s['dmg']} ({s['dmg_g']}): expected average of {s['xbacon']:.3f} on {s['dmg_n']} balls in play off hittable pitches.")
     else:
@@ -467,7 +481,7 @@ def hitter_stats(pitches):
         return (round(100 * g / t) if t else None), n_
 
     disc, disc_n = wscore([(p, j) for p, j in judged if j[0] in ('chase', 'waste')])
-    hit, hit_n = wscore([(p, j) for p, j in judged if j[0] == 'heart'])
+    hit, hit_n = wscore([(p, j) for p, j in judged if j[0] == 'heart' or (j[4] and 'hot zone' in j[4])])   # his attacks on edge pitches in a hot zone count as hittable pitches he went after
     dec_w, dec_n = wscore(judged)
     # damage: expected average on balls in play off hittable pitches (heart and shadow)
     hp = [hit_prob(p['ev'], p['la']) for p, j in judged
@@ -491,10 +505,12 @@ def hitter_stats(pitches):
               split("Pitcher's counts / two strikes", lambda p: ctx(p) == 'pit')]
     fb_hc = sum(1 for p, j in judged if j[0] == 'heart' and not j[1] and pitch_class(p) == 'hard' and count_ctx(p) and count_ctx(p)[0] > count_ctx(p)[1] and count_ctx(p) != (3, 0))
     excused = sum(1 for p, j in judged if j[2] == 'neutral' and j[4] and j[0] == 'heart')
+    appr_takes = sum(1 for p, j in judged if j[4] and 'cold zone' in j[4])
+    appr_swings = sum(1 for p, j in judged if j[4] and 'hot zone' in j[4])
     return {
         'disc': disc if disc_n >= 5 else None, 'disc_n': disc_n, 'hit': hit if hit_n >= 5 else None, 'hit_n': hit_n,
         'disc_g': letter_grade(disc if disc_n >= 5 else None), 'hit_g': letter_grade(hit if hit_n >= 5 else None), 'dmg_g': letter_grade(dmg),
-        'dmg': dmg, 'dmg_n': len(hp), 'xbacon': xbacon, 'splits': splits, 'fb_hc_takes': fb_hc, 'excused_takes': excused,
+        'dmg': dmg, 'dmg_n': len(hp), 'xbacon': xbacon, 'splits': splits, 'fb_hc_takes': fb_hc, 'excused_takes': excused, 'appr_takes': appr_takes, 'appr_swings': appr_swings,
         'xba': xb['xba'], 'ba': xb['ba'], 'ab': xb['ab'], 'xh': xb['xh'], 'ks': xb['k'],
         'pitches': n, 'pa': pa, 'decisions': decided, **qab_stats(pitches), **basic_stats(pitches),
         'score': score, 'grade': grade(score) if decided >= 15 else None,
@@ -754,7 +770,16 @@ def collect_scouting(program=None):
                 if not p.get('p_throws'):
                     p['p_throws'] = _hand
                 add(prog, r_.get('Opponent') or 'Unlabeled opponent', p)
+    _apply_zones(out)
     return out
+
+
+def _apply_zones(out):
+    """Hot / cold zones for every hitter in out (tags each pitch p['hz'] for judge(); h['zones'] for the chart). Coach overrides
+    come from data/hitters.json ('zones')."""
+    import hotzones
+    bios = _load_json(HITTER_BIOS_PATH)
+    hotzones.apply(out, {k: (bios.get(k) or {}).get('zones') for k in out if (bios.get(k) or {}).get('zones')})
 
 
 def _all_pitch_files():
@@ -820,6 +845,7 @@ def _collect(include_demo, include_hidden=False):
                 del out[key]
         else:
             h['program'] = ov
+    _apply_zones(out)
     return out
 
 
@@ -997,6 +1023,7 @@ def hitter_profile(key, include_demo=True, side='all', vs='all', frm=None, to=No
             's': s, 'notes': takeaways(s), 'dates': all_dates, 'range_empty': range_empty,
             'zone_ev': zone_ev_data(ps),
             'decision_svg': decision_chart_svg(ps, side=bats if bats in ('L', 'R') else None),
+            'zones': h.get('zones'), 'zones_tagged': sum(1 for b in (h.get('zones') or []) if b.get('tag')),
             'decision_svg_i': team_decision_chart_svg([(display_name(h['name']), p) for p in ps], width=420, height=470, side=bats if bats in ('L', 'R') else None, dot=.66)[0],
             'spray': spray_html(ps)}
 

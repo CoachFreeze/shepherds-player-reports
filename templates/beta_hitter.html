@@ -167,6 +167,7 @@ var ZD = {{ h.zone_ev|tojson }};
         <li>Taking an off-speed or breaking pitch in the heart early in the count isn't held against him on 0-0, and counts half in other early counts.</li>
         <li>Chasing a pitch off the zone is bad, and counts extra in a hitter's count. Two strikes don't excuse it: only the shadow (the neutral area on the edge of the zone) counts as close, so anything past it is a chase.</li>
         <li>Laying off a bad pitch is good, and counts extra with two strikes. Swinging at a borderline pitch with two strikes (protecting the plate) is a small plus.</li>
+        <li><b>His approach.</b> Before two strikes, taking a hittable pitch in one of his cold zones costs half, and attacking an edge pitch in one of his hot zones is a small plus. Chases are never excused, and with two strikes he still has to protect the whole zone.</li>
       </ul>
       <p><b>Letter grades.</b> A+ 96 and up, A 93, A- 90, B+ 87, B 84, B- 82, C+ 79, C 76, C- 74, D+ 71, D 68, D- 66, and F below 66. The overall labels use the same cutoffs: Elite 90, Above Average 82, Average 74, Below Average 66, Concerning below that. Keep in mind the scale starts near 50: a hitter who never swings, always swings or guesses scores about 50.</p>
       <p class="how-n">A part needs at least 5 pitches (Damage needs 3 balls in play) before it is graded, and the overall rating needs about 15 decisions. These cutoffs are starting points and will be tuned as more data comes in.</p>
@@ -191,6 +192,11 @@ var ZD = {{ h.zone_ev|tojson }};
       <div class="sub-row"><div class="sub-l"><div class="sub-h"><b>{{ lab }}</b><span class="sub-w">{{ w }}</span></div>
         <div class="sub-b">{{ blurb if val is not none else 'Not enough pitches yet' }}</div></div><span class="gr g-{{ gr[0] if gr else 'n' }}" title="{{ ('Score ' ~ val ~ ' out of 100') if val is not none else '' }}">{{ gr or '–' }}</span></div>{% endfor %}
     </div>
+    {% endif %}
+    {% if h.zones %}<h3 class="mh">Hot &amp; cold zones{{ info('hot_zones') }}</h3>
+    <p class="hint">{{ "Catcher's view" if h.bats in ('L','R') else 'From his view' }}. Before two strikes, a take in a cold zone costs half and an attack on an edge pitch in a hot zone is a small plus, so he is credited for sticking to his approach.{% if not h.zones_tagged %} No zone stands out from his swings yet; zones fill in as he gets more tracked swings{% if can_edit %}, or tap a box to set one{% endif %}.{% elif can_edit %} Tap a box to change it.{% endif %}</p>
+    {{ hz_grid(h.zones, h.bats, can_edit)|safe }}
+    {% if can_edit %}<p class="hint" id="hz-msg" style="text-align:center;margin-top:6px;">Each tap moves a box: from the data &rarr; Hot &rarr; Cold &rarr; Neither &rarr; back to the data.</p>{% endif %}
     {% endif %}
     <h3 class="mh">Pitch map{{ info('pitch_map') }}</h3>
     <div id="pm-dec"><p class="hint">Catcher's view. Every pitch he saw. Hover or tap a dot for the count, pitch and why it was judged that way.</p>
@@ -245,4 +251,31 @@ var ZD = {{ h.zone_ev|tojson }};
 <script>(function(){var sw=document.querySelector('.vsw'),cv=document.getElementById('cv'),hv=document.getElementById('hv');if(!sw||!cv||!hv)return;var bt=[].slice.call(sw.querySelectorAll('button[data-v]'));
 function show(v){var c=v==='catcher';cv.classList.toggle('on',c);hv.style.display=c?'none':'';bt.forEach(function(b){b.classList.toggle('on',b.getAttribute('data-v')===v);});try{history.replaceState(null,'',c?'#catcher':location.pathname+location.search);}catch(e){}}
 bt.forEach(function(b){b.addEventListener('click',function(){show(b.getAttribute('data-v'));});});if(location.hash==='#catcher')show('catcher');})();</script>
+<style>
+.hz{display:grid;grid-template-columns:52px repeat(3,minmax(0,92px));gap:5px;justify-content:center;margin:10px auto 4px;font-family:'Barlow',sans-serif;}
+.hz-c{font:700 11px 'Barlow',sans-serif;color:#6b7680;text-transform:uppercase;letter-spacing:.05em;text-align:center;align-self:end;}
+.hz-r{font:700 11px 'Barlow',sans-serif;color:#6b7680;text-transform:uppercase;letter-spacing:.05em;align-self:center;text-align:right;padding-right:4px;}
+.hz-b{position:relative;height:64px;border-radius:10px;border:1px solid #d5dee2;background:#f4f8fa;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#44525a;font:inherit;padding:0;}
+.hz-b b{font:700 15px 'Oswald',sans-serif;letter-spacing:.02em;min-height:18px;} .hz-b span{font-size:11.5px;color:#7a8790;}
+.hz-hot{background:#fbe3df;border-color:#e0614f;color:#b23a2a;} .hz-hot span{color:#b2584b;}
+.hz-cold{background:#e2edf7;border-color:#4a7fb5;color:#2e5f91;} .hz-cold span{color:#5679a0;}
+.hz-pen{position:absolute;top:3px;right:6px;font-style:normal;font-size:11px;opacity:.7;}
+.hz-ed .hz-b{cursor:pointer;} .hz-ed .hz-b:hover{box-shadow:0 0 0 2px var(--accent,#5c97a8);}
+@media print{ #hz-msg{display:none;} }
+</style>
+<script>
+(function(){
+  var g=document.querySelector('.hz-ed'); if(!g) return;
+  var order=['auto','hot','cold','none'], busy=false;
+  g.addEventListener('click',function(e){
+    var b=e.target.closest('.hz-b'); if(!b||busy) return;
+    var nx=order[(order.indexOf(b.dataset.ov||'auto')+1)%order.length];
+    busy=true; var m=document.getElementById('hz-msg'); if(m) m.textContent='Saving...';
+    var fd=new FormData(); fd.append('cell',b.dataset.cell); fd.append('tag',nx);
+    fetch({{ url_for('hitter_zones_save', key=h.key)|tojson }},{method:'POST',body:fd,credentials:'same-origin'})
+      .then(function(r){ if(!r.ok) throw 0; location.reload(); })
+      .catch(function(){ busy=false; if(m) m.textContent="Couldn't save that. Try again."; });
+  });
+})();
+</script>
 {% include '_info_ui.html' %}</body></html>

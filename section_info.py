@@ -60,9 +60,13 @@ INFO = {
         'Where his balls in play go: direction and distance for every tracked ball.',
         'Each dot is one ball in play, placed by its hit direction and distance, and colored by exit velocity.',
         'It shows pull, middle and opposite-field tendencies and where he hits the ball hard, which drives both his approach and defensive positioning against him.'),
+    'hot_zones': (
+        'Where in the zone he does damage and where he struggles, split into nine boxes from his point of view (up, middle, down by in, middle, away).',
+        'Each box scores his swings by the chance of a hit off exit velocity and launch angle (a whiff counts zero). With only a few swings in a box he is assumed to be like his team there, and his own results take over as they add up. A box turns hot or cold once he has at least 3 swings there and does clearly better or worse than in his other boxes. A coach can set any box by hand (marked with a pencil), and that always wins.',
+        'Swing decisions use these zones before two strikes: a take in a cold zone costs half, and attacking an edge pitch in a hot zone is a small plus. That rewards a hitter for sticking to his approach instead of swinging at everything to avoid a penalty.'),
     'swing_decisions': (
         'How well he decides which pitches to swing at and which to take.',
-        'Every pitch is judged by its location and count: swinging at hittable pitches and taking balls are good decisions, chasing or taking hittable strikes are bad ones, and pitches on the edge are borderline. The Swing Decision Rating (SDR) scores those decisions on a scale where 90+ is Elite, 82+ Above Average, 74+ Average, 66+ Below Average and anything lower Concerning.',
+        'Every pitch is judged by its location and count: swinging at hittable pitches and taking balls are good decisions, chasing or taking hittable strikes are bad ones, and pitches on the edge are borderline. Before two strikes his hot and cold zones count too: a take in a cold zone costs half, and attacking an edge pitch in a hot zone is a small plus. The Swing Decision Rating (SDR) scores those decisions on a scale where 90+ is Elite, 82+ Above Average, 74+ Average, 66+ Below Average and anything lower Concerning.',
         'Good decisions lead to walks, hitter\'s counts and better contact, and they are one of the quickest things to coach.'),
     'pitch_map': (
         'Every pitch he saw, from the catcher\'s view, with what he did on each one.',

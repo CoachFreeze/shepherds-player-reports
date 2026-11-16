@@ -434,6 +434,8 @@ def inject_prs():
 app.jinja_env.globals['is_fs'] = lambda program: store.is_fullswing(program)
 from section_info import info as _section_info
 app.jinja_env.globals['info'] = _section_info
+import hotzones
+app.jinja_env.globals['hz_grid'] = hotzones.grid_html
 
 # Every subject heading shows with each word capitalized (Top Exit Velocity), without touching the stored text.
 _TITLE_CSS = 'h1,h2,h3,h4,.half-head,.fx-h,.g-t,.board h4,.card>.head,.sh,.sect-title{text-transform:capitalize;}'
@@ -2645,6 +2647,23 @@ def retag_from_pmp(slug):
     for date, ch in by_date.items():
         n += outings_mod.retag(slug, date, ch, who=session.get('coach') or '')
     return jsonify({'ok': True, 'changed': n})
+
+
+@app.route('/hitter/<key>/zones', methods=['POST'])
+@login_required
+def hitter_zones_save(key):
+    """A coach marks one of a hitter's zone boxes hot, cold or neither ('auto' hands it back to the data)."""
+    h = _hitter_for_edit(key)
+    cell, tag = request.form.get('cell') or '', request.form.get('tag') or ''
+    if not re.fullmatch(r'[0-2],[0-2]', cell) or tag not in ('auto', 'hot', 'cold', 'none'):
+        abort(400)
+    z = dict((hitting._load_json(hitting.HITTER_BIOS_PATH).get(key) or {}).get('zones') or {})
+    if tag == 'auto':
+        z.pop(cell, None)
+    else:
+        z[cell] = tag
+    hitting.save_bio(key, {'program': h['program'], 'zones': z})
+    return jsonify({'ok': True})
 
 
 @app.route('/hitter/<key>/edit', methods=['GET', 'POST'])
