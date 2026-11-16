@@ -1067,13 +1067,9 @@ def season_ui(program):
 def team_season_switch(program):
     _team_ok(program)
     import season
-    from urllib.parse import urlparse
     season.pick(program, request.args.get('set'))
     nxt = request.args.get('next') or ''
-    u = urlparse(nxt)
-    if u.netloc or u.scheme or not nxt.startswith('/') or nxt.startswith('//'):
-        nxt = url_for('team_dashboard', program=program)
-    return redirect(nxt)
+    return redirect(_safe_next(nxt) or url_for('team_dashboard', program=program))
 
 
 SEASONS_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Seasons</title>
@@ -2129,7 +2125,7 @@ def scout_notes_save():
         abort(400)
     scoutnotes.save(prog, key, request.form.get('text', ''), (current_coach() or {}).get('display_name') or session.get('coach') or '')
     back = request.form.get('back', '')
-    return redirect(back if back.startswith('/') and not back.startswith('//') else url_for('team_scouting', program=prog))
+    return redirect(_safe_next(back) or url_for('team_scouting', program=prog))
 
 
 @app.route('/team/<program>/scouting/<opp>/roster', methods=['POST'])
@@ -2171,7 +2167,7 @@ def scout_bio_save():
         abort(400)
     scoutbio.save(prog, key, scoutbio.parse(request.form), (current_coach() or {}).get('display_name') or session.get('coach') or '')
     back = request.form.get('back', '')
-    return redirect(back if back.startswith('/') and not back.startswith('//') else url_for('team_scouting', program=prog))
+    return redirect(_safe_next(back) or url_for('team_scouting', program=prog))
 
 
 def _initials(name):
@@ -2220,7 +2216,7 @@ def scouting_pitcher(slug):
     meta, tm = e_mod.pitcher_trackman_summary(rows, nm)
     for t_ in tm:
         t_['color'] = e_mod.MINI_PITCH_COLORS.get(t_['type'], '#555')
-    sbio = scoutbio.resolved(prog, 'p--' + slug, nm)
+    sbio = scoutbio.resolved(prog, 'p--' + slug, nm, opp=opp_slug)
     slot = e_mod.arm_slot_stats(meta.get('release'), sbio.get('h'))
     ps = scoutplan.prep_pitcher(rows)
     rep = scoutplan.pitcher_report(ps)
@@ -3145,7 +3141,7 @@ def upload_remove_file():
     f = request.files.get('csv')
     if not f or not f.filename:
         return redirect(url_for('upload_log_page', msg='Choose a CSV file first.'))
-    path = os.path.join(UPLOAD_DIR, 'rm_' + os.path.basename(f.filename))
+    path = os.path.join(UPLOAD_DIR, f'rm_{uuid.uuid4().hex[:16]}_' + os.path.basename(f.filename))
     f.save(path)
     try:
         uids = cleanup.csv_uids(path)
@@ -3671,13 +3667,19 @@ def _after_upload(results, was_first, prog=None):
     return redirect(url_for('dashboard'))
 
 
+def _orig_upload_name(bn):
+    """'bulk_<token>_Game 10-18.csv' -> 'Game 10-18.csv' (older uploads had no token)."""
+    m = re.match(r'^bulk_(?:[0-9a-f]{16}_)?(.*)$', bn)
+    return m.group(1) if m else bn
+
+
 def _archive_csv(path, prog):
     """Keeps the original CSV in the repo under data/csv/<program>/<upload date>_<name>.csv, so each team's
     files stay together. Best-effort: a failure never blocks the upload."""
     try:
         import datetime
         base = os.path.basename(path)
-        base = base[5:] if base.startswith('bulk_') else base
+        base = _orig_upload_name(base)
         safe = re.sub(r'[^A-Za-z0-9._-]+', '_', base)
         with open(path, 'rb') as fh:
             github_sync.put_file(f'data/csv/{prog}/{datetime.date.today().isoformat()}_{safe}', fh.read())
@@ -3728,7 +3730,7 @@ def intake_bulk():
     if src not in _SOURCES_READY:
         _lab = {sid: l for sid, l, _n in UPLOAD_SOURCES}[src]
         return render_template_string(BULK_UPLOAD_PAGE, message=f"{_lab} files can't be read yet. Nothing was uploaded. Support is being added.", **_bulk_ctx(_target_program()))
-    fname = 'bulk_' + os.path.basename(f.filename)
+    fname = f'bulk_{uuid.uuid4().hex[:16]}_' + os.path.basename(f.filename)   # unique, so two coaches' files with the same name never mix
     path = os.path.join(UPLOAD_DIR, fname)
     f.save(path)
     try:
@@ -3779,7 +3781,7 @@ def _scouting_run(path, f):
         if n:
             _archive_csv(path, prog)
             _bn = os.path.basename(path)
-            uploadlog.record(session.get('coach') or '', prog, _bn[5:] if _bn.startswith('bulk_') else _bn, 'Trackman · Scouting', n,
+            uploadlog.record(session.get('coach') or '', prog, _orig_upload_name(_bn), 'Trackman · Scouting', n,
                              [p for ps in seen.values() for p in ps], upload_id=_upload_id, opponent=' vs '.join(sorted(set(names.values()))))
             plans.track('upload', session.get('coach') or '', prog, players=0, rows=n)
     if not n:
@@ -3859,7 +3861,7 @@ def intake_bulk_run():
                 _n = 0
             plans.track('upload', session.get('coach') or '', prog, players=sum(1 for _, _, o in results if o), rows=_n)
             _bn = os.path.basename(path)
-            uploadlog.record(session.get('coach') or '', prog, _bn[5:] if _bn.startswith('bulk_') else _bn,
+            uploadlog.record(session.get('coach') or '', prog, _orig_upload_name(_bn),
                              ('Full Swing' if fullswing.is_converted(path) else 'Trackman') + ' · ' + _stype + (f' vs {_opponent()}' if _opponent() else ''), _n, [n for n, _, o in results if o],
                              upload_id=_upload_id, opponent=_opponent(), new_players=[s_ for _, s_, o in results if o and s_ not in _before])
         for name, slug, out in results:
@@ -3895,7 +3897,7 @@ button{margin:8px 8px 0 0;padding:11px 22px;border:none;border-radius:999px;back
 @login_required
 @upload_required
 def intake_lbsu_confirm():
-    if request.method == 'GET':
+    if request.method == 'GET' or not is_admin():          # retired single-pitcher flow; it writes to a fixed program, so admins only
         return redirect(url_for('intake_lbsu'))
     f = request.form
     path = os.path.join(UPLOAD_DIR, os.path.basename(f.get('path', '')))

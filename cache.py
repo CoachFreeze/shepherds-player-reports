@@ -71,10 +71,22 @@ def get_or_compute(key, fn):
     return val
 
 
+def _season_sig():
+    """The seasons this viewer has picked (they live in his session). Class years and graduation depend on the season being viewed,
+    so one coach's pick must never be served from another coach's cached result."""
+    try:
+        from flask import has_request_context, session
+        if has_request_context():
+            return tuple(sorted((session.get('season') or {}).items()))
+    except Exception:
+        pass
+    return ()
+
+
 def memo(fn):
     """Cache fn(*args, **kwargs) until the stored data changes. Arguments must be hashable."""
     @functools.wraps(fn)
     def wrapper(*a, **kw):
-        return get_or_compute((fn.__module__, fn.__qualname__, a, tuple(sorted(kw.items()))), lambda: fn(*a, **kw))
+        return get_or_compute((fn.__module__, fn.__qualname__, a, tuple(sorted(kw.items())), _season_sig()), lambda: fn(*a, **kw))
     wrapper.uncached = fn
     return wrapper

@@ -36,7 +36,7 @@ def _carry(program, rc, opp_slug, key, name):
     """Does a player seen only last season stay on this season's scouting page? Not once he is past Gr, and not when this season's
     uploaded roster for his team no longer lists him. Returns (keep, class-year label or '')."""
     import scoutbio
-    b = scoutbio.resolved(program, key, name, rc)
+    b = scoutbio.resolved(program, key, name, rc, opp_slug)
     if b.get('gone'):
         return False, ''
     rec = rc['scout'].get(opp_slug)

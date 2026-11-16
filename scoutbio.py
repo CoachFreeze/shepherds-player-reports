@@ -102,20 +102,23 @@ def advance(y, ys, now=None):
     return (YEARS[idx] if idx < len(YEARS) else None), steps
 
 
-def from_roster(name, program=None, ctx=None):
+def from_roster(name, program=None, ctx=None, opp=None):
     """What a stored roster says about this player (matched by name): {'h','w','y','ys'} with only the fields it has.
-    The coach's own uploaded opponent rosters come first, then any team roster on the dashboard. ctx caches the lookups for a long list."""
+    The coach's own uploaded opponent rosters come first, then his own team roster (another program's roster stays private). ctx caches the lookups for a long list."""
     import roster as roster_mod
     import scoutroster
     hit = None
     try:
         if program:
             mine = ctx['scout'] if ctx and 'scout' in ctx else scoutroster.all_for(program)
+            if opp and opp in mine:                              # his own team's roster, so a same-named player elsewhere can't fill in
+                mine = {opp: mine[opp]}
             f = scoutroster.find(program, name, mine)
             if f:
                 hit = (f[0], f[1].get('updated'))
         if not hit:
             rosters = ctx['rosters'] if ctx and 'rosters' in ctx else roster_mod.all_rosters()
+            rosters = {k: v for k, v in rosters.items() if k == program}   # other teams' rosters are private to them, never shown to a scout
             f = roster_mod.find_anywhere(name, rosters)
             if f:
                 hit = (f[1], (rosters.get(f[0]) or {}).get('updated'))
@@ -138,12 +141,14 @@ def from_roster(name, program=None, ctx=None):
     return out
 
 
-def resolved(program, key, name, ctx=None):
+def resolved(program, key, name, ctx=None, opp=None):
     """What a scouting page shows. A coach's own typing wins for height and weight; a roster fills what he left empty. Class year is
     brought up to the current school year, and a newer roster beats an older typed year.
     {'h','w','y','src': {field: 'roster'}, 'y_note': 'was Jr in 2026', 'gone': True once he is past Gr}"""
     mine = get(program, key)
-    rost = from_roster(name, program, ctx)
+    if not opp and key.startswith('scout--') and key.count('--') >= 3:
+        opp = key.split('--')[2]
+    rost = from_roster(name, program, ctx, opp)
     out = {k: mine[k] for k in ('h', 'w') if mine.get(k)}
     out['by'], out['at'] = mine.get('by'), mine.get('at')
     out['src'] = {}
