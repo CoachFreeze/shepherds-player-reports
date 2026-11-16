@@ -17,7 +17,7 @@ MIN_BF_PITCHER = 100       # xwOBA allowed and xERA, pitchers
 MIN_IP_PITCHER = 30.0      # FIP
 MIN_TAG_COVERAGE = 0.80    # FIP needs home runs: at least this share of balls in play must carry a tagged result
 
-# ---- constants (MLB-based; no college figures built in)
+# ---- constants (wOBA weights are MLB's; the run environment and FIP constant come from runenv, fitted to our own tagged games)
 W_BB, W_HBP, W_1B, W_XBH, W_HR = 0.69, 0.72, 0.89, 1.30, 2.10    # wOBA weights; W_XBH blends doubles and triples
 FIP_CONST = 3.10
 LG_WOBA, WOBA_SCALE, LG_RUNS_PA, PA_PER_9 = 0.315, 1.20, 0.115, 38.0
@@ -66,8 +66,10 @@ def _calc(ps, tags_known):
         ip = outs / 3
         cov = len(tagged) / len(bip) if bip else 0
         out.update(ip=ip, hr=hr, tag_cov=cov)
-        out['fip'] = ((13 * hr + 3 * (bb + hbp) - 2 * ks) / ip + FIP_CONST) if ip > 0 else None
-        out['xera'] = PA_PER_9 * ((xw - LG_WOBA) / WOBA_SCALE + LG_RUNS_PA) if xw is not None else None
+        import runenv
+        env = runenv.environment()          # college run environment from our own tagged games (MLB figures until there is enough)
+        out['fip'] = ((13 * hr + 3 * (bb + hbp) - 2 * ks) / ip + env['fip_const']) if ip > 0 else None
+        out['xera'] = max(0.0, env['pa9'] * ((xw - env['lg_woba']) / WOBA_SCALE + env['runs_pa'])) if xw is not None else None
     return out
 
 

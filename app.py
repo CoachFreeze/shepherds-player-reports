@@ -859,10 +859,10 @@ def _stat_table(program, side, basic=False):
     # xwOBA / xERA / FIP are always calculated (cached) but only shown for players past the sample minimums; admins can add ?preview=1
     preview = is_admin() and request.args.get('preview') == '1'
     adv = {} if fs else advanced.table(program)['p' if side == 'pitching' else 'h']
-    ADV = [('xwoba', 'xwOBA (est.)', 'Expected weighted on-base average from exit velocity, launch angle, walks, HBP and strikeouts. Estimated from our own batted-ball model, not Statcast.' if side == 'hitting' else 'Expected wOBA allowed, from the contact quality, walks, HBP and strikeouts a pitcher gave up. Estimated from our own batted-ball model, not Statcast.', lambda v: f'{v:.3f}'.lstrip('0'))]
+    ADV = [('xwoba', 'xwOBA (est.)', 'Expected weighted on-base average from exit velocity, launch angle, walks, HBP and strikeouts. Estimated from our own batted-ball model (calibrated to college results), not Statcast.' if side == 'hitting' else 'Expected wOBA allowed, from the contact quality, walks, HBP and strikeouts a pitcher gave up. Estimated from our own batted-ball model (calibrated to college results), not Statcast.', lambda v: f'{v:.3f}'.lstrip('0'))]
     if side == 'pitching':
-        ADV += [('xera', 'xERA (est.)', 'Expected ERA, converted from xwOBA allowed (MLB run environment). An estimate.', lambda v: f'{v:.2f}'),
-                ('fip', 'FIP (est.)', 'Fielding Independent Pitching: (13 HR + 3 (BB+HBP) - 2 K) / IP + 3.10. Innings and results come from the tagged data, so it is an estimate.', lambda v: f'{v:.2f}')]
+        ADV += [('xera', 'xERA (est.)', 'Expected ERA, converted from xwOBA allowed using the college run environment measured from the tagged games in the app. An estimate.', lambda v: f'{v:.2f}'),
+                ('fip', 'FIP (est.)', 'Fielding Independent Pitching: (13 HR + 3 (BB+HBP) - 2 K) / IP + a constant set so the league FIP matches the league ERA in the tagged games. Innings and results come from the tagged data, so it is an estimate.', lambda v: f'{v:.2f}')]
     for r in rows:
         v = adv.get(r['key'])
         vals = ({k: v[k] for k in ('xwoba', 'xera', 'fip') if v and v.get(k) is not None} if preview else advanced.released('p' if side == 'pitching' else 'h', v))

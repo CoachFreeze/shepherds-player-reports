@@ -300,7 +300,17 @@ _EVN, _LAN, _TBL = _load_table()
 
 
 def hit_prob(ev, la):
-    """Probability that a ball hit at this exit velocity and launch angle is a hit (0-1). No fielders, parks or sprint speed."""
+    """Probability that a ball hit at this exit velocity and launch angle is a hit (0-1), calibrated to college results from the
+    tagged games in the app (runenv). No fielders, parks or sprint speed."""
+    p = hit_prob_mlb(ev, la)
+    if p is None:
+        return None
+    import runenv
+    return runenv.adjust(p)
+
+
+def hit_prob_mlb(ev, la):
+    """The same chance straight off the MLB-built table."""
     if ev is None or la is None:
         return None
     i, fi = _interp_idx(la, _LAN)
