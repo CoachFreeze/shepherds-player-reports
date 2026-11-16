@@ -26,7 +26,8 @@ PRIOR_ERA_PA = 0.150       # prior earned runs per batter (about a 5.9 ERA)
 PRIOR_PA9 = 39.5           # prior batters per nine innings
 EARNED_SHARE = 0.90        # the files carry runs, not earned runs
 FULL_TAG = 0.90            # a game counts as fully tagged when this share of its balls in play carry a result
-MLB = {'lg_woba': 0.315, 'runs_pa': 0.115, 'pa9': 38.0, 'fip_const': 3.10, 'era': 4.37, 'source': 'mlb', 'pa': 0}
+MLB = {'lg_woba': 0.315, 'lg_woba_real': 0.315, 'runs_pa': 0.115, 'runs_all_pa': 0.118, 'pa9': 38.0, 'fip_const': 3.10, 'era': 4.37, 'source': 'mlb', 'pa': 0}
+PRIOR_WOBA = 0.370         # prior league wOBA from results (college)
 W_BB, W_HBP = 0.69, 0.72
 
 _S = {'ver': object(), 't': 0.0, 'cal': (0.0, 1.0, 0), 'env': None}
@@ -112,6 +113,8 @@ def _compute():
             g[1] += _tagged(r)
     full = {k for k, (n, t) in games.items() if n >= 5 and t / n >= FULL_TAG}
     pa = runs = outs = bb = hbp = ks = hr = 0
+    wsum = 0.0
+    WR = {'Single': 0.89, 'Double': 1.27, 'Triple': 1.62, 'HomeRun': 2.10}
     for d, r in rows:
         if (d, r.get('SessionType')) not in full:
             continue
@@ -119,6 +122,7 @@ def _compute():
         if oc == 'inplay':
             pa += 1
             hr += r.get('PlayResult') == 'HomeRun'
+            wsum += WR.get(r.get('PlayResult'), 0.0)
         elif oc == 'hbp':
             pa += 1
             hbp += 1
@@ -138,12 +142,20 @@ def _compute():
     if pa >= MIN_PA and outs >= 90:
         runs_pa = (runs * EARNED_SHARE + PRIOR_ERA_PA * PRIOR_PA) / (pa + PRIOR_PA)
         pa9 = (pa + PRIOR_PA) / ((outs / 27) + PRIOR_PA / PRIOR_PA9)
-        xw = advanced._calc([advanced._from_row(r) for _d, r in rows], False)
+        vals = [v for v in (advanced.batted_value(e._fnum(r.get('ExitSpeed')), e._fnum(r.get('Angle'))) for _d, r in rows
+                            if e._outcome(r) == 'inplay' and r.get('HitType') != 'Bunt') if v is not None]
+        a_bb = sum(1 for _d, r in rows if r.get('Balls') == '3' and e._outcome(r) == 'ball')
+        a_hbp = sum(1 for _d, r in rows if e._outcome(r) == 'hbp')
+        a_k = sum(1 for _d, r in rows if r.get('Strikes') == '2' and e._outcome(r) in ('whiff', 'cs'))
+        a_pa = len(vals) + a_bb + a_hbp + a_k
+        xw = {'pa': a_pa, 'xwoba': ((sum(vals) + W_BB * a_bb + W_HBP * a_hbp) / a_pa) if a_pa else None}
+        woba_real = (wsum + W_BB * bb + W_HBP * hbp + PRIOR_WOBA * PRIOR_PA) / (pa + PRIOR_PA)
+        runs_all = (runs + (PRIOR_ERA_PA / EARNED_SHARE) * PRIOR_PA) / (pa + PRIOR_PA)
         era = runs_pa * pa9
         ip = outs / 3
         core = ((13 * hr + 3 * (bb + hbp) - 2 * ks) + 1.27 * 100) / (ip + 100)     # FIP's HR / BB / K part, pulled toward the MLB level over 100 innings
         if xw.get('xwoba') is not None and xw['pa'] >= MIN_PA:
-            env = {'lg_woba': xw['xwoba'], 'runs_pa': runs_pa, 'pa9': pa9, 'era': era, 'fip_const': era - core, 'source': 'own', 'pa': pa}
+            env = {'lg_woba': xw['xwoba'], 'lg_woba_real': woba_real, 'runs_all_pa': runs_all, 'runs_pa': runs_pa, 'pa9': pa9, 'era': era, 'fip_const': era - core, 'source': 'own', 'pa': pa}
     _S['env'] = env
 
 

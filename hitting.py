@@ -61,7 +61,7 @@ def _norm_trackman(r):
         'direction': e._fnum(r.get('Direction')), 'distance': e._fnum(r.get('Distance')),
         'hit_type': _HIT_TYPES.get(r.get('HitType')),
         'balls': r.get('Balls'), 'strikes': r.get('Strikes'), 'src': 'trackman',
-        'hit': bool(e._tags(r) & e._HIT_TAGS), 'has_result': any(t.startswith('PR_') for t in e._tags(r)),
+        'hit': _play_result(r) in ('1B', '2B', '3B', 'HR'), 'has_result': _play_result(r) is not None,     # operator tags or Trackman's own PlayResult column
         'result': _play_result(r),
         'kb': (r.get('KorBB') or '').strip(),      # Trackman's own strikeout / walk flag, set on the pitch that ends the at-bat
         'pa_key': ((r.get('Date') or '')[:10], r.get('GameUID'), r.get('Inning'), r.get('Top/Bottom'), r.get('PAofInning')) if r.get('Inning') and r.get('PAofInning') else None,
@@ -335,7 +335,9 @@ def xba(pitches):
     ba = None
     if scored and len(tagged) == len(scored):
         ba = sum(1 for p in scored if p['hit']) / ab
-    return {'ab': ab, 'xba': xh / ab, 'ba': ba, 'xh': round(xh, 1), 'k': ks}
+    import advanced
+    xtb = sum(advanced.expected_bases(p['ev'], p['la']) or 0 for p in scored)
+    return {'ab': ab, 'xba': xh / ab, 'ba': ba, 'xh': round(xh, 1), 'k': ks, 'xslg': xtb / ab, 'xiso': (xtb - xh) / ab}
 
 
 # ------------------------------------------------------------------ 3. stats
@@ -521,7 +523,7 @@ def hitter_stats(pitches):
         'disc': disc if disc_n >= 5 else None, 'disc_n': disc_n, 'hit': hit if hit_n >= 5 else None, 'hit_n': hit_n,
         'disc_g': letter_grade(disc if disc_n >= 5 else None), 'hit_g': letter_grade(hit if hit_n >= 5 else None), 'dmg_g': letter_grade(dmg),
         'dmg': dmg, 'dmg_n': len(hp), 'xbacon': xbacon, 'splits': splits, 'fb_hc_takes': fb_hc, 'excused_takes': excused, 'appr_takes': appr_takes, 'appr_swings': appr_swings,
-        'xba': xb['xba'], 'ba': xb['ba'], 'ab': xb['ab'], 'xh': xb['xh'], 'ks': xb['k'],
+        'xba': xb['xba'], 'ba': xb['ba'], 'ab': xb['ab'], 'xh': xb['xh'], 'ks': xb['k'], 'xslg': xb.get('xslg'), 'xiso': xb.get('xiso'),
         'pitches': n, 'pa': pa, 'decisions': decided, **qab_stats(pitches), **basic_stats(pitches),
         'score': score, 'grade': grade(score) if decided >= 15 else None,
         'good': good, 'bad': bad, 'neutral': cnt(verdict='neutral'),

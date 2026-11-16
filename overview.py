@@ -204,6 +204,19 @@ def _build(slug, bio, retag=False, frm=None, to=None):
     comps_html = sc.arsenal_comps_html(ac.find_arsenal_comps(ars, throws, ang, n=3), ars, throws, colors) if ars else ''
     ideas_html = sc.arsenal_ideas_html(ac.suggest_pitches(ars, throws, ang, n=3), {**e.MINI_PITCH_COLORS, **colors}, throws=throws) if ars else ''
 
+    try:
+        import advanced
+        grades_tbl = advanced.pitch_grades(rows, bio)
+        _calc = advanced._calc([advanced._from_row(r) for r in rows], True)
+        det = advanced.released_detail('p', _calc)
+        order = [t['type'] for t in tm]
+        grade_rows = [{'type': t, 'color': colors.get(t, '#555'), 'stuff': grades_tbl['stuff_by'].get(t), 'loc': grades_tbl['loc_by'].get(t),
+                       'rv': (-det['rv'][t]['rv100'] if t in det['rv'] else None)} for t in order]
+        grade_rows = [g for g in grade_rows if g['stuff'] is not None or g['loc'] is not None or g['rv'] is not None]
+        grades_ctx = {'rows': grade_rows, 'stuff': grades_tbl['stuff'], 'loc': grades_tbl['loc'], 'loc_n': grades_tbl['loc_n'], 'has_rv': any(g['rv'] is not None for g in grade_rows),
+                      'splits': det['splits']} if (grade_rows or grades_tbl['stuff'] or grades_tbl['loc']) else None
+    except Exception:
+        grades_ctx = None
     summ = e.outing_summary(rows) or {}
     stat_vals = stats_mod.compute(rows)
     fs_prog = store.is_fullswing(bio.get('program'))
@@ -239,7 +252,7 @@ def _build(slug, bio, retag=False, frm=None, to=None):
     spin_note = _trend_note(spin_series, label='spin', unit=' rpm', dec=0, flat=15)
 
     log = outing_log(recent, name)
-    return {'name': name, 'meta': meta, 'trend_note': trend_note, 'summary': summ, 'stat_tiles': stat_tiles, 'stat_catalog': stat_catalog, 'movement_html': movement_html, 'movement_views': movement_views, 'effect': effect, 'comps_html': comps_html, 'ideas_html': ideas_html, 'location_html': location_html, 'zone_ev': zone_ev,
+    return {'name': name, 'meta': meta, 'trend_note': trend_note, 'summary': summ, 'stat_tiles': stat_tiles, 'stat_catalog': stat_catalog, 'movement_html': movement_html, 'movement_views': movement_views, 'effect': effect, 'comps_html': comps_html, 'ideas_html': ideas_html, 'grades': grades_ctx, 'location_html': location_html, 'zone_ev': zone_ev,
             'trend_html': trend_html, 'legend': legend, 'spin_html': spin_html, 'spin_legend': spin_legend, 'spin_note': spin_note, 'log': log, 'n_outings': len(recent), 'n_pitches': len(rows),
             'range': (_long_date(recent[-1]['date']) + ' – ' + _long_date(recent[0]['date'])) if len(recent) > 1 else _long_date(recent[0]['date'])}
 

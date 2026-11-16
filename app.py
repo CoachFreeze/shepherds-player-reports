@@ -809,7 +809,7 @@ _PITCH_LINEUP = [  # (stat id, header, hover text "Full name: definition", secti
 
 # Columns where the better end is the smaller number, so a first click on the header sorts smallest first (everything else sorts largest first).
 _LOW_BETTER = {
-    'pitching': {'era', 'whip', 'fip', 'balls', 'hits', 'walks', 'hbp', 'contact_pct', 'avg_ev', 'hh_pct', 'ld_pct', 'fb_pct'},
+    'pitching': {'era', 'whip', 'fip', 'xera', 'xwoba', 'xslg', 'xiso', 'woba', 'iso', 'babip', 'luck', 'balls', 'hits', 'walks', 'hbp', 'contact_pct', 'avg_ev', 'hh_pct', 'ld_pct', 'fb_pct'},
     'hitting': {'b_k', 'b_k_pct', 'chase_pct', 'whiff_pct', 'gb_pct', 'pu_pct', 'ev_gap'},
 }
 
@@ -863,15 +863,29 @@ def _stat_table(program, side, basic=False):
     if side == 'pitching':
         ADV += [('xera', 'xERA (est.)', 'Expected ERA, converted from xwOBA allowed using the college run environment measured from the tagged games in the app. An estimate.', lambda v: f'{v:.2f}'),
                 ('fip', 'FIP (est.)', 'Fielding Independent Pitching: (13 HR + 3 (BB+HBP) - 2 K) / IP + a constant set so the league FIP matches the league ERA in the tagged games. Innings and results come from the tagged data, so it is an estimate.', lambda v: f'{v:.2f}')]
+    f3 = lambda v: f'{v:.3f}'.lstrip('0') if 0 <= v < 1 else f'{v:.3f}'
+    ADV += [('xslg', 'xSLG (est.)', 'Expected slugging' + (' allowed' if side == 'pitching' else '') + ': expected total bases per at-bat from exit velocity and launch angle.', f3),
+            ('xiso', 'xISO (est.)', 'Expected isolated power' + (' allowed' if side == 'pitching' else '') + ': xSLG minus xBA.', f3),
+            ('woba', 'wOBA', 'Weighted on-base average' + (' allowed' if side == 'pitching' else '') + ' from the tagged results. Shown once at least 80% of his balls in play are tagged.', f3),
+            ('iso', 'ISO', 'Isolated power' + (' allowed' if side == 'pitching' else '') + ': slugging minus batting average, from tagged results.', f3),
+            ('babip', 'BABIP', 'Batting average on balls in play' + (' allowed' if side == 'pitching' else '') + ', from tagged results.', f3),
+            ('luck', 'wOBA-xwOBA', 'Results minus expected. ' + ('Above zero: hitters did better against him than the contact deserved.' if side == 'pitching' else 'Above zero: results are running ahead of his contact quality; below zero: he has hit into bad luck.'), lambda v: f'{v:+.3f}'.replace('0.', '.'))]
+    if side == 'hitting':
+        ADV += [('wrc_plus', 'wRC+', 'Weighted runs created, scaled so 100 is the league average in the tagged games in the app. From tagged results.', lambda v: f'{v:.0f}')]
+    else:
+        ADV += [('lob', 'LOB%', 'Share of baserunners he stranded, from tagged results and runs.', lambda v: f'{100 * v:.0f}%'),
+                ('stuff', 'Stuff+', 'Pitch shape grade against MLB pitches of the same type, weighted by usage. 100 = MLB average; 10 points = one standard deviation. An estimate.', lambda v: f'{v:.0f}'),
+                ('loc', 'Location+', 'Location grade against the other pitchers in ShepSavant. 100 = average here; 10 points = one standard deviation.', lambda v: f'{v:.0f}')]
+    ADV_GROUP = {'stuff': 'Pitch grades', 'loc': 'Pitch grades'}
     for r in rows:
         v = adv.get(r['key'])
-        vals = ({k: v[k] for k in ('xwoba', 'xera', 'fip') if v and v.get(k) is not None} if preview else advanced.released('p' if side == 'pitching' else 'h', v))
+        vals = ({k: v[k] for k, *_ in ADV if v and v.get(k) is not None} if preview else advanced.released('p' if side == 'pitching' else 'h', v))
         for sid, lab, d, fmt in ADV:
             if sid in vals:
                 r['cells'][sid] = (fmt(vals[sid]), vals[sid])
     for sid, lab, d, fmt in ADV:
         if any(sid in r['cells'] for r in rows):
-            cols.append({'id': sid, 'label': lab, 'abbr': lab.split(' ')[0], 'group': 'Run value', 'def': d})
+            cols.append({'id': sid, 'label': lab, 'abbr': lab.split(' ')[0], 'group': ADV_GROUP.get(sid, 'Run value'), 'def': d})
     used = {i for r in rows for i in r['cells']}
     cols = [c for c in cols if c['id'] in used]
     order = list(dict.fromkeys(c['group'] for c in cols))
