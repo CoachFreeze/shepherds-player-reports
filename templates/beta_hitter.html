@@ -199,15 +199,16 @@ var ZD = {{ h.zone_ev|tojson }};
     {{ hz_grid(h.zones, h.bats, can_edit)|safe }}
     {% if can_edit %}<p class="hint" id="hz-msg" style="text-align:center;margin-top:6px;">Each tap moves a box: from the data &rarr; Hot &rarr; Cold &rarr; Neither &rarr; back to the data.</p>{% endif %}
     {% endif %}
-    <h3 class="mh">Pitch map{{ info('pitch_map') }}</h3>
+  </div>
+  <div class="card"><h2>Pitch map{{ info('pitch_map') }}</h2>
     <div id="pm-dec"><p class="hint">Catcher's view. Every pitch he saw. Hover or tap a dot for the count, pitch and why it was judged that way.</p>
         <div class="tg" id="f-a"><label><input type="checkbox" value="Swing" checked>Swings</label><label><input type="checkbox" value="Take" checked>Takes</label></div>
         <div class="tg" id="f-v" style="margin:6px 0 10px;"><label><input type="checkbox" value="good" checked><span class="sw" style="background:var(--good)"></span>Good</label><label><input type="checkbox" value="bad" checked><span class="sw" style="background:var(--bad)"></span>Bad</label><label><input type="checkbox" value="neutral" checked><span class="sw" style="background:#9aa5ab"></span>Neutral</label></div>
         <div style="max-width:420px;margin:0 auto;position:relative;">{{ h.decision_svg_i|safe }}</div>
         <div class="cnt" id="cnt" style="margin-top:8px;text-align:center;"></div>
         <div class="legend"><span><i style="background:var(--good)"></i>Good</span><span><i style="background:var(--bad)"></i>Bad</span><span><i style="background:var(--neu)"></i>Borderline</span><span><i style="background:#fff;border:2px solid #55626b"></i>Take</span><span><i style="background:#55626b"></i>Swing</span></div></div>
-    {% if h.notes %}<h3 class="mh">Player Insights{{ info('player_insights') }}</h3><ul class="notes" style="margin-top:6px;">{% for n in h.notes %}<li>{{ n }}</li>{% endfor %}</ul>{% endif %}
-  </div>{% endif %}
+  </div>
+  {% if h.notes %}<div class="card"><h2>Player Insights{{ info('player_insights') }}</h2><ul class="notes" style="margin-top:6px;">{% for n in h.notes %}<li>{{ n }}</li>{% endfor %}</ul></div>{% endif %}{% endif %}
 
   </div>
   </div>
@@ -279,4 +280,4 @@ bt.forEach(function(b){b.addEventListener('click',function(){show(b.getAttribute
   });
 })();
 </script>
-{% include '_info_ui.html' %}</body></html>
+{% include '_info_ui.html' %}{% include '_balance.html' %}</body></html>

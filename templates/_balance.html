@@ -1,0 +1,44 @@
+<script>
+/* Evens out the two columns of a profile page so neither ends with a blank block. Cards keep their order of importance: the top
+   card of each column stays put, and the fewest possible cards switch sides. A small leftover is absorbed by the last card. */
+(function(){
+  function kids(col){ return Array.prototype.filter.call(col.children,function(k){ return k.tagName!=='SCRIPT'&&k.tagName!=='STYLE'&&k.offsetHeight>0; }); }
+  function outer(el){ var cs=getComputedStyle(el); return el.getBoundingClientRect().height+(parseFloat(cs.marginTop)||0)+(parseFloat(cs.marginBottom)||0); }
+  function twoUp(a,b){ return b.getBoundingClientRect().left>a.getBoundingClientRect().left+40; }
+  function clear(cols){ cols.querySelectorAll('[data-bal-fill]').forEach(function(k){ k.style.minHeight=''; k.removeAttribute('data-bal-fill'); }); }
+  function fill(cols){
+    var c=cols.children; if(c.length!==2) return; clear(cols);
+    if(!twoUp(c[0],c[1])) return;
+    var h0=kids(c[0]).reduce(function(s,k){return s+outer(k);},0), h1=kids(c[1]).reduce(function(s,k){return s+outer(k);},0), d=Math.abs(h0-h1);
+    if(d<6||d>240) return;
+    var ks=kids(h0<h1?c[0]:c[1]), last=ks[ks.length-1]; if(!last) return;
+    last.style.minHeight=(last.getBoundingClientRect().height+d)+'px'; last.setAttribute('data-bal-fill','1');
+  }
+  function balance(cols){
+    var c=cols.children; if(c.length!==2||cols.getAttribute('data-bal')) return;
+    if(!twoUp(c[0],c[1])) return;
+    cols.setAttribute('data-bal','1');
+    var L=kids(c[0]), R=kids(c[1]), all=[], i;
+    for(i=0;i<Math.max(L.length,R.length);i++){ if(L[i]) all.push({el:L[i],side:0,h:outer(L[i]),lock:i===0}); if(R[i]) all.push({el:R[i],side:1,h:outer(R[i]),lock:i===0}); }
+    var n=all.length; if(n<3||n>14) return;
+    var tot=all.reduce(function(s,k){return s+k.h;},0), cur=Math.abs(all.reduce(function(s,k){return s+(k.side?-k.h:k.h);},0));
+    var best=null, bestCost=cur, m, j;
+    for(m=0;m<(1<<n);m++){
+      var hl=0, moves=0, ok=true;
+      for(j=0;j<n;j++){ var s=(m>>j)&1; if(s!==all[j].side){ if(all[j].lock){ok=false;break;} moves++; } if(!s) hl+=all[j].h; }
+      if(!ok||!moves) continue;
+      var cost=Math.abs(2*hl-tot)+40*moves;
+      if(cost<bestCost){ bestCost=cost; best=m; }
+    }
+    if(best===null||bestCost>cur-60) return;
+    for(j=0;j<n;j++){ var side=(best>>j)&1; if(side!==all[j].side) c[side].appendChild(all[j].el); }
+  }
+  function run(){ document.querySelectorAll('.cols').forEach(function(x){ balance(x); fill(x); }); }
+  var t; function later(){ clearTimeout(t); t=setTimeout(function(){ document.querySelectorAll('.cols').forEach(fill); },150); }
+  if(document.readyState==='complete') run(); else window.addEventListener('load',run);
+  window.addEventListener('resize',later);
+  window.addEventListener('beforeprint',function(){ document.querySelectorAll('.cols').forEach(clear); });
+  window.addEventListener('afterprint',later);
+  document.addEventListener('click',function(){ setTimeout(later,60); });
+})();
+</script>

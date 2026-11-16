@@ -40,4 +40,4 @@
 {% include '_mvtip.html' %}
 <script>(function(){var t=document.getElementById('zmtabs');if(!t)return;var leg={swing:'Share of pitches he swings at. Spots with fewer than 3 pitches stay blank.',miss:'Share of his swings that miss (green = he misses a lot, attack here). Needs 3 swings.',ev:'Average exit velocity on balls in play (green = soft, red = hard). Needs 2 balls in play.',seen:'How many pitches he has seen in each spot.'};
 t.querySelectorAll('button').forEach(function(b){b.onclick=function(){t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b);});document.querySelectorAll('.zm-l').forEach(function(g){g.style.display=g.dataset.m===b.dataset.m?'':'none';});document.getElementById('zmleg').textContent=leg[b.dataset.m];};});})();</script>
-</body></html>
+{% include '_balance.html' %}</body></html>
