@@ -21,7 +21,7 @@ INFO = {
         'Stuff+ tells you what a pitch could be, even from bullpens. Location+ tells you whether he commands it. A pitch with good stuff and poor location needs command work; the reverse needs a better shape. Both are estimates. In a test on 22 MLB pitchers, Stuff+ tracked strikeout rate closely and Location+ tracked walk rate; neither is a full measure of run prevention on its own.'),
     'pitch_effectiveness': (
         'How each of his pitch types performs, split by whether the batter is left- or right-handed.',
-        'Every pitch of a type is counted for usage, strike, whiff and contact-quality results. Rows with fewer than 10 pitches are greyed out because the sample is too small to trust.',
+        'Every pitch of a type is counted for usage, strike, whiff and contact-quality results. xBAA is the batting average hitters would be expected to have from how hard and at what angle they hit each pitch; BAA, which appears once most balls in play on a pitch are tagged with a result, is what they actually hit. A BAA well under xBAA points to good luck or good defense, well over it the reverse. Rows with fewer than 10 pitches are greyed out because the sample is too small to trust.',
         'It shows which pitches actually work against lefties versus righties, which is the basis for deciding what to throw and when.'),
     'pitch_location': (
         'Where each pitch type finishes in and around the strike zone, seen from the catcher\'s view, against left- and right-handed batters.',

@@ -34,6 +34,30 @@ def _xba(rs, outcomes):
     return (sum(scored) / ab) if ab >= 3 else None
 
 
+BAA_TAGGED = 0.8      # share of a pitch's balls in play that must carry a result before its real BAA shows
+
+
+def _baa(rs, outcomes):
+    """Actual batting average against from the tagged results (hits / (tagged at-bats ending in play + strikeouts)).
+    None until BAA_TAGGED of the balls in play on this pitch are tagged, so a half-tagged pitch never shows a misleading number."""
+    import hitting
+    bip = tagged = hits = sac = ks = 0
+    for r, o in zip(rs, outcomes):
+        if o == 'inplay':
+            bip += 1
+            res = hitting._play_result(r)
+            if res:
+                tagged += 1
+                hits += res in ('1B', '2B', '3B', 'HR')
+                sac += res == 'SAC'
+        elif o in ('whiff', 'cs') and str(r.get('Strikes')) == '2':
+            ks += 1
+    if bip and tagged / bip < BAA_TAGGED:
+        return None
+    ab = tagged - sac + ks
+    return (hits / ab) if ab >= 3 else None
+
+
 def _row(rs, total):
     c = stats_mod._core(rs)
     fs = bool(rs) and all((r.get('Source') or '') == 'fullswing' for r in rs)
@@ -47,7 +71,7 @@ def _row(rs, total):
             'whiff': 100.0 * c['whiffs'] / c['swings'] if c['swings'] else None,
             'chase': None if fs or not c['zout'] else 100.0 * c['osw'] / c['zout'],
             'ev': sum(evs) / len(evs) if evs else None,
-            'xba': _xba(rs, c['o'])}
+            'xba': _xba(rs, c['o']), 'baa': _baa(rs, c['o'])}
 
 
 def effectiveness(rows, order, colors):
@@ -61,6 +85,6 @@ def effectiveness(rows, order, colors):
             if t:
                 groups.setdefault(t, []).append(r)
         total = sum(len(g) for g in groups.values())
-        out.append({'side': side, 'title': title, 'n': len(sr),
-                    'rows': [dict(_row(groups.get(t, []), total), type=t, color=colors.get(t, '#555')) for t in order]})
+        rws = [dict(_row(groups.get(t, []), total), type=t, color=colors.get(t, '#555')) for t in order]
+        out.append({'side': side, 'title': title, 'n': len(sr), 'rows': rws, 'has_baa': any(r['baa'] is not None for r in rws)})
     return out
