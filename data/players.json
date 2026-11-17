@@ -998,6 +998,12 @@
     },
     "roster_ys": 2027,
     "school": "Biola University",
+    "stat_ids": [
+      "strike_pct",
+      "whiff_pct",
+      "chase_pct",
+      "avg_ev"
+    ],
     "weight_lbs": 190.0
   },
   "oscar_knapp": {
