@@ -7,7 +7,7 @@ pitchers. The reference holds shapes, not results, so the weights below are set 
 fitted to outcomes: treat Stuff+ as an estimate.
 
 Location+ grades where his pitches end up. Every location is worth some number of runs per pitch. Those values start from MLB
-(Baseball Savant's 2026 swing/take run values by attack zone, data/mlb_swing_take_2026.csv) and move toward what the tracked pitches in
+(Baseball Savant's 2026 swing/take run values by attack zone, kept as four derived numbers) and move toward what the tracked pitches in
 the app show as each box (location x count) fills up: our own data is half the value once a box has OWN_K pitches. With ~3,000 pitches
 today that means it is nearly all MLB; the full count-by-location split needs ~60,000 pitches to stand on its own data. A pitcher's
 Location+ is how his average location value compares with the other pitchers in the app: 100 = average here, every 10 points one
@@ -156,7 +156,6 @@ SHRINK_LOC = 60              # pitches' worth of pull toward the average
 RV_BALL, RV_STRIKE, RV_WALK, RV_K = 0.055, -0.065, 0.30, -0.27     # run value to the hitter of a ball / strike, by standard linear weights
 REGIONS = ('heart', 'edge_in', 'edge_out', 'chase', 'waste')
 OWN_K = 900                  # pitches in one location x count box before our own data counts half
-MLB_SWING_TAKE = 'data/mlb_swing_take_2026.csv'
 # Savant's file gives runs per attack zone but not pitches per zone, so the per-pitch value needs each zone's share of MLB pitches.
 # Heart ~26% (FanGraphs: every team 24.9-27.9% in 2024); shadow / chase / waste are estimates. Replace with exact counts when we have them.
 MLB_ZONE_SHARE = {'heart': 0.26, 'shadow': 0.40, 'chase': 0.23, 'waste': 0.11}
@@ -164,22 +163,13 @@ _MLB_FALLBACK = {'heart': -0.0129, 'shadow': -0.0175, 'chase': 0.0240, 'waste': 
 
 
 def mlb_location_values():
-    """Runs to the hitter per pitch in each of our locations, from Savant's swing/take leaderboard (pitcher side: + there = good for
-    the pitcher, so the sign flips). The shadow zone covers both edge boxes."""
-    import csv
-    import os
-    vals = dict(_MLB_FALLBACK)
-    try:
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), MLB_SWING_TAKE)
-        with open(path, encoding='utf-8-sig') as f:
-            rows = list(csv.DictReader(f))
-        pitches = sum(float(r.get('pitches') or 0) for r in rows)
-        if pitches > 100000:
-            for z, share in MLB_ZONE_SHARE.items():
-                vals[z] = -sum(float(r.get('runs_' + z) or 0) for r in rows) / (pitches * share)
-    except (OSError, ValueError):
-        pass
-    return {'heart': vals['heart'], 'edge_in': vals['shadow'], 'edge_out': vals['shadow'], 'chase': vals['chase'], 'waste': vals['waste']}
+    """Runs to the hitter per pitch in each of our locations. Derived once (2026-11-17) from Baseball Savant's 2026 swing/take run
+    values by attack zone (786 pitchers, 711,881 pitches) and the zone shares above; only these four derived numbers are kept, never
+    the raw file (see the project's data-sources-and-licensing notes). The shadow zone covers both edge boxes."""
+    v = _MLB_FALLBACK
+    return {'heart': v['heart'], 'edge_in': v['shadow'], 'edge_out': v['shadow'], 'chase': v['chase'], 'waste': v['waste']}
+
+
 COUNTS = ('first', 'ahead', 'even', 'behind', 'two')
 
 
