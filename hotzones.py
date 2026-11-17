@@ -19,10 +19,10 @@ TAGS = ('hot', 'cold', 'none')
 
 def cell(p):
     """(row, col) from the hitter's view, or None (no location or batting side, or off the zone's edge)."""
-    x, z, side = p.get('x'), p.get('z'), p.get('side')
+    x, z, side = p.get('x'), H.zone_z(p), p.get('side')
     if x is None or z is None or side not in ('L', 'R'):
         return None
-    if H.region(x, z) not in ('heart', 'shadow'):
+    if H.region(x, z) not in ('heart', 'shadow'):          # his own zone (sized from his height when known)
         return None
     u = -x if side == 'R' else x                 # + = inside (toward the hitter); stored x is + toward the catcher's right
     third_x = H.ZX / 3

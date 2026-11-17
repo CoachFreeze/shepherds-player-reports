@@ -84,7 +84,7 @@ def _coarse_stats(ps, only_out=False):
         rc = _cell(p)
         if not rc:
             continue
-        if only_out and H.region(p['x'], p['z']) not in ('chase', 'waste'):
+        if only_out and H.pitch_region(p) not in ('chase', 'waste'):
             continue
         g.setdefault(_coarse(rc), []).append(p)
     return {k: _summ(v) for k, v in g.items()}

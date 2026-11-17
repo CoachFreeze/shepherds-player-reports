@@ -109,6 +109,28 @@ SWING = ('whiff', 'foul', 'inplay')
 TAKE = ('ball', 'cs')
 
 
+SZ_TOP, SZ_BOT = 0.56, 0.26                      # rulebook zone as a share of height (Statcast averages: ~3.4 ft top / 1.6 ft bottom at 6'1")
+
+
+def zone_z(p):
+    """The pitch height mapped onto the app's zone (ZB..ZT) from this hitter's own zone: Statcast's measured zone when the data has it
+    (p['zt'] / p['zb']), else one sized from his height (p['ht_in']), else the plain height (the app's fixed zone)."""
+    z = p.get('z')
+    if z is None:
+        return None
+    top, bot = p.get('zt'), p.get('zb')
+    if not (top and bot) and p.get('ht_in'):
+        top, bot = SZ_TOP * p['ht_in'] / 12, SZ_BOT * p['ht_in'] / 12
+    if top and bot and top - bot > 0.8:
+        return ZB + (z - bot) / (top - bot) * (ZT - ZB)
+    return z
+
+
+def pitch_region(p):
+    """region() for one pitch, using this hitter's own zone (zone_z)."""
+    return region(p.get('x'), zone_z(p))
+
+
 def region(x, z):
     if x is None or z is None:
         return None
@@ -143,10 +165,12 @@ def judge(p):
     """Returns (region, swung, verdict, weight, why) or None if the pitch can't be judged.
     verdict is good|bad|neutral and weight says how much the decision counts, because the same swing or take means
     different things in different counts and against different pitches:
-      * taking a heart pitch is bad, and worse for a fastball in a hitter's count (balls > strikes) or with two strikes,
-        except a fastball on 3-0, which is never held against him (taking is the right play there);
-      * taking a breaking ball / off-speed pitch in the heart early in the count is not held against him (0-0 not at all,
-        other early counts at half weight), unless he has two strikes;
+      * taking a heart pitch costs more the deeper the count: a fastball on 0-0 costs a third, other early counts (no more than two
+        pitches in, under two strikes) a bit over half, later counts the full amount and two strikes extra. Good hitters often take
+        a middle pitch early while they hunt the one they want (tested on MLB seasons: Soto and Alvarez take more middle pitches than
+        Tovar), so an early take is a small miss, not a big one. A fastball on 3-0 is never held against him;
+      * taking a breaking ball / off-speed pitch in the heart early in the count is not held against him on 0-0, and costs a third
+        in other early counts, unless he has two strikes;
       * swinging at a pitch off the zone is bad, a little worse in a hitter's count. Only the shadow (the neutral
         area on the edge) is "close"; past it, a swing is a chase even with two strikes;
       * taking a pitch off the zone is good, and counts extra with two strikes;
@@ -154,7 +178,7 @@ def judge(p):
       * his approach (hot / cold zones, p['hz']), before two strikes only: taking a hittable pitch in one of his cold zones costs
         half, and attacking an edge pitch in one of his hot zones is a small plus. Chases and two-strike takes are never excused."""
     o = p['outcome']
-    reg = region(p['x'], p['z'])
+    reg = pitch_region(p)
     if reg is None or (o not in SWING and o not in TAKE):
         return None
     swung = o in SWING
@@ -178,13 +202,15 @@ def judge(p):
             if b + st == 0:
                 v, w, why = 'neutral', 0.0, 'Took an off-speed or breaking pitch on 0-0 (not held against him)'
             else:
-                v, w, why = 'bad', 0.5, 'Early-count take of an off-speed or breaking pitch (half weight)'
+                v, w, why = 'bad', 0.33, 'Early-count take of an off-speed or breaking pitch (a third of the weight)'
         elif cls == 'hard' and cc == (3, 0):
             v, w, why = 'neutral', 0.0, 'Took a fastball on 3-0 (not held against him)'
-        elif cls == 'hard' and hitters:
-            v, w, why = 'bad', 2.0, "Took a fastball in the heart in a hitter's count (counts double)"
         elif two:
             v, w, why = 'bad', 1.5, 'Took a hittable pitch with two strikes (counts extra)'
+        elif cc is not None and b + st == 0:
+            v, w, why = 'bad', 0.33, 'Took a hittable pitch on 0-0 (a third of the weight: often waiting for his pitch)'
+        elif early:
+            v, w, why = 'bad', 0.6, 'Took a hittable pitch early in the count (reduced weight)'
         else:
             v, w = 'bad', 1.0
         if v == 'bad' and hz == 'cold':
@@ -237,6 +263,22 @@ def explain_sdr(s, who='He'):
         summary = f"{s['score']} is {s['grade']}, from {s['decisions']} judged pitches."
     rated = s.get('score') is not None and s.get('grade') is not None
     return {'score': s.get('score') if rated else None, 'grade': s.get('grade') if rated else 'Small sample', 'summary': summary, 'lines': lines}
+
+
+W_DISC, W_HIT, W_DMG = 0.40, 0.20, 0.40           # chase discipline / hittable pitches / damage (was 35 / 35 / 30 before the MLB test)
+SPREAD_C, SPREAD_K = 80.0, 1.8                     # the blended parts bunch together; stretch around SPREAD_C so hitters spread over the scale
+SPREAD_N = 60                                      # judged decisions before a hitter's distance from the middle counts half
+
+
+def spread(raw, n=None):
+    """The blended part scores, stretched so real differences between hitters show (the three parts average toward the middle:
+    11 MLB hitters from Alvarez to Tovar spanned only 77-85 before). A small sample is pulled toward the middle first, so the stretch
+    can't turn a few lucky or unlucky pitches into an extreme grade."""
+    if raw is None:
+        return None
+    if n is not None:
+        raw = SPREAD_C + (raw - SPREAD_C) * n / (n + SPREAD_N)
+    return int(max(0, min(100, round(SPREAD_C + (raw - SPREAD_C) * SPREAD_K))))
 
 
 def grade(score):
@@ -501,9 +543,10 @@ def hitter_stats(pitches):
     hp = [v for v in hp if v is not None]
     xbacon = sum(hp) / len(hp) if hp else None
     dmg = max(0, min(100, round(68 + (xbacon - 0.33) * 250))) if xbacon is not None and len(hp) >= 3 else None
-    parts = [(0.35, disc if disc_n >= 5 else None), (0.35, hit if hit_n >= 5 else None), (0.30, dmg)]
+    parts = [(W_DISC, disc if disc_n >= 5 else None), (W_HIT, hit if hit_n >= 5 else None), (W_DMG, dmg)]
     live = [(w_, v_) for w_, v_ in parts if v_ is not None]
-    score = round(sum(w_ * v_ for w_, v_ in live) / sum(w_ for w_, _ in live)) if len(live) >= 2 else dec_w
+    raw = (sum(w_ * v_ for w_, v_ in live) / sum(w_ for w_, _ in live)) if len(live) >= 2 else dec_w
+    score = spread(raw, decided)
 
     def split(label, pred):
         sc, k = wscore([(p, j) for p, j in judged if pred(p)])
@@ -791,6 +834,17 @@ def _apply_zones(out):
     come from data/hitters.json ('zones')."""
     import hotzones
     bios = _load_json(HITTER_BIOS_PATH)
+    for k, h in out.items():                  # each hitter's zone is sized from his height when we know it (zone_z)
+        ht = (bios.get(k) or {}).get('height_in') or (h.get('roster') or {}).get('height_in')
+        if not ht and h.get('opp_slug'):
+            try:
+                import scoutbio
+                ht = scoutbio.resolved(h['program'], k, h['name']).get('h')
+            except Exception:
+                ht = None
+        if ht and 58 <= ht <= 86:
+            for p in h['pitches']:
+                p['ht_in'] = ht
     hotzones.apply(out, {k: (bios.get(k) or {}).get('zones') for k in out if (bios.get(k) or {}).get('zones')})
 
 

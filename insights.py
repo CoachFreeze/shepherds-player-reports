@@ -338,7 +338,7 @@ def hitter(key):
                           'action': f'Build in drill work on {fam} in that spot (tee or front toss placed there, or machine work), and consider a plan for taking or laying off it until it improves.'})
 
     # 2. chasing off the zone
-    oz = [p for p in ps if p['x'] is not None and p['z'] is not None and hitting.region(p['x'], p['z']) in ('chase', 'waste')]
+    oz = [p for p in ps if p['x'] is not None and p['z'] is not None and hitting.pitch_region(p) in ('chase', 'waste')]
     base_c = (sum(1 for p in oz if p['outcome'] in hitting.SWING) / len(oz)) if oz else 0
     for fam in ('fastballs', 'breaking balls', 'offspeed pitches'):
         sub = [(p['date'], p['outcome'] in hitting.SWING) for p in oz if _fam3(hitting._PT_LABELS.get(p.get('pitch_type') or '')) == fam]
