@@ -213,7 +213,10 @@ def _build(slug, bio, retag=False, frm=None, to=None):
         grade_rows = [{'type': t, 'color': colors.get(t, '#555'), 'stuff': grades_tbl['stuff_by'].get(t), 'loc': grades_tbl['loc_by'].get(t),
                        'rv': (-det['rv'][t]['rv100'] if t in det['rv'] else None)} for t in order]
         grade_rows = [g for g in grade_rows if g['stuff'] is not None or g['loc'] is not None or g['rv'] is not None]
+        import grades as grades_mod
         grades_ctx = {'rows': grade_rows, 'stuff': grades_tbl['stuff'], 'loc': grades_tbl['loc'], 'loc_n': grades_tbl['loc_n'], 'has_rv': any(g['rv'] is not None for g in grade_rows),
+                      'loc_min': grades_mod.MIN_LOC_PITCHES, 'zone_pct': grades_tbl.get('zone_pct'),
+                      'bb_pct': (_calc['bb'] / _calc['pa']) if _calc.get('pa') else None, 'bf': _calc.get('pa') or 0,
                       'splits': det['splits']} if (grade_rows or grades_tbl['stuff'] or grades_tbl['loc']) else None
     except Exception:
         grades_ctx = None

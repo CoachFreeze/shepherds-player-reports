@@ -222,7 +222,7 @@ def pitch_grades(rows, bio):
            for t in tm if t.get('hb') is not None and t.get('ivb') is not None]
     st = grades.stuff(ars, meta.get('throws') or 'R', slot['angle'] if slot else None) if ars else {'by_type': {}, 'overall': None}
     loc = grades.location(rows, pitchfx._label)
-    return {'stuff': st['overall'], 'stuff_by': st['by_type'], 'loc': loc['overall'], 'loc_by': loc['by_type'], 'loc_n': loc['n']}
+    return {'stuff': st['overall'], 'stuff_by': st['by_type'], 'loc': loc['overall'], 'loc_by': loc['by_type'], 'loc_n': loc['n'], 'zone_pct': loc['zone_pct']}
 
 
 def released(side, v):

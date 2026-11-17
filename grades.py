@@ -6,10 +6,12 @@ app (data/mlb_arsenals_*.csv): 100 = the average MLB pitch of that type, and eve
 pitchers. The reference holds shapes, not results, so the weights below are set by hand from how each trait is known to matter, not
 fitted to outcomes: treat Stuff+ as an estimate.
 
-Location+ grades where his pitches end up. Every pitch location is worth some number of runs depending on the count; those values are
-measured from all the tracked pitches stored in the app (pooled, demo data left out) and refit as data comes in. A pitcher's Location+
-is how his average location value compares with the other pitchers in the app: 100 = average here, every 10 points one standard
-deviation. It is relative to the app's pitchers, not to MLB."""
+Location+ grades where his pitches end up. Every location is worth some number of runs per pitch. Those values start from MLB
+(Baseball Savant's 2026 swing/take run values by attack zone, data/mlb_swing_take_2026.csv) and move toward what the tracked pitches in
+the app show as each box (location x count) fills up: our own data is half the value once a box has OWN_K pitches. With ~3,000 pitches
+today that means it is nearly all MLB; the full count-by-location split needs ~60,000 pitches to stand on its own data. A pitcher's
+Location+ is how his average location value compares with the other pitchers in the app: 100 = average here, every 10 points one
+standard deviation."""
 import math
 
 import arsenal_comps as ac
@@ -145,11 +147,39 @@ def stuff(arsenal, throws='R', arm_angle=None):
 
 
 # ---- Location+
-MIN_LOC_PITCHES = 60         # located pitches before a pitcher gets a Location+
-MIN_LOC_TYPE = 25            # ... and before one pitch type does
+MIN_LOC_PITCHES = 150        # located pitches before a pitcher gets a Location+
+MIN_LOC_TYPE = 50            # ... and before one pitch type does
+MIN_SCALE_PITCHES = 60       # pitchers with this many located pitches help set the 100 / 10-point scale
+MIN_SD = 0.004               # the scale never gets tighter than this (runs per pitch per 10 points)
+EDGE_SPLIT_K = 200           # pitches in the smaller edge box before our in-vs-out gap counts half
 SHRINK_LOC = 60              # pitches' worth of pull toward the average
 RV_BALL, RV_STRIKE, RV_WALK, RV_K = 0.055, -0.065, 0.30, -0.27     # run value to the hitter of a ball / strike, by standard linear weights
 REGIONS = ('heart', 'edge_in', 'edge_out', 'chase', 'waste')
+OWN_K = 900                  # pitches in one location x count box before our own data counts half
+MLB_SWING_TAKE = 'data/mlb_swing_take_2026.csv'
+# Savant's file gives runs per attack zone but not pitches per zone, so the per-pitch value needs each zone's share of MLB pitches.
+# Heart ~26% (FanGraphs: every team 24.9-27.9% in 2024); shadow / chase / waste are estimates. Replace with exact counts when we have them.
+MLB_ZONE_SHARE = {'heart': 0.26, 'shadow': 0.40, 'chase': 0.23, 'waste': 0.11}
+_MLB_FALLBACK = {'heart': -0.0129, 'shadow': -0.0175, 'chase': 0.0240, 'waste': 0.0409}   # runs to the hitter per pitch, from the 2026 file
+
+
+def mlb_location_values():
+    """Runs to the hitter per pitch in each of our locations, from Savant's swing/take leaderboard (pitcher side: + there = good for
+    the pitcher, so the sign flips). The shadow zone covers both edge boxes."""
+    import csv
+    import os
+    vals = dict(_MLB_FALLBACK)
+    try:
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), MLB_SWING_TAKE)
+        with open(path, encoding='utf-8-sig') as f:
+            rows = list(csv.DictReader(f))
+        pitches = sum(float(r.get('pitches') or 0) for r in rows)
+        if pitches > 100000:
+            for z, share in MLB_ZONE_SHARE.items():
+                vals[z] = -sum(float(r.get('runs_' + z) or 0) for r in rows) / (pitches * share)
+    except (OSError, ValueError):
+        pass
+    return {'heart': vals['heart'], 'edge_in': vals['shadow'], 'edge_out': vals['shadow'], 'chase': vals['chase'], 'waste': vals['waste']}
 COUNTS = ('first', 'ahead', 'even', 'behind', 'two')
 
 
@@ -217,14 +247,20 @@ def location_model():
             a = sums.setdefault(k, [0.0, 0])
             a[0] += rv
             a[1] += 1
-    cells = {}
+    mlb = mlb_location_values()
+    # MLB's shadow zone treats just inside and just outside the zone alike. In college the outside half mostly goes for balls, so the
+    # gap between the two comes from our own pitches (kept at MLB's average for the edge as a whole).
+    (si, ni), (so, no) = sums.get(('edge_in', None), (0.0, 0)), sums.get(('edge_out', None), (0.0, 0))
+    if ni and no:
+        gap = (so / no - si / ni) * min(ni, no) / (min(ni, no) + EDGE_SPLIT_K)
+        w_in = ni / (ni + no)
+        mlb = dict(mlb, edge_in=mlb['edge_in'] - (1 - w_in) * gap, edge_out=mlb['edge_out'] + w_in * gap)
+    cells, own_n = {}, {}
     for reg in REGIONS:
-        base_s, base_n = sums.get((reg, None), (0.0, 0))
-        base = base_s / base_n if base_n else 0.0
-        cells[(reg, None)] = base
-        for cc in COUNTS:
+        for cc in (None,) + COUNTS:                                # every box starts at MLB's value and moves toward ours as it fills
             s, n = sums.get((reg, cc), (0.0, 0))
-            cells[(reg, cc)] = (s + 40 * base) / (n + 40)          # a thin count cell leans on the region's overall value
+            cells[(reg, cc)] = (s + OWN_K * mlb[reg]) / (n + OWN_K)
+            own_n[(reg, cc)] = n
     for _d, r in rows:                                             # the app's pitchers, to set the scale
         xy = _loc_xy(r)
         if xy and r.get('Pitcher'):
@@ -232,9 +268,22 @@ def location_model():
             a[0] += cells[(region(*xy), count_class(r.get('Balls'), r.get('Strikes')))]
             a[1] += 1
     allv = sum(s for s, _ in by_pitcher.values()) / max(1, sum(n for _, n in by_pitcher.values()))
-    scores = [(s + SHRINK_LOC * allv) / (n + SHRINK_LOC) for s, n in by_pitcher.values() if n >= MIN_LOC_PITCHES]
-    pop = _ms(scores) if len(scores) >= 8 else None
-    return {'cells': cells, 'pop': pop, 'mean': allv, 'n': sum(n for _, n in by_pitcher.values()), 'pitchers': len(scores)}
+    # The scale: how much pitchers really differ, from their raw averages minus the part that is only small-sample noise. Grading
+    # against the spread of shrunk averages (as before) stretched tiny gaps into big grades.
+    each = []
+    for _d, r in rows:
+        xy = _loc_xy(r)
+        if xy:
+            each.append(cells[(region(*xy), count_class(r.get('Balls'), r.get('Strikes')))])
+    pitch_sd = _ms(each)[1] if len(each) > 1 else 0.02
+    raw = [(s / n, n) for s, n in by_pitcher.values() if n >= MIN_SCALE_PITCHES]
+    pop = None
+    if len(raw) >= 8:
+        m_, sd_ = _ms([a for a, _ in raw])
+        noise = sum(pitch_sd ** 2 / n for _, n in raw) / len(raw)
+        pop = (m_, max(MIN_SD, max(0.0, sd_ ** 2 - noise) ** 0.5))
+    return {'cells': cells, 'own_n': own_n, 'mlb': mlb, 'pop': pop, 'mean': allv, 'pitch_sd': pitch_sd, 'n': sum(n for _, n in by_pitcher.values()),
+            'pitchers': sum(1 for _s, n in by_pitcher.values() if n >= MIN_LOC_PITCHES), 'raw_sd': _ms([a for a, _ in raw])[1] if len(raw) > 1 else None}
 
 
 def location(rows, type_of=None):
@@ -242,7 +291,7 @@ def location(rows, type_of=None):
     Returns {'overall': Location+ or None, 'n', 'by_type': {label: Location+}}."""
     m = location_model()
     if not m['pop']:
-        return {'overall': None, 'n': 0, 'by_type': {}}
+        return {'overall': None, 'n': 0, 'by_type': {}, 'zone_pct': None}
     mean, sd = m['pop']
 
     def grade(vals, minimum):
@@ -252,13 +301,16 @@ def location(rows, type_of=None):
         return round(max(20.0, min(180.0, 100 - 10 * (sc - mean) / sd)))        # fewer runs to the hitter = better
 
     allv, by = [], {}
+    zone = 0
     for r in rows:
         xy = _loc_xy(r)
         if not xy:
             continue
+        zone += region(*xy) in ('heart', 'edge_in')
         v = m['cells'][(region(*xy), count_class(r.get('Balls'), r.get('Strikes')))]
         allv.append(v)
         if type_of:
             by.setdefault(type_of(r), []).append(v)
-    return {'overall': grade(allv, MIN_LOC_PITCHES), 'n': len(allv),
-            'by_type': {k: g for k, g in ((k, grade(v, MIN_LOC_TYPE)) for k, v in by.items() if k) if g is not None}}
+    overall = grade(allv, MIN_LOC_PITCHES)
+    return {'overall': overall, 'n': len(allv), 'zone_pct': (zone / len(allv)) if allv else None,
+            'by_type': {k: g for k, g in ((k, grade(v, MIN_LOC_TYPE)) for k, v in by.items() if k) if g is not None} if overall is not None else {}}

@@ -874,8 +874,8 @@ def _stat_table(program, side, basic=False):
         ADV += [('wrc_plus', 'wRC+', 'Weighted runs created, scaled so 100 is the league average in the tagged games in the app. From tagged results.', lambda v: f'{v:.0f}')]
     else:
         ADV += [('lob', 'LOB%', 'Share of baserunners he stranded, from tagged results and runs.', lambda v: f'{100 * v:.0f}%'),
-                ('stuff', 'Stuff+', 'Pitch shape grade against MLB pitches of the same type, weighted by usage. 100 = MLB average; 10 points = one standard deviation. An estimate.', lambda v: f'{v:.0f}'),
-                ('loc', 'Location+', 'Location grade against the other pitchers in ShepSavant. 100 = average here; 10 points = one standard deviation.', lambda v: f'{v:.0f}')]
+                ('stuff', 'Stuff+ (Beta)', 'Still being tuned. Pitch shape grade against MLB pitches of the same type, weighted by usage. 100 = MLB average; 10 points = one standard deviation. An estimate.', lambda v: f'{v:.0f}'),
+                ('loc', 'Location+ (Beta)', 'Still being tuned. Needs 150 located pitches. Location grade, from MLB run values by zone, against the other pitchers in ShepSavant. 100 = average here; 10 points = one standard deviation.', lambda v: f'{v:.0f}')]
     ADV_GROUP = {'stuff': 'Pitch grades', 'loc': 'Pitch grades'}
     for r in rows:
         v = adv.get(r['key'])
@@ -885,7 +885,7 @@ def _stat_table(program, side, basic=False):
                 r['cells'][sid] = (fmt(vals[sid]), vals[sid])
     for sid, lab, d, fmt in ADV:
         if any(sid in r['cells'] for r in rows):
-            cols.append({'id': sid, 'label': lab, 'abbr': lab.split(' ')[0], 'group': ADV_GROUP.get(sid, 'Run value'), 'def': d})
+            cols.append({'id': sid, 'label': lab, 'abbr': (lab.replace(' (Beta)', '') + ' β') if '(Beta)' in lab else lab.split(' ')[0], 'group': ADV_GROUP.get(sid, 'Run value'), 'def': d})
     used = {i for r in rows for i in r['cells']}
     cols = [c for c in cols if c['id'] in used]
     order = list(dict.fromkeys(c['group'] for c in cols))
