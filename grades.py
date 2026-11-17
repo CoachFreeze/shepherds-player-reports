@@ -3,13 +3,13 @@
 Stuff+ grades each pitch on its physical shape alone (velocity, movement, how it plays off his fastball, and how the movement compares
 with what hitters expect from his arm slot), so it works from bullpens. The yardstick is the MLB pitch-arsenal reference already in the
 app (data/mlb_arsenals_*.csv): 100 = the average MLB pitch of that type, and every 10 points is one standard deviation among MLB
-pitchers. The reference holds shapes, not results, so the weights below are set by hand from how each trait is known to matter, not
-fitted to outcomes: treat Stuff+ as an estimate.
+pitchers. Fastballs, sinkers and cutters use hand-set weights (how each trait is known to matter); breaking balls and changeups /
+splitters use weights fitted to MLB results (FITTED_W). Still an estimate.
 
-Location+ grades where his pitches end up. Every location is worth some number of runs per pitch. Those values start from MLB
-(Baseball Savant's 2026 swing/take run values by attack zone, kept as four derived numbers) and move toward what the tracked pitches in
-the app show as each box (location x count) fills up: our own data is half the value once a box has OWN_K pitches. With ~3,000 pitches
-today that means it is nearly all MLB; the full count-by-location split needs ~60,000 pitches to stand on its own data. A pitcher's
+Location+ grades where his pitches end up. Every pitch is worth some number of runs by its location, height, count and pitch family
+(a fastball up is graded differently from a breaking ball up). Those values are measured from MLB pitches (data/location_run_values.json)
+and move toward what the tracked pitches in the app show as each location x count box fills up: our own data is half the value once a
+box has OWN_K pitches. With ~3,000 pitches today that is nearly all MLB; the full count-by-location split needs ~60,000 to stand on its own. A pitcher's
 Location+ is how his average location value compares with the other pitchers in the app: 100 = average here, every 10 points one
 standard deviation."""
 import math
@@ -39,6 +39,20 @@ STUFF_W = {
     'ch': {'drop_sep': 0.35, 'gap': 0.25, 'run_raw': 0.25, 'velo': 0.15},
     'fs': {'drop_sep': 0.40, 'gap': 0.25, 'velo': 0.20, 'run_raw': 0.15},
 }
+ALL_TRAITS = ('velo', 'spin', 'ride', 'sink', 'run', 'odd_hb', 'ride_raw', 'depth', 'run_raw', 'cut', 'sweep', 'sep', 'drop_sep', 'gap', 'tight')
+# Breaking balls and changeups / splitters use weights fitted to results (Nov 2026: 120,866 MLB pitches from 703 pitchers over six
+# 5-day windows of the 2026 season, Baseball Savant; only these derived weights are kept). Checked on 22 full-season pitchers held out
+# of the fit, the hand-set weights barely tracked these pitches (whiff rank correlation 0.17 breaking, 0.08 changeups), the fitted ones
+# did (0.36 and 0.56). Fastballs, sinkers and cutters keep the hand-set weights above, which beat the fit on the same test (0.78 four-seam).
+# Each weight multiplies a trait in MLB standard deviations for that pitch type; a missing trait counts as average.
+FITTED_W = {
+    'sl': {'velo': 0.02154, 'spin': 0.0021, 'ride': -0.01659, 'run': 0.00728, 'ride_raw': 0.00396, 'run_raw': 0.0062, 'odd_hb': 0.01227, 'sep': -0.01021, 'drop_sep': 0.01409, 'gap': 0.01691},   # breaking balls: fitted to whiffs
+    'st': {'velo': 0.02154, 'spin': 0.0021, 'ride': -0.01659, 'run': 0.00728, 'ride_raw': 0.00396, 'run_raw': 0.0062, 'odd_hb': 0.01227, 'sep': -0.01021, 'drop_sep': 0.01409, 'gap': 0.01691},   # breaking balls: fitted to whiffs
+    'sv': {'velo': 0.02154, 'spin': 0.0021, 'ride': -0.01659, 'run': 0.00728, 'ride_raw': 0.00396, 'run_raw': 0.0062, 'odd_hb': 0.01227, 'sep': -0.01021, 'drop_sep': 0.01409, 'gap': 0.01691},   # breaking balls: fitted to whiffs
+    'cu': {'velo': 0.02154, 'spin': 0.0021, 'ride': -0.01659, 'run': 0.00728, 'ride_raw': 0.00396, 'run_raw': 0.0062, 'odd_hb': 0.01227, 'sep': -0.01021, 'drop_sep': 0.01409, 'gap': 0.01691},   # breaking balls: fitted to whiffs
+    'ch': {'velo': 0.65353, 'spin': -0.02867, 'ride': -0.07842, 'run': -0.00617, 'ride_raw': 0.15801, 'run_raw': -0.01598, 'odd_hb': 0.49583, 'sep': -0.12764, 'drop_sep': -0.17842, 'gap': 0.8976},   # changeups / splitters: fitted to whiffs and run value
+    'fs': {'velo': 0.65353, 'spin': -0.02867, 'ride': -0.07842, 'run': -0.00617, 'ride_raw': 0.15801, 'run_raw': -0.01598, 'odd_hb': 0.49583, 'sep': -0.12764, 'drop_sep': -0.17842, 'gap': 0.8976},   # changeups / splitters: fitted to whiffs and run value
+}
 MIN_STUFF_PITCHES = 8        # tracked pitches of a type before it gets a Stuff+
 _REF = {}
 
@@ -57,9 +71,11 @@ def _linfit(xs, ys):
 
 def _traits(code, p, fb, angle, slot_fit):
     """Raw (unstandardized) trait values for one pitch; None where it can't be measured."""
-    t = {'velo': p.get('velo')}
+    t = {'velo': p.get('velo'), 'spin': p.get('spin')}
     ivb, hb = p.get('ivb'), p.get('hb')
     exp = slot_fit.get(code)
+    if exp and angle is None:
+        angle = exp.get('mean_angle')               # no arm angle (no height on file): judge him against a typical slot for this pitch
     if exp and angle is not None and ivb is not None and hb is not None:
         ei, eh = exp['ivb'][0] + exp['ivb'][1] * angle, exp['hb'][0] + exp['hb'][1] * angle
     else:
@@ -88,7 +104,7 @@ def _reference():
                and r['pitches'][c].get('ivb') is not None and r['pitches'][c].get('hb') is not None]
         if len(pts) > 30:
             xs = [a for a, _ in pts]
-            slot_fit[c] = {'ivb': _linfit(xs, [p['ivb'] for _, p in pts]), 'hb': _linfit(xs, [p['hb'] for _, p in pts])}
+            slot_fit[c] = {'ivb': _linfit(xs, [p['ivb'] for _, p in pts]), 'hb': _linfit(xs, [p['hb'] for _, p in pts]), 'mean_angle': sum(xs) / len(xs)}
     for r in rows:
         fb = r['pitches'].get('ff') or r['pitches'].get('si')
         for c, p in r['pitches'].items():
@@ -96,7 +112,7 @@ def _reference():
     norm, comp = {}, {}
     for c, lst in raw.items():
         norm[c] = {}
-        for k in STUFF_W.get(c, {}):
+        for k in ALL_TRAITS:
             v = [t[k] for t in lst if t.get(k) is not None]
             if len(v) > 20:
                 norm[c][k] = _ms(v)
@@ -108,6 +124,16 @@ def _reference():
 
 
 def _composite(code, traits, norm):
+    fw = FITTED_W.get(code)
+    if fw:
+        if traits.get('velo') is None or code not in norm:
+            return None
+        tot = 0.0
+        for k, wt in fw.items():
+            if traits.get(k) is not None and k in norm[code]:
+                m, sd = norm[code][k]
+                tot += wt * max(-4.0, min(4.0, (traits[k] - m) / sd))
+        return tot
     w = STUFF_W.get(code)
     if not w:
         return None
@@ -151,23 +177,46 @@ MIN_LOC_PITCHES = 150        # located pitches before a pitcher gets a Location+
 MIN_LOC_TYPE = 50            # ... and before one pitch type does
 MIN_SCALE_PITCHES = 60       # pitchers with this many located pitches help set the 100 / 10-point scale
 MIN_SD = 0.004               # the scale never gets tighter than this (runs per pitch per 10 points)
-EDGE_SPLIT_K = 200           # pitches in the smaller edge box before our in-vs-out gap counts half
 SHRINK_LOC = 60              # pitches' worth of pull toward the average
 RV_BALL, RV_STRIKE, RV_WALK, RV_K = 0.055, -0.065, 0.30, -0.27     # run value to the hitter of a ball / strike, by standard linear weights
 REGIONS = ('heart', 'edge_in', 'edge_out', 'chase', 'waste')
 OWN_K = 900                  # pitches in one location x count box before our own data counts half
-# Savant's file gives runs per attack zone but not pitches per zone, so the per-pitch value needs each zone's share of MLB pitches.
-# Heart ~26% (FanGraphs: every team 24.9-27.9% in 2024); shadow / chase / waste are estimates. Replace with exact counts when we have them.
-MLB_ZONE_SHARE = {'heart': 0.26, 'shadow': 0.40, 'chase': 0.23, 'waste': 0.11}
-_MLB_FALLBACK = {'heart': -0.0129, 'shadow': -0.0175, 'chase': 0.0240, 'waste': 0.0409}   # runs to the hitter per pitch, from the 2026 file
+# MLB run values to the hitter per pitch by location, measured (Nov 2026) from 120,509 located MLB pitches (six 5-day windows of the
+# 2026 season, Baseball Savant; each pitch placed against its hitter's own measured zone). Keyed by pitch family (hard / brk / off),
+# location, height (up / mid / down) and count, each level pulled toward the one above it when thin. Only these derived values are
+# kept (data/location_run_values.json), never the raw files.
+MLB_LOCATION_FILE = 'data/location_run_values.json'
+_MLB_LOC = {}
+FAMILY = {'4-Seam': 'hard', 'Sinker': 'hard', 'Cutter': 'hard', 'Slider': 'brk', 'Sweeper': 'brk', 'Curve': 'brk', 'Slurve': 'brk',
+          'Change': 'off', 'Split': 'off'}
 
 
-def mlb_location_values():
-    """Runs to the hitter per pitch in each of our locations. Derived once (2026-11-17) from Baseball Savant's 2026 swing/take run
-    values by attack zone (786 pitchers, 711,881 pitches) and the zone shares above; only these four derived numbers are kept, never
-    the raw file (see the project's data-sources-and-licensing notes). The shadow zone covers both edge boxes."""
-    v = _MLB_FALLBACK
-    return {'heart': v['heart'], 'edge_in': v['shadow'], 'edge_out': v['shadow'], 'chase': v['chase'], 'waste': v['waste']}
+def mlb_location_table():
+    if not _MLB_LOC:
+        import json
+        import os
+        try:
+            with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), MLB_LOCATION_FILE)) as f:
+                _MLB_LOC.update(json.load(f))
+        except (OSError, ValueError):
+            _MLB_LOC['_missing'] = True
+    return _MLB_LOC
+
+
+def height_band(z):
+    import hitting as H
+    lo, hi = H.ZB + (H.ZT - H.ZB) / 3, H.ZB + 2 * (H.ZT - H.ZB) / 3
+    return 'up' if z > hi else ('down' if z < lo else 'mid')
+
+
+def mlb_value(fam, reg, band, cc):
+    """MLB runs to the hitter for one pitch; falls back to coarser keys (no pitch family, no count)."""
+    t = mlb_location_table()
+    c = cc or '*'
+    for key in ((f'{fam}|{reg}|{band}|{c}') if fam else None, (f'{fam}|{reg}|{c}') if fam else None, f'{reg}|{c}', f'{reg}|*'):
+        if key and key in t:
+            return t[key]
+    return 0.0
 
 
 COUNTS = ('first', 'ahead', 'even', 'behind', 'two')
@@ -218,62 +267,68 @@ def _loc_xy(r):
     return (x, z) if x is not None and z is not None else None
 
 
+def _loc_key(r):
+    """(family, location, height band, count class) for one pitch row, or None without a location."""
+    import pitchfx
+    xy = _loc_xy(r)
+    if not xy:
+        return None
+    return FAMILY.get(pitchfx._label(r)), region(*xy), height_band(xy[1]), count_class(r.get('Balls'), r.get('Strikes'))
+
+
+def _value(k_, m):
+    fam, reg, band, cc = k_
+    return mlb_value(fam, reg, band, cc) + m['adj'].get((reg, cc), 0.0)
+
+
 @cache.memo
 def location_model():
-    """{'cells': {(region, count class or None): runs}, 'pop': (mean, sd) of pitcher scores, 'n': pitches used}."""
+    """Values per pitch come from MLB (mlb_value: by pitch family, location, height and count) and shift toward what our own pitches show,
+    box by box (location x count), as each fills: our data is half the value once a box has OWN_K pitches.
+    Returns {'adj': {(location, count): our shift}, 'pop': (mean, sd) of pitcher averages, 'mean', 'n', 'pitchers'}."""
     import runenv
     env = runenv.environment()
     sums, by_pitcher = {}, {}
-    rows = runenv._rows()
-    for _d, r in rows:
-        xy = _loc_xy(r)
-        if not xy:
+    keyed = []
+    for _d, r in runenv._rows():
+        k_ = _loc_key(r)
+        if not k_:
             continue
+        keyed.append((r, k_))
         rv = _pitch_rv(r, env)
         if rv is None:
             continue
-        reg = region(*xy)
-        for k in ((reg, count_class(r.get('Balls'), r.get('Strikes'))), (reg, None)):
-            a = sums.setdefault(k, [0.0, 0])
+        for kk in ((k_[1], k_[3]), (k_[1], None)):
+            a = sums.setdefault(kk, [0.0, 0])
             a[0] += rv
             a[1] += 1
-    mlb = mlb_location_values()
-    # MLB's shadow zone treats just inside and just outside the zone alike. In college the outside half mostly goes for balls, so the
-    # gap between the two comes from our own pitches (kept at MLB's average for the edge as a whole).
-    (si, ni), (so, no) = sums.get(('edge_in', None), (0.0, 0)), sums.get(('edge_out', None), (0.0, 0))
-    if ni and no:
-        gap = (so / no - si / ni) * min(ni, no) / (min(ni, no) + EDGE_SPLIT_K)
-        w_in = ni / (ni + no)
-        mlb = dict(mlb, edge_in=mlb['edge_in'] - (1 - w_in) * gap, edge_out=mlb['edge_out'] + w_in * gap)
-    cells, own_n = {}, {}
+    adj = {}
     for reg in REGIONS:
-        for cc in (None,) + COUNTS:                                # every box starts at MLB's value and moves toward ours as it fills
-            s, n = sums.get((reg, cc), (0.0, 0))
-            cells[(reg, cc)] = (s + OWN_K * mlb[reg]) / (n + OWN_K)
-            own_n[(reg, cc)] = n
-    for _d, r in rows:                                             # the app's pitchers, to set the scale
-        xy = _loc_xy(r)
-        if xy and r.get('Pitcher'):
-            a = by_pitcher.setdefault(r['Pitcher'], [0.0, 0])
-            a[0] += cells[(region(*xy), count_class(r.get('Balls'), r.get('Strikes')))]
-            a[1] += 1
-    allv = sum(s for s, _ in by_pitcher.values()) / max(1, sum(n for _, n in by_pitcher.values()))
-    # The scale: how much pitchers really differ, from their raw averages minus the part that is only small-sample noise. Grading
-    # against the spread of shrunk averages (as before) stretched tiny gaps into big grades.
+        for cc in (None,) + COUNTS:
+            s_, n = sums.get((reg, cc), (0.0, 0))
+            base = mlb_value(None, reg, None, cc)
+            adj[(reg, cc)] = ((s_ + OWN_K * base) / (n + OWN_K)) - base
+    m = {'adj': adj}
     each = []
-    for _d, r in rows:
-        xy = _loc_xy(r)
-        if xy:
-            each.append(cells[(region(*xy), count_class(r.get('Balls'), r.get('Strikes')))])
+    for r, k_ in keyed:
+        v = _value(k_, m)
+        each.append(v)
+        if r.get('Pitcher'):
+            a = by_pitcher.setdefault(r['Pitcher'], [0.0, 0])
+            a[0] += v
+            a[1] += 1
+    allv = sum(s_ for s_, _ in by_pitcher.values()) / max(1, sum(n for _, n in by_pitcher.values()))
+    # The scale: how much pitchers really differ, from their raw averages minus the part that is only small-sample noise.
     pitch_sd = _ms(each)[1] if len(each) > 1 else 0.02
-    raw = [(s / n, n) for s, n in by_pitcher.values() if n >= MIN_SCALE_PITCHES]
+    raw = [(s_ / n, n) for s_, n in by_pitcher.values() if n >= MIN_SCALE_PITCHES]
     pop = None
     if len(raw) >= 8:
         m_, sd_ = _ms([a for a, _ in raw])
         noise = sum(pitch_sd ** 2 / n for _, n in raw) / len(raw)
         pop = (m_, max(MIN_SD, max(0.0, sd_ ** 2 - noise) ** 0.5))
-    return {'cells': cells, 'own_n': own_n, 'mlb': mlb, 'pop': pop, 'mean': allv, 'pitch_sd': pitch_sd, 'n': sum(n for _, n in by_pitcher.values()),
-            'pitchers': sum(1 for _s, n in by_pitcher.values() if n >= MIN_LOC_PITCHES), 'raw_sd': _ms([a for a, _ in raw])[1] if len(raw) > 1 else None}
+    m.update(pop=pop, mean=allv, pitch_sd=pitch_sd, n=sum(n for _, n in by_pitcher.values()),
+             pitchers=sum(1 for _s, n in by_pitcher.values() if n >= MIN_LOC_PITCHES))
+    return m
 
 
 def location(rows, type_of=None):
@@ -293,11 +348,11 @@ def location(rows, type_of=None):
     allv, by = [], {}
     zone = 0
     for r in rows:
-        xy = _loc_xy(r)
-        if not xy:
+        k_ = _loc_key(r)
+        if not k_:
             continue
-        zone += region(*xy) in ('heart', 'edge_in')
-        v = m['cells'][(region(*xy), count_class(r.get('Balls'), r.get('Strikes')))]
+        zone += k_[1] in ('heart', 'edge_in')
+        v = _value(k_, m)
         allv.append(v)
         if type_of:
             by.setdefault(type_of(r), []).append(v)
