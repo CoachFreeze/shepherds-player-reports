@@ -1,0 +1,241 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Team Home · {{ team_label }}</title>
+<style>{{ theme_css|safe }}</style>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#22303a; --teal:var(--accent,#5c97a8); --muted:#6b7680; --line:#e3e8eb; --good:#2f9e6b; --bad:#d0503f; --card:#fff;
+         --sh:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06); }
+  *{box-sizing:border-box;} body{background:#f7f6f2;color:var(--ink);font-family:'Barlow',sans-serif;margin:0;padding-bottom:56px;} a{color:inherit;}
+  .hero{background:var(--brand,#22303a);padding:34px 16px 26px;border-bottom:3px solid var(--teal);position:relative;z-index:5;clip-path:inset(0 0 -900px 0);}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 16px;} .hero .wrap{padding:0;position:relative;} .hero .wrap>*:not(.wm){position:relative;z-index:1;}
+  .hero .wm{position:absolute;right:0;top:50%;transform:translateY(-50%);height:118%;max-height:140px;max-width:300px;width:auto;opacity:.2;pointer-events:none;}
+  .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-on-dark,#5c97a8);margin:0 0 8px;}
+  h1{font:700 40px 'Oswald',sans-serif;margin:0 0 6px;color:#fff;} .sub{color:#c9d3d8;font-size:14.5px;margin:0;}
+  /* mode banner */
+  .mode{margin-top:22px;border-radius:18px;padding:18px 20px;display:flex;gap:18px;align-items:center;justify-content:space-between;flex-wrap:wrap;color:#fff;box-shadow:var(--sh);
+        background:linear-gradient(115deg,var(--brand,#22303a) 0%,var(--brand,#22303a) 50%,var(--teal) 170%);}
+  .mode.game{background:linear-gradient(115deg,#7a2a22 0%,#a5372c 45%,var(--teal) 190%);}
+  .mode .mt{font:700 13px 'Barlow',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-on-dark,#9fd0dc);} .mode.game .mt{color:#ffd9cf;}
+  .mode h2{font:700 28px 'Oswald',sans-serif;margin:2px 0 4px;} .mode p{margin:0;color:#dfe7ea;font-size:14px;max-width:640px;}
+  .mode p small{display:block;margin-top:6px;color:#b9c6cc;font-size:12.5px;}
+  .tog{display:inline-flex;background:rgba(255,255,255,.14);border-radius:999px;padding:4px;gap:2px;} .tog button{border:0;background:none;color:#fff;font:700 13px 'Barlow',sans-serif;padding:8px 16px;border-radius:999px;cursor:pointer;}
+  .tog button.on{background:#fff;color:var(--ink);} .tog button:not(.on):hover{background:rgba(255,255,255,.14);}
+  /* sections */
+  .sec{margin:30px 0 0;} .sec-h{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:0 0 12px;}
+  .sec-h h2{font:700 15px 'Oswald',sans-serif;letter-spacing:.14em;text-transform:uppercase;margin:0;color:var(--ink);}
+  .sec-h h2::before{content:'';display:inline-block;width:5px;height:15px;background:var(--teal);border-radius:3px;margin-right:9px;vertical-align:-2px;}
+  .sec-h p{margin:0;color:var(--muted);font-size:13px;} .sec-h .act{margin-left:auto;}
+  .card{background:var(--card);border-radius:16px;box-shadow:var(--sh);padding:18px;}
+  .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 20px;align-items:start;} .cols>div{min-width:0;}
+  .blk{display:flex;flex-direction:column;margin:0 0 24px;} .blk>.card,.blk>.list{flex:1;}
+  .empty{color:var(--muted);font-size:13.5px;margin:4px 0;}
+  .chip{display:inline-block;border-radius:999px;padding:2px 9px;font:700 12px 'Barlow',sans-serif;white-space:nowrap;}
+  .chip.up{background:#e3f4ea;color:#1f7d55;} .chip.dn{background:#fbe6e3;color:#b0483a;} .chip.eq{background:#eef2f4;color:#5b6b75;}
+  .more{font:700 13px 'Barlow',sans-serif;color:var(--accent-ink,#5c97a8);text-decoration:none;} .more:hover{text-decoration:underline;}
+  /* season snapshot */
+  .snap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:18px;align-items:stretch;}
+  .counts{display:grid;grid-template-columns:1fr 1fr;gap:12px;} .cnt{background:var(--card);border-radius:14px;box-shadow:var(--sh);padding:14px 16px;}
+  .cnt b{display:block;font:700 30px 'Oswald',sans-serif;font-variant-numeric:tabular-nums;} .cnt span{font:700 11px 'Barlow',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#6b7680;}
+  .cal{overflow-x:auto;} .cal-g{display:flex;gap:4px;} .cal-w{display:flex;flex-direction:column;gap:4px;} .cal-w i{width:var(--cs,13px);height:var(--cs,13px);border-radius:4px;background:#edf1f3;display:block;}
+  .cal-w i.fut{background:transparent;outline:1px dashed #e3e8eb;outline-offset:-1px;} .cal-m{font:700 10.5px 'Barlow',sans-serif;color:#8a959c;height:14px;white-space:nowrap;}
+  .cal-l{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:12.5px;color:#5b6b75;} .cal-l span::before{content:'';display:inline-block;width:11px;height:11px;border-radius:3px;background:var(--c);margin-right:6px;vertical-align:-1px;}
+  /* stat strips */
+  .strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+  .st{background:#f6f9fa;border-radius:12px;padding:10px 12px;} .st .l{font:700 11px 'Barlow',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#6b7680;}
+  .st .v{font:700 24px 'Oswald',sans-serif;font-variant-numeric:tabular-nums;margin:2px 0;} .st .v.na{color:#b8c2c7;font-size:16px;} .st svg{width:100%;height:30px;color:var(--teal);display:block;}
+  .st small{font-size:11.5px;color:var(--muted);}
+  .side-t{font:700 12px 'Barlow',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#5b6b75;margin:0 0 8px;} .side-t + .strip{margin-bottom:14px;}
+  /* gains */
+  .gains{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;}
+  .gain{display:block;text-decoration:none;background:var(--card);border-radius:16px;box-shadow:var(--sh);padding:14px 16px;position:relative;overflow:hidden;}
+  .gain::after{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--good);}
+  .gain:hover{box-shadow:0 2px 6px rgba(26,31,36,.1),0 10px 24px rgba(26,31,36,.10);} .gain .n{font:700 17px 'Oswald',sans-serif;} .gain .k{font-size:12px;color:var(--muted);}
+  .gain .d{font:700 26px 'Oswald',sans-serif;color:#1f7d55;margin:6px 0 0;} .gain .ft{display:flex;justify-content:space-between;align-items:flex-end;font-size:12.5px;color:#5b6b75;margin-top:2px;}
+  /* tables */
+  table.t{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums;}
+  .t th{font:700 11px 'Barlow',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#7a8790;text-align:right;padding:0 8px 8px;border-bottom:2px solid #eef2f4;white-space:nowrap;}
+  .t th:first-child,.t td:first-child{text-align:left;} .t td{padding:7px 8px;border-bottom:1px solid #f0f3f4;text-align:right;white-space:nowrap;}
+  .t td a{font-weight:700;text-decoration:none;} .t td a:hover{color:var(--accent-ink,#5c97a8);text-decoration:underline;} .t td small{display:block;}
+  .t td .up{color:#1f7d55;font-weight:700;} .t td .dn{color:#b0483a;font-weight:700;} .t td .eq{color:#8a959c;}
+  .tabs{display:inline-flex;gap:4px;background:#f1f4f5;border-radius:999px;padding:3px;margin:0 0 10px;} .tabs button{border:0;background:none;font:700 12.5px 'Barlow',sans-serif;padding:5px 14px;border-radius:999px;cursor:pointer;color:#5b6b75;}
+  .tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08);} .tp[hidden]{display:none;}
+  .scroll{overflow-x:auto;}
+  /* lists */
+  .att{display:flex;gap:12px;padding:12px 0;border-top:1px solid #f0f3f4;} .att:first-child{border-top:0;padding-top:2px;}
+  .att .dot{flex:none;width:10px;height:10px;border-radius:50%;margin-top:5px;} .att .dot.high{background:var(--bad);} .att .dot.mid{background:#e0a23a;} .att .dot.low{background:#9aa7ae;}
+  .att b{display:block;font-size:14.5px;} .att p{margin:3px 0 0;font-size:13px;color:#5b6b75;} .att a{font:700 12.5px 'Barlow',sans-serif;color:var(--accent-ink,#5c97a8);text-decoration:none;}
+  .ars{padding:10px 0;border-top:1px solid #f0f3f4;} .ars:first-child{border-top:0;padding-top:2px;} .ars .h{display:flex;justify-content:space-between;gap:8px;} .ars .h a{font-weight:700;text-decoration:none;}
+  .ars .h span{font-size:12px;color:var(--muted);} .ars ul{margin:6px 0 0;padding:0;list-style:none;} .ars li{font-size:13px;padding:2px 0 2px 18px;position:relative;color:#3f4d55;}
+  .ars li::before{position:absolute;left:0;top:2px;font-weight:700;} .ars li.new::before{content:'+';color:var(--good);} .ars li.up::before{content:'\2191';color:var(--good);} .ars li.down::before{content:'\2193';color:var(--bad);} .ars li.shape::before{content:'\21BB';color:var(--teal);}
+  .chk{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid #f0f3f4;} .chk:first-child{border-top:0;padding-top:2px;}
+  .chk .bx{flex:none;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:700 13px 'Barlow',sans-serif;background:#eef2f4;color:#8a959c;}
+  .chk.ok .bx{background:var(--good);color:#fff;} .chk .tx{flex:1;min-width:0;} .chk .tx b{font-size:14px;} .chk .tx small{display:block;color:var(--muted);font-size:12.5px;}
+  .chk .pb{height:5px;border-radius:99px;background:#edf1f3;margin-top:5px;overflow:hidden;} .chk .pb i{display:block;height:100%;background:var(--teal);}
+  .ring{font:700 13px 'Barlow',sans-serif;background:#eef2f4;border-radius:999px;padding:3px 10px;}
+  /* game mode */
+  .rec{display:flex;gap:18px;align-items:center;flex-wrap:wrap;} .rec .wl{font:700 54px/1 'Oswald',sans-serif;} .rec .wl small{font-size:20px;color:var(--muted);margin-left:6px;}
+  .form{display:flex;gap:4px;flex-wrap:wrap;} .form i{width:24px;height:24px;border-radius:6px;font:700 12px/24px 'Barlow',sans-serif;text-align:center;color:#fff;font-style:normal;}
+  .form i.W{background:var(--good);} .form i.L{background:var(--bad);} .form i.T{background:#9aa7ae;}
+  .lg{display:flex;align-items:center;gap:14px;margin-top:14px;padding:12px 14px;background:#f6f9fa;border-radius:12px;text-decoration:none;}
+  .lg:hover{background:#eef3f5;} .lg .sc{font:700 24px 'Oswald',sans-serif;} .lg .sc.W{color:var(--good);} .lg .sc.L{color:var(--bad);} .lg small{color:var(--muted);display:block;font-size:12.5px;}
+  .res{margin-top:12px;} .res a{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid #f0f3f4;text-decoration:none;font-size:13.5px;} .res a:hover b{text-decoration:underline;}
+  .res .r{font-weight:700;} .res .r.W{color:var(--good);} .res .r.L{color:var(--bad);}
+  .av{font:700 11px 'Barlow',sans-serif;border-radius:999px;padding:3px 9px;white-space:nowrap;} .av.y{background:#e3f4ea;color:#1f7d55;} .av.n{background:#fbe6e3;color:#b0483a;}
+  .hc a{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:#f6f9fa;margin-bottom:6px;text-decoration:none;}
+  .hc a:hover{background:#eef3f5;} .hc b{font-size:14px;} .hc small{display:block;color:var(--muted);font-size:12px;}
+  .hc h3{font:700 12px 'Barlow',sans-serif;letter-spacing:.1em;text-transform:uppercase;margin:0 0 8px;} .hc h3.h{color:#c2410c;} .hc h3.c{color:#2563a8;margin-top:12px;}
+  .opp{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #f0f3f4;text-decoration:none;} .opp:first-child{border-top:0;} .opp b{font-size:14.5px;} .opp small{display:block;color:var(--muted);font-size:12.5px;}
+  .note{font-size:12.5px;color:var(--muted);margin:10px 0 0;}
+  /* goals + customize */
+  .goals{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;}
+  .goal{background:var(--card);border-radius:16px;box-shadow:var(--sh);padding:14px 16px;} .g-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;} .g-t{font-weight:700;font-size:15px;flex:1;min-width:0;}
+  .tag{font:700 10.5px 'Barlow',sans-serif;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:3px 8px;background:#eef2f3;color:var(--muted);}
+  .tag.met{background:#e3f4ea;color:#1f7d55;} .tag.late,.tag.behind{background:#fbe6e3;color:#b0483a;} .tag.ahead{background:#e3f4ea;color:#1f7d55;} .tag.on{background:#e7eef6;color:#2b5d8f;}
+  .gbar{height:8px;border-radius:4px;background:#e8edee;margin:10px 0 6px;overflow:hidden;position:relative;} .gbar i{display:block;height:100%;background:var(--teal);border-radius:4px;} .gbar i.met{background:var(--good);}
+  .gbar u{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink);opacity:.55;}
+  .g-s{font-size:12.5px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;align-items:center;} .g-s form{display:inline-flex;gap:6px;align-items:center;margin:0;}
+  .g-s input[type=number]{width:80px;padding:4px 6px;border:1px solid var(--line);border-radius:8px;} .lnk{background:none;border:0;padding:0;color:var(--accent-ink,#5c97a8);font:600 12.5px 'Barlow',sans-serif;cursor:pointer;} .lnk.del{color:#a63a2c;}
+  .btn{display:inline-block;font:700 13px 'Barlow',sans-serif;color:#fff;background:var(--teal);border:none;border-radius:999px;padding:8px 16px;cursor:pointer;text-decoration:none;}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);}
+  .gform,.picker{display:none;margin-top:12px;} .gform.open{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;} .picker.open{display:block;}
+  .gform label{display:flex;flex-direction:column;font:600 11px 'Barlow',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#6b7680;gap:4px;}
+  .gform input,.gform select{padding:8px 10px;border:1px solid var(--line);border-radius:10px;font:500 14px 'Barlow',sans-serif;background:#fff;color:var(--ink);}
+  .picker fieldset{border:0;margin:0 0 12px;padding:0;} .picker legend{font:700 11px 'Barlow',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#5b6b75;margin-bottom:6px;}
+  .picker label{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;margin:0 14px 6px 0;cursor:pointer;} .picker .hint{font-size:12.5px;color:var(--muted);margin:0 0 12px;}
+  .cz{display:grid;grid-template-columns:1fr 1fr;gap:16px;} .cz .card h3{font:700 15px 'Oswald',sans-serif;margin:0 0 4px;} .cz .card p{margin:0 0 10px;color:var(--muted);font-size:13px;}
+  .pbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;}
+  .pbs a{display:block;text-decoration:none;background:var(--card);border-radius:14px;box-shadow:var(--sh);padding:12px 14px;border-top:3px solid #e2b04a;}
+  .pbs .w{font:700 15px 'Oswald',sans-serif;} .pbs .l{font-size:12.5px;color:var(--muted);margin:2px 0 6px;} .pbs .v{font:700 20px 'Oswald',sans-serif;color:#8a6212;} .pbs .v small{font:500 12px 'Barlow',sans-serif;color:var(--muted);margin-left:6px;}
+  @media (max-width:900px){.cols,.snap,.cz{grid-template-columns:1fr;}}
+  @media (max-width:560px){.cal-g{--cs:13px!important;} h1{font-size:32px;} .mode h2{font-size:23px;} .counts{grid-template-columns:1fr 1fr;} .cnt b{font-size:24px;} .rec .wl{font-size:44px;} .t .hide-s{display:none;}}
+</style></head><body>
+{% set D = home %}{% set M = mode %}{% set game = D.mode == 'game' %}
+<div class="hero"><div class="wrap">{% if wm_url %}<img class="wm" src="{{ wm_url }}" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
+  <p class="eyebrow">{{ team_label }}</p><h1>Team Home</h1>
+  <p class="sub">{% if D.season_label %}{{ D.season_label }} season &middot; {% endif %}{{ D.n_pitchers }} pitcher{{ '' if D.n_pitchers == 1 else 's' }}{% if D.hitting_ok %} &middot; {{ D.n_hitters }} hitter{{ '' if D.n_hitters == 1 else 's' }}{% endif %} &middot; {{ D.n_sessions }} session{{ '' if D.n_sessions == 1 else 's' }}{% if D.first %} ({{ D.first }}{% if D.last != D.first %} – {{ D.last }}{% endif %}){% endif %}</p>
+  {% set topnav_on = 'dash' %}{% include '_topnav.html' %}{% if is_admin %}<p style="margin:10px 0 0;"><a href="{{ url_for('dashboard') }}" style="font:600 13px 'Barlow',sans-serif;color:#c9d3d8;text-decoration:none;">&larr; All teams</a></p>{% endif %}</div></div>
+<div class="wrap">
+
+  <div class="mode{{ ' game' if game }}">
+    <div><div class="mt">{{ 'Game mode' if game else 'Development mode' }}</div>
+      <h2>{{ 'Are we winning, and why?' if game else 'Are players getting better?' }}</h2>
+      <p>{{ 'Spring into early summer: results, the latest game, who is hot, who is available out of the bullpen, and who is next.' if game else 'Fall and winter: season-long gains, process stats week by week, arsenal changes, and what is left to be ready for spring.' }}
+        <small>{% if M.choice == 'auto' %}Set automatically ({{ M.reason }}).{% else %}Set by a coach. Choose Auto to follow the calendar again.{% endif %}</small></p></div>
+    {% if can_edit %}<form method="post" action="{{ url_for('team_home_mode', program=program) }}" class="tog" aria-label="Team Home mode">
+      {% for v, l in [('auto', 'Auto'), ('dev', 'Development'), ('game', 'Game')] %}<button name="mode" value="{{ v }}" class="{{ 'on' if M.choice == v }}">{{ l }}</button>{% endfor %}</form>{% endif %}
+  </div>
+
+  <section class="sec"><div class="sec-h"><h2>Season at a Glance</h2><p>Every tracked session this season, by type</p></div>
+    <div class="snap">
+      <div class="counts">
+        <div class="cnt"><b>{{ D.n_sessions }}</b><span>Sessions</span></div>
+        <div class="cnt"><b>{{ '{:,}'.format(D.n_pitches) }}</b><span>Pitches thrown</span></div>
+        {% if D.hitting_ok %}<div class="cnt"><b>{{ '{:,}'.format(D.n_seen) }}</b><span>Pitches seen</span></div>{% endif %}
+        <div class="cnt"><b>{{ D.n_pitchers + (D.n_hitters if D.hitting_ok else 0) }}</b><span>Players tracked</span></div>
+      </div>
+      <div class="card cal">{% if D.calendar %}{% set cs = [26, [13, (640 / (D.calendar.weeks|length))|int]|max]|min %}<div class="cal-g" style="--cs:{{ cs }}px">{% for w in D.calendar.weeks %}<div class="cal-w"><div class="cal-m">{{ w.month }}</div>{% for d in w.days %}<i class="{{ 'fut' if d.future and not d.type }}" title="{{ d.label }}"{% if d.type %} style="background:{{ type_colors[d.type] }}"{% endif %}></i>{% endfor %}</div>{% endfor %}</div>
+        <div class="cal-l">{% for t, c, n in D.calendar.legend %}<span style="--c:{{ c }}">{{ t }} <b>{{ n }}</b></span>{% endfor %}<span style="--c:#edf1f3">No session</span></div>
+      {% else %}<p class="empty">No sessions this season yet.</p>{% endif %}</div>
+    </div></section>
+
+  <div class="cols sec">
+  {% if not game %}
+    <div>
+      <div class="blk"><div class="sec-h"><h2>Biggest Gains This Season</h2><p>First two sessions against the last two</p></div>
+        {% if D.gains %}<div class="gains list">{% for g in D.gains %}<a class="gain" href="{{ g.url }}"><div class="n">{{ g.name }}</div><div class="k">{{ 'Pitcher' if g.kind == 'p' else 'Hitter' }} &middot; {{ g.label }}</div>
+          <div class="d">{{ g.delta }}</div><div class="ft"><span>{{ g.from }} &rarr; {{ g.to }}</span>{{ g.spark|safe }}</div></a>{% endfor %}</div>
+        {% else %}<div class="card"><p class="empty">No clear gains yet. Gains show once a player has four or more tracked sessions and improves by a meaningful amount.</p></div>{% endif %}</div>
+      <div class="blk"><div class="sec-h"><h2>Development Board</h2><p>Every player: where he is now, and the change since his first sessions</p></div>
+        <div class="card">
+          {% if D.board_h %}<div class="tabs" role="tablist"><button type="button" class="on" data-tp="db-p">Pitchers</button><button type="button" data-tp="db-h">Hitters</button></div>{% endif %}
+          {% for key, B in [('db-p', D.board_p), ('db-h', D.board_h)] if B %}<div class="tp scroll" id="{{ key }}"{% if not loop.first %} hidden{% endif %}>
+            {% if B.rows %}<table class="t"><thead><tr><th>{{ 'Pitcher' if key == 'db-p' else 'Hitter' }}</th>{% for c in B.cols %}<th>{{ c }}</th>{% endfor %}<th class="hide-s">Sessions</th></tr></thead><tbody>
+            {% for r in B.rows %}<tr><td><a href="{{ r.url }}">{{ r.name }}</a></td>{% for c in r.cells %}<td>{% if c %}{{ c.to }} <small class="{{ c.cls }}">{{ c.delta }}</small>{% else %}<span class="eq">&ndash;</span>{% endif %}</td>{% endfor %}<td class="hide-s">{{ r.sessions }}</td></tr>{% endfor %}</tbody></table>
+            {% else %}<p class="empty">Needs players with four or more tracked sessions.</p>{% endif %}</div>{% endfor %}
+        </div></div>
+    </div>
+    <div>
+      <div class="blk"><div class="sec-h"><h2>Process Stats by Week</h2><p>Season number and its week-by-week trend</p></div>
+        <div class="card"><div class="side-t">Pitching</div><div class="strip">{% for s in D.snap_p %}<div class="st" title="{{ s.def }}"><div class="l">{{ s.label }}</div><div class="v">{{ s.value }}</div>{{ s.spark|safe }}</div>{% endfor %}</div>
+          {% if D.snap_h %}<div class="side-t">Hitting</div><div class="strip">{% for s in D.snap_h %}<div class="st" title="{{ s.def }}"><div class="l">{{ s.label }}</div><div class="v">{{ s.value }}</div>{{ s.spark|safe }}</div>{% endfor %}</div>{% endif %}</div></div>
+      <div class="blk"><div class="sec-h"><h2>Needs Attention</h2></div>
+        <div class="card">{% for a in D.attention %}<div class="att"><span class="dot {{ a.level }}"></span><div><b>{{ a.title }}</b><p>{{ a.text }}{% if a.link %} <a href="{{ url_for(a.link[0], **a.link[1]) }}">{{ a.cta }} &rarr;</a>{% endif %}</p></div></div>{% else %}<p class="empty">Nothing needs attention right now.</p>{% endfor %}</div></div>
+      <div class="blk"><div class="sec-h"><h2>Arsenal Changes</h2><p>First half of each pitcher's season against the second half</p></div>
+        <div class="card">{% for a in D.arsenal %}<div class="ars"><div class="h"><a href="{{ a.url }}">{{ a.name }}</a><span>{{ a.span }}</span></div><ul>{% for n in a.notes %}<li class="{{ n.kind }}">{{ n.text }}</li>{% endfor %}</ul></div>{% else %}<p class="empty">No new pitches or clear shape changes yet. Needs four or more outings per pitcher.</p>{% endfor %}</div></div>
+      <div class="blk"><div class="sec-h"><h2>Ready for Spring</h2><span class="ring act">{{ D.ready_done }} of {{ D.ready|length }} done</span></div>
+        <div class="card">{% for c in D.ready %}<div class="chk{{ ' ok' if c.ok }}"><span class="bx">{{ '&#10003;'|safe if c.ok else loop.index }}</span><div class="tx"><b>{{ c.title }}</b><small>{{ c.detail }}{% if c.link and not c.ok %} &middot; <a class="more" href="{{ url_for(c.link[0], **c.link[1]) }}">Fix</a>{% endif %}</small>{% if c.frac is defined and not c.ok %}<div class="pb"><i style="width:{{ (100 * c.frac)|round|int }}%"></i></div>{% endif %}</div></div>{% endfor %}</div></div>
+    </div>
+  {% else %}
+    {% set G = D.games %}{% set L = D.line %}
+    <div>
+      <div class="blk"><div class="sec-h"><h2>Record</h2><p>Games with stored pitches this season</p></div>
+        <div class="card">{% if G.played %}<div class="rec"><div class="wl">{{ G.w }}&ndash;{{ G.l }}{% if G.t %}&ndash;{{ G.t }}{% endif %}<small>W&ndash;L</small></div><div><div class="side-t" style="margin-bottom:6px;">Last {{ G.form|length }}</div><div class="form">{% for r in G.form %}<i class="{{ r }}">{{ r }}</i>{% endfor %}</div></div></div>
+          {% set lg = G.last %}{% set r = 'W' if lg.us > lg.them else ('L' if lg.us < lg.them else 'T') %}
+          <a class="lg" href="{{ url_for('team_game_scorebook', program=program, gid=lg.gid) }}"><div class="sc {{ r }}">{{ r }} {{ lg.us }}&ndash;{{ lg.them }}</div><div><b>Latest: vs {{ lg.opp }}</b><small>{{ lg.date_s }}{% if lg.partial %} &middot; one side's pitches only{% endif %} &middot; open the game report</small></div></a>
+          <div class="res">{% for g in G.played[1:6] %}{% set r = 'W' if g.us > g.them else ('L' if g.us < g.them else 'T') %}<a href="{{ url_for('team_game_scorebook', program=program, gid=g.gid) }}"><span><b>{{ g.opp }}</b> <small style="display:inline;color:var(--muted);">{{ g.date_s }}</small></span><span class="r {{ r }}">{{ r }} {{ g.us }}&ndash;{{ g.them }}</span></a>{% endfor %}</div>
+          <p class="note"><a class="more" href="{{ url_for('team_games', program=program) }}">All game reports &rarr;</a></p>
+        {% else %}<p class="empty">No games uploaded this season yet. Once games come in, the record, latest game and results show here.</p>{% endif %}</div></div>
+      <div class="blk"><div class="sec-h"><h2>Season Line</h2><p>Results-based numbers need tagged games</p></div>
+        <div class="card"><div class="side-t">Pitching</div><div class="strip">{% for l, v, d in L.pit %}<div class="st" title="{{ d }}"><div class="l">{{ l }}</div><div class="v{{ ' na' if v is none }}">{{ v if v is not none else 'needs tagging' if l in ('Runs / 9', 'FIP') else '–' }}</div></div>{% endfor %}</div>
+          {% if L.hit %}<div class="side-t">Hitting</div><div class="strip">{% for l, v, d in L.hit %}<div class="st" title="{{ d }}"><div class="l">{{ l }}</div><div class="v{{ ' na' if v is none }}">{{ v if v is not none else 'needs tagging' if l in ('AVG', 'wOBA', 'wRC+') else '–' }}</div></div>{% endfor %}</div>{% endif %}
+          <p class="note">{% if L.cov_p is not none %}{{ '%.0f'|format(100 * L.cov_p) }}% of balls in play off our pitchers{% if L.cov_h is not none %} and {{ '%.0f'|format(100 * L.cov_h) }}% of ours{% endif %} carry a tagged result. Results-based numbers show at 80%.{% endif %}</p></div></div>
+      <div class="blk"><div class="sec-h"><h2>Hot &amp; Cold This Week</h2><p>{{ D.week_label }} against the rest of the season</p></div>
+        <div class="card hc"><h3 class="h">Heating up</h3>{% for x in D.hot %}<a href="{{ x.url }}"><div><b>{{ x.name }}</b><small>{{ x.kind }} &middot; {{ x.metric }} {{ x.from }} &rarr; {{ x.to }}</small></div><span class="chip up">{{ '%+.1f'|format(x.d) }}{{ x.unit }}</span></a>{% else %}<p class="empty">Nobody clearly up this week.</p>{% endfor %}
+          <h3 class="c">Cooling off</h3>{% for x in D.cold %}<a href="{{ x.url }}"><div><b>{{ x.name }}</b><small>{{ x.kind }} &middot; {{ x.metric }} {{ x.from }} &rarr; {{ x.to }}</small></div><span class="chip dn">{{ '%+.1f'|format(x.d) }}{{ x.unit }}</span></a>{% else %}<p class="empty">Nobody clearly down this week.</p>{% endfor %}</div></div>
+    </div>
+    <div>
+      <div class="blk"><div class="sec-h"><h2>Needs Attention</h2></div>
+        <div class="card">{% for a in D.attention %}<div class="att"><span class="dot {{ a.level }}"></span><div><b>{{ a.title }}</b><p>{{ a.text }}{% if a.link %} <a href="{{ url_for(a.link[0], **a.link[1]) }}">{{ a.cta }} &rarr;</a>{% endif %}</p></div></div>{% else %}<p class="empty">Nothing needs attention right now.</p>{% endfor %}</div></div>
+      <div class="blk"><div class="sec-h"><h2>Bullpen Availability</h2><p>As of today</p></div>
+        <div class="card scroll"><table class="t"><thead><tr><th>Pitcher</th><th>Status</th><th>Last out</th><th>Pitches</th><th class="hide-s">Last 7 days</th></tr></thead><tbody>
+          {% for b in D.bullpen %}<tr><td><a href="{{ b.url }}">{{ b.name }}</a></td><td>{% if b.avail %}<span class="av y">Available</span>{% else %}<span class="av n">Rest until {{ b.ready }}</span>{% endif %}</td>
+            <td>{{ b.last }} <small style="display:inline;color:var(--muted);">{% if b.ago == 0 %}today{% elif b.ago == 1 %}yesterday{% else %}{{ b.ago }}d ago{% endif %}</small></td><td>{{ b.n }}</td><td class="hide-s">{{ b.week or '–' }}</td></tr>{% endfor %}</tbody></table>
+          <p class="note">Rest is a conservative default by pitch count ({% for cap, d in D.rest_rule %}{% if not loop.last %}up to {{ cap }}: {{ d }} day{{ '' if d == 1 else 's' }}{{ '; ' }}{% else %}more: {{ d }} days{% endif %}{% endfor %}). Your staff's own rules come first.</p></div></div>
+      <div class="blk"><div class="sec-h"><h2>Next Opponents</h2></div>
+        <div class="card">{% if G.upcoming %}<div class="side-t">On the schedule</div>{% for s in G.upcoming %}<div class="opp"><div><b>{{ s.opp }}</b><small>{{ s.date_s }}{% if s.time %} &middot; {{ s.time }}{% endif %}{% if s.at %} &middot; {{ s.at }}{% endif %}</small></div></div>{% endfor %}{% endif %}
+          {% if D.scout %}<div class="side-t" style="margin-top:{{ '12px' if G.upcoming else '0' }};">Scouted most recently</div>{% for o in D.scout %}<a class="opp" href="{{ url_for('team_scouting_opp', program=program, opp=o.slug) }}"><div><b>{{ o.label }}</b><small>Last seen {{ o.last }} &middot; {{ o.nh }} hitters, {{ o.np }} pitchers</small></div><span class="more">Scouting report &rarr;</span></a>{% endfor %}{% endif %}
+          {% if not G.upcoming and not D.scout %}<p class="empty">No schedule or scouting yet. Upcoming games and scouted opponents show here.</p>{% endif %}</div></div>
+      <div class="blk"><div class="sec-h"><h2>Results by Week</h2><p>Season number and its week-by-week trend</p></div>
+        <div class="card"><div class="side-t">Pitching</div><div class="strip">{% for s in D.snap_p %}<div class="st" title="{{ s.def }}"><div class="l">{{ s.label }}</div><div class="v">{{ s.value }}</div>{{ s.spark|safe }}</div>{% endfor %}</div>
+          {% if D.snap_h %}<div class="side-t">Hitting</div><div class="strip">{% for s in D.snap_h %}<div class="st" title="{{ s.def }}"><div class="l">{{ s.label }}</div><div class="v">{{ s.value }}</div>{{ s.spark|safe }}</div>{% endfor %}</div>{% endif %}</div></div>
+    </div>
+  {% endif %}
+  </div>
+
+  <section class="sec" id="goals"><div class="sec-h"><h2>Team Goals</h2><p>Progress and season pace. The dark tick on each bar is where the team should be by now to finish on time.</p>
+      {% if can_edit %}<span class="act"><button type="button" class="btn ghost" data-pk="gf-pitching">+ Pitching goal</button>{% if D.hitting_ok %} <button type="button" class="btn ghost" data-pk="gf-hitting">+ Hitting goal</button>{% endif %}</span>{% endif %}</div>
+    {% if D.goals %}<div class="goals">{% for g in D.goals %}<div class="goal" id="goals-{{ g.side }}"><div class="g-top"><span class="g-t">{{ g.title }}</span><span class="tag">{{ g.side }}</span><span class="tag">{{ g.kind }}</span>
+        {% if g.met %}<span class="tag met">Met</span>{% elif g.overdue %}<span class="tag late">Past due</span>{% elif g.pace %}<span class="tag {{ g.pace }}">{{ {'ahead': 'Ahead of pace', 'on': 'On pace', 'behind': 'Behind pace'}[g.pace] }}</span>{% endif %}</div>
+      <div class="gbar">{% if g.pct is not none %}<i class="{{ 'met' if g.met }}" style="width:{{ g.pct|round|int }}%"></i>{% endif %}{% if g.expected is defined and not g.met %}<u style="left:{{ g.expected }}%"></u>{% endif %}</div>
+      <div class="g-s"><span>{% if g.metric %}Team {{ g.metric_label }}: <b>{{ g.disp if g.disp else 'no data yet' }}</b>{% else %}Progress: <b>{{ g.disp if g.disp else 'not started' }}</b>{% endif %} &middot; target {{ '&ge;'|safe if g.cmp == 'ge' else '&le;'|safe }} {{ g.target_disp }}{% if g.due %} &middot; due {{ g.due }}{% endif %}</span>
+        {% if can_edit %}{% if not g.metric %}<form method="post" action="{{ url_for('team_goals', program=program) }}"><input type="hidden" name="action" value="progress"><input type="hidden" name="side" value="{{ g.side }}"><input type="hidden" name="id" value="{{ g.id }}"><input type="number" step="any" name="current" placeholder="Update" aria-label="Current progress"><button class="lnk">Save</button></form>
+        <form method="post" action="{{ url_for('team_goals', program=program) }}"><input type="hidden" name="action" value="toggle"><input type="hidden" name="side" value="{{ g.side }}"><input type="hidden" name="id" value="{{ g.id }}"><button class="lnk">{{ 'Reopen' if g.done else 'Mark met' }}</button></form>{% endif %}
+        <form method="post" action="{{ url_for('team_goals', program=program) }}" onsubmit="return confirm('Delete this goal?');"><input type="hidden" name="action" value="delete"><input type="hidden" name="side" value="{{ g.side }}"><input type="hidden" name="id" value="{{ g.id }}"><button class="lnk del">Delete</button></form>{% endif %}</div></div>{% endfor %}</div>
+    {% else %}<div class="card"><p class="empty">No team goals yet. Add a result goal (an outcome, like team xBA of .300) or a process goal (something you control, like first-pitch strikes).</p></div>{% endif %}
+    {% if can_edit %}{% for side, P in pickers %}<form class="card gform" id="gf-{{ side }}" method="post" action="{{ url_for('team_goals', program=program) }}"><input type="hidden" name="action" value="add"><input type="hidden" name="side" value="{{ side }}">
+      <label>{{ 'Pitching' if side == 'pitching' else 'Hitting' }} goal<input name="title" placeholder="e.g. {{ 'Staff strike % of 62' if side == 'pitching' else 'Team xBA of .280' }}" maxlength="90"></label>
+      <label>Type<select name="kind"><option value="result">Result</option><option value="process">Process</option></select></label>
+      <label>Tracks<select name="metric"><option value="">Manual (I'll update it)</option>{% for sid, lab in P.metrics %}<option value="{{ sid }}">Team {{ lab }} (automatic)</option>{% endfor %}</select></label>
+      <label>Goal is<select name="cmp"><option value="ge">At least</option><option value="le">At most</option></select></label>
+      <label>Target<input name="target" type="number" step="any" required style="width:100px"></label>
+      <label>Due<input name="due" type="date"></label>
+      <button class="btn" type="submit">Add goal</button></form>{% endfor %}{% endif %}
+  </section>
+
+  {% if D.pbs %}<section class="sec"><div class="sec-h"><h2>Personal Bests This Season</h2><a class="more act" href="{{ url_for('team_prs', program=program) }}">All personal bests &rarr;</a></div>
+    <div class="pbs">{% for p in D.pbs %}<a href="{{ p.url }}"><div class="w">{{ p.who }}</div><div class="l">{{ p.label }} &middot; {{ p.date_s }}</div><div class="v">{{ p.disp }}{% if p.prev_disp %}<small>was {{ p.prev_disp }}</small>{% endif %}</div></a>{% endfor %}</div></section>{% endif %}
+
+  {% if can_edit %}<section class="sec"><div class="sec-h"><h2>Customize Key Metrics</h2><p>The metrics shown at the top of the Pitchers and Hitters pages, in this order</p></div>
+    <div class="cz">{% for side, P in pickers %}<div class="card" id="{{ side }}"><h3>{{ 'Pitchers page' if side == 'pitching' else 'Hitters page' }}</h3><p>{{ P.selected|join(', ') }}</p>
+      <button type="button" class="btn ghost" data-pk="pk-{{ side }}">Change</button>
+      <form class="picker" id="pk-{{ side }}" method="post" action="{{ url_for('team_customize', program=program) }}"><input type="hidden" name="side" value="{{ side }}">
+        <p class="hint" style="margin-top:12px;">Team numbers are pooled across every tracked {{ 'pitch' if side == 'pitching' else 'pitch seen' }}.</p>
+        {% for g, items in P.picker %}<fieldset><legend>{{ g }}</legend>{% for it in items %}<label title="{{ it.definition }}"><input type="checkbox" name="stat" value="{{ it.id }}" {{ 'checked' if it.on }}> {{ it.label }}</label>{% endfor %}</fieldset>{% endfor %}
+        <button class="btn" type="submit">Save</button></form></div>{% endfor %}</div></section>{% endif %}
+</div>
+<script>
+document.querySelectorAll('[data-pk]').forEach(function(b){b.addEventListener('click',function(){var f=document.getElementById(b.dataset.pk);f.classList.toggle('open');if(f.classList.contains('open'))f.scrollIntoView({behavior:'smooth',block:'nearest'});});});
+document.querySelectorAll('.tabs').forEach(function(t){t.addEventListener('click',function(ev){var b=ev.target.closest('button');if(!b)return;t.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b);var p=document.getElementById(x.dataset.tp);if(p)p.hidden=x!==b;});});});
+</script>
+{% include '_balance.html' %}
+</body></html>

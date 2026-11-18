@@ -446,7 +446,7 @@ def inject_theme():
     login) keep the default colors and link back to the team list."""
     prog = _nav_program() if session.get('coach') else None
     _pl = bool(session.get('coach')) and is_player()
-    out = {'nav_program': None if _pl else prog, 'home_url': home_url(), 'home_label': 'my profile' if _pl else ('Team Dashboard' if prog else 'dashboard'),
+    out = {'nav_program': None if _pl else prog, 'home_url': home_url(), 'home_label': 'my profile' if _pl else ('Team Home' if prog else 'dashboard'),
            'pitchers_url': url_for('team_pitchers', program=prog) if prog else url_for('dashboard'),
            'hitters_url': url_for('team_hitters', program=prog) if prog else (url_for('beta_hitters') if is_admin() else url_for('dashboard')),
            'theme_css': _TITLE_CSS, 'theme_program': None}
@@ -993,22 +993,35 @@ def team_hitters(program):
 @app.route('/team/<program>/dashboard')
 @login_required
 def team_dashboard(program):
+    """Team Home: the season-focused landing page, in development mode (fall and winter) or game mode (spring into early summer)."""
     _team_ok(program)
+    import teamhome
+    hit_ok = plans.allowed(program, 'hitting')
+    mode = teamhome.mode_for(program)
+    home = teamhome.build(program, mode, _gv_url, hitting_ok=hit_ok)
     cfg = team.load(program)
-    P = team.pitching_data(program)
-    H = team.hitting_data(program, True) if plans.allowed(program, 'hitting') else None
-    def half(side, D, ids):
-        tiles = [D['tiles'][i] for i in ids if i in D['tiles']]
-        return {'side': side, 'D': D, 'tiles': tiles, 'goals': team.goal_rows(program, side, D['tiles']),
-                'picker': team.stat_picker(side, ids), 'metrics': team.goal_metric_options(side)}
-    halves = [half('pitching', P, cfg['pitching_stats'])]
-    if H is not None:
-        halves.append(half('hitting', H, cfg['hitting_stats']))
-    sessions = sorted(set(P['sessions']) | set(H['sessions'] if H else []))
-    return render_template('team_dashboard.html', program=program, team_label=store.program_label(program), halves=halves,
-                           last_session=sessions[-1] if sessions else None, is_coach=True, is_admin=is_admin(), pr_recent=[r for r in prs.program_recent(program, days=30, limit=200) if r['kind'] != 'h' or plans.allowed(program, 'hitting')],
-                           wm_url=_wm_url(program),
-                           coach_key=session.get('coach') or '', th=theme.for_program(program), th_default=theme.default_pair(program))
+    pickers = []
+    for side in (('pitching', 'hitting') if hit_ok else ('pitching',)):
+        ids = cfg['pitching_stats'] if side == 'pitching' else cfg['hitting_stats']
+        picker = team.stat_picker(side, ids)
+        labels = {it['id']: it['label'] for _g, items in picker for it in items}
+        pickers.append((side, {'picker': picker, 'metrics': team.goal_metric_options(side), 'selected': [labels.get(i, i) for i in ids]}))
+    return render_template('team_home.html', program=program, team_label=store.program_label(program), home=home, mode=mode, pickers=pickers,
+                           type_colors=teamhome.TYPE_COLORS, can_edit=not is_demo_viewer(), is_admin=is_admin(),
+                           coach_key=session.get('coach') or '')
+
+
+@app.route('/team/<program>/home-mode', methods=['POST'])
+@login_required
+def team_home_mode(program):
+    """A coach picks which Team Home shows: Auto (by the calendar), Development or Game."""
+    _team_ok(program)
+    import teamhome
+    m = request.form.get('mode') or 'auto'
+    if m not in teamhome.MODES:
+        abort(400)
+    teamhome.set_mode(program, m)
+    return redirect(url_for('team_dashboard', program=program))
 
 
 @app.route('/team/<program>/personal-bests')
@@ -1083,15 +1096,15 @@ APPEARANCE_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name
 <div class="hero"><div class="wrap">{% if wm_url %}<img class="wm" src="{{ wm_url }}" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
   <p class="eyebrow">{{ team_label }}</p><h1>Appearance Settings</h1><p class="sub">Colors and the logo shown in your dashboard header.</p></div></div>
 <div class="wrap">
-  <a class="back" href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Dashboard</a>
+  <a class="back" href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Home</a>
   {% if msg %}<div class="msg {{ 'err' if err }}">{{ msg }}</div>{% endif %}
   <h2>Team colors</h2>
   <form class="card" method="post" action="{{ url_for('team_theme', program=program) }}"><p class="note">{% if th.source == 'custom' %}Using your custom colors.{% elif th.source == 'logo' %}Pulled from your school logo.{% elif th.source == 'school' %}Your school's colors.{% else %}Default colors.{% endif %} They show on the dashboards, player pages and outing reports.</p>
     <div class="row"><label>Header <input type="color" name="brand" value="{{ th.brand }}"></label><label>Accent <input type="color" name="accent" value="{{ th.accent }}"></label>
     <button class="btn" type="submit">Save colors</button>{% if th.source == 'custom' %}<button class="btn ghost" type="submit" name="reset" value="1">Reset to school colors</button>{% endif %}</div></form>
   <h2>Header logo</h2>
-  <div class="card"><p class="note">Shown faintly in the top right of your Team Dashboard header. A PNG with a transparent background looks best, in white or a light color so it reads on your header. A solid white box around the logo is removed automatically.</p>
-    <div class="prev"><b>Team Dashboard</b>{% if wm_url %}<img src="{{ wm_url }}" alt="">{% endif %}</div>
+  <div class="card"><p class="note">Shown faintly in the top right of your team page headers. A PNG with a transparent background looks best, in white or a light color so it reads on your header. A solid white box around the logo is removed automatically.</p>
+    <div class="prev"><b>Team Home</b>{% if wm_url %}<img src="{{ wm_url }}" alt="">{% endif %}</div>
     <p class="note">{% if kind == 'custom' %}Using the logo you uploaded.{% elif kind == 'builtin' %}Using the built-in logo for {{ team_label }}.{% elif kind == 'school' %}Using the school logo.{% else %}No logo yet.{% endif %}</p>
     <form method="post" action="{{ url_for('team_logo', program=program) }}" enctype="multipart/form-data" class="row"><input type="file" name="logo" accept="image/png,image/jpeg,image/webp" required><button class="btn" type="submit">{{ 'Replace logo' if kind == 'custom' else 'Upload logo' }}</button>
       {% if kind == 'custom' %}<button class="btn ghost" type="submit" name="remove" value="1" formnovalidate>Remove my logo</button>{% endif %}</form></div>

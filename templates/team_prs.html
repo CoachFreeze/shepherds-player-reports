@@ -13,7 +13,7 @@
   .prp h3{display:flex;justify-content:space-between;} .prf a{color:var(--ink);text-decoration:none;font-weight:700;} .prf a:hover{text-decoration:underline;}
   .empty{background:#fff;border-radius:16px;padding:26px;margin-top:14px;text-align:center;color:#6b7680;box-shadow:0 1px 3px rgba(26,31,36,.08);}
 </style></head><body><div class="ov">
-<div class="top"><a href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Dashboard</a><span style="display:flex;align-items:center;gap:12px;">{% include '_usermenu.html' %}</span></div>
+<div class="top"><a href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Home</a><span style="display:flex;align-items:center;gap:12px;">{% include '_usermenu.html' %}</span></div>
 <div class="head"><h1>&#9733; Newest Personal Bests</h1><div class="sub">{{ team_label }} &middot; records broken in the last 30 days of sessions{% if total %} &middot; {{ total }} record{{ 's' if total != 1 }}{% endif %}</div></div>
 {% for d in days %}<div class="prp"><h3>{{ d.label }}</h3>
   <ul class="prf">{% for r in d.rows %}<li><span><span class="pw">PR</span><a href="{{ r.url }}">{{ r.who }}</a> &middot; {{ r.label }}</span><span><span class="pv">{{ r.disp }}</span> <small>was {{ r.prev_disp }}</small></span></li>{% endfor %}</ul></div>

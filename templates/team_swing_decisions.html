@@ -28,7 +28,7 @@
   <p class="eyebrow">{{ team_label }}</p><h1>Swing Decisions</h1>
   <p class="sub">Every swing and take, catcher's view. Hover a pitch to see who it was, the count and the pitch.</p></div></div>
 <div class="wrap">
-  <a class="back" href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Dashboard</a>
+  <a class="back" href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Home</a>
   {% if not D.n %}<div class="side">No judgeable pitches yet. Swing decisions need pitch locations, which come from Trackman files.</div>{% else %}
   <div class="layout">
     <div class="plate">{{ D.svg|safe }}</div>

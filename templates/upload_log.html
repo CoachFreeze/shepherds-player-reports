@@ -24,7 +24,7 @@
 <div class="hero"><div class="wrap"><div style="position:absolute;top:-14px;right:0;">{% include '_usermenu.html' %}</div>
   <p class="eyebrow">{{ prog_label or 'All programs' }}</p><h1>Upload Log</h1><p class="sub">Every CSV uploaded{% if not admin %} for {{ prog_label }}{% endif %}, newest first.</p></div></div>
 <div class="wrap">
-  <div class="bar"><a class="back" href="{{ home }}">&larr; {{ 'Team Dashboard' if nav_program else 'Dashboard' }}</a>
+  <div class="bar"><a class="back" href="{{ home }}">&larr; {{ 'Team Home' if nav_program else 'Dashboard' }}</a>
     {% if admin %}<form method="get" style="margin:0;margin-left:auto;"><select name="program" onchange="this.form.submit()" style="margin-left:0;"><option value="">All programs</option>{% for slug, lab in programs %}<option value="{{ slug }}" {{ 'selected' if slug == sel }}>{{ lab }}</option>{% endfor %}</select></form>{% endif %}</div>
   {% if message %}<div class="ok">{{ message }}</div>{% endif %}
   {% if rows %}<div class="panel"><table>

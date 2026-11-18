@@ -11,7 +11,7 @@ button{padding:8px 16px;border:none;border-radius:999px;background:#5c97a8;color
 .pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#e3ecdf;color:#3f6b42;} .pill.off{background:#eee;color:#76828a;}
 .log div{padding:6px 0;border-bottom:1px solid #eceeed;font-size:13px;} .log div:last-child{border:0;}
 </style></head><body>
-<a href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Dashboard</a>
+<a href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Home</a>
 <h1>Coaches</h1><div class="sub">{{ team_label }} &middot; {{ count }} of {{ cap }} assistant coach{{ '' if cap == 1 else 'es' }} in use</div>
 {% if msg and not invite_url %}<div class="msg {{ 'err' if err }}">{{ msg }}</div>{% endif %}
 

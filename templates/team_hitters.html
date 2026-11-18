@@ -19,7 +19,7 @@
   <p class="eyebrow">{{ team_label }}</p><h1>Hitters</h1><p class="sub">Tap a hitter to see their profile, swing decisions, spray chart and exit velocity.</p>{% set topnav_on = 'hit' %}{% include '_topnav.html' %}</div></div>
 <div class="wrap">
   {% set side = 'hitting' %}{% set gv_on = 'cards' %}{% include '_groupviews.html' %}
-  <div class="bar"><a class="back" href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Dashboard</a><input id="q" type="search" placeholder="Search hitters…" autocomplete="off">{% if me and me.is_admin %}<a class="back" style="margin-left:auto;" href="{{ url_for('hitters_sort', program=program) }}">Sort hitters &rsaquo;</a>{% endif %}</div>
+  <div class="bar"><a class="back" href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Home</a><input id="q" type="search" placeholder="Search hitters…" autocomplete="off">{% if me and me.is_admin %}<a class="back" style="margin-left:auto;" href="{{ url_for('hitters_sort', program=program) }}">Sort hitters &rsaquo;</a>{% endif %}</div>
   {% if not rows %}<p style="color:var(--muted);margin-top:24px;">No hitters tracked for this team yet. Hitters appear here automatically once a session with batter data is uploaded.</p>{% endif %}
   <div class="grid">
   {% for r in rows %}{% set bio = r.bio %}{% set parts = r.name.split() %}{% set badge = sbadge(bio.program, bio.school) %}{% set photo = hphoto(bio) %}

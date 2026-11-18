@@ -52,6 +52,10 @@
   .quad .ql-g{fill:var(--good);} .quad .ql-b{fill:var(--bad);} .quad .qa{font:700 12px 'Barlow',sans-serif;fill:#5b6b75;} .quad .qt{font:500 11px 'Barlow',sans-serif;fill:#8a959c;}
   .quad .qn{font:700 11.5px 'Barlow',sans-serif;fill:#33424b;paint-order:stroke;stroke:#fff;stroke-width:3px;} .quad a:hover circle{stroke:var(--ink);stroke-width:2.5;}
   .note{font-size:12.5px;color:var(--muted);margin:10px 0 0;}
+  .lbs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px 20px;} .lb h3{font:700 16px 'Oswald',sans-serif;margin:0;} .lb .ls{font-size:12px;color:var(--muted);margin:2px 0 6px;}
+  .lb ol{list-style:none;margin:0;padding:0;} .lb li{display:flex;align-items:center;gap:9px;padding:6px 0;border-top:1px solid #f0f3f4;font-size:14px;} .lb li:first-child{border-top:0;}
+  .lb .rk{width:21px;height:21px;border-radius:50%;background:#eef2f3;color:var(--muted);font:700 11.5px/21px 'Barlow',sans-serif;text-align:center;flex:none;} .lb li:first-child .rk{background:var(--brand,#22303a);color:#fff;}
+  .lb a{flex:1;min-width:0;font-weight:600;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} .lb a:hover{color:var(--accent-ink,#5c97a8);} .lb .vl{font:700 16px 'Oswald',sans-serif;font-variant-numeric:tabular-nums;}
   .qleg{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;} .qleg span{font:700 11.5px 'Barlow',sans-serif;letter-spacing:.03em;background:#f1f4f5;color:#5b6b75;border-radius:999px;padding:4px 10px;} .qleg .g{background:#e3f4ea;color:#1f7d55;} .qleg .b{background:#fbe6e3;color:#b0483a;}
   /* workload */
   table.wl{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums;}
@@ -103,7 +107,7 @@
   <div class="emptybig">No {{ 'pitchers' if pit else 'hitters' }} tracked for this team yet. This overview fills in on its own once a session is uploaded.</div>
   {% else %}
 
-  {% if D.kpis %}<section class="sec"><div class="sec-h"><h2>Key Metrics</h2><p>Season numbers, the trend across sessions, and the latest session against the season. Change which metrics appear from Customize on the Team Dashboard.</p></div>
+  {% if D.kpis %}<section class="sec"><div class="sec-h"><h2>Key Metrics</h2><p>Season numbers, the trend across sessions, and the latest session against the season. Change which metrics appear under Customize on Team Home.</p></div>
     <div class="kgrid">{% for k in D.kpis %}<div class="kpi" title="{{ k.label }}: {{ k.def }}">
       <div class="kl">{{ k.label }}</div><div class="kv">{{ k.value }}</div>
       {% if k.spark %}{{ k.spark|safe }}{% else %}<div style="height:8px"></div>{% endif %}
@@ -134,6 +138,10 @@
         <div><h3 class="h">Heating up</h3>{% for x in D.hot %}<a href="{{ x.url }}"><div><b>{{ x.name }}</b><small>{{ '%.1f'|format(x.base) }} &rarr; {{ '%.1f'|format(x.recent) }} mph</small></div>{{ x.spark|safe }}<span class="d up">+{{ '%.1f'|format(x.delta) }}</span></a>{% else %}<p class="empty">Nobody up 1.5+ mph.</p>{% endfor %}</div>
         <div><h3 class="c">Cooling off</h3>{% for x in D.cold %}<a href="{{ x.url }}"><div><b>{{ x.name }}</b><small>{{ '%.1f'|format(x.base) }} &rarr; {{ '%.1f'|format(x.recent) }} mph</small></div>{{ x.spark|safe }}<span class="d dn">{{ '%.1f'|format(x.delta) }}</span></a>{% else %}<p class="empty">Nobody down 1.5+ mph.</p>{% endfor %}</div>
       </div></div></div>{% endif %}
+      {% if D.boards %}<div class="blk"><div class="sec-h"><h2>Leaderboards</h2><p>Season leaders</p></div>
+        <div class="card"><div class="lbs">{% for b in D.boards %}<div class="lb"><h3>{{ b.title }}</h3><div class="ls">{{ b.sub }}</div>
+          {% if b.rows %}<ol>{% for r in b.rows %}<li><span class="rk">{{ loop.index }}</span><a href="{{ url_for('player_overview', slug=r.key) if pit else url_for('beta_hitter', key=r.key) }}">{{ r.name }}</a><span class="vl">{{ r.value }}</span></li>{% endfor %}</ol>
+          {% else %}<p class="empty">Not enough data yet.</p>{% endif %}</div>{% endfor %}</div></div></div>{% endif %}
     </div>
     <div>
       <div class="blk"><div class="sec-h"><h2>{{ 'Staff at a Glance' if pit else 'Lineup at a Glance' }}</h2>

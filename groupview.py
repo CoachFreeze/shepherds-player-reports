@@ -329,7 +329,7 @@ def _pitching(program, ids, low_better, win, today_s, url_for_player):
         arsenal.append({'type': t, 'pct': 100 * n / tot, 'velo': (sv_ / sn) if sn else None, 'n': n, 'color': _pitch_color(t, colors)})
 
     pbs_recent = [dict(ev, url=url_for_player('p', ev['key']), date_s=_fmt_date(ev['date'])) for ev in prs.program_recent(program, days=30, limit=200) if ev['kind'] == 'p'][:8]
-    return {'side': 'pitching', 'fs': fs, 'kpis': kpis, 'standouts': standouts, 'quad': quad, 'qlab': qlab, 'work': work, 'wmax': wmax, 'arsenal': arsenal,
+    return {'boards': D['boards'], 'side': 'pitching', 'fs': fs, 'kpis': kpis, 'standouts': standouts, 'quad': quad, 'qlab': qlab, 'work': work, 'wmax': wmax, 'arsenal': arsenal,
             'pbs': pbs_recent, 'n_players': D['n_players'], 'n_pitches': D['n_pitches'], 'n_sessions': len(dates),
             'last_session': _fmt_date(dates[-1]) if dates else None, 'recent_days': RECENT_DAYS,
             'trend': D['trend']}
@@ -461,6 +461,6 @@ def _hitting(program, ids, low_better, win, include_demo, url_for_player):
     sdr_split = [{'grade': g, 'n': len(grades.get(g, [])), 'names': grades.get(g, [])} for g in order]
 
     pbs_recent = [dict(ev, url=url_for_player('h', ev['key']), date_s=_fmt_date(ev['date'])) for ev in prs.program_recent(program, days=30, limit=200) if ev['kind'] == 'h'][:8]
-    return {'side': 'hitting', 'fs': fs, 'kpis': kpis, 'standouts': standouts, 'quad': quad, 'qlab': qlab, 'hot': hot, 'cold': cold, 'sdr_split': sdr_split,
+    return {'boards': D['boards'], 'side': 'hitting', 'fs': fs, 'kpis': kpis, 'standouts': standouts, 'quad': quad, 'qlab': qlab, 'hot': hot, 'cold': cold, 'sdr_split': sdr_split,
             'sdr_total': sum(x['n'] for x in sdr_split), 'pbs': pbs_recent, 'n_players': D['n_players'], 'n_pitches': D['n_pitches'],
             'n_sessions': len(dates), 'last_session': _fmt_date(dates[-1]) if dates else None, 'recent_days': RECENT_DAYS, 'trend': D['trend']}
