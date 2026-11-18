@@ -1,13 +1,19 @@
 {% extends 'site_base.html' %}{% from 'site_macros.html' import shot, plan_cards %}
-{% block title %}{{ brand }}: pitcher and hitter reports from your tracking data{% endblock %}
+{% block title %}{{ brand }}: player development and data management for baseball staffs{% endblock %}
 {% block body %}
 <section class="hero"><div class="wrap grid"><div>
-  <p class="eyebrow" style="color:#d9a066;">For baseball programs</p>
-  <h1>Turn your tracking data into reports your players will read.</h1>
-  <p class="lead">Upload a session and get clear pitcher and hitter profiles, a team dashboard and opponent scouting, without the spreadsheets.</p>
+  <p class="eyebrow" style="color:#d9a066;">For baseball coaching staffs</p>
+  <h1>Develop every player. Keep every pitch in order.</h1>
+  <p class="lead">{{ brand }} turns the files your tracking system already makes into live player profiles, a season home for your staff, game recaps and scouting, so you spend your time coaching, not sorting spreadsheets.</p>
   <div class="cta"><a class="btn" href="{{ url_for('welcome_signup') }}">Start {{ trial_days }}-day free trial</a><a class="btn alt" href="{{ url_for('welcome_features') }}">See the features</a></div>
   <small>No card needed. Already a coach here? <a href="{{ url_for('login') }}" style="color:#dcd8c6;">Log in</a></small></div>
-  <div class="shot"><img src="{{ url_for('static', filename='site/team.jpg') }}" alt="Team dashboard"></div></div></section>
+  <div class="shot"><img src="{{ url_for('static', filename='site/team_home.jpg') }}" alt="Team Home in game mode, with record, season line and bullpen availability"></div></div></section>
+
+<section class="s"><div class="wrap"><div class="head"><p class="eyebrow">What it does</p><h2>Two jobs, done for your staff</h2><p>Every session you upload feeds both: the work of developing players, and the work of keeping their data organized.</p></div>
+  <div class="pillars">{% for t, sub, items in pillars %}<div class="pillar"><span class="pn">{{ loop.index }}</span><h3>{{ t }}</h3><p class="ps">{{ sub }}</p><ul>{% for i in items %}<li>{{ i }}</li>{% endfor %}</ul></div>{% endfor %}</div></div></section>
+
+<section class="s alt"><div class="wrap"><div class="head"><p class="eyebrow">Built around the calendar</p><h2>Fall is for development. Spring is for winning.</h2><p>Team Home switches on its own on January 10, and any coach can look back at the fall without changing it for anyone else.</p></div>
+  <div class="duo">{% for name, mode, txt, img in seasons %}<div class="dc"><div class="dh"><span class="dn">{{ name }}</span><span class="dm">{{ mode }}</span></div><p>{{ txt }}</p>{{ shot(img, 'Team Home, ' ~ name) }}</div>{% endfor %}</div></div></section>
 
 <section class="s"><div class="wrap"><div class="head"><p class="eyebrow">Why coaches use it</p><h2>Less time in spreadsheets. More time coaching.</h2></div>
   <div class="cards">{% for t, d in benefits %}<div class="card"><h3>{{ t }}</h3><p>{{ d }}</p></div>{% endfor %}</div></div></section>
@@ -15,8 +21,8 @@
 <section class="s alt"><div class="wrap"><div class="head"><p class="eyebrow">How it works</p><h2>From CSV to coaching in minutes</h2></div>
   <div class="cards">{% for t, d in steps %}<div class="card"><div class="num">{{ loop.index }}</div><h3>{{ t }}</h3><p>{{ d }}</p></div>{% endfor %}</div></div></section>
 
-<section class="s"><div class="wrap"><div class="head"><p class="eyebrow">Features</p><h2>Everything in one place</h2><p>Pitching, hitting, scouting and game reports, built from the same files.</p></div>
-  {% for f in features[:3] %}<div class="feat {{ 'flip' if loop.index is even }}"><div class="txt"><h3>{{ f.title }}</h3><p style="color:var(--muted);margin:8px 0 0;font-size:17px;">{{ f.pitch }}</p>
+<section class="s"><div class="wrap"><div class="head"><p class="eyebrow">Features</p><h2>Everything in one place</h2><p>Profiles, team pages, game recaps and scouting, all built from the same files.</p></div>
+  {% for f in features[1:5] %}<div class="feat {{ 'flip' if loop.index is even }}"><div class="txt"><h3>{{ f.title }}</h3><p style="color:var(--muted);margin:8px 0 0;font-size:17px;">{{ f.pitch }}</p>
     <ul>{% for b in f.bullets[:3] %}<li>{{ b }}</li>{% endfor %}</ul></div><div>{{ shot(f.img, f.title) }}</div></div>{% endfor %}
   <p style="margin-top:20px;"><a class="btn line" href="{{ url_for('welcome_features') }}">See every feature</a></p></div></section>
 
@@ -26,5 +32,5 @@
 <section class="s"><div class="wrap"><div class="head"><p class="eyebrow">Questions</p><h2>Quick answers</h2></div>
   {% for q, a in faq %}<details><summary>{{ q }}</summary><p>{{ a }}</p></details>{% endfor %}</div></section>
 
-<section class="band"><p class="eyebrow" style="color:#d9a066;margin:0 0 10px;">{{ tagline }}</p><h2>Ready to see your own data?</h2><p>Start your {{ trial_days }}-day free trial and upload your first session today.</p><a class="btn" href="{{ url_for('welcome_signup') }}">Start free trial</a></section>
+<section class="band"><p class="eyebrow" style="color:#d9a066;margin:0 0 10px;">{{ tagline }}</p><h2>Ready to see your own players?</h2><p>Start your {{ trial_days }}-day free trial and upload your first session today.</p><a class="btn" href="{{ url_for('welcome_signup') }}">Start free trial</a></section>
 {% endblock %}

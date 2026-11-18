@@ -385,6 +385,10 @@ def build(rows):
             tb = 1 if (side == 'us') == us_home else 0
             seen = any(p['inn'] == i and p['tb'] == tb for p in pas)
             ls[side].append(line.get((i, tb), 0) if seen else None)
+    home = 'us' if us_home else 'opp'
+    away = 'opp' if us_home else 'us'
+    if innings >= 9 and ls[home] and ls[home][-1] is None and ls[away][-1] is not None and score[home] > score[away]:
+        ls[home][-1] = 'X'                                     # the home team was ahead, so the last bottom half was never played
     return {'pas': pas, 'teams': teams, 'score': score, 'linescore': ls, 'innings': innings, 'us_home': us_home,
             'pitchers': {'us': _pitchers(pas, 'us'), 'opp': _pitchers(pas, 'opp')}}
 

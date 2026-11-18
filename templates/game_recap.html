@@ -37,7 +37,7 @@ h2 a{margin-left:auto;font:700 12.5px Barlow,sans-serif;letter-spacing:0;text-tr
 {% set us_won = m.score.us > m.score.opp %}{% set opp_won = m.score.opp > m.score.us %}
 <div class="hd">
   <div class="mu">
-    <div class="tm">{% if us_badge %}<img src="{{ url_for('school_mark', fname=us_badge.file) }}" alt="">{% else %}<div class="ph">{{ team_label[:2]|upper }}</div>{% endif %}<div><b>{{ team_label }}</b><small>{{ 'Home' if m.us_home else 'Away' }}</small></div></div>
+    <div class="tm">{% if us_logo %}<img src="{{ us_logo }}" alt="">{% else %}<div class="ph">{{ team_label[:2]|upper }}</div>{% endif %}<div><b>{{ team_label }}</b><small>{{ 'Home' if m.us_home else 'Away' }}</small></div></div>
     <div class="sc"><span class="{{ 'lose' if opp_won }}">{{ m.score.us }}</span><span class="rs {{ res }}">{{ {'W': 'Win', 'L': 'Loss', 'T': 'Tie'}[res] if not intra else 'Final' }}</span><span class="{{ 'lose' if us_won }}">{{ m.score.opp }}</span></div>
     <div class="tm r">{% if logo %}<img src="{{ logo }}" alt="">{% else %}<div class="ph">{{ opp[:2]|upper }}</div>{% endif %}<div><b>{{ opp }}</b><small>{{ 'Away' if m.us_home else 'Home' }}</small></div></div>
   </div>

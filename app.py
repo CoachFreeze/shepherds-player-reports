@@ -1693,7 +1693,7 @@ def team_game_recap(program, gid):
     return render_template('game_recap.html', program_name=store.program_label(program), program=program, gid=gid, m=m, R=R, view=view, names=names, order=order, info=info, intra=intra,
                            res=res, complete=complete, n_pitches=gm['n'], date_pretty=d.strftime('%A, %B %-d, %Y'), team_label=tl, opp=ol,
                            logo=(None if intra else _opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp'])),
-                           us_badge=(None if intra else sbadge(program)), show_ump=not (is_player() or intra))
+                           us_logo=(None if intra else _wm_url(program)), show_ump=not (is_player() or intra))
 
 
 @app.route('/team/<program>/outings')

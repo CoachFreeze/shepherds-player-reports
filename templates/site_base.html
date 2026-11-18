@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block title %}{{ brand }}{% endblock %}</title>
-<meta name="description" content="Turn your tracking data into clear pitcher and hitter reports, team dashboards and opponent scouting.">
+<meta name="description" content="Player development and data management for baseball coaching staffs: live pitcher and hitter profiles, a season home that follows the calendar, game recaps and opponent scouting, built from your tracking data.">
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='site/brand/mark_dark.svg') }}">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -36,7 +36,12 @@
   footer{background:var(--dark2);color:#b9c2b2;padding:34px 0;font-size:14px;} footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;} footer a{color:#e6e1d0;text-decoration:none;margin-right:16px;}
   form.su{background:#fffdf8;border-radius:18px;padding:30px;box-shadow:0 8px 30px rgba(26,31,36,.12);max-width:520px;margin:0 auto;} .su label{display:block;font-weight:600;font-size:13.5px;margin:16px 0 5px;} .su input[type=text],.su input[type=email],.su input[type=password]{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font:inherit;}
   .su .row{display:grid;grid-template-columns:1fr 1fr;gap:12px;} .su .hint{color:var(--muted);font-size:12.5px;margin-top:5px;} .su .err{background:#f6dede;color:#9c3a3a;border-radius:10px;padding:11px 14px;margin-bottom:6px;font-weight:600;} .hp{position:absolute;left:-9999px;}
-  @media (max-width:860px){h1{font-size:40px;} h2{font-size:30px;} .hero{padding:48px 0;} .hero .grid,.feat{grid-template-columns:1fr;gap:26px;} .feat.flip .txt{order:0;} header.nav .wrap{height:auto;padding-top:12px;padding-bottom:12px;flex-wrap:wrap;} .su .row{grid-template-columns:1fr;} section.s{padding:48px 0;}}
+  .pillars{display:grid;grid-template-columns:1fr 1fr;gap:20px;} .pillar{background:var(--card);border-radius:18px;padding:28px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);border-top:4px solid var(--copper);position:relative;}
+  .pillar .pn{position:absolute;top:22px;right:24px;font:700 46px 'Oswald',sans-serif;color:#efe6d2;line-height:1;} .pillar h3{font-size:28px;} .pillar .ps{color:var(--muted);font-size:17px;margin:6px 0 0;} .pillar ul{padding-left:20px;margin:14px 0 0;color:#394852;} .pillar li{margin:8px 0;}
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:22px;} .dc p{color:var(--muted);font-size:15.5px;margin:10px 0 16px;min-height:72px;} .dh{display:flex;align-items:baseline;gap:10px;} .dn{font:700 30px 'Oswald',sans-serif;} .dm{font:600 12px 'Barlow',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);}
+  .jump{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;} .jump .tag{text-decoration:none;margin:0;} .jump .tag:hover{background:#e6d9bd;}
+  .mini{margin-top:20px;max-width:360px;} .mini small{display:block;color:var(--muted);font-size:13px;margin-top:8px;} .mini .shot{box-shadow:0 8px 24px rgba(10,18,24,.22);}
+  @media (max-width:860px){h1{font-size:40px;} h2{font-size:30px;} .hero{padding:48px 0;} .hero .grid,.feat,.pillars,.duo{grid-template-columns:1fr;gap:26px;} .dc p{min-height:0;} .pillar .pn{display:none;} .feat.flip .txt{order:0;} header.nav .wrap{height:auto;padding-top:12px;padding-bottom:12px;flex-wrap:wrap;} .su .row{grid-template-columns:1fr;} section.s{padding:48px 0;}}
 </style></head><body>
 {% if not public %}<div class="preview">Preview: only administrators can see this site right now.</div>{% endif %}
 <header class="nav"><div class="wrap"><a class="logo" href="{{ url_for('welcome') }}" aria-label="{{ brand }}"><img src="{{ url_for('static', filename='site/brand/logo_dark_nav.svg') }}" alt="{{ brand }}"></a>
