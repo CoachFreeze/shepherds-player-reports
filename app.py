@@ -955,7 +955,7 @@ def _group_overview(program, side):
     else:
         gv = groupview.hitting_view(program, cfg['hitting_stats'], _LOW_BETTER['hitting'] | {'k_pct'}, _gv_url)
     return render_template('team_group.html', side=side, gv=gv, program=program, team_label=store.program_label(program),
-                           title=('Pitching Staff' if side == 'pitching' else 'Hitters') + ' · ' + store.program_label(program))
+                           title=('Pitchers' if side == 'pitching' else 'Hitters') + ' · ' + store.program_label(program))
 
 
 @app.route('/team/<program>/pitchers')
@@ -1094,7 +1094,7 @@ APPEARANCE_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name
 <style>
   :root{ --ink:#22303a; --teal:var(--accent,#5c97a8); --muted:#6b7680; --line:#dde2e5; }
   *{box-sizing:border-box;} body{background:#f7f6f2;color:var(--ink);font-family:'Barlow',sans-serif;margin:0;padding-bottom:50px;}
-  .hero{background:var(--brand,#22303a);padding:34px 16px 28px;border-bottom:3px solid var(--teal);position:relative;overflow:hidden;} .wrap{max-width:860px;margin:0 auto;padding:0 16px;} .hero .wrap{padding:0;position:relative;}
+  .hero{background:var(--brand,#22303a);padding:34px 16px 28px;border-bottom:3px solid var(--teal);position:relative;overflow:hidden;} .wrap{max-width:1000px;margin:0 auto;padding:0 16px;} .wrap>*{max-width:820px;} .hero .wrap{padding:0;position:relative;}
   .hero .wm{position:absolute;right:0;top:50%;transform:translateY(-50%);height:118%;max-height:140px;max-width:300px;width:auto;opacity:.2;pointer-events:none;object-fit:contain;} .hero .wrap>*:not(.wm){position:relative;z-index:1;}
   .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-on-dark,#5c97a8);margin:0 0 8px;}
   h1{font:700 40px 'Oswald',sans-serif;margin:0 0 6px;color:#fff;} .sub{color:#c9d3d8;font-size:14.5px;margin:0;}
@@ -1107,10 +1107,8 @@ APPEARANCE_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name
   .prev{border-radius:12px;background:var(--brand,#22303a);height:120px;position:relative;overflow:hidden;margin:0 0 14px;} .prev img{position:absolute;right:16px;top:50%;transform:translateY(-50%);max-height:92px;max-width:240px;opacity:.2;object-fit:contain;} .prev b{position:absolute;left:18px;top:50%;transform:translateY(-50%);font:700 26px 'Oswald',sans-serif;color:#fff;}
   @media (max-width:520px){h1{font-size:32px;}}
 </style></head><body>
-<div class="hero"><div class="wrap">{% if wm_url %}<img class="wm" src="{{ wm_url }}" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
-  <p class="eyebrow">{{ team_label }}</p><h1>Appearance Settings</h1><p class="sub">Colors and the logo shown in your dashboard header.</p></div></div>
+{% set hero_title, hero_sub, hero_w = 'Appearance Settings', 'Your team colors and the logo shown in every team page header.', '1000px' %}{% include '_page_hero.html' %}
 <div class="wrap">
-  <a class="back" href="{{ url_for('team_dashboard', program=program) }}">&larr; Team Home</a>
   {% if msg %}<div class="msg {{ 'err' if err }}">{{ msg }}</div>{% endif %}
   <h2>Team colors</h2>
   <form class="card" method="post" action="{{ url_for('team_theme', program=program) }}"><p class="note">{% if th.source == 'custom' %}Using your custom colors.{% elif th.source == 'logo' %}Pulled from your school logo.{% elif th.source == 'school' %}Your school's colors.{% else %}Default colors.{% endif %} They show on the dashboards, player pages and outing reports.</p>
@@ -1149,16 +1147,16 @@ def team_season_switch(program):
 
 
 SEASONS_PAGE = """<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Seasons</title>
-<style>body{font:15px/1.5 'Barlow',system-ui,sans-serif;background:#f4f6f7;color:#22303a;margin:0;padding:24px 16px}.c{max-width:640px;margin:0 auto;background:#fff;border-radius:14px;padding:24px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+<style>{{ theme_css|safe }}</style><style>*{box-sizing:border-box}body{font:15px/1.5 'Barlow',system-ui,sans-serif;background:#f7f6f2;color:#22303a;margin:0;padding:0 0 50px}.c{max-width:680px;margin:22px 0 0;background:#fff;border-radius:14px;padding:24px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06)}
 h1{margin:0 0 6px;font-size:22px}p{color:#5b6b75;margin:6px 0 14px}.r{display:flex;gap:8px;margin:8px 0}.r input{padding:8px;border:1px solid #cdd5d8;border-radius:8px;font:inherit}.r input[type=date]{width:160px}.r input[type=text]{flex:1}
-button{background:#22303a;color:#fff;border:0;border-radius:999px;padding:9px 18px;font:600 14px inherit;cursor:pointer}a{color:#2d6f84}.ok{background:#e6f4ea;border-radius:8px;padding:8px 12px}</style></head><body><div class="c">
-<a href="{{ url_for('team_dashboard', program=program) }}">&larr; {{ team_label }}</a><h1>Seasons</h1>
+button{background:var(--accent,#5c97a8);color:var(--on-accent,#fff);border:0;border-radius:999px;padding:9px 18px;font:700 14px 'Barlow',sans-serif;cursor:pointer}.ok{background:#e6f4ea;border-radius:8px;padding:8px 12px}@media (max-width:700px){.c{margin:16px}}</style></head><body>
+{% set hero_title, hero_sub, hero_w = 'Seasons', 'Where one season ends and the next begins.', '1000px' %}{% include '_page_hero.html' %}<div style="max-width:1000px;margin:0 auto;padding:0 16px"><div class="c">
 {% if msg %}<div class="ok">{{ msg }}</div>{% endif %}
 <p>Each start date begins a new season. Team pages (Team Home, Schedule, Hitters, Pitchers, Scouting) show the current season; everything before it is archived, still one click away in the season picker. Player profiles always keep every season together and can be switched year to year. Leave a row blank to remove it. Nothing is deleted or moved.</p>
 <p><b>Starts before the first date:</b> {{ first }}</p>
 <form method="post">{% for b in rows %}<div class="r"><input type="date" name="start" value="{{ b.start }}"><input type="text" name="label" value="{{ b.label }}" maxlength="40" placeholder="Label"></div>{% endfor %}
 {% for i in range(2) %}<div class="r"><input type="date" name="start"><input type="text" name="label" maxlength="40" placeholder="Label (e.g. Fall 2027)"></div>{% endfor %}
-<button type="submit">Save seasons</button>{% if custom %} <button type="submit" name="reset" value="1" style="background:#8a98a0">Reset to every Jan 1</button>{% endif %}</form></div></body></html>"""
+<button type="submit">Save seasons</button>{% if custom %} <button type="submit" name="reset" value="1" style="background:#8a98a0">Reset to every Jan 1</button>{% endif %}</form></div></div></body></html>"""
 
 
 @app.route('/team/<program>/seasons', methods=['GET', 'POST'])
@@ -1692,7 +1690,7 @@ def team_game_recap(program, gid):
     order = [(first, names[first]), ('opp' if first == 'us' else 'us', names['opp' if first == 'us' else 'us'])]
     d = _dt.date.fromisoformat(gm['date'])
     res = 'W' if m['score']['us'] > m['score']['opp'] else ('L' if m['score']['us'] < m['score']['opp'] else 'T')
-    return render_template('game_recap.html', program=program, gid=gid, m=m, R=R, view=view, names=names, order=order, info=info, intra=intra,
+    return render_template('game_recap.html', program_name=store.program_label(program), program=program, gid=gid, m=m, R=R, view=view, names=names, order=order, info=info, intra=intra,
                            res=res, complete=complete, n_pitches=gm['n'], date_pretty=d.strftime('%A, %B %-d, %Y'), team_label=tl, opp=ol,
                            logo=(None if intra else _opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp'])),
                            us_badge=(None if intra else sbadge(program)), show_ump=not (is_player() or intra))
@@ -1977,7 +1975,7 @@ def team_game(program, gid):
     d = _dt.date.fromisoformat(gm['date'])
     tl = 'Home' if intra else store.program_label(program)
     complete = bool(m['pitchers']['us'] and m['pitchers']['opp']) and all(v is not None for v in m['linescore']['us'] + m['linescore']['opp'])
-    return render_template('game_report.html', m=m, program=program, team_label=tl, opp=gm['opp'], date_pretty=d.strftime('%A, %B %-d, %Y') + (' · Intrasquad' if intra else ''),
+    return render_template('game_report.html', program_name=store.program_label(program), m=m, program=program, team_label=tl, opp=gm['opp'], date_pretty=d.strftime('%A, %B %-d, %Y') + (' · Intrasquad' if intra else ''),
                            n_pitches=gm['n'], complete=complete, gid=gid, abbr=gr.ABBR, logo=(None if intra else _opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp'])),
                            order=[('us', tl), ('opp', gm['opp'])], maxpa={s: max([x['pa_n'] for x in m['teams'][s]['slots']] or [1]) for s in ('us', 'opp')},
                            back_url=url_for('team_games', program=program) + ('#intrasquads' if intra else ''), intra=intra,
@@ -2067,7 +2065,7 @@ def team_game_scorebook(program, gid):
                        'bb': sum(r['bb'] for r in sb['rows']), 'k': sum(r['k'] for r in sb['rows'])})
     m['hits'], m['errs'] = hits, errs
     d = _dt.date.fromisoformat(gm['date'])
-    return render_template('game_scorebook.html', m=m, sheets=sheets, gid=gid, program=program, team_label=tl, opp=gm['opp'], date_pretty=d.strftime('%A, %B %-d, %Y') + (' · Intrasquad' if intra else ''),
+    return render_template('game_scorebook.html', program_name=store.program_label(program), m=m, sheets=sheets, gid=gid, program=program, team_label=tl, opp=gm['opp'], date_pretty=d.strftime('%A, %B %-d, %Y') + (' · Intrasquad' if intra else ''),
                            intra=intra, back_url=url_for('team_games', program=program) + ('#intrasquads' if intra else ''), analysis_url=url_for('team_game', program=program, gid=gid), umpire_url=(None if (is_player() or intra) else url_for('team_game_umpire', program=program, gid=gid)), order=[('us', tl), ('opp', gm['opp'])])
 
 

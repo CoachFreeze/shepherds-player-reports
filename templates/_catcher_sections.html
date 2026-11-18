@@ -1,12 +1,12 @@
 <style>#cv{display:none;} #cv.on{display:block;}
 #cv .tbl{width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(26,31,36,.08);}
-#cv .tbl th{font:600 11px Oswald;letter-spacing:.1em;text-transform:uppercase;color:#6b7680;text-align:right;padding:10px 12px;background:#f1f3f4;}
+#cv .tbl th{font:600 11px Oswald,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#6b7680;text-align:right;padding:10px 12px;background:#f1f3f4;}
 #cv .tbl td{padding:10px 12px;text-align:right;border-top:1px solid #eef0f1;font-variant-numeric:tabular-nums;}
 #cv .tbl th:first-child,#cv .tbl td:first-child{text-align:left;}
 #cv .card p.n{color:#6b7680;font-size:13px;margin:0 0 12px;line-height:1.45;}
 #cv .big{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
 #cv .big div{flex:1;min-width:110px;background:#f7f6f2;border-radius:10px;padding:10px 12px;}
-#cv .big b{font:700 24px Oswald;display:block;}
+#cv .big b{font:700 24px Oswald,sans-serif;display:block;}
 #cv .big span{font-size:11.5px;color:#6b7680;}
 #cv .pos{color:#1d7a4f;}
 #cv .neg{color:#b3402f;}
@@ -15,20 +15,20 @@
 #cv .rz{display:flex;gap:22px;align-items:flex-start;margin-top:14px;}
 #cv .rzp{flex:1;min-width:0;position:relative;}
 #cv .rzf{width:190px;flex:none;border-left:1px solid #e6eaec;padding-left:18px;}
-#cv .rzh{font:600 11px Oswald;letter-spacing:.14em;text-transform:uppercase;color:#6b7680;margin-bottom:8px;}
-#cv .rzi{display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;padding:7px 8px;margin:0 -8px 2px;border-radius:8px;cursor:pointer;font:600 14px Barlow;color:#22303a;text-align:left;transition:background .12s,opacity .12s;}
+#cv .rzh{font:600 11px Oswald,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#6b7680;margin-bottom:8px;}
+#cv .rzi{display:flex;align-items:center;gap:9px;width:100%;border:0;background:none;padding:7px 8px;margin:0 -8px 2px;border-radius:8px;cursor:pointer;font:600 14px Barlow,sans-serif;color:#22303a;text-align:left;transition:background .12s,opacity .12s;}
 #cv .rzi:hover{background:#f1f4f5;}
 #cv .rzi i{width:4px;height:20px;border-radius:2px;background:var(--c);flex:none;}
-#cv .rzi em{margin-left:auto;font:500 12px Barlow;font-style:normal;color:#8a97a0;font-variant-numeric:tabular-nums;}
+#cv .rzi em{margin-left:auto;font:500 12px Barlow,sans-serif;font-style:normal;color:#8a97a0;font-variant-numeric:tabular-nums;}
 #cv .rzi.off{opacity:.38;}
 #cv .rzi.off i{background:#cfd6da;}
 #cv .rzi.on{background:#eef4f6;}
-#cv .rzall{border:0;background:none;color:var(--accent-ink,#5c97a8);font:700 12px Barlow;padding:6px 0 0;cursor:pointer;}
+#cv .rzall{border:0;background:none;color:var(--accent-ink,#5c97a8);font:700 12px Barlow,sans-serif;padding:6px 0 0;cursor:pointer;}
 #cv .rzs{margin-top:12px;padding-top:12px;border-top:1px solid #e6eaec;font-size:12.5px;color:#6b7680;line-height:1.5;}
-#cv .rzs b{font:700 18px Oswald;color:#22303a;display:block;}
+#cv .rzs b{font:700 18px Oswald,sans-serif;color:#22303a;display:block;}
 #cv .pp{transition:opacity .12s;cursor:pointer;}
 #cv .pp.dim{opacity:0;pointer-events:none;}
-#cv .rtip{position:absolute;pointer-events:none;background:#22303a;color:#fff;font:600 12.5px Barlow;padding:6px 10px;border-radius:8px;white-space:nowrap;opacity:0;transform:translate(-50%,-130%);transition:opacity .1s;z-index:5;}
+#cv .rtip{position:absolute;pointer-events:none;background:#22303a;color:#fff;font:600 12.5px Barlow,sans-serif;padding:6px 10px;border-radius:8px;white-space:nowrap;opacity:0;transform:translate(-50%,-130%);transition:opacity .1s;z-index:5;}
 @media (max-width:640px){ #cv .rz{flex-direction:column;}#cv .rzf{width:100%;border-left:0;padding-left:0;}}</style>
 <div id="cv"><p class="catintro" style="margin:0 0 14px;color:#6b7680;font-size:13.5px;">Catching report: Game, Scrimmage and Intrasquad pitches only (the date filter above applies to his hitting). {{ c.n }} pitches across {{ c.games }} session{{ "" if c.games == 1 else "s" }} with {{ c.pitchers }} pitcher{{ "" if c.pitchers == 1 else "s" }}.</p>{% set r = c.recv %}
 <div class="card"><h2>Receiving{{ info('c_receiving') }}</h2><p class="n">Of the pitches a hitter took, how many strikes did he get on borderline calls? Compared with how often pitches that same distance from the edge are called strikes for the whole program.</p>

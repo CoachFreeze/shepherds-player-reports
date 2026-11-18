@@ -67,7 +67,7 @@
 <div class="hero"><div class="wrap">{% if opp.logo %}<img class="wm" src="{{ opp.logo }}{{ '&' if '?' in opp.logo else '?' }}mark=1" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
   <p class="eyebrow">{{ team_label }} &middot; Scouting</p><h1>{{ opp.label }}</h1>
   <p class="sub">{{ opp.pitchers|length }} pitcher{{ 's' if opp.pitchers|length != 1 }} &middot; {{ opp.hitters|length }} hitter{{ 's' if opp.hitters|length != 1 }} seen{% if opp.dates %} &middot; {{ opp.dates|length }} session{{ 's' if opp.dates|length != 1 }}{% endif %}{% if last_session %} &middot; last session {{ last_session }}{% endif %}</p>
-  <div class="jump"><a href="{{ url_for('team_scouting', program=program) }}">&larr; All opponents</a>{% if defense %}<a href="#defense">Defensive Positioning (Beta)</a>{% endif %}</div></div></div>
+  <div class="jump"><a href="{{ url_for('team_scouting', program=program) }}">&larr; All opponents</a>{% if defense %}<a href="#defense">Defensive Positioning (Beta)</a>{% endif %}</div>{% set topnav_on = 'scout' %}{% include '_topnav.html' %}</div></div>
 
 <div class="wrap">
 <div class="rostbox noprint" style="background:#fff;border:1px solid #dfe7ea;border-radius:14px;padding:12px 16px;margin:12px 0;font:500 14px 'Barlow',sans-serif;color:#44525a;">

@@ -3,7 +3,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--ink:#22303a;--muted:#6b7680;--line:#dde2e5;--sh:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);}
-*{box-sizing:border-box;} body{margin:0;background:#f7f6f2;color:var(--ink);font-family:'Barlow',sans-serif;padding:18px 16px 50px;}
+*{box-sizing:border-box;} body{margin:0;background:#f7f6f2;color:var(--ink);font-family:'Barlow',sans-serif;padding:0;} .w{padding:20px 16px 50px;}
 .w{max-width:1100px;margin:0 auto;}
 .hd{background:#fff;border-radius:16px;box-shadow:var(--sh);padding:18px 22px;border-top:4px solid var(--accent,#5c97a8);}
 .mu{display:flex;align-items:center;gap:18px;flex-wrap:wrap;} .tm{display:flex;align-items:center;gap:12px;min-width:0;} .tm img,.tm .ph{width:56px;height:56px;object-fit:contain;flex:none;} .tm .ph{border-radius:12px;background:#3b4b55;color:#fff;display:flex;align-items:center;justify-content:center;font:700 16px Oswald,sans-serif;}
@@ -32,7 +32,7 @@ h2 a{margin-left:auto;font:700 12.5px Barlow,sans-serif;letter-spacing:0;text-tr
 .meth{font-size:12.5px;color:var(--muted);line-height:1.55;margin-top:18px;}
 @media (max-width:600px){.sc{font-size:36px;order:3;flex:1 0 100%;justify-content:center;} .tm b{font-size:19px;} .tm img,.tm .ph{width:44px;height:44px;} .kp .in{width:52px;} .pf .x{display:none;}}
 @media print{body{background:#fff;padding:0;} .card,.hd{box-shadow:none;border:1px solid #ccc;}}
-</style></head><body><div class="w">
+</style></head><body>{% set hero_title = {'recap': 'Game Recap', 'performers': 'Top Performers', 'plays': 'Key Plays'}[view] %}{% set hero_sub = date_pretty if intra else (('at ' if not m.us_home else 'vs ') ~ opp ~ ' · ' ~ date_pretty) %}{% set hero_eyebrow = program_name %}{% set topnav_on, hero_w = 'games', '1100px' %}{% include '_page_hero.html' %}<div class="w">
 {% set gt_on = {'recap': 'recap', 'performers': 'perf', 'plays': 'plays'}[view] %}{% set gt_ump, gt_intra, gt_print = show_ump, intra, true %}{% include '_gametabs.html' %}
 {% set us_won = m.score.us > m.score.opp %}{% set opp_won = m.score.opp > m.score.us %}
 <div class="hd">

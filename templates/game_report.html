@@ -3,7 +3,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--ink:#22303a;--muted:#6b7680;--line:#dde2e5;--accent-c:var(--accent,#5c97a8);}
-*{box-sizing:border-box;} body{margin:0;background:#f7f6f2;color:var(--ink);font-family:'Barlow',sans-serif;padding:18px 16px 50px;}
+*{box-sizing:border-box;} body{margin:0;background:#f7f6f2;color:var(--ink);font-family:'Barlow',sans-serif;padding:0;} .w{padding:20px 16px 50px;}
 .w{max-width:1100px;margin:0 auto;} .top{display:flex;gap:10px;align-items:center;margin-bottom:12px;} .top a,.top button{font:700 13px Barlow,sans-serif;background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 14px;color:var(--ink);text-decoration:none;cursor:pointer;} .top .sp{margin-left:auto;}
 .hd{background:#fff;border-radius:16px;box-shadow:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);padding:18px 22px;border-top:4px solid var(--accent-c);display:flex;gap:18px;align-items:center;flex-wrap:wrap;}
 .hd img{height:62px;width:62px;object-fit:contain;} .hd h1{font:700 30px/1.05 Oswald,sans-serif;margin:0;} .hd p{margin:4px 0 0;color:var(--muted);font-size:13.5px;} .beta{font:700 10.5px Barlow,sans-serif;letter-spacing:.12em;background:#fff3cf;color:#8a5d00;border-radius:999px;padding:3px 9px;vertical-align:middle;margin-left:8px;}
@@ -18,9 +18,9 @@ td.nm{text-align:left;font-weight:700;white-space:nowrap;} td.nm small{font-weig
 .meth{font-size:12.5px;color:var(--muted);line-height:1.55;margin-top:22px;} .why{text-align:left;color:var(--muted);font-size:12px;}
 .warn{background:#fff8e6;border-left:3px solid #e0a82e;padding:8px 12px;font-size:13px;margin:10px 0;border-radius:4px;}
 @media print{body{background:#fff;padding:0;} .top{display:none;} .card,.hd{box-shadow:none;border:1px solid #ccc;} h2{break-after:avoid;} .card,.ar{break-inside:avoid;} .pb{break-before:page;} @page{size:landscape;margin:.45in;}}
-</style></head><body><div class="w">
+</style></head><body>{% set hero_title = 'Full Analysis' %}{% set hero_sub = date_pretty if intra else (('at ' if not m.us_home else 'vs ') ~ opp ~ ' · ' ~ date_pretty) %}{% set hero_eyebrow = program_name %}{% set topnav_on, hero_w = 'games', '1100px' %}{% include '_page_hero.html' %}<div class="w">
 {% set gt_on, gt_ump, gt_intra, gt_print = 'analysis', show_ump, intra, true %}{% include '_gametabs.html' %}
-<div class="hd">{% if logo %}<img src="{{ logo }}" alt="">{% endif %}<div><h1>{{ team_label }} vs {{ opp }}<span class="beta">BETA</span></h1><p>{{ date_pretty }} &middot; {{ m.pas|length }} plate appearances tracked &middot; {{ n_pitches }} pitches</p></div>
+<div class="hd">{% if logo %}<img src="{{ logo }}" alt="">{% endif %}<div><h1>{{ team_label }} <span style="text-transform:none">vs</span> {{ opp }}<span class="beta">BETA</span></h1><p>{{ date_pretty }} &middot; {{ m.pas|length }} plate appearances tracked &middot; {{ n_pitches }} pitches</p></div>
   <div class="fin"><b>{{ m.score.us }}&ndash;{{ m.score.opp }}</b><span>{{ 'Final' if complete else 'Tracked portion' }}</span></div></div>
 {% if not complete %}<div class="warn">Some half-innings are missing pitches, so the score, lineups and pitching lines cover only what was tracked. Upload both teams' pitchers for the full game.</div>{% endif %}
 <h2>Linescore</h2><div class="card"><table><tr><th class="l"></th>{% for i in range(m.innings) %}<th>{{ i + 1 }}</th>{% endfor %}<th>R</th></tr>

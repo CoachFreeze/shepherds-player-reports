@@ -97,7 +97,7 @@
 </style></head><body>
 {% set D = gv %}{% set pit = side == 'pitching' %}
 <div class="hero"><div class="wrap">{% if wm_url %}<img class="wm" src="{{ wm_url }}" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
-  <p class="eyebrow">{{ team_label }}</p><h1>{{ 'Pitching Staff' if pit else 'Hitters' }}</h1>
+  <p class="eyebrow">{{ team_label }}</p><h1>{{ 'Pitchers' if pit else 'Hitters' }}</h1>
   <p class="sub">{{ D.n_players }} {{ 'pitcher' if pit else 'hitter' }}{{ '' if D.n_players == 1 else 's' }} &middot; {{ '{:,}'.format(D.n_pitches) }} pitches{{ ' seen' if not pit }} &middot; {{ D.n_sessions }} session{{ '' if D.n_sessions == 1 else 's' }}{% if D.last_session %} &middot; last session {{ D.last_session }}{% endif %}</p>
   {% set topnav_on = 'pit' if pit else 'hit' %}{% include '_topnav.html' %}</div></div>
 <div class="wrap">

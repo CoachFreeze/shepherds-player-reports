@@ -1,0 +1,16 @@
+{# The dark team header every team page uses: eyebrow, title, one line under it, then the team menu. Put it first inside <body> (no body padding).
+   Set before including: hero_title, and optionally hero_sub, hero_eyebrow (default: the team name), topnav_on, hero_w (content width, default 1240px). #}
+<style>
+  .phero{background:var(--brand,#22303a);padding:34px 16px 24px;border-bottom:3px solid var(--accent,#5c97a8);position:relative;z-index:5;clip-path:inset(0 0 -900px 0);font-family:'Barlow',sans-serif;}
+  .phero .pw{margin:0 auto;position:relative;text-align:left;} .phero .pw p{text-align:left;} .phero .pw>*:not(.wm){position:relative;z-index:1;}
+  .phero .wm{position:absolute;right:0;top:50%;transform:translateY(-50%);height:118%;max-height:140px;max-width:300px;width:auto;opacity:.2;pointer-events:none;z-index:0;object-fit:contain;}
+  .phero .eyebrow{font:600 12px 'Oswald',sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-on-dark,#5c97a8);margin:0 0 8px;}
+  .phero h1{font:700 40px/1.1 'Oswald',sans-serif;margin:0 0 6px;color:#fff;letter-spacing:0;} .phero .sub{color:#c9d3d8;font-size:14.5px;margin:0;max-width:720px;line-height:1.45;}
+  .phero .um-btn{margin:0;}
+  @media (max-width:640px){.phero .wm{max-height:96px;max-width:160px;} .phero h1{font-size:32px;}}
+  @media print{.phero{display:none;}}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<div class="phero"><div class="pw" style="max-width:{{ hero_w or '1240px' }}">{% if wm_url %}<img class="wm" src="{{ wm_url }}" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
+  <p class="eyebrow">{{ hero_eyebrow or team_label or '' }}</p><h1>{{ hero_title }}</h1>{% if hero_sub %}<p class="sub">{{ hero_sub }}</p>{% endif %}
+  {% include '_topnav.html' %}</div></div>
