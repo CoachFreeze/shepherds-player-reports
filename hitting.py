@@ -784,7 +784,10 @@ SCOUT = 'scout--'
 def collect_scouting(program=None):
     """Opponent hitters: batters our pitchers faced in Game / Scrimmage uploads, grouped by the opponent entered at upload.
     {key: {'name','program','demo','pitches','opponent','school_override',...}}; key = scout--<program>--<opponent>--<batter>."""
-    real, _ = _all_pitch_files()
+    real, demo_files = _all_pitch_files()
+    demo = program in store.DEMO_PROGRAMS
+    if demo:
+        real = demo_files                         # the sample program's games live in demo/outings
     out = {}
 
     def add(prog, opp, p):
@@ -808,13 +811,13 @@ def collect_scouting(program=None):
                     if ps and ps[0]['batter']:
                         add(od['program'], r_['BatterTeamLabel'], ps[0])
             continue
-        pl = store.get_real_player(slug)
+        pl = store.get_player(slug) if demo else store.get_real_player(slug)
         if not pl or (program and pl.get('program') != program):
             continue
         prog = pl.get('program')
         _pp = ((pl.get('roles') or {}).get('pitch') or {}).get('position')
         _hand = 'R' if _pp == 'RHP' else ('L' if _pp == 'LHP' else None)
-        for o in outings_mod.load(slug, real_only=True)['outings']:
+        for o in outings_mod.load(slug, real_only=not demo)['outings']:
             for r_ in o['rows']:
                 if r_.get('SessionType') not in ('Game', 'Scrimmage'):
                     continue
@@ -1036,7 +1039,8 @@ def rank_badges(program, vs, s, pt):
 @cache.memo
 def hitter_profile(key, include_demo=True, side='all', vs='all', frm=None, to=None):
     """vs = the pitcher's hand to show ('R', 'L' or 'all'). `side` is the older switch-hitter control (batting left = vs RHP) and still works."""
-    h = (collect_scouting().get(key) if key.startswith(SCOUT) else _collect(include_demo).get(key))
+    _sp = key[len(SCOUT):].split('--')[0] if key.startswith(SCOUT) else None
+    h = (collect_scouting(_sp if _sp in store.DEMO_PROGRAMS else None).get(key) if _sp is not None else _collect(include_demo).get(key))
     if not h:
         return None
     ps_all = [dict(p) for p in h['pitches']]       # a private copy: the switch-hitter handling below edits each pitch's side

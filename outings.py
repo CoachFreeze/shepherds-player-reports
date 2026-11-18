@@ -83,12 +83,25 @@ def load(slug, real_only=False):
     p = _path(slug)
     if not os.path.exists(p):
         dp = os.path.join(store.DEMO_DIR, 'outings', f'{slug}.json')     # bundled sample program (read-only)
-        if not real_only and os.path.exists(dp) and store.is_demo(slug):
+        if os.path.exists(dp) and (slug.startswith(DEMO_OPP_PREFIX) or (not real_only and store.is_demo(slug))):
             p = dp
         else:
             return {'outings': []}
     with open(p, encoding='utf-8') as f:
         return sift_types(_normalize_dates(json.load(f)))
+
+
+DEMO_OPP_PREFIX = 'opp-demo-'      # the sample program's opponent pitchers (demo/outings); no real upload makes this prefix
+
+
+def program_files(program):
+    """[(slug, data)] for every stored pitch file that could belong to this program: the bundled demo/ folder for the sample
+    program, data/outings for everyone else. Callers still check each file's program."""
+    demo = program in store.DEMO_PROGRAMS
+    d = os.path.join(store.DEMO_DIR, 'outings') if demo else OUTINGS_DIR
+    if not os.path.isdir(d):
+        return []
+    return [(f[:-5], load(f[:-5], real_only=not demo)) for f in sorted(os.listdir(d)) if f.endswith('.json')]
 
 
 def _save(slug, data, push=True):

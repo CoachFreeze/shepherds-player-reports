@@ -13,7 +13,7 @@ def _flip(n):
 
 def _opp_pitcher_files(program):
     import os
-    d = outings.OUTINGS_DIR
+    d = os.path.join(store.DEMO_DIR, 'outings') if program in store.DEMO_PROGRAMS else outings.OUTINGS_DIR
     if not os.path.isdir(d):
         return []
     return [f[:-5] for f in sorted(os.listdir(d)) if f.startswith(cleanup.OPP_PREFIX) and f.endswith('.json')]

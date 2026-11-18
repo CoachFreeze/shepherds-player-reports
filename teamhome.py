@@ -175,7 +175,7 @@ def _attention(program, P, ps, H, hs, mode, today):
                       'text': 'Balls in play without a result hold back BAA, wOBA, wRC+, FIP and LOB%. Latest: ' + ', '.join(_fmt_date(d) for d in untagged[-3:]) + '.',
                       'link': ('team_games', {'program': program}), 'cta': 'Open game reports'})
     # heights: arm angle for pitchers, each hitter's own strike zone
-    bios = hitting._load_json(hitting.HITTER_BIOS_PATH)
+    bios = {**hitting._load_json(hitting._DEMO_BIOS_PATH), **hitting._load_json(hitting.HITTER_BIOS_PATH)}   # the sample program's bios ship in demo/
     no_ht_p = [b.get('name', s) for s, b, _ in ps if not b.get('height_in')]
     no_ht_h = [h['name'] for k, h in (hs or {}).items() if not ((bios.get(k) or {}).get('height_in') or (h.get('roster') or {}).get('height_in'))]
     if no_ht_p or no_ht_h:
@@ -336,7 +336,7 @@ def _readiness(program, ps, hs):
     except Exception:
         n_ro = 0
     checks.append({'ok': n_ro > 0, 'title': 'Team roster uploaded', 'detail': f'{n_ro} players' if n_ro else 'No roster yet', 'link': ('roster_page', {'program': program})})
-    bios = hitting._load_json(hitting.HITTER_BIOS_PATH)
+    bios = {**hitting._load_json(hitting._DEMO_BIOS_PATH), **hitting._load_json(hitting.HITTER_BIOS_PATH)}   # the sample program's bios ship in demo/
     tot = len(ps) + len(hs or {})
     with_ht = sum(1 for _s, b, _o in ps if b.get('height_in')) + sum(1 for k, h in (hs or {}).items() if (bios.get(k) or {}).get('height_in') or (h.get('roster') or {}).get('height_in'))
     checks.append({'ok': tot and with_ht >= tot, 'title': 'Heights for every player', 'detail': f'{with_ht} of {tot}', 'link': ('roster_page', {'program': program}), 'frac': (with_ht / tot) if tot else 0})
@@ -444,8 +444,8 @@ def build(program, mode_info, url, hitting_ok=True, today=None):
     if looking_back and on_current:
         win, label = fall_window(program, today)          # Fall during the spring: last fall's data, unless a season was picked on purpose
     elif mode_info['mode'] == 'game' and on_current:
-        yr = spring_year(today)                            # Spring counts January 1 on only: fall scrimmages never reach the record or season line
-        win, label = (f'{yr}-01-01', f'{yr}-07-01'), f'Spring {yr}'
+        yr = today.year                                    # this spring, or in the fall the spring just finished; January 1 to June 30 only,
+        win, label = (f'{yr}-01-01', f'{yr}-07-01'), f'Spring {yr}'      # so fall scrimmages never reach the record or season line
     out = _build(program, mode_info['mode'], url, hitting_ok, win, label, today.isoformat())
     return dict(out, looking_back=looking_back)
 

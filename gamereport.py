@@ -32,19 +32,13 @@ def _order(r):
 
 def _our_files(program):
     out = []
-    d = outings_mod.OUTINGS_DIR
-    if not os.path.isdir(d):
-        return out
-    for f in sorted(os.listdir(d)):
-        if not f.endswith('.json'):
-            continue
-        slug = f[:-5]
-        data = outings_mod.load(slug, real_only=True)
+    demo = program in store.DEMO_PROGRAMS
+    for slug, data in outings_mod.program_files(program):
         if slug.startswith('opp-'):
             if data.get('program') == program:
                 out.append((slug, 'opp', data))
         else:
-            pl = store.get_real_player(slug)
+            pl = store.get_player(slug) if demo else store.get_real_player(slug)
             if pl and pl.get('program') == program:
                 out.append((slug, 'us', data))
     return out
@@ -490,10 +484,7 @@ def _stats(rows):
 
 def arsenal(pitcher, game_date, program, side):
     """[{type,color,today:{...},prev:{...}|None,usage,prev_usage}] for one pitcher. Previous data = every other date on file for him."""
-    if side == 'us':
-        data = outings_mod.load(pitcher['slug'], real_only=True)
-    else:
-        data = outings_mod.load(pitcher['slug'], real_only=True)
+    data = outings_mod.load(pitcher['slug'], real_only=program not in store.DEMO_PROGRAMS)
     prev_rows = [r for o in data.get('outings', []) if o['date'][:10] != game_date for r in o['rows']]
     today_rows = pitcher['rows']
 

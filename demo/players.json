@@ -41,6 +41,20 @@
   "school": "Demo University",
   "weight_lbs": 192
  },
+ "luke_pendleton": {
+  "comps": {},
+  "grad_year": 2028,
+  "height_in": 74,
+  "name": "Luke Pendleton",
+  "program": "demo_university",
+  "roles": {
+   "pitch": {
+    "position": "LHP"
+   }
+  },
+  "school": "Demo University",
+  "weight_lbs": 205
+ },
  "marcus_hale": {
   "comps": {},
   "grad_year": 2027,
@@ -68,6 +82,48 @@
   },
   "school": "Demo University",
   "weight_lbs": 198
+ },
+ "owen_castillo": {
+  "comps": {},
+  "grad_year": 2027,
+  "height_in": 77,
+  "name": "Owen Castillo",
+  "program": "demo_university",
+  "roles": {
+   "pitch": {
+    "position": "RHP"
+   }
+  },
+  "school": "Demo University",
+  "weight_lbs": 225
+ },
+ "ryan_okafor": {
+  "comps": {},
+  "grad_year": 2026,
+  "height_in": 76,
+  "name": "Ryan Okafor",
+  "program": "demo_university",
+  "roles": {
+   "pitch": {
+    "position": "RHP"
+   }
+  },
+  "school": "Demo University",
+  "weight_lbs": 210
+ },
+ "sam_whitaker": {
+  "comps": {},
+  "grad_year": 2029,
+  "height_in": 72,
+  "name": "Sam Whitaker",
+  "program": "demo_university",
+  "roles": {
+   "pitch": {
+    "position": "RHP"
+   }
+  },
+  "school": "Demo University",
+  "weight_lbs": 190
  },
  "tyler_brandt": {
   "comps": {},

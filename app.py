@@ -1504,7 +1504,7 @@ def _pr_history(ent):
 @login_required
 def hitter_prs(key):
     h = hitting.hitter_profile(key)
-    if not h or h.get('opp_slug') or (h['demo'] and not is_admin()):
+    if not h or h.get('opp_slug') or (h['demo'] and not (is_admin() or is_demo_viewer())):
         abort(404)
     if not is_admin() and (h['program'] != my_program() or not plans.allowed(h['program'], 'hitting')):
         abort(404)
@@ -1619,6 +1619,8 @@ def team_games(program):
             x['loc'], x['time'], x['tournament'] = s_.get('loc') or '', s_.get('time') or '', s_.get('tournament') or ''
         x['res'] = 'W' if x['us'] > x['them'] else ('L' if x['us'] < x['them'] else 'T')
     today = _dt.date.today().isoformat()
+    if _win and _win[0]:                         # games left over from an earlier season's schedule belong to that season
+        rest = [s_ for s_ in rest if s_['date'] >= _win[0]]
     items = played + [dict(s_, kind='sched', sid=_sched.sid(s_), past=s_['date'] < today, today=s_['date'] == today,
                            up=url_for('intake_bulk', program=program, session_type='Game', **({} if s_.get('tournament') else {'opponent': s_['opp']})))
                       for s_ in rest]
@@ -1649,7 +1651,16 @@ def team_games(program):
             split_rec[where] = (sum(1 for x in xs if x['res'] == 'W'), sum(1 for x in xs if x['res'] == 'L'), sum(1 for x in xs if x['res'] == 'T'))
     form = [x['res'] for x in sorted(played, key=lambda x: x['date'])][-5:]
     n_sched = len(_sched.load(program))
-    return render_template('games.html', program=program, team_label=store.program_label(program), months=months, intra=intra, rec=rec, split_rec=split_rec,
+    other = None                                 # nothing played this season yet: point to the latest season that has games
+    if not played:
+        seen = sorted(gm['date'] for gm in gr.collect(program).values())
+        for s_ in reversed(season.seasons(program)):
+            if s_['key'] != season.selected(program)['key'] and any(season.in_window(d, (s_['start'], s_['end'])) for d in seen):
+                xs = [gr.build(gm['rows'])['score'] for gm in gr.collect(program).values() if season.in_window(gm['date'], (s_['start'], s_['end']))]
+                other = {'key': s_['key'], 'label': s_['label'], 'n': len(xs), 'w': sum(1 for x in xs if x['us'] > x['opp']),
+                         'l': sum(1 for x in xs if x['us'] < x['opp'])}
+                break
+    return render_template('games.html', other=other, program=program, team_label=store.program_label(program), months=months, intra=intra, rec=rec, split_rec=split_rec,
                            form=form, nxt=nxt, n_played=len(played), n_left=sum(1 for x in rest if x['date'] >= today), n_sched=n_sched,
                            msg=request.args.get('msg'), can_edit=not (is_assistant() or is_player()), show_ump=not is_player())
 
@@ -2189,6 +2200,10 @@ def _opp_own_logo(program, opp_slug):
     p = _opp_logo_path(program, opp_slug)
     if os.path.exists(p):
         return p
+    if program in store.DEMO_PROGRAMS:                     # the sample program's invented opponents ship their logos in demo/
+        dp = os.path.join(store.DEMO_DIR, 'logos', 'opp', f'{program}--{opp_slug}.png')
+        if os.path.exists(dp):
+            return dp
     src = theme.watermark_source(opp_slug)
     return src[1] if src and src[0] in ('custom', 'builtin') else None
 

@@ -10,8 +10,7 @@ DIR = os.path.join(store.DATA_DIR, 'schedules')
 def load(program):
     """[{'date','time','at','opp','loc','tournament'}] in date order, or [] when the program has no schedule file."""
     try:
-        with open(os.path.join(DIR, f'{store.program_slug(program)}.json'), encoding='utf-8') as f:
-            d = json.load(f)
+        d, _g = _raw(program)
         games = [x for x in (d.get('games') if isinstance(d, dict) else d) or [] if isinstance(x, dict) and x.get('date')]
     except Exception:
         return []
@@ -64,7 +63,10 @@ def _file(program):
 
 
 def _raw(program):
-    with open(_file(program), encoding='utf-8') as f:
+    p = _file(program)
+    if not os.path.exists(p) and program in store.DEMO_PROGRAMS:      # the sample program's schedule ships in demo/
+        p = os.path.join(store.DEMO_DIR, 'schedules', f'{store.program_slug(program)}.json')
+    with open(p, encoding='utf-8') as f:
         d = json.load(f)
     return d, (d.get('games') if isinstance(d, dict) else d)
 
