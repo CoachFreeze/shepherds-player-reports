@@ -1,0 +1,14 @@
+{# The three views of the Pitchers / Hitters pages. Needs: program, side ('pitching' | 'hitting'), gv_on ('overview' | 'stats' | 'cards') #}
+{% set _ep = 'team_pitchers' if side == 'pitching' else 'team_hitters' %}
+<style>
+  .gvtabs{display:inline-flex;gap:4px;background:#fff;border-radius:999px;padding:4px;margin:18px 0 0;box-shadow:0 1px 3px rgba(26,31,36,.08),0 4px 14px rgba(26,31,36,.06);flex-wrap:wrap;}
+  .gvtabs a{font:700 13.5px 'Barlow',sans-serif;color:#5b6b75;text-decoration:none;padding:8px 18px;border-radius:999px;letter-spacing:.01em;}
+  .gvtabs a:hover{color:var(--ink,#22303a);background:#f1f4f5;}
+  .gvtabs a.on{background:var(--brand,#22303a);color:#fff;}
+  @media print{.gvtabs{display:none;}}
+</style>
+<nav class="gvtabs" aria-label="Views">
+  <a href="{{ url_for(_ep, program=program) }}" class="{{ 'on' if gv_on == 'overview' }}">Overview</a>
+  <a href="{{ url_for(_ep, program=program, view='stats') }}" class="{{ 'on' if gv_on == 'stats' }}">Stat Sheet</a>
+  <a href="{{ url_for(_ep, program=program, view='cards') }}" class="{{ 'on' if gv_on == 'cards' }}">Player Cards</a>
+</nav>

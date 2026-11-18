@@ -670,8 +670,10 @@ def _has_current_data(slug, bio, program):
 
 def _team_players_page(program, page_title, pitchers_only=False):
     groups = [g for g in _build_groups() if g[0] == program]
-    if not groups:
-        abort(404)
+    if not groups:                       # a real team with nobody to show yet: an empty list, not a missing page (the view tabs link here)
+        if not _known_program(program):
+            abort(404)
+        groups = [(program, store.program_label(program), [])]
     hidden = 0
     if not request.args.get('grads'):             # graduated players leave the current list; their profiles and past seasons stay
         keep_g = []
@@ -929,12 +931,41 @@ def save_colsets(program, side):
     return jsonify(ok=True)
 
 
+def _gv_url(kind, key):
+    """Profile link for a player shown on the Pitchers / Hitters overview."""
+    return url_for('player_overview', slug=key) if kind == 'p' else url_for('beta_hitter', key=key)
+
+
+def _wants_sheet():
+    """The stat sheet is asked for by view=stats, or by any of its own options (basic / advanced, preview), so old links still land on it."""
+    return request.args.get('view') == 'stats' or any(k in request.args for k in ('stats', 'preview', 'sort'))
+
+
+def _known_program(program):
+    return program in {p for p, _ in store.list_programs()} or program in store.ADMIN_ONLY_PROGRAMS or program in store.DEMO_PROGRAMS
+
+
+def _group_overview(program, side):
+    import groupview
+    if not _known_program(program):
+        abort(404)
+    cfg = team.load(program)
+    if side == 'pitching':
+        gv = groupview.pitching(program, cfg['pitching_stats'], _LOW_BETTER['pitching'] | {'ball_pct', 'hh_pct', 'brl_pct', 'ld_pct'}, _gv_url)
+    else:
+        gv = groupview.hitting_view(program, cfg['hitting_stats'], _LOW_BETTER['hitting'] | {'k_pct'}, _gv_url)
+    return render_template('team_group.html', side=side, gv=gv, program=program, team_label=store.program_label(program),
+                           title=('Pitching Staff' if side == 'pitching' else 'Hitters') + ' · ' + store.program_label(program))
+
+
 @app.route('/team/<program>/pitchers')
 @login_required
 def team_pitchers(program):
     _team_ok(program)
     if request.args.get('view') == 'cards':
         return _team_players_page(program, 'Pitchers', pitchers_only=True)
+    if not _wants_sheet():
+        return _group_overview(program, 'pitching')
     cols, groups, rows = _stat_table(program, 'pitching')
     return render_template('team_stats.html', side='pitching', title='Pitchers', fs=store.is_fullswing(program), cols=cols, groups=groups, rows=rows, program=program, low_ids=_LOW_BETTER['pitching'],
                            team_label=store.program_label(program), colsets=_colsets('pitching'))
@@ -950,6 +981,8 @@ def team_hitters(program):
         rows = [r for r in hitting.list_hitters() if r['program'] == program]
         rows.sort(key=lambda r: r['name'].split()[-1].lower())
         return render_template('team_hitters.html', rows=rows, program=program, team_label=store.program_label(program))
+    if not _wants_sheet():
+        return _group_overview(program, 'hitting')
     fs = store.is_fullswing(program)
     basic = (not fs) and request.args.get('stats', 'basic') != 'advanced'
     cols, groups, rows = _stat_table(program, 'hitting', basic=basic)
