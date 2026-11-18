@@ -16,8 +16,7 @@
     "created": "2026-10-29",
     "display_name": "Connor Tallakson",
     "head": "coachfreeze",
-    "must_change": true,
-    "password_hash": "scrypt:32768:8:1$s6JjqrfOmkfKdsg9$18a46d4866f363b6ce9564a4ae5dbdb88ab9baee1cf8575ffdb620f503bd9028b31fa00052f762e05c6b7d7520361d3d225a0226f147e937320d135a8459f6c6",
+    "password_hash": "scrypt:32768:8:1$pPSHyjbrJRQHokv8$5e59f03005c4fe91fd40eb3c5317b9bf66ae5f3bb82cf528be4683a27e810c9598a839f9530d4aefb5b1272c0336ca5986a94bd4d3f5a278322cde3ac7dc957f",
     "program": "biola_university",
     "program_label": "Biola University",
     "role": "assistant"
