@@ -7,7 +7,7 @@ over the last week, bullpen availability, next opponents, and tagging coverage.
 Both: team goals with season pace and personal bests; from January 1, a prompt to upload the spring schedule if none is on file.
 
 Which version shows: Spring by default from January 10 through June 30, Fall the rest of the year. Any viewer can switch with ?view=fall or
-?view=spring without changing the default for anyone else. Looking back at Fall during the spring shows the fall season's data, not the spring's.
+?view=spring without changing the default for anyone else. Looking back at Fall during the spring shows the fall season's data, not the spring's; Spring only ever counts January 1 through June 30.
 """
 import datetime
 
@@ -440,8 +440,12 @@ def build(program, mode_info, url, hitting_ok=True, today=None):
     today = today or datetime.date.today()
     win, label = season.window(program), season.selected(program).get('label') or ''
     looking_back = mode_info['mode'] == 'dev' and mode_info['default'] == 'game'
-    if looking_back and season.selected(program)['key'] == season.current(program)['key']:
+    on_current = season.selected(program)['key'] == season.current(program)['key']
+    if looking_back and on_current:
         win, label = fall_window(program, today)          # Fall during the spring: last fall's data, unless a season was picked on purpose
+    elif mode_info['mode'] == 'game' and on_current:
+        yr = spring_year(today)                            # Spring counts January 1 on only: fall scrimmages never reach the record or season line
+        win, label = (f'{yr}-01-01', f'{yr}-07-01'), f'Spring {yr}'
     out = _build(program, mode_info['mode'], url, hitting_ok, win, label, today.isoformat())
     return dict(out, looking_back=looking_back)
 
@@ -462,8 +466,9 @@ def _build(program, mode, url, hitting_ok, win, season_label, today_s):
     out['ask_schedule'] = (today.month, today.day) >= SCHEDULE_PROMPT and today.month <= 6 and not _spring_games(program, today)
     out['goals'] = _goals(program, P, H, today)
     out['attention'] = _attention(program, P, ps, H, hs, mode, today)
+    import season
     out['pbs'] = [dict(ev, url=url(ev['kind'], ev['key']), date_s=_fmt_date(ev['date'])) for ev in prs.program_recent(program, days=120, limit=200)
-                  if ev['kind'] == 'p' or hitting_ok][:8]
+                  if (ev['kind'] == 'p' or hitting_ok) and season.in_window(ev['date'], win)][:8]
 
     # team numbers week by week (pooled)
     wk_p, wk_h = {}, {}

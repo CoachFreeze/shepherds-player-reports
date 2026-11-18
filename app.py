@@ -1630,7 +1630,7 @@ def team_games(program):
         x['dow'], x['day'], x['mon'] = d.strftime('%a'), d.day, d.strftime('%b')
         x['date_pretty'] = d.strftime('%a %b %-d, %Y')
         if x['opp'] not in logos:
-            logos[x['opp']] = _opp_logo_url(program, store.slugify(x['opp']) or 'unlabeled', x['opp'])
+            logos[x['opp']] = _opp_logo_url(program, store.slugify(x['opp']) or 'unlabeled', x['opp'], mark=True)
         x['logo'] = logos[x['opp']]
         x['initials'] = ''.join(w[0] for w in x['opp'].replace('-', ' ').split() if w[:1].isalpha() and w.lower() not in ('of', 'the', 'at'))[:3].upper()
     items.sort(key=lambda x: (x['date'], 0 if x['kind'] == 'played' else 1))
@@ -2203,13 +2203,14 @@ def _opp_logo_bg(program, opp_slug, label):
     return b[1] if b else '#fff'
 
 
-def _opp_logo_url(program, opp_slug, label):
-    """URL of the opponent's logo (a coach's upload, that team's own logo, else the school library), or None."""
+def _opp_logo_url(program, opp_slug, label, mark=False):
+    """URL of the opponent's logo (a coach's upload, that team's own logo, else the school library), or None.
+    mark=True asks for the library logo with its white backing removed, for a coloured tile behind it."""
     p = _opp_own_logo(program, opp_slug)
     if p:
         return url_for('scouting_logo', program=program, opp=opp_slug, v=int(os.path.getmtime(p)))
     if pipeline.school_badge_file(label, None):
-        return url_for('scouting_logo', program=program, opp=opp_slug, label=label)
+        return url_for('scouting_logo', program=program, opp=opp_slug, label=label, **({'mark': 1} if mark else {}))
     return None
 
 
