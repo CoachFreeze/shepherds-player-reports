@@ -261,6 +261,7 @@ def advance_runners(pas):
         bases = [None, None, None]                       # index 0 = first base
         for pa in ps:
             res = pa['result']
+            pa['on_before'] = tuple(b is not None for b in bases)    # runners on 1st, 2nd, 3rd as the at-bat began (inferred)
             pa['reach'] = 0
             pa['scored'] = False
             if res is None:
@@ -374,7 +375,9 @@ def build(rows):
     advance_runners(pas)
     teams = {'us': _team(pas, 'us'), 'opp': _team(pas, 'opp')}
     # --- home / away
-    us_home = any(x['pit'] == 'us' and _tb(x['r']) == 0 for x in rows) or any(x['pit'] == 'opp' and _tb(x['r']) == 1 for x in rows)
+    # we are home when our pitchers work the tops; go by the majority, since a few mislabeled Top/Bottom rows shouldn't flip it
+    home_votes = sum(1 for x in rows if (x['pit'] == 'us') == (_tb(x['r']) == 0))
+    us_home = home_votes > len(rows) - home_votes
     innings = max([p['inn'] for p in pas] or [0])
     ls = {'us': [], 'opp': []}
     for i in range(1, innings + 1):

@@ -1,0 +1,78 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ team_label }} vs {{ opp }} · {{ {'recap': 'Game Recap', 'performers': 'Top Performers', 'plays': 'Key Plays'}[view] }}</title><style>{{ theme_css|safe }}</style>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#22303a;--muted:#6b7680;--line:#dde2e5;--sh:0 1px 3px rgba(26,31,36,.08),0 6px 18px rgba(26,31,36,.06);}
+*{box-sizing:border-box;} body{margin:0;background:#f7f6f2;color:var(--ink);font-family:'Barlow',sans-serif;padding:18px 16px 50px;}
+.w{max-width:1100px;margin:0 auto;}
+.hd{background:#fff;border-radius:16px;box-shadow:var(--sh);padding:18px 22px;border-top:4px solid var(--accent,#5c97a8);}
+.mu{display:flex;align-items:center;gap:18px;flex-wrap:wrap;} .tm{display:flex;align-items:center;gap:12px;min-width:0;} .tm img,.tm .ph{width:56px;height:56px;object-fit:contain;flex:none;} .tm .ph{border-radius:12px;background:#3b4b55;color:#fff;display:flex;align-items:center;justify-content:center;font:700 16px Oswald,sans-serif;}
+.tm b{font:700 24px/1.1 Oswald,sans-serif;display:block;} .tm small{color:var(--muted);font-size:12.5px;}
+.sc{font:700 46px Oswald,sans-serif;white-space:nowrap;margin:0 auto;display:flex;align-items:center;gap:14px;} .sc .lose{color:#a3adb3;}
+.rs{font:700 12px Barlow,sans-serif;letter-spacing:.1em;text-transform:uppercase;border-radius:8px;padding:4px 10px;color:#fff;background:#8a959c;} .rs.W{background:#2e7d4f;} .rs.L{background:#b23b2e;}
+.tm.r{flex-direction:row-reverse;text-align:right;}
+.sub{margin:12px 0 0;color:var(--muted);font-size:13.5px;text-align:center;}
+.ls{margin-top:14px;overflow-x:auto;} table{width:100%;border-collapse:collapse;font-size:13.5px;} th{font:700 10.5px Barlow,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:center;padding:6px;border-bottom:1px solid var(--line);white-space:nowrap;} td{padding:7px 6px;text-align:center;border-bottom:1px solid #eef1f2;}
+th.l,td.l{text-align:left;} td.nm{text-align:left;font-weight:700;white-space:nowrap;} .ls td.t{font-weight:800;background:#f6f8f9;} .ls th.t{background:#f6f8f9;}
+h2{font:700 13px Oswald,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:26px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:10px;}
+h2 a{margin-left:auto;font:700 12.5px Barlow,sans-serif;letter-spacing:0;text-transform:none;color:var(--accent-ink,#3f7184);text-decoration:none;}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;} @media (max-width:860px){.two{grid-template-columns:1fr;}}
+.card{background:#fff;border-radius:14px;box-shadow:var(--sh);padding:14px 16px;margin-bottom:12px;overflow-x:auto;}
+.pf{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid #eef1f2;} .pf:last-child{border-bottom:0;}
+.pf .k{font:700 10px Barlow,sans-serif;letter-spacing:.1em;text-transform:uppercase;border-radius:6px;padding:3px 7px;background:#e8f0f3;color:#3f7184;flex:none;width:52px;text-align:center;} .pf .k.p{background:#f3ece0;color:#8a5d22;}
+.pf b{font:700 17px Oswald,sans-serif;display:block;line-height:1.15;} .pf b a{color:inherit;text-decoration:none;} .pf b a:hover{color:var(--accent-ink,#3f7184);} .pf span{color:var(--muted);font-size:13px;} .pf .x{margin-left:auto;text-align:right;font:600 12px Barlow,sans-serif;color:var(--muted);white-space:nowrap;}
+.side-t{font:700 11px Barlow,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:4px 0 2px;}
+.kp{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid #eef1f2;} .kp:last-child{border-bottom:0;}
+.kp .in{width:64px;flex:none;font:700 12px Barlow,sans-serif;color:var(--muted);padding-top:2px;}
+.kp .tx{font-size:14.5px;line-height:1.4;} .kp .tx small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px;}
+.tag{display:inline-block;font:700 10px Barlow,sans-serif;letter-spacing:.08em;text-transform:uppercase;border-radius:5px;padding:2px 6px;margin-right:6px;vertical-align:1px;background:#eef1f3;color:#4a5760;}
+.tag.good{background:#e4f1e8;color:#25613a;} .tag.bad{background:#f8e6e3;color:#9c3a2e;}
+.kp .sb{display:inline-block;margin-top:4px;font:700 12px Barlow,sans-serif;color:var(--ink);background:#f1f4f5;border-radius:6px;padding:2px 8px;}
+.empty{color:var(--muted);font-size:14px;margin:6px 0;} .warn{background:#fff8e6;border-left:3px solid #e0a82e;padding:8px 12px;font-size:13px;margin:12px 0 0;border-radius:4px;}
+.meth{font-size:12.5px;color:var(--muted);line-height:1.55;margin-top:18px;}
+@media (max-width:600px){.sc{font-size:36px;order:3;flex:1 0 100%;justify-content:center;} .tm b{font-size:19px;} .tm img,.tm .ph{width:44px;height:44px;} .kp .in{width:52px;} .pf .x{display:none;}}
+@media print{body{background:#fff;padding:0;} .card,.hd{box-shadow:none;border:1px solid #ccc;}}
+</style></head><body><div class="w">
+{% set gt_on = {'recap': 'recap', 'performers': 'perf', 'plays': 'plays'}[view] %}{% set gt_ump, gt_intra, gt_print = show_ump, intra, true %}{% include '_gametabs.html' %}
+{% set us_won = m.score.us > m.score.opp %}{% set opp_won = m.score.opp > m.score.us %}
+<div class="hd">
+  <div class="mu">
+    <div class="tm">{% if us_badge %}<img src="{{ url_for('school_mark', fname=us_badge.file) }}" alt="">{% else %}<div class="ph">{{ team_label[:2]|upper }}</div>{% endif %}<div><b>{{ team_label }}</b><small>{{ 'Home' if m.us_home else 'Away' }}</small></div></div>
+    <div class="sc"><span class="{{ 'lose' if opp_won }}">{{ m.score.us }}</span><span class="rs {{ res }}">{{ {'W': 'Win', 'L': 'Loss', 'T': 'Tie'}[res] if not intra else 'Final' }}</span><span class="{{ 'lose' if us_won }}">{{ m.score.opp }}</span></div>
+    <div class="tm r">{% if logo %}<img src="{{ logo }}" alt="">{% else %}<div class="ph">{{ opp[:2]|upper }}</div>{% endif %}<div><b>{{ opp }}</b><small>{{ 'Away' if m.us_home else 'Home' }}</small></div></div>
+  </div>
+  <p class="sub">{{ date_pretty }}{% if info.time and info.time != 'TBA' %} &middot; {{ info.time }}{% endif %}{% if info.loc and info.loc != 'TBD' %} &middot; {{ info.loc }}{% endif %}{% if intra %} &middot; Intrasquad{% endif %} &middot; {{ n_pitches }} pitches tracked</p>
+  <div class="ls"><table><tr><th class="l"></th>{% for i in range(m.innings) %}<th>{{ i + 1 }}</th>{% endfor %}<th class="t">R</th><th class="t">H</th><th class="t">E</th></tr>
+    {% for side, nm in order %}<tr><td class="nm">{{ nm }}</td>{% for v in m.linescore[side] %}<td>{{ v if v is not none else '–' }}</td>{% endfor %}<td class="t">{{ m.score[side] }}</td><td class="t">{{ R.hits[side] }}</td><td class="t">{{ R.errs[side] }}</td></tr>{% endfor %}</table></div>
+  {% if not complete %}<div class="warn">Some half-innings are missing pitches, so this recap covers only what was tracked. Upload both teams' pitchers for the full game.</div>{% endif %}
+</div>
+
+{% macro hit_row(h) %}<div class="pf"><span class="k">Hitter</span><div><b>{{ h.name }}</b><span>{{ h.line }}</span></div><div class="x">{% if h.max_ev %}{{ '%.1f'|format(h.max_ev) }} mph max EV{% if h.hard %}<br>{{ h.hard }} hard-hit{% endif %}{% endif %}</div></div>{% endmacro %}
+{% macro pit_row(p) %}<div class="pf"><span class="k p">Pitcher</span><div><b>{% if p.url %}<a href="{{ p.url }}">{{ p.name }}</a>{% else %}{{ p.name }}{% endif %}</b><span>{{ p.line }}</span></div><div class="x">{{ p.np }} pitches{% if p.strike_pct is not none %} &middot; {{ p.strike_pct }}% strikes{% endif %}{% if p.top %}<br>top {{ '%.1f'|format(p.top) }} mph{% endif %}</div></div>{% endmacro %}
+{% macro play(k) %}{% set good = k.good %}<div class="kp"><div class="in">{{ k.half }}</div><div class="tx"><span class="tag {{ 'good' if good else 'bad' }}">{{ k.tag }}</span>{{ k.text }}<small>{{ k.ctx|capitalize }} &middot; off {{ k.pitcher }}</small><span class="sb">{{ k.score }}</span></div></div>{% endmacro %}
+
+{% if view == 'recap' %}
+<div class="two">
+  <div><h2>Top Performers<a href="{{ url_for('team_game_recap', program=program, gid=gid, view='performers') }}">Every player &rarr;</a></h2>
+    <div class="card"><div class="side-t">{{ team_label }}</div>
+      {% set P = R.perf.us %}{% for h in P.hitters[:3] %}{{ hit_row(h) }}{% endfor %}{% for p in P.pitchers[:2] %}{{ pit_row(p) }}{% endfor %}
+      {% if not P.hitters and not P.pitchers %}<p class="empty">No tracked plate appearances.</p>{% endif %}</div>
+    <div class="card"><div class="side-t">{{ opp }}</div>
+      {% set P = R.perf.opp %}{% for h in P.hitters[:1] %}{{ hit_row(h) }}{% endfor %}{% for p in P.pitchers[:1] %}{{ pit_row(p) }}{% endfor %}
+      {% if not P.hitters and not P.pitchers %}<p class="empty">No tracked plate appearances.</p>{% endif %}</div></div>
+  <div><h2>Key Plays<a href="{{ url_for('team_game_recap', program=program, gid=gid, view='plays') }}">All {{ R.plays|length }} &rarr;</a></h2>
+    <div class="card">{% for k in R.top_plays %}{{ play(k) }}{% else %}<p class="empty">No scoring plays or big moments in the tracked data.</p>{% endfor %}</div></div>
+</div>
+{% elif view == 'performers' %}
+{% for side, nm in [('us', team_label), ('opp', opp)] %}{% set P = R.perf[side] %}
+<h2>{{ nm }}</h2>
+<div class="two"><div class="card"><div class="side-t">Hitters, best first</div>{% if P.hitters %}<table><tr><th class="l">Hitter</th><th class="l">Line</th><th>Max EV</th><th>Hard-hit</th></tr>{% for h in P.hitters %}<tr><td class="nm">{{ h.name }}</td><td class="l">{{ h.line }}</td><td>{{ '%.1f'|format(h.max_ev) if h.max_ev else '–' }}</td><td>{{ h.hard or '–' }}</td></tr>{% endfor %}</table>{% else %}<p class="empty">No tracked plate appearances.</p>{% endif %}</div>
+  <div class="card"><div class="side-t">Pitchers, best first</div>{% if P.pitchers %}<table><tr><th class="l">Pitcher</th><th class="l">Line</th><th>Pitches</th><th>Strike %</th><th>Top</th><th title="Game score: 40, plus 2 per out and 1 per strikeout, minus 2 per walk or hit, 3 per run and 6 per home run">GS</th></tr>{% for p in P.pitchers %}<tr><td class="nm">{% if p.url %}<a href="{{ p.url }}" style="color:inherit">{{ p.name }}</a>{% else %}{{ p.name }}{% endif %}</td><td class="l">{{ p.line }}</td><td>{{ p.np }}</td><td>{{ p.strike_pct if p.strike_pct is not none else '–' }}</td><td>{{ '%.1f'|format(p.top) if p.top else '–' }}</td><td><b>{{ p.score }}</b></td></tr>{% endfor %}</table>{% else %}<p class="empty">No pitchers tracked.</p>{% endif %}</div></div>
+{% endfor %}
+<p class="meth">Hitters are ranked by total bases, walks, runs batted in, runs scored and hard-hit balls (95+ mph), less a little for strikeouts. Pitchers are ranked by game score: 40, plus 2 per out and 1 per strikeout, minus 2 per walk or hit, 3 per run and 6 per home run.</p>
+{% else %}
+<h2>Key Plays<span style="font:600 12.5px Barlow,sans-serif;letter-spacing:0;text-transform:none;">Every scoring play, plus threats that ended with runners stranded, in game order</span></h2>
+<div class="card">{% for k in R.plays %}{{ play(k) }}{% else %}<p class="empty">No scoring plays or big moments in the tracked data.</p>{% endfor %}</div>
+<p class="meth">Runners on base are worked out from each play, since the tracking files don't record baserunners, so a base state can occasionally be off. Green plays helped {{ team_label }}; red plays helped {{ opp }}.</p>
+{% endif %}
+</div></body></html>

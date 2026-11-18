@@ -12,12 +12,12 @@
 .pl{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start} .pl>div{flex:1;min-width:280px} .lean{display:inline-block;font:700 12px Barlow;border-radius:999px;padding:3px 10px;} .lean.pit{background:#fdecea;color:#9b2c1f;} .lean.hit{background:#e5eefa;color:#1f4f87;} .lean.even{background:#e9f5ee;color:#1d6b46;} .lean.early{background:#f1f3f4;color:#5a6670;}
 .lgd{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:#6b7680;margin-top:8px;} .lgd i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px;} .card form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px;} .card input[type=text]{font:500 14px Barlow;padding:8px 10px;border:1px solid #d5dadd;border-radius:8px;width:230px;max-width:100%;}</style></head><body>
 <div class="hero"><div class="hw">{% if wm_url %}<img class="wm" src="{{ wm_url }}" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
-  <p class="eyebrow">{{ team_label }}</p><h1>Umpire report</h1>
+  <p class="eyebrow">{{ team_label }}</p><h1>Umpire Recap</h1>
   <p class="sub">{{ opp }} &middot; {{ date_pretty }}. Staff only.</p>
   {% set topnav_on = 'games' %}{% include '_topnav.html' %}</div></div>
 <div class="w">
 {% if msg %}<div class="msg">{{ msg }}</div>{% endif %}
-<div class="bar"><a class="btn alt" href="{{ back_url }}">&larr; Scorebook</a><a class="btn alt" href="{{ scout_url }}">All umpires</a></div>
+{% set gt_on, gt_ump, gt_intra, gt_print = 'ump', true, false, false %}{% include '_gametabs.html' %}<div class="bar"><a class="btn alt" href="{{ scout_url }}">All umpires</a></div>
 <div class="card"><h2>Home plate umpire: {{ name or 'not entered' }}</h2>
 {% if name and hist %}<p class="n">{{ hist.games|length }} game{{ '' if hist.games|length == 1 else 's' }} on file &middot; {{ hist.calls }} called pitches &middot; <span class="lean {{ hist.tone }}">{{ hist.lean }}</span>{% if hist.tone == 'early' %} (a lean needs {{ min_games }}+ games and {{ min_calls }}+ calls){% endif %}</p>{% endif %}
 {% if can_edit %}<form method="post" action="{{ url_for('team_game_umpire_set', program=program, gid=gid) }}"><input type="text" name="umpire" list="ul" value="{{ name }}" placeholder="Home plate umpire" autocomplete="off"><datalist id="ul">{% for n in names %}<option value="{{ n }}">{% endfor %}</datalist><button class="btn" type="submit">{{ 'Change name' if name else 'Save name' }}</button></form>{% endif %}</div>

@@ -1,4 +1,4 @@
-"""A program's season schedule (data/schedules/<program>.json), shown on the Game Reports page next to the games that have stored pitches."""
+"""A program's season schedule (data/schedules/<program>.json), shown on the Schedule page next to the games that have stored pitches."""
 import json
 import os
 

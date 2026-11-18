@@ -1,13 +1,13 @@
 """Team Home: the coach's season-focused landing page, in two versions.
 
-Fall (fall and winter, internal mode 'dev'): are players getting better? Biggest gains this season, process stats by week, a development board,
+Fall (fall and winter, internal mode 'dev'): biggest gains this season, process stats by week, a development board,
 arsenal changes, and a ready-for-spring checklist.
-Spring (spring into early summer, internal mode 'game'): are we winning, and why? Record and season line, results by week, the latest game, hot and cold
+Spring (spring into early summer, internal mode 'game'): record and season line, results by week, the latest game, hot and cold
 over the last week, bullpen availability, next opponents, and tagging coverage.
-Both: the spring schedule as opponent logos, team goals with season pace, and personal bests.
+Both: team goals with season pace and personal bests; from January 1, a prompt to upload the spring schedule if none is on file.
 
-Which version shows: the coach's choice (team config 'home_mode': auto / dev / game). Auto = Spring from February 1 through June 30,
-Fall the rest of the year.
+Which version shows: Spring by default from January 10 through June 30, Fall the rest of the year. Any viewer can switch with ?view=fall or
+?view=spring without changing the default for anyone else. Looking back at Fall during the spring shows the fall season's data, not the spring's.
 """
 import datetime
 
@@ -18,7 +18,7 @@ import prs
 import stats as stats_mod
 import team
 
-MODES = ('auto', 'dev', 'game')
+VIEWS = {'fall': 'dev', 'spring': 'game'}
 GAME_TYPES = ('Game', 'Scrimmage')
 # Days of rest after an outing, by pitch count: a conservative default for the bullpen board, not a published standard.
 REST_RULE = ((30, 0), (45, 1), (60, 2), (80, 3), (10 ** 6, 4))
@@ -41,36 +41,34 @@ def _fmt_date(s):
 
 
 # ------------------------------------------------------------------ mode
-def stored_mode(program):
-    m = team.load(program).get('home_mode') or 'auto'
-    return m if m in MODES else 'auto'
-
-
-def set_mode(program, mode):
-    d = team.load(program)
-    d['home_mode'] = mode if mode in MODES else 'auto'
-    team.save(program, d)
-
-
-GAME_START = (2, 1)       # Spring from February 1 ...
+GAME_START = (1, 10)      # Spring by default from January 10 ...
 GAME_END = (7, 1)         # ... until July 1 (exclusive); Fall the rest of the year
 
 
 def auto_mode(program, today=None):
-    """(mode, reason) by the calendar: Spring from February 1 through June 30, Fall the rest of the year."""
+    """(mode, reason) by the calendar: Spring from January 10 through June 30, Fall the rest of the year."""
     today = today or datetime.date.today()
     if GAME_START <= (today.month, today.day) < GAME_END:
-        return 'game', 'Spring runs February 1 through June 30'
-    return 'dev', 'Fall runs July 1 through January 31; Spring starts February 1'
+        return 'game', 'Spring is the default from January 10 through June 30'
+    return 'dev', 'Fall is the default from July 1 through January 9; Spring takes over January 10'
 
 
-def mode_for(program, today=None):
-    """{'mode': 'dev'|'game', 'choice': 'auto'|'dev'|'game', 'reason'}."""
-    choice = stored_mode(program)
-    if choice != 'auto':
-        return {'mode': choice, 'choice': choice, 'reason': 'set by a coach'}
+def mode_for(program, view=None, today=None):
+    """{'mode': 'dev'|'game', 'default': 'dev'|'game', 'picked': bool, 'reason'}. `view` ('fall' / 'spring') is the viewer's own pick for this page."""
     m, why = auto_mode(program, today)
-    return {'mode': m, 'choice': 'auto', 'reason': why}
+    pick = VIEWS.get((view or '').lower())
+    return {'mode': pick or m, 'default': m, 'picked': bool(pick) and pick != m, 'reason': why}
+
+
+def fall_window(program, today=None):
+    """(start, end) of the season holding last fall (October 1 before this spring), for looking back at Fall during the spring."""
+    import season
+    today = today or datetime.date.today()
+    oct1 = f'{spring_year(today) - 1}-10-01'
+    for s_ in season.seasons(program, today):
+        if season.in_window(oct1, (s_['start'], s_['end'])):
+            return (s_['start'], s_['end']), s_['label']
+    return season.window(program), season.selected(program).get('label') or ''
 
 
 # ------------------------------------------------------------------ helpers
@@ -103,21 +101,9 @@ def _pct(det):
 
 # ------------------------------------------------------------------ shared blocks
 SCHEDULE_PROMPT = (1, 1)   # from January 1, a program with no spring games on file is asked for its schedule PDF
-_POST = ('championship', 'tournament', 'regional', 'world series', 'opening round', 'finals', 'playoff', 'super regional')
-_STOP = {'of', 'the', 'at', 'and', 'vs', 'vs.', '&'}
-
-
 def spring_year(today):
     """The spring the schedule graphic shows: this coming spring from July on, this spring before that."""
     return today.year + 1 if today.month >= 7 else today.year
-
-
-def _abbr(opp):
-    """Short text for an opponent with no logo: 'Riverside City College' -> 'RCC'."""
-    words = [w for w in opp.replace('-', ' ').split() if w.lower() not in _STOP and w[:1].isalpha()]
-    if len(words) == 1:
-        return words[0][:4].upper()
-    return ''.join(w[0] for w in words[:4]).upper() or '?'
 
 
 def _played(program):
@@ -134,72 +120,11 @@ def _played(program):
     return sorted(out, key=lambda x: x['date'])
 
 
-def _schedule(program, played, today):
-    """The spring schedule as a calendar: one square per day (weeks are columns, Monday on top), from the week of the first game
-    to the week of the last. Each game day lists its games; played games carry the result. None when there are no spring games."""
+def _spring_games(program, today):
+    """How many games on the schedule fall in the coming (or current) spring, January 1 through June 30."""
     import schedule as sched
     yr = spring_year(today)
-    lo, hi = f'{yr}-01-01', f'{yr}-06-30'
-    sp = [g for g in played if lo <= g['date'] <= hi]
-    matches, _open = sched.split(program, sp)
-    by = {}
-    for g in sched.load(program):
-        if lo <= g['date'] <= hi:
-            by.setdefault(g['date'], []).append({'opp': g['opp'], 'at': g.get('at') or '', 'time': g.get('time') or '', 'loc': g.get('loc') or '',
-                                                 'tournament': g.get('tournament') or '', '_sid': g.get('_id')})
-    n_sched = sum(len(v) for v in by.values())
-    for p in sp:                                   # a played game takes its scheduled slot, or gets a square of its own
-        s = matches.get(id(p))
-        day = by.setdefault(p['date'], [])
-        slot = next((x for x in day if s is not None and x['_sid'] == s.get('_id') and 'res' not in x), None)
-        if slot is None:
-            slot = {'opp': p['opp'], 'at': '', 'time': '', 'loc': '', 'tournament': ''}
-            day.append(slot)
-        slot['res'] = 'W' if p['us'] > p['them'] else ('L' if p['us'] < p['them'] else 'T')
-        slot['score'] = f"{p['us']}-{p['them']}"
-        slot['gid'] = p['gid']
-    if not by:
-        return {'year': yr, 'weeks': [], 'n': 0, 'n_sched': 0, 'opps': []}
-    first, last = _d(min(by)), _d(max(by))
-    weeks, d = [], _week_start(first)
-    opps = []
-    while d <= last:
-        col = []
-        for i in range(7):
-            x = d + datetime.timedelta(days=i)
-            games = by.get(x.isoformat()) or []
-            for g in games:
-                low = (g['opp'] + ' ' + g['tournament']).lower()
-                g['post'] = any(k in low for k in _POST)
-                g['abbr'] = 'POST' if g['post'] else _abbr(g['opp'])
-                if g['opp'] not in opps:
-                    opps.append(g['opp'])
-            top = games[0] if games else None
-            lab = f"{x.strftime('%a %b')} {x.day}"
-            if games:
-                parts = []
-                for g in games:
-                    where = {'Home': 'vs ', 'Away': 'at ', 'Neutral': 'vs '}.get(g['at'], 'vs ')
-                    t = f"{where}{g['opp']}" + (f" ({g['time']})" if g['time'] and g['time'] != 'TBA' else '')
-                    if g.get('res'):
-                        t += f": {g['res']} {g['score']}"
-                    parts.append(t)
-                lab += ' · ' + '; '.join(parts)
-            res = [g['res'] for g in games if g.get('res')]
-            col.append({'date': x.isoformat(), 'label': lab, 'games': games, 'top': top, 'n': len(games),
-                        'away': bool(top) and top['at'] == 'Away', 'res': ('W' if res and all(r == 'W' for r in res) else
-                                                                          'L' if res and all(r == 'L' for r in res) else
-                                                                          'T' if res == ['T'] else 'S' if res else None),
-                        'rec': '-'.join(res) if len(res) > 1 else '', 'gid': next((g['gid'] for g in games if g.get('gid')), None),
-                        'future': x > today, 'today': x == today})
-        weeks.append({'days': col})
-        d += datetime.timedelta(days=7)
-    for i, w in enumerate(weeks):                  # a month label on the week that holds the 1st, and on the first week shown
-        one = next((c for c in w['days'] if c['date'][8:] == '01'), None)
-        w['month'] = _d(one['date']).strftime('%b') if one else (_d(w['days'][0]['date']).strftime('%b') if i == 0 else '')
-    n = sum(len(v) for v in by.values())
-    return {'year': yr, 'weeks': weeks, 'n': n, 'n_sched': n_sched, 'opps': opps,
-            'first': _fmt_date(min(by)), 'last': _fmt_date(max(by))}
+    return sum(1 for g in sched.load(program) if f'{yr}-01-01' <= g['date'] <= f'{yr}-06-30')
 
 
 def _goals(program, P, H, today):
@@ -513,26 +438,28 @@ def _games(program, win, today, all_played):
 def build(program, mode_info, url, hitting_ok=True, today=None):
     import season
     today = today or datetime.date.today()
-    win = season.window(program)
-    return _build(program, mode_info['mode'], url, hitting_ok, win, today.isoformat())
+    win, label = season.window(program), season.selected(program).get('label') or ''
+    looking_back = mode_info['mode'] == 'dev' and mode_info['default'] == 'game'
+    if looking_back and season.selected(program)['key'] == season.current(program)['key']:
+        win, label = fall_window(program, today)          # Fall during the spring: last fall's data, unless a season was picked on purpose
+    out = _build(program, mode_info['mode'], url, hitting_ok, win, label, today.isoformat())
+    return dict(out, looking_back=looking_back)
 
 
 @cache.memo
-def _build(program, mode, url, hitting_ok, win, today_s):
-    import season
+def _build(program, mode, url, hitting_ok, win, season_label, today_s):
     today = datetime.date.fromisoformat(today_s)
     ps = team._pitchers(program, win)
-    P = team.pitching_data(program)
+    P = team._pitching_data(program, win)
     hs = team._hitters(program, True, win) if hitting_ok else {}
-    H = team.hitting_data(program, True) if hitting_ok else None
-    sel = season.selected(program)
+    H = team._hitting_data(program, True, win) if hitting_ok else None
     dates = sorted(set(P['sessions']) | set(H['sessions'] if H else []))
-    out = {'mode': mode, 'season_label': sel.get('label') or '', 'n_pitchers': P['n_players'], 'n_hitters': H['n_players'] if H else 0,
+    out = {'mode': mode, 'season_label': season_label, 'n_pitchers': P['n_players'], 'n_hitters': H['n_players'] if H else 0,
            'n_pitches': P['n_pitches'], 'n_seen': H['n_pitches'] if H else 0, 'n_sessions': len(dates),
            'first': _fmt_date(dates[0]) if dates else None, 'last': _fmt_date(dates[-1]) if dates else None, 'hitting_ok': hitting_ok}
     all_played = _played(program)
-    out['schedule'] = _schedule(program, all_played, today)
-    out['ask_schedule'] = (today.month, today.day) >= SCHEDULE_PROMPT and today.month <= 6 and not out['schedule']['n_sched']
+    out['spring_year'] = spring_year(today)
+    out['ask_schedule'] = (today.month, today.day) >= SCHEDULE_PROMPT and today.month <= 6 and not _spring_games(program, today)
     out['goals'] = _goals(program, P, H, today)
     out['attention'] = _attention(program, P, ps, H, hs, mode, today)
     out['pbs'] = [dict(ev, url=url(ev['kind'], ev['key']), date_s=_fmt_date(ev['date'])) for ev in prs.program_recent(program, days=120, limit=200)

@@ -997,7 +997,7 @@ def team_dashboard(program):
     _team_ok(program)
     import teamhome
     hit_ok = plans.allowed(program, 'hitting')
-    mode = teamhome.mode_for(program)
+    mode = teamhome.mode_for(program, request.args.get('view'))
     home = teamhome.build(program, mode, _gv_url, hitting_ok=hit_ok)
     cfg = team.load(program)
     pickers = []
@@ -1006,20 +1006,9 @@ def team_dashboard(program):
         picker = team.stat_picker(side, ids)
         labels = {it['id']: it['label'] for _g, items in picker for it in items}
         pickers.append((side, {'picker': picker, 'metrics': team.goal_metric_options(side), 'selected': [labels.get(i, i) for i in ids]}))
-    tiles = {o: _opp_tile(program, o) for o in home['schedule']['opps']}
     return render_template('team_home.html', program=program, team_label=store.program_label(program), home=home, mode=mode, pickers=pickers,
-                           tiles=tiles, can_edit=not is_demo_viewer(), can_sched=not is_demo_viewer() and not is_assistant() and not is_player(),
+                           can_edit=not is_demo_viewer(), can_sched=not is_demo_viewer() and not is_assistant() and not is_player(),
                            is_admin=is_admin(), coach_key=session.get('coach') or '', msg=request.args.get('msg', '')[:200])
-
-
-def _opp_tile(program, label):
-    """Logo and fill colour for an opponent's square on the Team Home schedule: a coach's uploaded logo on white, else the school library
-    logo (white backing keyed out) on that school's secondary colour, else None (the square shows the opponent's initials)."""
-    slug = store.slugify(label) or 'unlabeled'
-    if _opp_own_logo(program, slug):
-        return {'url': _opp_logo_url(program, slug, label), 'bg': '#fff'}
-    b = pipeline.school_secondary(label)
-    return {'url': url_for('school_mark', fname=b[0]), 'bg': b[1]} if b else None
 
 
 @app.route('/team/<program>/schedule/upload', methods=['POST'])
@@ -1047,19 +1036,6 @@ def team_sched_upload(program):
     with github_sync.batch('Upload the season schedule'):
         n = _sched.save_upload(program, games, f.filename)
     return redirect(back + sep + 'msg=' + _q(f'Schedule saved: {n} games.') + frag)
-
-
-@app.route('/team/<program>/home-mode', methods=['POST'])
-@login_required
-def team_home_mode(program):
-    """A coach picks which Team Home shows: Auto (by the calendar), Fall or Spring."""
-    _team_ok(program)
-    import teamhome
-    m = request.form.get('mode') or 'auto'
-    if m not in teamhome.MODES:
-        abort(400)
-    teamhome.set_mode(program, m)
-    return redirect(url_for('team_dashboard', program=program))
 
 
 @app.route('/team/<program>/personal-bests')
@@ -1178,7 +1154,7 @@ h1{margin:0 0 6px;font-size:22px}p{color:#5b6b75;margin:6px 0 14px}.r{display:fl
 button{background:#22303a;color:#fff;border:0;border-radius:999px;padding:9px 18px;font:600 14px inherit;cursor:pointer}a{color:#2d6f84}.ok{background:#e6f4ea;border-radius:8px;padding:8px 12px}</style></head><body><div class="c">
 <a href="{{ url_for('team_dashboard', program=program) }}">&larr; {{ team_label }}</a><h1>Seasons</h1>
 {% if msg %}<div class="ok">{{ msg }}</div>{% endif %}
-<p>Each start date begins a new season. Team pages (Dashboard, Hitters, Pitchers, Game Reports, Scouting) show the current season; everything before it is archived, still one click away in the season picker. Player profiles always keep every season together and can be switched year to year. Leave a row blank to remove it. Nothing is deleted or moved.</p>
+<p>Each start date begins a new season. Team pages (Team Home, Schedule, Hitters, Pitchers, Scouting) show the current season; everything before it is archived, still one click away in the season picker. Player profiles always keep every season together and can be switched year to year. Leave a row blank to remove it. Nothing is deleted or moved.</p>
 <p><b>Starts before the first date:</b> {{ first }}</p>
 <form method="post">{% for b in rows %}<div class="r"><input type="date" name="start" value="{{ b.start }}"><input type="text" name="label" value="{{ b.label }}" maxlength="40" placeholder="Label"></div>{% endfor %}
 {% for i in range(2) %}<div class="r"><input type="date" name="start"><input type="text" name="label" maxlength="40" placeholder="Label (e.g. Fall 2027)"></div>{% endfor %}
@@ -1605,27 +1581,28 @@ def _game_decorate(m, program):
     return m
 
 
+@app.route('/team/<program>/schedule')
 @app.route('/team/<program>/games')
 @login_required
 def team_games(program):
+    """Schedule: every game of the season in date order. Played games open their Game Recap; scheduled games show when and where."""
     _team_ok(program)
     if not plans.allowed(program, 'hitting'):
         return _upgrade('hitting')
     import gamereport as gr
     import datetime as _dt
-    g.theme_program = program
-    out = []
+    import schedule as _sched
     import season
+    g.theme_program = program
     _win = season.window(program)
+    played = []
     for gid, gm in gr.collect(program).items():
         if not season.in_window(gm['date'], _win):
             continue
         m = gr.build(gm['rows'])
-        d = _dt.date.fromisoformat(gm['date'])
-        out.append({'gid': gid, 'opp': gm['opp'], 'date': gm['date'], 'date_pretty': d.strftime('%a %b %-d, %Y'), 'n': gm['n'],
-                    'us': m['score']['us'], 'them': m['score']['opp'], 'partial': not (m['pitchers']['us'] and m['pitchers']['opp']),
-                    'logo': _opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp'])})
-    out.sort(key=lambda x: x['date'], reverse=True)
+        played.append({'kind': 'played', 'gid': gid, 'opp': gm['opp'], 'date': gm['date'], 'n': gm['n'], 'us': m['score']['us'], 'them': m['score']['opp'],
+                       'partial': not (m['pitchers']['us'] and m['pitchers']['opp']), 'time': '', 'loc': '',
+                       'at': 'Home' if m['us_home'] else 'Away'})
     intra = []
     for gid, gm in gr.collect_intrasquads(program).items():
         if not season.in_window(gm['date'], _win):
@@ -1636,20 +1613,89 @@ def team_games(program):
     intra.sort(key=lambda x: (x['date'], x['gid']), reverse=True)
     if intra:
         intra[0]['latest'] = True
-    import schedule as _sched
-    matches, rest = _sched.split(program, out)
-    for x in out:
-        s = matches.get(id(x))
-        if s:
-            x['at'], x['loc'] = s.get('at'), s.get('loc')
+    matches, rest = _sched.split(program, played)
+    for x in played:
+        s_ = matches.get(id(x))
+        if s_:
+            x['at'] = s_.get('at') or x['at']
+            x['loc'], x['time'], x['tournament'] = s_.get('loc') or '', s_.get('time') or '', s_.get('tournament') or ''
+        x['res'] = 'W' if x['us'] > x['them'] else ('L' if x['us'] < x['them'] else 'T')
     today = _dt.date.today().isoformat()
-    upcoming = []
-    for s in rest:
-        d = _dt.date.fromisoformat(s['date'])
-        upcoming.append({**s, 'sid': _sched.sid(s), 'date_pretty': d.strftime('%a %b %-d, %Y'), 'past': s['date'] < today, 'today': s['date'] == today,
-                         'up': url_for('intake_bulk', program=program, session_type='Game', **({} if s.get('tournament') else {'opponent': s['opp']})),
-                         'logo': _opp_logo_url(program, store.slugify(s['opp']) or 'unlabeled', s['opp'])})
-    return render_template('games.html', program=program, team_label=store.program_label(program), games=out, intra=intra, schedule=upcoming, msg=request.args.get('msg'), can_edit=not (is_assistant() or is_player()))
+    items = played + [dict(s_, kind='sched', sid=_sched.sid(s_), past=s_['date'] < today, today=s_['date'] == today,
+                           up=url_for('intake_bulk', program=program, session_type='Game', **({} if s_.get('tournament') else {'opponent': s_['opp']})))
+                      for s_ in rest]
+    logos = {}
+    for x in items:
+        d = _dt.date.fromisoformat(x['date'])
+        x['dow'], x['day'], x['mon'] = d.strftime('%a'), d.day, d.strftime('%b')
+        x['date_pretty'] = d.strftime('%a %b %-d, %Y')
+        if x['opp'] not in logos:
+            logos[x['opp']] = _opp_logo_url(program, store.slugify(x['opp']) or 'unlabeled', x['opp'])
+        x['logo'] = logos[x['opp']]
+        x['initials'] = ''.join(w[0] for w in x['opp'].replace('-', ' ').split() if w[:1].isalpha() and w.lower() not in ('of', 'the', 'at'))[:3].upper()
+    items.sort(key=lambda x: (x['date'], 0 if x['kind'] == 'played' else 1))
+    nxt = next((x for x in items if x['kind'] == 'sched' and x['date'] >= today), None)
+    if nxt:
+        nxt['next'] = True
+    months = []
+    for x in items:
+        lab = _dt.date.fromisoformat(x['date']).strftime('%B %Y')
+        if not months or months[-1][0] != lab:
+            months.append((lab, []))
+        months[-1][1].append(x)
+    rec = {k: sum(1 for x in played if x['res'] == k) for k in 'WLT'}
+    split_rec = {}
+    for where in ('Home', 'Away', 'Neutral'):
+        xs = [x for x in played if x.get('at') == where]
+        if xs:
+            split_rec[where] = (sum(1 for x in xs if x['res'] == 'W'), sum(1 for x in xs if x['res'] == 'L'), sum(1 for x in xs if x['res'] == 'T'))
+    form = [x['res'] for x in sorted(played, key=lambda x: x['date'])][-5:]
+    n_sched = len(_sched.load(program))
+    return render_template('games.html', program=program, team_label=store.program_label(program), months=months, intra=intra, rec=rec, split_rec=split_rec,
+                           form=form, nxt=nxt, n_played=len(played), n_left=sum(1 for x in rest if x['date'] >= today), n_sched=n_sched,
+                           msg=request.args.get('msg'), can_edit=not (is_assistant() or is_player()), show_ump=not is_player())
+
+
+@app.route('/team/<program>/game/<gid>/recap')
+@login_required
+def team_game_recap(program, gid):
+    """Game Recap: final score and line score, top performers and key plays (view=performers / view=plays show the full lists)."""
+    _team_ok(program)
+    if not plans.allowed(program, 'hitting'):
+        return _upgrade('hitting')
+    import gamereport as gr
+    import gamerecap
+    import datetime as _dt
+    import schedule as _sched
+    gm = gr.find(program, gid)
+    if not gm:
+        abort(404)
+    intra = gm.get('kind') == 'intrasquad'
+    g.theme_program = program
+    m = gr.build(gm['rows'])
+    tl = 'Home' if intra else store.program_label(program)
+    ol = 'Visitors' if intra else gm['opp']
+    names = {'us': tl, 'opp': ol}
+    R = gamerecap.summary(m, names)
+    view = request.args.get('view') if request.args.get('view') in ('performers', 'plays') else 'recap'
+    info = {'at': ('Home' if m['us_home'] else 'Away'), 'loc': '', 'time': ''}
+    if not intra:
+        sm, _rest = _sched.split(program, [gm])
+        s_ = sm.get(id(gm))
+        if s_:
+            info = {'at': s_.get('at') or info['at'], 'loc': s_.get('loc') or '', 'time': s_.get('time') or ''}
+    for side in ('us', 'opp'):
+        for p in R['perf'][side]['pitchers']:
+            p['url'] = url_for('player_overview', slug=p['slug']) if (side == 'us' and not intra and p.get('slug') and can_view(p['slug'])) else None
+    complete = bool(m['pitchers']['us'] and m['pitchers']['opp']) and all(v is not None for v in m['linescore']['us'] + m['linescore']['opp'])
+    first = 'us' if not m['us_home'] else 'opp'
+    order = [(first, names[first]), ('opp' if first == 'us' else 'us', names['opp' if first == 'us' else 'us'])]
+    d = _dt.date.fromisoformat(gm['date'])
+    res = 'W' if m['score']['us'] > m['score']['opp'] else ('L' if m['score']['us'] < m['score']['opp'] else 'T')
+    return render_template('game_recap.html', program=program, gid=gid, m=m, R=R, view=view, names=names, order=order, info=info, intra=intra,
+                           res=res, complete=complete, n_pitches=gm['n'], date_pretty=d.strftime('%A, %B %-d, %Y'), team_label=tl, opp=ol,
+                           logo=(None if intra else _opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp'])),
+                           us_badge=(None if intra else sbadge(program)), show_ump=not (is_player() or intra))
 
 
 @app.route('/team/<program>/outings')
@@ -1934,7 +1980,8 @@ def team_game(program, gid):
     return render_template('game_report.html', m=m, program=program, team_label=tl, opp=gm['opp'], date_pretty=d.strftime('%A, %B %-d, %Y') + (' · Intrasquad' if intra else ''),
                            n_pitches=gm['n'], complete=complete, gid=gid, abbr=gr.ABBR, logo=(None if intra else _opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp'])),
                            order=[('us', tl), ('opp', gm['opp'])], maxpa={s: max([x['pa_n'] for x in m['teams'][s]['slots']] or [1]) for s in ('us', 'opp')},
-                           back_url=url_for('team_games', program=program) + ('#intrasquads' if intra else ''), intra=intra)
+                           back_url=url_for('team_games', program=program) + ('#intrasquads' if intra else ''), intra=intra,
+                           show_ump=not (is_player() or intra))
 
 
 
@@ -2021,7 +2068,7 @@ def team_game_scorebook(program, gid):
     m['hits'], m['errs'] = hits, errs
     d = _dt.date.fromisoformat(gm['date'])
     return render_template('game_scorebook.html', m=m, sheets=sheets, gid=gid, program=program, team_label=tl, opp=gm['opp'], date_pretty=d.strftime('%A, %B %-d, %Y') + (' · Intrasquad' if intra else ''),
-                           back_url=url_for('team_games', program=program) + ('#intrasquads' if intra else ''), analysis_url=url_for('team_game', program=program, gid=gid), umpire_url=(None if (is_player() or intra) else url_for('team_game_umpire', program=program, gid=gid)), order=[('us', tl), ('opp', gm['opp'])])
+                           intra=intra, back_url=url_for('team_games', program=program) + ('#intrasquads' if intra else ''), analysis_url=url_for('team_game', program=program, gid=gid), umpire_url=(None if (is_player() or intra) else url_for('team_game_umpire', program=program, gid=gid)), order=[('us', tl), ('opp', gm['opp'])])
 
 
 

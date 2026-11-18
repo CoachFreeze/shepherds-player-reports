@@ -16,7 +16,7 @@
     {% if me.is_player %}<a href="{{ home_url }}">My profile</a><a href="{{ url_for('glossary_page') }}">Stats glossary</a>
     <div class="um-sep"></div><a href="{{ url_for('account') }}">My account</a><a href="{{ url_for('logout') }}">Log out</a>
     {% else %}
-    {% if nav_program %}<div class="um-lbl">Team</div><a href="{{ url_for('team_dashboard', program=nav_program) }}">Team Home</a><a href="{{ url_for('team_hitters', program=nav_program) }}">Hitters</a><a href="{{ url_for('team_pitchers', program=nav_program) }}">Pitchers</a><a href="{{ url_for('team_games', program=nav_program) }}">Game Reports</a><a href="{{ url_for('team_scouting', program=nav_program) }}">Scouting</a>{% endif %}
+    {% if nav_program %}<div class="um-lbl">Team</div><a href="{{ url_for('team_dashboard', program=nav_program) }}">Team Home</a><a href="{{ url_for('team_games', program=nav_program) }}">Schedule</a><a href="{{ url_for('team_hitters', program=nav_program) }}">Hitters</a><a href="{{ url_for('team_pitchers', program=nav_program) }}">Pitchers</a><a href="{{ url_for('team_scouting', program=nav_program) }}">Scouting</a>{% endif %}
     {% if not me.demo_view %}    <div class="um-lbl">Data</div>{% if me.can_upload %}<a href="{{ url_for('roster_page') }}">Team roster</a>{% endif %}<a href="{{ url_for('upload_log_page') }}">Upload log</a>
     {% if nav_program and not me.is_assistant %}<div class="um-lbl">Manage</div><a href="{{ url_for('team_coaches', program=nav_program) }}">Coaches &amp; players</a><a href="{{ url_for('team_seasons', program=nav_program) }}">Seasons</a><a href="{{ url_for('team_appearance', program=nav_program) }}">Appearance</a>{% endif %}
     {% endif %}

@@ -1,0 +1,19 @@
+{# Tabs shared by every page of one game. Needs: program, gid, gt_on ('recap' | 'score' | 'perf' | 'plays' | 'ump' | 'analysis'), gt_ump (show the staff-only Umpire Recap), gt_intra #}
+<style>
+  .gtabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 auto 14px;font-family:'Barlow',sans-serif;}
+  .gtabs a,.gtabs button{font:700 13px 'Barlow',sans-serif;background:#fff;border:1px solid #d9dfe2;border-radius:999px;padding:7px 14px;color:#22303a;text-decoration:none;cursor:pointer;white-space:nowrap;}
+  .gtabs a:hover{background:#f1f4f5;} .gtabs a.on{background:#22303a;border-color:#22303a;color:#fff;}
+  .gtabs .bk{background:transparent;border-color:transparent;color:#5b6b75;padding-left:2px;} .gtabs .sp{flex:1 1 0;}
+  @media (max-width:600px){.gtabs{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;} .gtabs .sp{display:none;}}
+  @media print{.gtabs{display:none !important;}}
+</style>
+<nav class="gtabs" aria-label="Game pages">
+  <a class="bk" href="{{ url_for('team_games', program=program) }}{{ '#intrasquads' if gt_intra else '' }}">&larr; Schedule</a>
+  <a href="{{ url_for('team_game_recap', program=program, gid=gid) }}" class="{{ 'on' if gt_on == 'recap' }}">Game Recap</a>
+  <a href="{{ url_for('team_game_scorebook', program=program, gid=gid) }}" class="{{ 'on' if gt_on == 'score' }}">Scorecard</a>
+  <a href="{{ url_for('team_game_recap', program=program, gid=gid, view='performers') }}" class="{{ 'on' if gt_on == 'perf' }}">Top Performers</a>
+  <a href="{{ url_for('team_game_recap', program=program, gid=gid, view='plays') }}" class="{{ 'on' if gt_on == 'plays' }}">Key Plays</a>
+  {% if gt_ump %}<a href="{{ url_for('team_game_umpire', program=program, gid=gid) }}" class="{{ 'on' if gt_on == 'ump' }}">Umpire Recap</a>{% endif %}
+  <a href="{{ url_for('team_game', program=program, gid=gid) }}" class="{{ 'on' if gt_on == 'analysis' }}">Full Analysis</a>
+  <span class="sp"></span>{% if gt_print %}<button type="button" onclick="window.print()">Print</button>{% endif %}
+</nav>
