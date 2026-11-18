@@ -1,30 +1,27 @@
 """Team Home: the coach's season-focused landing page, in two versions.
 
-Development mode (fall and winter): are players getting better? Biggest gains this season, process stats by week, a development board,
+Fall (fall and winter, internal mode 'dev'): are players getting better? Biggest gains this season, process stats by week, a development board,
 arsenal changes, and a ready-for-spring checklist.
-Game mode (spring into early summer): are we winning, and why? Record and season line, results by week, the latest game, hot and cold
+Spring (spring into early summer, internal mode 'game'): are we winning, and why? Record and season line, results by week, the latest game, hot and cold
 over the last week, bullpen availability, next opponents, and tagging coverage.
-Both: team goals with season pace, the season's activity calendar, and personal bests.
+Both: the spring schedule as opponent logos, team goals with season pace, and personal bests.
 
-Which version shows: the coach's choice (team config 'home_mode': auto / dev / game). Auto = game mode from February 1 through June 30,
-development mode the rest of the year.
+Which version shows: the coach's choice (team config 'home_mode': auto / dev / game). Auto = Spring from February 1 through June 30,
+Fall the rest of the year.
 """
 import datetime
-import math
 
 import cache
 import extract as e
 import hitting
 import prs
 import stats as stats_mod
-import store
 import team
 
 MODES = ('auto', 'dev', 'game')
 GAME_TYPES = ('Game', 'Scrimmage')
 # Days of rest after an outing, by pitch count: a conservative default for the bullpen board, not a published standard.
 REST_RULE = ((30, 0), (45, 1), (60, 2), (80, 3), (10 ** 6, 4))
-TYPE_COLORS = {'Game': '#c84a3a', 'Intrasquad': '#e0904a', 'Live BP': '#5c97a8', 'Bullpen': '#9fc1cc', 'Batting practice': '#b9a6d6'}
 
 
 def _num(v):
@@ -55,16 +52,16 @@ def set_mode(program, mode):
     team.save(program, d)
 
 
-GAME_START = (2, 1)       # Game mode from February 1 ...
-GAME_END = (7, 1)         # ... until July 1 (exclusive); development the rest of the year
+GAME_START = (2, 1)       # Spring from February 1 ...
+GAME_END = (7, 1)         # ... until July 1 (exclusive); Fall the rest of the year
 
 
 def auto_mode(program, today=None):
-    """(mode, reason) by the calendar: game mode from February 1 through June 30, development mode the rest of the year."""
+    """(mode, reason) by the calendar: Spring from February 1 through June 30, Fall the rest of the year."""
     today = today or datetime.date.today()
     if GAME_START <= (today.month, today.day) < GAME_END:
-        return 'game', 'game mode runs February 1 through June 30'
-    return 'dev', 'development mode runs July 1 through January 31; game mode starts February 1'
+        return 'game', 'Spring runs February 1 through June 30'
+    return 'dev', 'Fall runs July 1 through January 31; Spring starts February 1'
 
 
 def mode_for(program, today=None):
@@ -105,47 +102,104 @@ def _pct(det):
 
 
 # ------------------------------------------------------------------ shared blocks
-def _calendar(ps, hs, start, today):
-    """Season activity: one cell per day from the first session (or season start) to today, colored by the kind of session."""
+SCHEDULE_PROMPT = (1, 1)   # from January 1, a program with no spring games on file is asked for its schedule PDF
+_POST = ('championship', 'tournament', 'regional', 'world series', 'opening round', 'finals', 'playoff', 'super regional')
+_STOP = {'of', 'the', 'at', 'and', 'vs', 'vs.', '&'}
+
+
+def spring_year(today):
+    """The spring the schedule graphic shows: this coming spring from July on, this spring before that."""
+    return today.year + 1 if today.month >= 7 else today.year
+
+
+def _abbr(opp):
+    """Short text for an opponent with no logo: 'Riverside City College' -> 'RCC'."""
+    words = [w for w in opp.replace('-', ' ').split() if w.lower() not in _STOP and w[:1].isalpha()]
+    if len(words) == 1:
+        return words[0][:4].upper()
+    return ''.join(w[0] for w in words[:4]).upper() or '?'
+
+
+def _played(program):
+    """Every game with stored pitches: [{'gid','date','opp','us','them','partial'}], oldest first."""
+    import gamereport as gr
+    out = []
+    for gid, gm in gr.collect(program).items():
+        try:
+            m = gr.build(gm['rows'])
+        except Exception:
+            continue
+        out.append({'gid': gid, 'date': gm['date'], 'opp': gm['opp'], 'us': m['score']['us'], 'them': m['score']['opp'],
+                    'partial': not (m['pitchers']['us'] and m['pitchers']['opp'])})
+    return sorted(out, key=lambda x: x['date'])
+
+
+def _schedule(program, played, today):
+    """The spring schedule as a calendar: one square per day (weeks are columns, Monday on top), from the week of the first game
+    to the week of the last. Each game day lists its games; played games carry the result. None when there are no spring games."""
+    import schedule as sched
+    yr = spring_year(today)
+    lo, hi = f'{yr}-01-01', f'{yr}-06-30'
+    sp = [g for g in played if lo <= g['date'] <= hi]
+    matches, _open = sched.split(program, sp)
     by = {}
-    for _s, _b, outs in ps:
-        for o in outs:
-            d = _d(o['date'])
-            if d:
-                t = _session_type(o)
-                rank = list(TYPE_COLORS).index(t)
-                cur = by.get(d)
-                if cur is None or rank < list(TYPE_COLORS).index(cur[0]):
-                    by[d] = (t, (cur[1] if cur else 0) + len(o['rows']))
-                else:
-                    by[d] = (cur[0], cur[1] + len(o['rows']))
-    for h in (hs or {}).values():
-        for p in h['pitches']:
-            d = _d(p.get('date'))
-            if d and d not in by:
-                by[d] = ('Batting practice', 0)
-            if d:
-                by[d] = (by[d][0], by[d][1] + 1)
+    for g in sched.load(program):
+        if lo <= g['date'] <= hi:
+            by.setdefault(g['date'], []).append({'opp': g['opp'], 'at': g.get('at') or '', 'time': g.get('time') or '', 'loc': g.get('loc') or '',
+                                                 'tournament': g.get('tournament') or '', '_sid': g.get('_id')})
+    n_sched = sum(len(v) for v in by.values())
+    for p in sp:                                   # a played game takes its scheduled slot, or gets a square of its own
+        s = matches.get(id(p))
+        day = by.setdefault(p['date'], [])
+        slot = next((x for x in day if s is not None and x['_sid'] == s.get('_id') and 'res' not in x), None)
+        if slot is None:
+            slot = {'opp': p['opp'], 'at': '', 'time': '', 'loc': '', 'tournament': ''}
+            day.append(slot)
+        slot['res'] = 'W' if p['us'] > p['them'] else ('L' if p['us'] < p['them'] else 'T')
+        slot['score'] = f"{p['us']}-{p['them']}"
+        slot['gid'] = p['gid']
     if not by:
-        return None
-    first = min(by)
-    s = _d(start) if start else None
-    begin = _week_start(max(s, first - datetime.timedelta(days=14)) if s else first)
-    end = max(today, max(by))
-    weeks, d = [], begin
-    while d <= end:
+        return {'year': yr, 'weeks': [], 'n': 0, 'n_sched': 0, 'opps': []}
+    first, last = _d(min(by)), _d(max(by))
+    weeks, d = [], _week_start(first)
+    opps = []
+    while d <= last:
         col = []
         for i in range(7):
             x = d + datetime.timedelta(days=i)
-            t = by.get(x)
-            col.append({'date': x.isoformat(), 'label': f"{x.strftime('%a %b')} {x.day}" + (f': {t[0]} ({t[1]} pitches)' if t else ''),
-                        'type': t[0] if t else None, 'future': x > today})
-        weeks.append({'month': d.strftime('%b') if d.day <= 7 else '', 'days': col})
+            games = by.get(x.isoformat()) or []
+            for g in games:
+                low = (g['opp'] + ' ' + g['tournament']).lower()
+                g['post'] = any(k in low for k in _POST)
+                g['abbr'] = 'POST' if g['post'] else _abbr(g['opp'])
+                if g['opp'] not in opps:
+                    opps.append(g['opp'])
+            top = games[0] if games else None
+            lab = f"{x.strftime('%a %b')} {x.day}"
+            if games:
+                parts = []
+                for g in games:
+                    where = {'Home': 'vs ', 'Away': 'at ', 'Neutral': 'vs '}.get(g['at'], 'vs ')
+                    t = f"{where}{g['opp']}" + (f" ({g['time']})" if g['time'] and g['time'] != 'TBA' else '')
+                    if g.get('res'):
+                        t += f": {g['res']} {g['score']}"
+                    parts.append(t)
+                lab += ' · ' + '; '.join(parts)
+            res = [g['res'] for g in games if g.get('res')]
+            col.append({'date': x.isoformat(), 'label': lab, 'games': games, 'top': top, 'n': len(games),
+                        'away': bool(top) and top['at'] == 'Away', 'res': ('W' if res and all(r == 'W' for r in res) else
+                                                                          'L' if res and all(r == 'L' for r in res) else
+                                                                          'T' if res == ['T'] else 'S' if res else None),
+                        'rec': '-'.join(res) if len(res) > 1 else '', 'gid': next((g['gid'] for g in games if g.get('gid')), None),
+                        'future': x > today, 'today': x == today})
+        weeks.append({'days': col})
         d += datetime.timedelta(days=7)
-    counts = {}
-    for t, _n in by.values():
-        counts[t] = counts.get(t, 0) + 1
-    return {'weeks': weeks, 'legend': [(t, c, counts.get(t, 0)) for t, c in TYPE_COLORS.items() if counts.get(t)], 'days': len(by)}
+    for i, w in enumerate(weeks):                  # a month label on the week that holds the 1st, and on the first week shown
+        one = next((c for c in w['days'] if c['date'][8:] == '01'), None)
+        w['month'] = _d(one['date']).strftime('%b') if one else (_d(w['days'][0]['date']).strftime('%b') if i == 0 else '')
+    n = sum(len(v) for v in by.values())
+    return {'year': yr, 'weeks': weeks, 'n': n, 'n_sched': n_sched, 'opps': opps,
+            'first': _fmt_date(min(by)), 'last': _fmt_date(max(by))}
 
 
 def _goals(program, P, H, today):
@@ -442,22 +496,10 @@ def _season_line(ps, hs):
     return {'pit': P, 'hit': H, 'cov_p': pit.get('tag_cov'), 'cov_h': hit.get('tag_cov'), 'ok_p': ok_p, 'ok_h': ok_h}
 
 
-def _games(program, win, today):
-    import gamereport as gr
+def _games(program, win, today, all_played):
     import schedule as sched
     import season
-    played = []
-    for gid, gm in gr.collect(program).items():
-        if not season.in_window(gm['date'], win):
-            continue
-        try:
-            m = gr.build(gm['rows'])
-        except Exception:
-            continue
-        partial = not (m['pitchers']['us'] and m['pitchers']['opp'])
-        played.append({'gid': gid, 'date': gm['date'], 'date_s': _fmt_date(gm['date']), 'opp': gm['opp'], 'us': m['score']['us'], 'them': m['score']['opp'],
-                       'partial': partial})
-    played.sort(key=lambda x: x['date'])
+    played = [dict(g, date_s=_fmt_date(g['date'])) for g in all_played if season.in_window(g['date'], win)]
     w = sum(1 for g in played if g['us'] > g['them'])
     l_ = sum(1 for g in played if g['us'] < g['them'])
     t = len(played) - w - l_
@@ -488,7 +530,9 @@ def _build(program, mode, url, hitting_ok, win, today_s):
     out = {'mode': mode, 'season_label': sel.get('label') or '', 'n_pitchers': P['n_players'], 'n_hitters': H['n_players'] if H else 0,
            'n_pitches': P['n_pitches'], 'n_seen': H['n_pitches'] if H else 0, 'n_sessions': len(dates),
            'first': _fmt_date(dates[0]) if dates else None, 'last': _fmt_date(dates[-1]) if dates else None, 'hitting_ok': hitting_ok}
-    out['calendar'] = _calendar(ps, hs, sel.get('start'), today)
+    all_played = _played(program)
+    out['schedule'] = _schedule(program, all_played, today)
+    out['ask_schedule'] = (today.month, today.day) >= SCHEDULE_PROMPT and today.month <= 6 and not out['schedule']['n_sched']
     out['goals'] = _goals(program, P, H, today)
     out['attention'] = _attention(program, P, ps, H, hs, mode, today)
     out['pbs'] = [dict(ev, url=url(ev['kind'], ev['key']), date_s=_fmt_date(ev['date'])) for ev in prs.program_recent(program, days=120, limit=200)
@@ -570,7 +614,7 @@ def _build(program, mode, url, hitting_ok, win, today_s):
         out['ready'] = _readiness(program, ps, hs)
         out['ready_done'] = sum(1 for c in out['ready'] if c['ok'])
     else:
-        out['games'] = _games(program, win, today)
+        out['games'] = _games(program, win, today, all_played)
         out['line'] = _season_line(ps, hs)
         out['snap_p'] = snap(P, ['csw_pct', 'strike_pct', 'whiff_pct'], set(), pfn, wk_p)
         out['snap_h'] = snap(H, ['xba', 'hard_hit_pct', 'chase_pct'], {'chase_pct'}, hfn, wk_h) if H else []

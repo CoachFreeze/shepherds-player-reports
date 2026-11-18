@@ -121,3 +121,136 @@ def remove(program, game_id):
     games[:] = [x for x in games if x is not hit]
     _write(program, d)
     return True
+
+
+# ---- schedule upload (a school-athletics-site schedule printed to PDF) ----------------------------------------------------------------------
+_MONTHS = {m: i for i, m in enumerate(('january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october',
+                                       'november', 'december'), 1)}
+_MON3 = {k[:3]: v for k, v in _MONTHS.items()}
+_HEADS = {'date': 'date', 'time': 'time', 'at': 'at', 'opponent': 'opp', 'location': 'loc', 'tournament': 'tournament', 'result': 'result',
+          'site': 'at', 'home/away': 'at', 'h/a': 'at', 'event': 'tournament'}
+
+
+def _clean(s):
+    import re
+    return re.sub(r'\s+', ' ', (s or '').replace('\n', ' ')).strip()
+
+
+def _parse_date(s, year_hint=None):
+    """'January 28, 2027 (Thursday)' / 'Feb 5, 2027' / '2/5/2027' -> 'YYYY-MM-DD' or None."""
+    import datetime
+    import re
+    s = _clean(s).lower()
+    m = re.search(r'\b([a-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{4})?', s)
+    mo = d = y = None
+    if m and (m.group(1) in _MONTHS or m.group(1)[:3] in _MON3):
+        mo, d, y = _MONTHS.get(m.group(1)) or _MON3[m.group(1)[:3]], int(m.group(2)), m.group(3)
+    else:
+        m = re.search(r'\b(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?\b', s)
+        if m:
+            mo, d, y = int(m.group(1)), int(m.group(2)), m.group(3)
+    if not mo:
+        return None
+    y = int(y) if y else year_hint
+    if y and y < 100:
+        y += 2000
+    try:
+        return datetime.date(y, mo, d).isoformat() if y else None
+    except ValueError:
+        return None
+
+
+def _parse_time(s):
+    """'12 p.m.' -> '12:00 PM', '1:30 p.m.' -> '1:30 PM', '30 minutes after Game 1' -> 'After Game 1', else 'TBA'/'' as written."""
+    import re
+    s = _clean(s)
+    low = s.lower()
+    if not s:
+        return 'TBA'
+    if 'after' in low:
+        g = re.search(r'game\s*(\d)', low)
+        return f'After Game {g.group(1)}' if g else 'After Game 1'
+    m = re.search(r'(\d{1,2})(?::(\d{2}))?\s*([ap])\.?\s*m\.?', low)
+    if m:
+        return f"{int(m.group(1))}:{m.group(2) or '00'} {m.group(3).upper()}M"
+    if 'tba' in low or 'tbd' in low:
+        return 'TBA'
+    return s[:20]
+
+
+def _clean_opp(s):
+    """'William Carey University (Miss.)' -> 'William Carey University'; drops 'vs.'/'at' prefixes and seed or rank marks."""
+    import re
+    s = _clean(s)
+    s = re.sub(r'^(?:vs\.?|at|@)\s+', '', s, flags=re.I)
+    s = re.sub(r'^(?:#|No\.\s*)\d+\s+', '', s)
+    s = re.sub(r'\s*\((?:[A-Z][a-z]{1,5}\.?|[A-Z]{2}|Calif\.|Fla\.|Miss\.|Ariz\.|Ore\.|Wash\.|Idaho|Utah|Texas|Ohio|Iowa)\)\s*', ' ', s)
+    s = re.sub(r'\s*\*+$', '', s)
+    return _clean(s)
+
+
+def _at(s, opp_raw):
+    low = _clean(s).lower()
+    if low.startswith(('home', 'vs')) or low == 'h':
+        return 'Home'
+    if low.startswith(('away', 'at', '@')) or low == 'a':
+        return 'Away'
+    if low.startswith(('neutral', 'n')):
+        return 'Neutral'
+    o = _clean(opp_raw).lower()
+    return 'Away' if o.startswith(('at ', '@')) else ('Home' if o.startswith('vs') else '')
+
+
+def parse_pdf(data):
+    """[{'date','time','at','opp','loc','tournament'}] from a team schedule printed to PDF (Date / Time / At / Opponent / Location / ...
+    columns, as school athletics sites print it). Raises ValueError when no schedule table is found."""
+    import io
+    import re
+    import pdfplumber
+    rows = []
+    with pdfplumber.open(io.BytesIO(data)) as pdf:
+        text = '\n'.join((p.extract_text() or '') for p in pdf.pages[:1])
+        cols = None
+        for page in pdf.pages:
+            for t in page.extract_tables() or []:
+                for r in t:
+                    cells = [_clean(c) for c in r]
+                    keys = [_HEADS.get(c.lower()) for c in cells]
+                    if 'date' in keys and 'opp' in keys:
+                        cols = keys
+                        continue
+                    if cols and len(cells) == len(cols):
+                        rec = {k: (r[i] or '') for i, k in enumerate(cols) if k}
+                        if rows and not re.search(r'\d', rec.get('date') or ''):
+                            for k, v in rec.items():                     # a game split across a page break: the rest of the row above
+                                if _clean(v):
+                                    rows[-1][k] = (rows[-1].get(k) or '') + ' ' + v
+                            continue
+                        rows.append(rec)
+    if not rows:
+        raise ValueError("Couldn't find a schedule table in that PDF. It should have Date and Opponent columns.")
+    m = re.search(r'\b(20\d\d)\b', text)
+    year_hint = int(m.group(1)) if m else None
+    games = []
+    for r in rows:
+        date = _parse_date(r.get('date'), year_hint)
+        opp = _clean_opp(r.get('opp'))
+        if not date or not opp:
+            continue
+        games.append({'date': date, 'time': _parse_time(r.get('time')), 'at': _at(r.get('at'), r.get('opp')), 'opp': opp[:60],
+                      'loc': _clean(r.get('loc'))[:120], 'tournament': _clean(r.get('tournament'))[:80]})
+    if not games:
+        raise ValueError("That PDF has a schedule table, but no games with a date and an opponent could be read from it.")
+    return games
+
+
+def save_upload(program, games, source):
+    """Replaces the program's schedule with the uploaded one. Returns the number of games saved."""
+    import datetime
+    spring = [g for g in games if int(g['date'][5:7]) <= 6]
+    season = (max(spring, key=lambda g: g['date']) if spring else max(games, key=lambda g: g['date']))['date'][:4]
+    d = {'program': store.program_slug(program), 'season': season, 'source': os.path.basename(source or '')[:120],
+         'updated': datetime.date.today().isoformat(), 'games': sorted(games, key=lambda g: g['date'])}
+    os.makedirs(DIR, exist_ok=True)
+    _write(program, d)
+    return len(games)

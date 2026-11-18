@@ -32,13 +32,34 @@
   .chip{display:inline-block;border-radius:999px;padding:2px 9px;font:700 12px 'Barlow',sans-serif;white-space:nowrap;}
   .chip.up{background:#e3f4ea;color:#1f7d55;} .chip.dn{background:#fbe6e3;color:#b0483a;} .chip.eq{background:#eef2f4;color:#5b6b75;}
   .more{font:700 13px 'Barlow',sans-serif;color:var(--accent-ink,#5c97a8);text-decoration:none;} .more:hover{text-decoration:underline;}
-  /* season snapshot */
-  .snap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:18px;align-items:stretch;}
-  .counts{display:grid;grid-template-columns:1fr 1fr;gap:12px;} .cnt{background:var(--card);border-radius:14px;box-shadow:var(--sh);padding:14px 16px;}
-  .cnt b{display:block;font:700 30px 'Oswald',sans-serif;font-variant-numeric:tabular-nums;} .cnt span{font:700 11px 'Barlow',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#6b7680;}
-  .cal{overflow-x:auto;} .cal-g{display:flex;gap:4px;} .cal-w{display:flex;flex-direction:column;gap:4px;} .cal-w i{width:var(--cs,13px);height:var(--cs,13px);border-radius:4px;background:#edf1f3;display:block;}
-  .cal-w i.fut{background:transparent;outline:1px dashed #e3e8eb;outline-offset:-1px;} .cal-m{font:700 10.5px 'Barlow',sans-serif;color:#8a959c;height:14px;white-space:nowrap;}
-  .cal-l{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:12.5px;color:#5b6b75;} .cal-l span::before{content:'';display:inline-block;width:11px;height:11px;border-radius:3px;background:var(--c);margin-right:6px;vertical-align:-1px;}
+  /* spring schedule */
+  .sch{padding:16px 16px 14px;} .sch-x{overflow-x:auto;padding:4px 2px 2px;}
+  .sch-g{display:grid;grid-auto-flow:column;grid-template-rows:16px repeat(7,auto);grid-template-columns:26px repeat(var(--wk),minmax(30px,48px));gap:5px;justify-content:center;min-width:calc(26px + var(--wk) * 35px);}
+  .sch-m{font:700 11px 'Barlow',sans-serif;color:#8a959c;white-space:nowrap;text-transform:uppercase;letter-spacing:.06em;align-self:end;}
+  .sch-dl{font:700 10.5px 'Barlow',sans-serif;color:#9aa5ab;display:flex;align-items:center;}
+  .sq{position:relative;aspect-ratio:1;border-radius:7px;background:#edf1f3;display:block;container-type:inline-size;text-decoration:none;}
+  .sq.fut{background:transparent;outline:1px dashed #dfe5e8;outline-offset:-1px;}
+  .sq.today{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--teal);}
+  .sq.g{box-shadow:0 1px 2px rgba(26,31,36,.18);overflow:hidden;} .sq.g.today{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--teal);}
+  a.sq.g:hover{transform:scale(1.08);z-index:2;transition:transform .12s;}
+  .sq img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:13%;box-sizing:border-box;}
+  .sq .ab{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 26cqw/1 'Oswald',sans-serif;color:#fff;letter-spacing:.02em;}
+  .sq.nt{background:#3b4b55;} .sq.post{background:#22303a;} .sq.post .ab{color:#f0c75e;font-size:23cqw;}
+  .sq .bd{position:absolute;font:700 max(8px,18cqw)/1 'Barlow',sans-serif;padding:2px 3px;border-radius:4px;color:#fff;background:rgba(20,26,31,.78);}
+  .sq .aw{top:2px;left:2px;} .sq .dh{top:2px;right:2px;}
+  .sq .rs{bottom:2px;right:2px;} .sq .rs.W{background:#2e7d4f;} .sq .rs.L{background:#b23b2e;} .sq .rs.S,.sq .rs.T{background:#5b6b75;}
+  .sq.past.g:not(.done){opacity:.55;}
+  .sch-l{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;font-size:12.5px;color:#5b6b75;align-items:center;}
+  .sch-l i{display:inline-block;font:700 10px 'Barlow',sans-serif;color:#fff;border-radius:4px;padding:2px 4px;margin-right:5px;background:rgba(20,26,31,.78);font-style:normal;}
+  .sch-l i.W{background:#2e7d4f;} .sch-l i.L{background:#b23b2e;}
+  .sch-l .tdy::before{content:'';display:inline-block;width:11px;height:11px;border-radius:3px;box-shadow:0 0 0 2px var(--teal);margin-right:7px;vertical-align:-1px;}
+  .ask{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:2px solid var(--teal);background:#f3f9fa;border-radius:16px;padding:16px 18px;margin-bottom:14px;}
+  .ask h3{margin:0 0 3px;font:700 18px 'Oswald',sans-serif;color:var(--ink);} .ask p{margin:0;color:#5b6b75;font-size:13.5px;max-width:560px;}
+  .upl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;} .upl input[type=file]{font-size:13px;max-width:240px;}
+  .upl button{font:700 13px 'Barlow',sans-serif;background:var(--teal);color:#fff;border:0;border-radius:999px;padding:8px 16px;cursor:pointer;}
+  .sch-up{margin-top:12px;padding-top:12px;border-top:1px solid #eef1f3;} .sch-up summary{cursor:pointer;font:700 12.5px 'Barlow',sans-serif;color:#5b6b75;}
+  .sch-up .upl{margin-top:10px;}
+  .flash{margin:16px 0 0;background:#fff;border-left:4px solid var(--teal);border-radius:10px;padding:10px 14px;font-size:14px;box-shadow:var(--sh);}
   /* stat strips */
   .strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
   .st{background:#f6f9fa;border-radius:12px;padding:10px 12px;} .st .l{font:700 11px 'Barlow',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#6b7680;}
@@ -106,8 +127,8 @@
   .pbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;}
   .pbs a{display:block;text-decoration:none;background:var(--card);border-radius:14px;box-shadow:var(--sh);padding:12px 14px;border-top:3px solid #e2b04a;}
   .pbs .w{font:700 15px 'Oswald',sans-serif;} .pbs .l{font-size:12.5px;color:var(--muted);margin:2px 0 6px;} .pbs .v{font:700 20px 'Oswald',sans-serif;color:#8a6212;} .pbs .v small{font:500 12px 'Barlow',sans-serif;color:var(--muted);margin-left:6px;}
-  @media (max-width:900px){.cols,.snap,.cz{grid-template-columns:1fr;}}
-  @media (max-width:560px){.cal-g{--cs:13px!important;} h1{font-size:32px;} .mode h2{font-size:23px;} .counts{grid-template-columns:1fr 1fr;} .cnt b{font-size:24px;} .rec .wl{font-size:44px;} .t .hide-s{display:none;}}
+  @media (max-width:900px){.cols,.cz{grid-template-columns:1fr;}}
+  @media (max-width:560px){h1{font-size:32px;} .mode h2{font-size:23px;} .sch{padding:12px 10px;} .sq .dh{display:none;} .rec .wl{font-size:44px;} .t .hide-s{display:none;}}
 </style></head><body>
 {% set D = home %}{% set M = mode %}{% set game = D.mode == 'game' %}
 <div class="hero"><div class="wrap">{% if wm_url %}<img class="wm" src="{{ wm_url }}" alt="">{% endif %}<div style="position:absolute;top:-14px;right:0;z-index:2;">{% include '_usermenu.html' %}</div>
@@ -117,26 +138,35 @@
 <div class="wrap">
 
   <div class="mode{{ ' game' if game }}">
-    <div><div class="mt">{{ 'Game mode' if game else 'Development mode' }}</div>
+    <div><div class="mt">{{ 'Spring' if game else 'Fall' }}</div>
       <h2>{{ 'Are we winning, and why?' if game else 'Are players getting better?' }}</h2>
       <p>{{ 'Spring into early summer: results, the latest game, who is hot, who is available out of the bullpen, and who is next.' if game else 'Fall and winter: season-long gains, process stats week by week, arsenal changes, and what is left to be ready for spring.' }}
         <small>{% if M.choice == 'auto' %}Set automatically ({{ M.reason }}).{% else %}Set by a coach. Choose Auto to follow the calendar again.{% endif %}</small></p></div>
     {% if can_edit %}<form method="post" action="{{ url_for('team_home_mode', program=program) }}" class="tog" aria-label="Team Home mode">
-      {% for v, l in [('auto', 'Auto'), ('dev', 'Development'), ('game', 'Game')] %}<button name="mode" value="{{ v }}" class="{{ 'on' if M.choice == v }}">{{ l }}</button>{% endfor %}</form>{% endif %}
+      {% for v, l in [('auto', 'Auto'), ('dev', 'Fall'), ('game', 'Spring')] %}<button name="mode" value="{{ v }}" class="{{ 'on' if M.choice == v }}">{{ l }}</button>{% endfor %}</form>{% endif %}
   </div>
 
-  <section class="sec"><div class="sec-h"><h2>Season at a Glance</h2><p>Every tracked session this season, by type</p></div>
-    <div class="snap">
-      <div class="counts">
-        <div class="cnt"><b>{{ D.n_sessions }}</b><span>Sessions</span></div>
-        <div class="cnt"><b>{{ '{:,}'.format(D.n_pitches) }}</b><span>Pitches thrown</span></div>
-        {% if D.hitting_ok %}<div class="cnt"><b>{{ '{:,}'.format(D.n_seen) }}</b><span>Pitches seen</span></div>{% endif %}
-        <div class="cnt"><b>{{ D.n_pitchers + (D.n_hitters if D.hitting_ok else 0) }}</b><span>Players tracked</span></div>
-      </div>
-      <div class="card cal">{% if D.calendar %}{% set cs = [26, [13, (640 / (D.calendar.weeks|length))|int]|max]|min %}<div class="cal-g" style="--cs:{{ cs }}px">{% for w in D.calendar.weeks %}<div class="cal-w"><div class="cal-m">{{ w.month }}</div>{% for d in w.days %}<i class="{{ 'fut' if d.future and not d.type }}" title="{{ d.label }}"{% if d.type %} style="background:{{ type_colors[d.type] }}"{% endif %}></i>{% endfor %}</div>{% endfor %}</div>
-        <div class="cal-l">{% for t, c, n in D.calendar.legend %}<span style="--c:{{ c }}">{{ t }} <b>{{ n }}</b></span>{% endfor %}<span style="--c:#edf1f3">No session</span></div>
-      {% else %}<p class="empty">No sessions this season yet.</p>{% endif %}</div>
-    </div></section>
+  {% if msg %}<div class="flash">{{ msg }}</div>{% endif %}
+  {% set S = D.schedule %}
+  <section class="sec" id="schedule"><div class="sec-h"><h2>{{ S.year }} Spring Schedule</h2><p>{% if S.n %}{{ S.n }} game{{ '' if S.n == 1 else 's' }} &middot; {{ S.first }} &ndash; {{ S.last }}{% else %}Opponent logos on every game day{% endif %}</p></div>
+    {% if D.ask_schedule %}<div class="ask"><div><h3>Upload your {{ S.year }} spring schedule</h3>
+        <p>{% if can_sched %}Print the schedule page from your school's athletics site to PDF and upload it here. Each game day fills in with the opponent's logo, and Game Reports match games to it.{% else %}Your head coach can upload the spring schedule here as a PDF. Each game day then fills in with the opponent's logo.{% endif %}</p></div>
+      {% if can_sched %}<form class="upl" method="post" enctype="multipart/form-data" action="{{ url_for('team_sched_upload', program=program) }}"><input type="hidden" name="next" value="{{ url_for('team_dashboard', program=program) }}#schedule"><input type="file" name="schedule_file" accept=".pdf,application/pdf" required aria-label="Schedule PDF"><button>Upload PDF</button></form>{% endif %}</div>{% endif %}
+    {% if S.weeks or not D.ask_schedule %}<div class="card sch">{% if S.weeks %}
+      <div class="sch-x"><div class="sch-g" style="--wk:{{ S.weeks|length }}">
+        <div class="sch-m"></div>{% for dl in ['Mon', '', 'Wed', '', 'Fri', '', 'Sun'] %}<div class="sch-dl">{{ dl }}</div>{% endfor %}
+        {% for w in S.weeks %}<div class="sch-m">{{ w.month }}</div>{% for d in w.days %}{% set g = d.top %}{% set tl = tiles.get(g.opp) if g else None %}
+          {% if g %}<{{ 'a' if d.gid else 'div' }} class="sq g{{ ' post' if g.post and not tl }}{{ ' nt' if not tl and not g.post }}{{ ' today' if d.today }}{{ ' done' if d.res }}{{ ' past' if not d.future and not d.today }}"{% if d.gid %} href="{{ url_for('team_game_scorebook', program=program, gid=d.gid) }}"{% endif %} title="{{ d.label }}" aria-label="{{ d.label }}"{% if tl %} style="background:{{ tl.bg }}"{% endif %}>
+            {% if tl %}<img src="{{ tl.url }}" alt="">{% else %}<span class="ab">{{ g.abbr }}</span>{% endif %}
+            {% if d.away %}<span class="bd aw">@</span>{% endif %}{% if d.n > 1 %}<span class="bd dh">&times;{{ d.n }}</span>{% endif %}
+            {% if d.res %}<span class="bd rs {{ d.res }}">{{ d.rec or d.res }}</span>{% endif %}</{{ 'a' if d.gid else 'div' }}>
+          {% else %}<i class="sq{{ ' fut' if d.future }}{{ ' today' if d.today }}" title="{{ d.label }}"></i>{% endif %}{% endfor %}{% endfor %}
+      </div></div>
+      <div class="sch-l"><span><i>@</i>Away</span><span><i>&times;2</i>Doubleheader</span><span><i class="W">W</i><i class="L">L</i>Result (opens the game report)</span><span class="tdy">Today</span><span style="color:#8a959c;">Hover a square for the opponent, time and score</span></div>
+      {% else %}<p class="empty">{% if can_sched %}No spring games on file yet. Upload the schedule PDF from your school's athletics site and each game day fills in with the opponent's logo.{% else %}No spring games on file yet.{% endif %}</p>{% endif %}
+      {% if can_sched and not D.ask_schedule %}<details class="sch-up"{% if not S.weeks %} open{% endif %}><summary>{{ 'Replace the schedule (PDF)' if S.n_sched else 'Upload the schedule (PDF)' }}</summary>
+        <form class="upl" method="post" enctype="multipart/form-data" action="{{ url_for('team_sched_upload', program=program) }}"><input type="hidden" name="next" value="{{ url_for('team_dashboard', program=program) }}#schedule"><input type="file" name="schedule_file" accept=".pdf,application/pdf" required aria-label="Schedule PDF"><button>Upload PDF</button>{% if S.n_sched %}<small style="color:#8a959c;">Replaces every game on file.</small>{% endif %}</form></details>{% endif %}
+    </div>{% endif %}</section>
 
   <div class="cols sec">
   {% if not game %}

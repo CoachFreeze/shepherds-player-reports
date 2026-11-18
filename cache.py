@@ -14,7 +14,7 @@ _LOCK = threading.Lock()
 _STATE = {'ver': None, 'mem': {}}
 MAX_ENTRIES = 300
 _SKIP = {'usage.json', 'upload_log.json', 'pitch_clips_cache.json'}       # these change on every page view / upload and feed none of the cached numbers
-_DIRS = ('', 'outings', 'rosters', 'team', 'scouting')
+_DIRS = ('', 'outings', 'rosters', 'team', 'scouting', 'schedules')
 
 
 def enabled():

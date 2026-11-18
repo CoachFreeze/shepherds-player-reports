@@ -98,6 +98,32 @@ SCHOOL_BADGES = [
 ]
 
 
+# Each school's secondary colour, keyed by logo file: fills the space around the logo on the Team Home schedule squares.
+# A school missing here falls back to its badge backing colour above.
+SCHOOL_SECONDARY = {
+    'arizona_christian.png': '#1E1E1E', 'benedictine_mesa.png': '#1E1E1E', 'biola.png': '#13294B', 'byu.png': '#0062B8',
+    'cal_poly.png': '#154734', 'cal_state_bakersfield.png': '#FFC72C', 'cal_state_fullerton.png': '#FF7900', 'cal_state_la.png': '#FFC72C',
+    'cal_state_northridge.png': '#1E1E1E', 'cal_state_san_bernardino.png': '#1E1E1E', 'cal_state_san_marcos.png': '#A2AAAD',
+    'california_baptist.png': '#A27D2C', 'cedarville.png': '#FFB81C', 'chaminade.png': '#C0C5CC', 'concordia_irvine.png': '#1E1E1E',
+    'embry_riddle.png': '#FFC20E', 'fresno_state.png': '#002E6D', 'hawaii.png': '#1E1E1E', 'hawaii_hilo.png': '#1E1E1E',
+    'hawaii_pacific.png': '#1E1E1E', 'hope_international.png': '#C99700', 'jessup.png': '#C5A15A', 'la_sierra.png': '#C99700',
+    'long_beach_state.png': '#FFB81C', 'loyola_marymount.png': '#00447C', 'masters.png': '#C5A464', 'montana_state_billings.png': '#FFC72C',
+    'northwest_nazarene.png': '#1E1E1E', 'oregon_state.png': '#1E1E1E', 'ouaz.png': '#1E1E1E', 'pacwest.png': '#14304F',
+    'park_gilbert.png': '#E0A800', 'pepperdine.png': '#E35205', 'point_loma.png': '#F2A900', 'sacramento_state.png': '#C4B581',
+    'san_diego_state.png': '#1E1E1E', 'san_jose_state.png': '#E5A823', 'shepherds.png': '#F3E8D7', 'uc_davis.png': '#FFBF00',
+    'uc_irvine.png': '#FFD200', 'uc_riverside.png': '#F1AB00', 'uc_san_diego.png': '#C69214', 'uc_santa_barbara.png': '#FEBC11',
+    'ucla.png': '#FFD100', 'university_of_san_diego.png': '#75BEE9', 'usc.png': '#FFCC00', 'utah_valley.png': '#E6E7E8',
+    'vanguard.png': '#C99700', 'ventura_college.png': '#1E1E1E', 'washington_state.png': '#5E6A71', 'west_texas_am.png': '#C8B88A',
+    'westmont.png': '#C9C9C9',
+}
+
+
+def school_secondary(school):
+    """-> (logo file name, secondary colour) for a school in the library, or None."""
+    m = _badge_entry(school, None)
+    return (m[0], SCHOOL_SECONDARY.get(m[0], m[1])) if m else None
+
+
 def _badge_entry(school, program=None):
     """Matches on the school name first, then falls back to the program (so a blank School box still works)."""
     s = (school or '').lower()

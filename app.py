@@ -993,7 +993,7 @@ def team_hitters(program):
 @app.route('/team/<program>/dashboard')
 @login_required
 def team_dashboard(program):
-    """Team Home: the season-focused landing page, in development mode (fall and winter) or game mode (spring into early summer)."""
+    """Team Home: the season-focused landing page, in its Fall version (fall and winter) or Spring version (spring into early summer)."""
     _team_ok(program)
     import teamhome
     hit_ok = plans.allowed(program, 'hitting')
@@ -1006,15 +1006,53 @@ def team_dashboard(program):
         picker = team.stat_picker(side, ids)
         labels = {it['id']: it['label'] for _g, items in picker for it in items}
         pickers.append((side, {'picker': picker, 'metrics': team.goal_metric_options(side), 'selected': [labels.get(i, i) for i in ids]}))
+    tiles = {o: _opp_tile(program, o) for o in home['schedule']['opps']}
     return render_template('team_home.html', program=program, team_label=store.program_label(program), home=home, mode=mode, pickers=pickers,
-                           type_colors=teamhome.TYPE_COLORS, can_edit=not is_demo_viewer(), is_admin=is_admin(),
-                           coach_key=session.get('coach') or '')
+                           tiles=tiles, can_edit=not is_demo_viewer(), can_sched=not is_demo_viewer() and not is_assistant() and not is_player(),
+                           is_admin=is_admin(), coach_key=session.get('coach') or '', msg=request.args.get('msg', '')[:200])
+
+
+def _opp_tile(program, label):
+    """Logo and fill colour for an opponent's square on the Team Home schedule: a coach's uploaded logo on white, else the school library
+    logo (white backing keyed out) on that school's secondary colour, else None (the square shows the opponent's initials)."""
+    slug = store.slugify(label) or 'unlabeled'
+    if _opp_own_logo(program, slug):
+        return {'url': _opp_logo_url(program, slug, label), 'bg': '#fff'}
+    b = pipeline.school_secondary(label)
+    return {'url': url_for('school_mark', fname=b[0]), 'bg': b[1]} if b else None
+
+
+@app.route('/team/<program>/schedule/upload', methods=['POST'])
+@login_required
+@head_required
+def team_sched_upload(program):
+    """The head coach uploads the season schedule as a PDF (printed from the school athletics site). Replaces the schedule on file."""
+    _team_ok(program)
+    import schedule as _sched
+    from urllib.parse import quote as _q
+    back, _h, frag = (_safe_next(request.form.get('next')) or url_for('team_dashboard', program=program)).partition('#')
+    sep = '&' if '?' in back else '?'
+    frag = '#' + frag if frag else '#schedule'
+    f = request.files.get('schedule_file')
+    if not f or not f.filename:
+        return redirect(back + sep + 'msg=' + _q('Choose the schedule PDF first.') + frag)
+    data = f.read()
+    if not f.filename.lower().endswith('.pdf') or not data.startswith(b'%PDF'):
+        return redirect(back + sep + 'msg=' + _q('The schedule needs to be a PDF.') + frag)
+    try:
+        games = _sched.parse_pdf(data)
+    except Exception as ex:
+        msg = str(ex) if isinstance(ex, ValueError) else "Couldn't read that PDF."
+        return redirect(back + sep + 'msg=' + _q(msg) + frag)
+    with github_sync.batch('Upload the season schedule'):
+        n = _sched.save_upload(program, games, f.filename)
+    return redirect(back + sep + 'msg=' + _q(f'Schedule saved: {n} games.') + frag)
 
 
 @app.route('/team/<program>/home-mode', methods=['POST'])
 @login_required
 def team_home_mode(program):
-    """A coach picks which Team Home shows: Auto (by the calendar), Development or Game."""
+    """A coach picks which Team Home shows: Auto (by the calendar), Fall or Spring."""
     _team_ok(program)
     import teamhome
     m = request.form.get('mode') or 'auto'
