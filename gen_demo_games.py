@@ -1,7 +1,8 @@
 """Adds a full 56-game spring season to the bundled sample program (demo/): Demo University against eight invented schools.
 
 Everything here is simulated with the same pitch model as gen_demo.py; no real players or real game data. Our side uses the sample
-program's pitchers and hitters, plus four relievers so the bullpen can cover a season. Re-running replaces the games it made before
+program's pitchers and hitters, plus four relievers so the bullpen can cover a season. Eleven invented home plate umpires
+work the games, from strongly hitter friendly to strongly pitcher friendly, so the umpire reports have something to show. Re-running replaces the games it made before
 and leaves the fall live at-bats from gen_demo.py alone.
 
     python gen_demo_games.py          # writes demo/outings, demo/players.json, demo/schedules, demo/logos
@@ -19,7 +20,7 @@ import gen_demo as gd
 
 DEMO = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'demo')
 P = 'demo_university'; LABEL = 'Demo University'; CODE = 'DEM_UNI'
-rng = random.Random(56)
+rng = random.Random(58)
 OPP_PREFIX = 'opp-demo-'          # the sample program's opponent pitchers; real uploads never make this prefix
 
 def name_flip(n):
@@ -81,8 +82,24 @@ for lab, code, c1, c2 in OPPS:
                                   rel_s=(rng.uniform(1.8, 2.6) if lh else -rng.uniform(1.2, 2.0)), ext=rng.uniform(5.9, 6.5), cmd=rng.uniform(.6, .7), mix=mix)
     OPP[lab] = dict(code=code, hitters=hitters, pitchers=pitchers, colors=(c1, c2))
 
+# ---------------------------------------------------------------- home plate umpires (all invented)
+# name, shift (ft the strike zone grows past the rule-book edge; + is pitcher friendly), width (ft of blur at the edge; bigger = less consistent)
+UMPS = [('Dale Hurley', .19, .10), ('Ray Castellano', .12, .085), ('Frank Ruiz', .10, .15), ('Tom Brandvold', .06, .07),
+        ('Victor Salas', 0.0, .05), ('Greg Whitcomb', .01, .07), ('Marcus Lindqvist', -.01, .14), ('Jim Okonkwo', -.06, .07),
+        ('Bill Haverford', -.11, .15), ('Pete Delgado', -.13, .085), ('Sean McAllister', -.20, .10)]
+_HALF, _BOT, _TOP = 17 / 24 + 0.121, 1.5 - 0.121, 3.5 + 0.121     # the rule-book zone the umpire report grades against (umpire.py)
+
+
+def ump_call(ump, x, z):
+    """Chance this umpire calls a taken pitch at (x, z) a strike: a soft edge, moved out (or in) by his shift."""
+    import math
+    _n, shift, width = ump
+    d = max(abs(x) - _HALF, _BOT - z, z - _TOP)                     # > 0 outside the zone
+    return 1 / (1 + math.exp(max(-40, min(40, (d - shift) / width))))
+
+
 # ---------------------------------------------------------------- one plate appearance, pitch by pitch (Trackman-style fields)
-def sim_pa(Pd, H, pcount):
+def sim_pa(Pd, H, pcount, ump):
     balls = strikes = 0; last = None; pitches = []
     while True:
         pcount += 1
@@ -100,7 +117,7 @@ def sim_pa(Pd, H, pcount):
             else:
                 call = 'StrikeSwinging'
         else:
-            call = 'StrikeCalled' if rng.random() < gd.called_strike_prob(reg) else 'BallCalled'
+            call = 'StrikeCalled' if rng.random() < ump_call(ump, pit['_x'], pit['_z']) else 'BallCalled'
         row['PitchCall'] = call
         pitches.append(row)
         if call == 'InPlay':
@@ -175,7 +192,7 @@ class Staff:
                 self.cur = rng.choice(left[:3]); self.used.append(self.cur); self.n[self.cur] = 0
 
 
-def sim_game(date, opp, home, starter_us, starter_opp, game_no, t0):
+def sim_game(date, opp, home, starter_us, starter_opp, game_no, t0, ump):
     O = OPP[opp]
     us = Staff(PEN, starter_us, rng.randint(80, 98))
     oppp = list(O['pitchers'])
@@ -203,7 +220,7 @@ def sim_game(date, opp, home, starter_us, starter_opp, game_no, t0):
                 pk = staff.cur; Pd = pdict[pk]
                 bname = lineup[idx[bat] % 9]; idx[bat] += 1; pa_i += 1
                 H = hdict[bname]
-                pitches, outcome, staff.n[pk] = sim_pa(Pd, H, staff.n[pk])
+                pitches, outcome, staff.n[pk] = sim_pa(Pd, H, staff.n[pk], ump)
                 runs, oop, pres, nb = apply_play(outcome, bases, outs)
                 if outs + oop >= 3:
                     runs = 0 if pres not in ('HomeRun',) else runs
@@ -215,7 +232,7 @@ def sim_game(date, opp, home, starter_us, starter_opp, game_no, t0):
                               'Pitcher': Pd['name'], 'PitcherId': Pd['pid'], 'PitcherThrows': Pd['throws'], 'PitcherTeam': CODE if bat == 'opp' else O['code'],
                               'PitcherSet': 'Stretch' if any(bases) else 'Windup', 'Batter': bname, 'BatterSide': 'Right' if H['side'] == 'R' else 'Left',
                               'BatterTeam': O['code'] if bat == 'opp' else CODE, 'Inning': str(inn), 'Top/Bottom': half, 'Outs': str(outs),
-                              'PAofInning': str(pa_i), 'PitchofPA': str(k + 1), 'SessionType': 'Game', 'Opponent': opp, 'GameUID': guid,
+                              'PAofInning': str(pa_i), 'Umpire': ump[0], 'PitchofPA': str(k + 1), 'SessionType': 'Game', 'Opponent': opp, 'GameUID': guid,
                               'HomeTeam': home_code, 'AwayTeam': away_code, 'Level': 'D2', 'League': 'Demo', 'Stadium': 'Demo Field' if home else opp + ' Field',
                               })
                 last = pitches[-1]
@@ -292,10 +309,12 @@ def main():
     ours = {k: {} for k in STAFF}
     theirs = {}
     played, sched = [], []
+    umps_used = {}
     for n, g in enumerate(schedule()):
         day, opp = g['day'].isoformat(), g['opp']
         sp = list(OPP[opp]['pitchers'])[n % 3]
-        rows_us, rows_opp, score, _ = sim_game(day, opp, g['home'], g['st'], sp, n, rng.randint(0, 600))
+        ump = UMPS[(n * 4 + n // 11) % len(UMPS)]                   # every umpire works five or six games, spread across the season
+        rows_us, rows_opp, score, _ = sim_game(day, opp, g['home'], g['st'], sp, n, rng.randint(0, 600), ump)
         guid = f'demo-{day}-{n}'
         for pk, ps in rows_us:
             for r in ps:
@@ -306,6 +325,7 @@ def main():
                 r['GameUID'] = guid
             theirs.setdefault(pk, (opp, {}))[1].setdefault(day, []).extend(ps)
         played.append((day, opp, score['us'], score['opp']))
+        umps_used[ump[0]] = umps_used.get(ump[0], 0) + 1
         sched.append({'date': day, 'time': g['time'], 'at': 'Home' if g['home'] else 'Away', 'opp': opp,
                       'loc': 'Demo City, CA / Demo Field' if g['home'] else f'{TOWNS[opp]} / {opp} Field', 'tournament': ''})
     # our pitchers: keep the fall live at-bats, replace any games made before
@@ -338,6 +358,7 @@ def main():
         logo(os.path.join(DEMO, 'logos', 'opp', f'{P}--{_slugify(lab)}.png'), ini, c1, c2)
     w = sum(1 for p in played if p[2] > p[3])
     l_ = sum(1 for p in played if p[2] < p[3])
+    print(umps_used)
     print(f'{len(played)} games, {w}-{l_}' + (f'-{len(played) - w - l_}' if len(played) - w - l_ else ''), f'{len(theirs)} opponent pitchers')
 
 
