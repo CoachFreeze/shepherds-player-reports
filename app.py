@@ -842,6 +842,16 @@ def _stat_table(program, side, basic=False):
                         cells[i] = (team._fmt_hit(kind, v), v)
                 rows.append({'name': pl['name'], 'key': pl['key'], 'disp': _last_first(pl['name']), 'jersey': jersey(pl['name']), 'url': url_for('beta_hitter', key=pl['key']), 'n': pl['n'], 'cells': cells})
             cols = [{'id': i, 'label': lab, 'abbr': ab_, 'group': 'Basic', 'def': d} for i, lab, ab_, d, kind in team.BASIC_HIT if any(i in r['cells'] for r in rows)]
+            if not fs:                           # WAR (spring games only) sits at the end of the basic sheet too
+                import war
+                WT = war.for_program(program)
+                for r in rows:
+                    wv = WT['h'].get(r['key'])
+                    if wv and wv.get('war') is not None:
+                        r['cells']['war'] = (f"{wv['war']:.1f}", wv['war'])
+                if any('war' in r['cells'] for r in rows):
+                    cols.append({'id': 'war', 'label': f"WAR (Spring {WT['year']})", 'abbr': 'WAR', 'group': 'Basic',
+                                 'def': f"Offensive wins above replacement from the Spring {WT['year']} games only. 9.5 runs = 1 win."})
             rows.sort(key=lambda r: r['disp'].lower())
             return cols, [{'name': 'Basic', 'n': len(cols)}], rows
         for pl in D['players']:
@@ -879,6 +889,19 @@ def _stat_table(program, side, basic=False):
                 ('stuff', 'Stuff+ (Beta)', 'Still being tuned. Pitch shape grade against MLB pitches of the same type, weighted by usage. 100 = MLB average; 10 points = one standard deviation. An estimate.', lambda v: f'{v:.0f}'),
                 ('loc', 'Location+ (Beta)', 'Still being tuned. Needs 150 located pitches. Location grade, from MLB run values by zone, against the other pitchers in ShepSavant. 100 = average here; 10 points = one standard deviation.', lambda v: f'{v:.0f}')]
     ADV_GROUP = {'stuff': 'Pitch grades', 'loc': 'Pitch grades'}
+    if not fs:                                   # WAR: spring games only (war.py)
+        import war
+        WT = war.for_program(program)
+        for r in rows:
+            wv = WT['p' if side == 'pitching' else 'h'].get(r['key'])
+            if wv and wv.get('war') is not None:
+                r['cells']['war'] = (f"{wv['war']:.1f}", wv['war'])
+        if any('war' in r['cells'] for r in rows):
+            cols.append({'id': 'war', 'label': f"WAR (Spring {WT['year']})", 'abbr': 'WAR', 'group': 'Spring',
+                         'def': (f"Wins above replacement from the Spring {WT['year']} games only: innings and FIP against a replacement-level pitcher, "
+                                 "with a small credit for starting. 9.5 runs = 1 win." if side == 'pitching' else
+                                 f"Offensive wins above replacement from the Spring {WT['year']} games only: wOBA against the league, "
+                                 "plus a position adjustment and replacement-level credit per plate appearance. 9.5 runs = 1 win.")})
     for r in rows:
         v = adv.get(r['key'])
         vals = ({k: v[k] for k, *_ in ADV if v and v.get(k) is not None} if preview else advanced.released('p' if side == 'pitching' else 'h', v))
@@ -1375,7 +1398,8 @@ def _pitcher_page(slug, bio, public=False, token=None):
     arm_link = (not public and not is_player() and (bio.get('program') or 'shepherds') == 'shepherds')
     import classyear
     _cs = classyear.player_state(bio.get('program'), bio.get('name'), (bio.get('roster') or {}).get('class_year'), bio.get('roster_ys'), bio.get('grad_year'))
-    return render_template('player_overview.html', class_now=_cs['label'], class_grad=_cs['graduated'], ins=ins, wl=wl, arm_link=arm_link, armcare_url=__import__('armcare').URL, dr=_dr, public=public, photo_src=(url_for('public_share_photo', token=token) if public else None),
+    spring_war = None if public else _spring_war(_prog, 'p', slug)
+    return render_template('player_overview.html', spring_war=spring_war, class_now=_cs['label'], class_grad=_cs['graduated'], ins=ins, wl=wl, arm_link=arm_link, armcare_url=__import__('armcare').URL, dr=_dr, public=public, photo_src=(url_for('public_share_photo', token=token) if public else None),
                            share=(None if public else _share_ctx('pitcher', slug, _prog)), share_team=store.program_label(_prog) if (public and _prog) else '',
                            can_retag=can_retag, retag_types=[l for l, _ in outings_mod.RETAG_TYPES], pr_ent=(None if public else prs.for_pitcher(slug)), b=b, bio=bio, slug=slug, css=css, hitter_url=hitter_url, roles=roles, has_photo=has_photo, badge=badge,
                            photo_v=int(os.path.getmtime(headshots.path(slug))) if has_photo else 0,
@@ -2464,6 +2488,21 @@ def beta_hitter(key):
     return _hitter_render(key, h)
 
 
+def _spring_war(program, side, key):
+    """{'war', 'year', 'line'} for one of our players' spring games, or None (no spring games yet, or not tagged enough)."""
+    if not program or store.is_fullswing(program):
+        return None
+    try:
+        import war
+        T = war.for_program(program)
+    except Exception:
+        return None
+    v = T[side].get(key)
+    if not v or v.get('war') is None:
+        return None
+    return {'war': v['war'], 'year': T['year'], 'line': war.label(v, side)}
+
+
 def _hitter_render(key, h, public=False, token=None):
     g.theme_program = h['program']
     css = re.sub(r'@font-face\s*\{[^}]*\}', '', pipeline.CSS)
@@ -2488,7 +2527,8 @@ def _hitter_render(key, h, public=False, token=None):
         _ck = catcher.key_for(h['bio']['name'], h['program'])
         if _ck and _ck in _B['catchers']:
             cat = {'c': _B['catchers'][_ck], 'team_call': _B['team_call'], 'zone_svg': catcher.zone_svg(_B['catchers'][_ck]['recv']['points']), 'res_ids': catcher.RESULT_IDS}
-    return render_template('beta_hitter.html', roles=roles, cat=cat, **(cat or {}), ins=ins, dr=_dr, public=public, hurl=hurl, photo_src=(url_for('public_share_photo', token=token) if public and _ps else None),
+    spring_war = None if (public or h.get('opp_slug')) else _spring_war(h['program'], 'h', key)
+    return render_template('beta_hitter.html', spring_war=spring_war, roles=roles, cat=cat, **(cat or {}), ins=ins, dr=_dr, public=public, hurl=hurl, photo_src=(url_for('public_share_photo', token=token) if public and _ps else None),
                            share=(None if public else _share_ctx('hitter', key, h['program'])), share_team=store.program_label(h['program']) if public else '',
                            pr_ent=(None if public else prs.for_hitter(key)), h=h, css=css, can_edit=((not public) and not h['demo'] and not h.get('opp_slug') and not is_player() and (is_admin() or h['program'] == my_program())),
                            photo_v=int(os.path.getmtime(headshots.path(_ps))) if _ps else 0,

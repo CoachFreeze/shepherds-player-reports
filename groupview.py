@@ -197,6 +197,24 @@ def _days_ago(d, today):
 
 
 # ------------------------------------------------------------------ pitchers
+def _war_board(program, side, D):
+    """A WAR leaderboard (spring games only) to lead the board list, or [] before any spring game is in."""
+    import store
+    import war
+    if store.is_fullswing(program):
+        return []
+    try:
+        T = war.for_program(program)
+    except Exception:
+        return []
+    names = {p['key']: p['name'] for p in D['players']}
+    got = sorted(((k, v) for k, v in T[side].items() if v.get('war') is not None and k in names), key=lambda kv: -kv[1]['war'])[:5]
+    if not got:
+        return []
+    return [{'title': 'WAR', 'sub': f"Spring {T['year']} games only", 'unit': 'WAR',
+             'rows': [{'key': k, 'name': names[k], 'value': f"{v['war']:.1f}", 'extra': war.label(v, side)} for k, v in got]}]
+
+
 def pitching(program, ids, low_better, url_for_player, today=None):
     import season
     win = season.window(program)
@@ -329,7 +347,7 @@ def _pitching(program, ids, low_better, win, today_s, url_for_player):
         arsenal.append({'type': t, 'pct': 100 * n / tot, 'velo': (sv_ / sn) if sn else None, 'n': n, 'color': _pitch_color(t, colors)})
 
     pbs_recent = [dict(ev, url=url_for_player('p', ev['key']), date_s=_fmt_date(ev['date'])) for ev in prs.program_recent(program, days=30, limit=200) if ev['kind'] == 'p'][:8]
-    return {'boards': D['boards'], 'side': 'pitching', 'fs': fs, 'kpis': kpis, 'standouts': standouts, 'quad': quad, 'qlab': qlab, 'work': work, 'wmax': wmax, 'arsenal': arsenal,
+    return {'boards': _war_board(program, 'p', D) + D['boards'], 'side': 'pitching', 'fs': fs, 'kpis': kpis, 'standouts': standouts, 'quad': quad, 'qlab': qlab, 'work': work, 'wmax': wmax, 'arsenal': arsenal,
             'pbs': pbs_recent, 'n_players': D['n_players'], 'n_pitches': D['n_pitches'], 'n_sessions': len(dates),
             'last_session': _fmt_date(dates[-1]) if dates else None, 'recent_days': RECENT_DAYS,
             'trend': D['trend']}
@@ -461,6 +479,6 @@ def _hitting(program, ids, low_better, win, include_demo, url_for_player):
     sdr_split = [{'grade': g, 'n': len(grades.get(g, [])), 'names': grades.get(g, [])} for g in order]
 
     pbs_recent = [dict(ev, url=url_for_player('h', ev['key']), date_s=_fmt_date(ev['date'])) for ev in prs.program_recent(program, days=30, limit=200) if ev['kind'] == 'h'][:8]
-    return {'boards': D['boards'], 'side': 'hitting', 'fs': fs, 'kpis': kpis, 'standouts': standouts, 'quad': quad, 'qlab': qlab, 'hot': hot, 'cold': cold, 'sdr_split': sdr_split,
+    return {'boards': _war_board(program, 'h', D) + D['boards'], 'side': 'hitting', 'fs': fs, 'kpis': kpis, 'standouts': standouts, 'quad': quad, 'qlab': qlab, 'hot': hot, 'cold': cold, 'sdr_split': sdr_split,
             'sdr_total': sum(x['n'] for x in sdr_split), 'pbs': pbs_recent, 'n_players': D['n_players'], 'n_pitches': D['n_pitches'],
             'n_sessions': len(dates), 'last_session': _fmt_date(dates[-1]) if dates else None, 'recent_days': RECENT_DAYS, 'trend': D['trend']}
