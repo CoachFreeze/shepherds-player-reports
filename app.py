@@ -432,6 +432,9 @@ def inject_prs():
 
 
 app.jinja_env.globals['is_fs'] = lambda program: store.is_fullswing(program)
+import boxscores as _bx
+import datetime as _dt_mod
+app.jinja_env.globals['has_box'] = lambda program: _bx.has(program)
 from section_info import info as _section_info
 app.jinja_env.globals['info'] = _section_info
 import hotzones
@@ -852,6 +855,15 @@ def _stat_table(program, side, basic=False):
                 if any('war' in r['cells'] for r in rows):
                     cols.append({'id': 'war', 'label': f"WAR (Spring {WT['year']})", 'abbr': 'WAR', 'group': 'Basic',
                                  'def': f"Offensive wins above replacement from the Spring {WT['year']} games only. 9.5 runs = 1 win."})
+                import winprob
+                PT = winprob.for_program(program)
+                for r in rows:
+                    pv = PT['h'].get(r['key'])
+                    if pv:
+                        r['cells']['wpa'] = (f"{pv['wpa']:+.2f}", pv['wpa'])
+                if any('wpa' in r['cells'] for r in rows):
+                    cols.append({'id': 'wpa', 'label': f"WPA (Spring {PT['year']})", 'abbr': 'WPA', 'group': 'Basic',
+                                 'def': f"Win Probability Added from the Spring {PT['year']} games only: how much his at-bats moved our chance to win, added up. +1.00 is one full win."})
             rows.sort(key=lambda r: r['disp'].lower())
             return cols, [{'name': 'Basic', 'n': len(cols)}], rows
         for pl in D['players']:
@@ -902,6 +914,15 @@ def _stat_table(program, side, basic=False):
                                  "with a small credit for starting. 9.5 runs = 1 win." if side == 'pitching' else
                                  f"Offensive wins above replacement from the Spring {WT['year']} games only: wOBA against the league, "
                                  "plus a position adjustment and replacement-level credit per plate appearance. 9.5 runs = 1 win.")})
+        import winprob
+        PT = winprob.for_program(program)
+        for r in rows:
+            pv = PT['p' if side == 'pitching' else 'h'].get(r['key'])
+            if pv:
+                r['cells']['wpa'] = (f"{pv['wpa']:+.2f}", pv['wpa'])
+        if any('wpa' in r['cells'] for r in rows):
+            cols.append({'id': 'wpa', 'label': f"WPA (Spring {PT['year']})", 'abbr': 'WPA', 'group': 'Spring',
+                         'def': f"Win Probability Added from the Spring {PT['year']} games only: how much the at-bats {'he pitched' if side == 'pitching' else 'he took'} moved our chance to win, added up. +1.00 is one full win."})
     for r in rows:
         v = adv.get(r['key'])
         vals = ({k: v[k] for k, *_ in ADV if v and v.get(k) is not None} if preview else advanced.released('p' if side == 'pitching' else 'h', v))
@@ -1625,6 +1646,20 @@ def team_games(program):
         played.append({'kind': 'played', 'gid': gid, 'opp': gm['opp'], 'date': gm['date'], 'n': gm['n'], 'us': m['score']['us'], 'them': m['score']['opp'],
                        'partial': not (m['pitchers']['us'] and m['pitchers']['opp']), 'time': '', 'loc': '',
                        'at': 'Home' if m['us_home'] else 'Away'})
+    # games from the official box scores that have no tracking data: shown as played, opening the box score
+    if _bx.has(program):
+        def _words(x):
+            return {w for w in re.split(r'[^a-z]+', (x or '').lower()) if len(w) >= 4} - {'state', 'university', 'college'}
+        _bw = tuple(_win or (None, None))
+        if not _bw[0] and not _bw[1] and _bx.years(program):        # one open-ended season (no tracking data yet): show the latest spring
+            _ly = _bx.years(program)[-1]
+            _bw = (f'{_ly}-01-01', f'{_ly}-07-01')
+        for bg in _bx.games_between(program, *_bw):
+            if any(x['date'] == bg['date'] and (_words(x['opp']) & _words(bg['opp']) or store.slugify(x['opp'])[:4] == store.slugify(bg['opp'])[:4])
+                   for x in played):
+                continue
+            played.append({'kind': 'played', 'box': True, 'gid': bg['gid'], 'opp': bg['opp'], 'date': bg['date'], 'n': 0, 'us': bg['us'],
+                           'them': bg['them'], 'partial': False, 'time': '', 'loc': bg.get('site') or '', 'at': bg['at']})
     intra = []
     for gid, gm in gr.collect_intrasquads(program).items():
         if not season.in_window(gm['date'], _win):
@@ -1674,6 +1709,7 @@ def team_games(program):
         if xs:
             split_rec[where] = (sum(1 for x in xs if x['res'] == 'W'), sum(1 for x in xs if x['res'] == 'L'), sum(1 for x in xs if x['res'] == 'T'))
     form = [x['res'] for x in sorted(played, key=lambda x: x['date'])][-5:]
+    rd = _run_diff(played)
     n_sched = len(_sched.load(program))
     other = None                                 # nothing played this season yet: point to the latest season that has games
     if not played:
@@ -1685,8 +1721,183 @@ def team_games(program):
                          'l': sum(1 for x in xs if x['us'] < x['opp'])}
                 break
     return render_template('games.html', other=other, program=program, team_label=store.program_label(program), months=months, intra=intra, rec=rec, split_rec=split_rec,
-                           form=form, nxt=nxt, n_played=len(played), n_left=sum(1 for x in rest if x['date'] >= today), n_sched=n_sched,
+                           form=form, rd=rd, nxt=nxt, n_played=len(played), n_left=sum(1 for x in rest if x['date'] >= today), n_sched=n_sched,
                            msg=request.args.get('msg'), can_edit=not (is_assistant() or is_player()), show_ump=not is_player())
+
+
+# ------------------------------------------------------------------ Season Stats (box scores from the program's athletics site)
+def _box_year(program):
+    ys = _bx.years(program)
+    if not ys:
+        abort(404)
+    try:
+        y = int(request.args.get('year') or 0)
+    except ValueError:
+        y = 0
+    return (y if y in ys else ys[-1]), ys
+
+
+@app.route('/team/<program>/stats')
+@login_required
+def team_box_stats(program):
+    """Season Stats: every player's season line from the official box scores, with advanced stats against the level, plus the game log."""
+    _team_ok(program)
+    if not _bx.has(program):
+        abort(404)
+    g.theme_program = program
+    year, ys = _box_year(program)
+    view = request.args.get('view') if request.args.get('view') in ('bat', 'pit', 'games') else 'bat'
+    L = _bx.season_lines(program, year)
+    games = []
+    run = 0
+    for gm in L['games']:
+        run += gm['us'] - gm['them']
+        d = _dt_mod.date.fromisoformat(gm['date'])
+        games.append(dict(gm, res=('W' if gm['us'] > gm['them'] else ('L' if gm['us'] < gm['them'] else 'T')), rd_run=run,
+                          date_pretty=d.strftime('%a %b %-d'), mon=d.strftime('%b'),
+                          logo=_opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp'], mark=True)))
+    rd = None
+    if games:
+        rd = _run_diff([dict(x, gid=x['gid'], at=x['at']) for x in games])
+    try:
+        minpa = max(1, int(request.args.get('min') or 0))
+    except ValueError:
+        minpa = 1
+    return render_template('box_stats.html', program=program, team_label=store.program_label(program), year=year, years=ys, view=view, L=L,
+                           games=games, rd=rd, level=_bx.level(program), minpa=minpa)
+
+
+@app.route('/team/<program>/stats/player/<pid>')
+@login_required
+def team_box_player(program, pid):
+    """One player's seasons from the box scores, year by year, plus his game log for the season picked."""
+    _team_ok(program)
+    if not _bx.has(program):
+        abort(404)
+    g.theme_program = program
+    P = _bx.player_seasons(program, pid)
+    if not P['name']:
+        abort(404)
+    yrs = sorted({y for y, _ in P['bat']} | {y for y, _ in P['pit']})
+    try:
+        year = int(request.args.get('year') or yrs[-1])
+    except ValueError:
+        year = yrs[-1]
+    if year not in yrs:
+        year = yrs[-1]
+    log = _bx.game_log(program, year, pid)
+    wpa = {}
+    for gm, _b, _q in log:
+        for ev in _bx.plays(program, year, gm['gid']) or []:
+            if ev['kind'] != 'pa':
+                continue
+            if ev['bat'] == 'us' and _bx.player_id(ev['batter']) == pid:
+                wpa[gm['gid']] = wpa.get(gm['gid'], 0.0) + ev['wpa']
+            elif ev['bat'] == 'opp' and ev.get('pitcher') and _bx.player_id(ev['pitcher']) == pid:
+                wpa[gm['gid']] = wpa.get(gm['gid'], 0.0) - ev['wpa']
+    return render_template('box_stats.html', program=program, team_label=store.program_label(program), view='player', P=P, pid=pid, year=year,
+                           years=yrs, log=log, wpa=wpa, level=_bx.level(program))
+
+
+@app.route('/team/<program>/box/<gid>')
+@login_required
+def team_box_game(program, gid):
+    """One game from the box score: line score, win probability from the play-by-play, both box scores and every play."""
+    _team_ok(program)
+    year, gm = _bx.find_game(program, gid)
+    if not gm:
+        abort(404)
+    g.theme_program = program
+    import winprob
+    evs = _bx.plays(program, year, gid) or []
+    names = {'us': store.program_label(program), 'opp': gm['opp']}
+    pts = [(ev['we_us'], {'inn': ev['inn'], 'bat': ev['bat'], 'wpa': (ev['wpa'] if ev['kind'] == 'pa' else None)}) for ev in evs]
+    if evs:
+        pts.append((evs[-1]['we_us_after'], None))
+    chart = winprob.chart_svg(None, {'points': pts}, names) if len(pts) > 2 else ''
+    swing_rows = [i for i, (_v, pa) in enumerate(pts) if pa and pa.get('swing_no')]
+    swings = [{'no': pts[i][1]['swing_no'], 'ev': evs[i]} for i in swing_rows]
+    for s_ in swings:
+        s_['ev']['swing_no'] = s_['no']
+    series = [{'v': round(ev['we_us'], 4), 'lab': f"{'Top' if ev['tb'] == 0 else 'Bot'} {ev['inn']}: {ev['text']}",
+               'w': (round(ev['wpa'] if ev['bat'] == 'us' else -ev['wpa'], 4) if ev['kind'] == 'pa' else None)} for ev in evs]
+    if evs:
+        series.append({'v': round(evs[-1]['we_us_after'], 4), 'lab': 'Final', 'w': None})
+    halves = []
+    for ev in evs:
+        k = (ev['inn'], ev['tb'])
+        if not halves or halves[-1]['k'] != k:
+            halves.append({'k': k, 'label': f"{'Top' if ev['tb'] == 0 else 'Bottom'} {ev['inn']}", 'bat': ev['bat'], 'evs': []})
+        halves[-1]['evs'].append(ev)
+    pw = {'us': {}, 'opp': {}}
+    for ev in evs:
+        if ev['kind'] != 'pa':
+            continue
+        pw[ev['bat']][ev['batter']] = pw[ev['bat']].get(ev['batter'], 0.0) + ev['wpa']
+        fld = 'opp' if ev['bat'] == 'us' else 'us'
+        if ev.get('pitcher'):
+            pw[fld]['p:' + ev['pitcher']] = pw[fld].get('p:' + ev['pitcher'], 0.0) - ev['wpa']
+    d = _dt_mod.date.fromisoformat(gm['date'])
+    res = 'W' if gm['us'] > gm['them'] else ('L' if gm['us'] < gm['them'] else 'T')
+    return render_template('box_stats.html', program=program, team_label=store.program_label(program), view='game', gm=gm, year=year, years=[year],
+                           chart=chart, series=series, swings=swings, halves=halves, pw=pw, res=res, names=names,
+                           date_pretty=d.strftime('%A, %B %-d, %Y'), pretty=_bx._pretty, pid_of=_bx.player_id,
+                           logo=_opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp']), us_logo=_wm_url(program), level=_bx.level(program))
+
+
+def _run_diff(played):
+    """Season run differential, game by game: sets x['rd_run'] (running total after that game) on every played game and returns
+    {'total', 'rs', 'ra', 'per', 'svg'} or None before any game."""
+    import html
+    xs = sorted(played, key=lambda x: (x['date'], x['gid']))
+    if not xs:
+        return None
+    run = 0
+    pts = []
+    for x in xs:
+        run += x['us'] - x['them']
+        x['rd_run'] = run
+        pts.append((x, x['us'] - x['them'], run))
+    W, H, pl, pr, pt, pb = 900, 190, 40, 12, 14, 24
+    lo = min(0, min(p[2] for p in pts), min(p[1] for p in pts))
+    hi = max(0, max(p[2] for p in pts), max(p[1] for p in pts))
+    if hi == lo:
+        hi = lo + 1
+    span = hi - lo
+    n = len(pts)
+    bw = (W - pl - pr) / n
+
+    def Y(v):
+        return pt + (H - pt - pb) * (hi - v) / span
+
+    def X(i):
+        return pl + bw * (i + 0.5)
+    step = next(s_ for s_ in (1, 2, 5, 10, 20, 25, 50, 100, 200) if span / s_ <= 6)
+    o = [f'<svg viewBox="0 0 {W} {H}" class="rdc" role="img" aria-label="Run differential, game by game and running total" preserveAspectRatio="none">']
+    t = (lo // step) * step
+    while t <= hi:
+        if t >= lo:
+            o.append(f'<line x1="{pl}" x2="{W - pr}" y1="{Y(t):.1f}" y2="{Y(t):.1f}" stroke="{"#9aa5ab" if t == 0 else "#eef1f2"}" stroke-width="1"/>'
+                     f'<text x="{pl - 6}" y="{Y(t) + 4:.1f}" text-anchor="end" class="ax">{t:+d}</text>'.replace('>+0<', '>0<'))
+        t += step
+    for i, (x, d, r) in enumerate(pts):
+        y0, y1 = sorted((Y(0), Y(d)))
+        col = '#2e7d4f' if d > 0 else ('#b23b2e' if d < 0 else '#8a959c')
+        o.append(f'<rect x="{X(i) - bw * 0.32:.1f}" y="{y0:.1f}" width="{bw * 0.64:.1f}" height="{max(y1 - y0, 1):.1f}" rx="1.5" fill="{col}" fill-opacity=".55">'
+                 f'<title>{html.escape(x["date_pretty"])} {"at" if x.get("at") == "Away" else "vs"} {html.escape(x["opp"])}: {x["us"]}-{x["them"]} ({d:+d}), season {r:+d}</title></rect>')
+    line = ' '.join(f"{X(i):.1f},{Y(r):.1f}" for i, (_x, _d, r) in enumerate(pts))
+    o.append(f'<polyline points="{line}" fill="none" stroke="#22303a" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>')
+    lx, ly = X(n - 1), Y(pts[-1][2])
+    o.append(f'<circle cx="{lx:.1f}" cy="{ly:.1f}" r="4" fill="#22303a"/>')
+    mon = None
+    for i, (x, _d, _r) in enumerate(pts):
+        m_ = x['date'][:7]
+        if m_ != mon:
+            mon = m_
+            o.append(f'<text x="{X(i) - bw / 2:.1f}" y="{H - 6}" class="ax">{html.escape(x["mon"])}</text>')
+    o.append('</svg>')
+    rs, ra = sum(x['us'] for x in xs), sum(x['them'] for x in xs)
+    return {'total': run, 'rs': rs, 'ra': ra, 'per': run / n, 'n': n, 'svg': ''.join(o)}
 
 
 @app.route('/team/<program>/game/<gid>/recap')
@@ -2498,9 +2709,16 @@ def _spring_war(program, side, key):
     except Exception:
         return None
     v = T[side].get(key)
-    if not v or v.get('war') is None:
+    try:
+        import winprob
+        pv = winprob.for_program(program)[side].get(key)
+    except Exception:
+        pv = None
+    has_war = bool(v and v.get('war') is not None)
+    if not has_war and not pv:
         return None
-    return {'war': v['war'], 'year': T['year'], 'line': war.label(v, side)}
+    return {'war': v['war'] if has_war else None, 'year': T['year'], 'line': war.label(v, side) if has_war else None,
+            'wpa': pv['wpa'] if pv else None}
 
 
 def _hitter_render(key, h, public=False, token=None):
