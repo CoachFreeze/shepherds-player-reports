@@ -1858,7 +1858,7 @@ def _run_diff(played):
         run += x['us'] - x['them']
         x['rd_run'] = run
         pts.append((x, x['us'] - x['them'], run))
-    W, H, pl, pr, pt, pb = 900, 190, 40, 12, 14, 24
+    W, H, pl, pr, pt, pb = 900, 170, 0, 0, 14, 24         # H matches the box height; the side margins are CSS pixels on .rdk
     lo = min(0, min(p[2] for p in pts), min(p[1] for p in pts))
     hi = max(0, max(p[2] for p in pts), max(p[1] for p in pts))
     if hi == lo:
@@ -1872,30 +1872,39 @@ def _run_diff(played):
 
     def X(i):
         return pl + bw * (i + 0.5)
+
+    def at(x, y):
+        return f"left:{100 * x / W:.3f}%;top:{100 * y / H:.3f}%"
     step = next(s_ for s_ in (1, 2, 5, 10, 20, 25, 50, 100, 200) if span / s_ <= 6)
-    o = [f'<svg viewBox="0 0 {W} {H}" class="rdc" role="img" aria-label="Run differential, game by game and running total" preserveAspectRatio="none">']
+    # lines and bars stretch with the box; the labels and the end dot are HTML, so text and circles keep their shape
+    o = ['<style>.rdk{position:relative;height:170px;margin:8px 6px 0 34px;} .rdk svg{position:absolute;inset:0;width:100%;height:100%;display:block;}'
+         '.rdk .lb{position:absolute;font:600 11px Barlow,sans-serif;color:#8a959c;white-space:nowrap;line-height:1;pointer-events:none;}'
+         '.rdk .lb.y{transform:translate(calc(-100% - 6px),-50%);} .rdk .dot{position:absolute;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:#22303a;}</style>',
+         f'<div class="rdk"><svg viewBox="0 0 {W} {H}" role="img" aria-label="Run differential, game by game and running total" preserveAspectRatio="none">']
+    lab = []
     t = (lo // step) * step
     while t <= hi:
         if t >= lo:
-            o.append(f'<line x1="{pl}" x2="{W - pr}" y1="{Y(t):.1f}" y2="{Y(t):.1f}" stroke="{"#9aa5ab" if t == 0 else "#eef1f2"}" stroke-width="1"/>'
-                     f'<text x="{pl - 6}" y="{Y(t) + 4:.1f}" text-anchor="end" class="ax">{t:+d}</text>'.replace('>+0<', '>0<'))
+            o.append(f'<line x1="{pl}" x2="{W - pr}" y1="{Y(t):.1f}" y2="{Y(t):.1f}" stroke="{"#9aa5ab" if t == 0 else "#eef1f2"}" stroke-width="1" vector-effect="non-scaling-stroke"/>')
+            lab.append(f'<span class="lb y" style="{at(pl, Y(t))}">{"0" if t == 0 else f"{t:+d}"}</span>')
         t += step
     for i, (x, d, r) in enumerate(pts):
         y0, y1 = sorted((Y(0), Y(d)))
         col = '#2e7d4f' if d > 0 else ('#b23b2e' if d < 0 else '#8a959c')
-        o.append(f'<rect x="{X(i) - bw * 0.32:.1f}" y="{y0:.1f}" width="{bw * 0.64:.1f}" height="{max(y1 - y0, 1):.1f}" rx="1.5" fill="{col}" fill-opacity=".55">'
+        o.append(f'<rect x="{X(i) - bw * 0.32:.1f}" y="{y0:.1f}" width="{bw * 0.64:.1f}" height="{max(y1 - y0, 1):.1f}" fill="{col}" fill-opacity=".55">'
                  f'<title>{html.escape(x["date_pretty"])} {"at" if x.get("at") == "Away" else "vs"} {html.escape(x["opp"])}: {x["us"]}-{x["them"]} ({d:+d}), season {r:+d}</title></rect>')
     line = ' '.join(f"{X(i):.1f},{Y(r):.1f}" for i, (_x, _d, r) in enumerate(pts))
     o.append(f'<polyline points="{line}" fill="none" stroke="#22303a" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>')
-    lx, ly = X(n - 1), Y(pts[-1][2])
-    o.append(f'<circle cx="{lx:.1f}" cy="{ly:.1f}" r="4" fill="#22303a"/>')
+    lab.append(f'<span class="dot" style="{at(X(n - 1), Y(pts[-1][2]))}"></span>')
     mon = None
     for i, (x, _d, _r) in enumerate(pts):
         m_ = x['date'][:7]
         if m_ != mon:
             mon = m_
-            o.append(f'<text x="{X(i) - bw / 2:.1f}" y="{H - 6}" class="ax">{html.escape(x["mon"])}</text>')
+            lab.append(f'<span class="lb" style="{at(X(i) - bw / 2, H - pb + 8)}">{html.escape(x["mon"])}</span>')
     o.append('</svg>')
+    o.extend(lab)
+    o.append('</div>')
     rs, ra = sum(x['us'] for x in xs), sum(x['them'] for x in xs)
     return {'total': run, 'rs': rs, 'ra': ra, 'per': run / n, 'n': n, 'svg': ''.join(o)}
 

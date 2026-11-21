@@ -289,12 +289,21 @@ def players(m):
     return out
 
 
-def chart_svg(m, res, names, colors=('#2f6f80', '#b23b2e'), W=1000, Hh=260):
-    """Win probability line for our team across the game, with inning marks and the three biggest swings numbered."""
+CHART_CSS = ('<style>.wpk{position:relative;height:240px;margin:0 12px 0 38px;} .wpk svg{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible;}'
+             '.wpk .lb{position:absolute;font:600 11px Barlow,sans-serif;color:#8a959c;white-space:nowrap;pointer-events:none;line-height:1;}'
+             '.wpk .lb.y{transform:translate(calc(-100% - 8px),-50%);} .wpk .lb.x{transform:translate(3px,0);}'
+             '.wpk .lb.t{font:700 11px Barlow,sans-serif;letter-spacing:.08em;text-transform:uppercase;}'
+             '.wpk .mk{position:absolute;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;border:2px solid #fff;color:#fff;'
+             'font:700 11px/16px Barlow,sans-serif;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.2);pointer-events:none;}</style>')
+
+
+def chart_svg(m, res, names, colors=('#2f6f80', '#b23b2e'), W=1000, Hh=240):
+    """Win probability line for our team across the game, with inning marks and the three biggest swings numbered.
+    The lines are an SVG stretched to the box; every label and marker is HTML placed by percent, so text never stretches."""
     pts = res['points']
     if len(pts) < 2:
         return ''
-    padl, padr, padt, padb = 44, 14, 16, 28
+    padl, padr, padt, padb = 0, 0, 16, 28                 # the side margins are CSS pixels on .wpk, so the axis labels fit on a phone
     iw, ih = W - padl - padr, Hh - padt - padb
     n = len(pts) - 1
 
@@ -303,26 +312,31 @@ def chart_svg(m, res, names, colors=('#2f6f80', '#b23b2e'), W=1000, Hh=260):
 
     def Y(v):
         return padt + ih * (1 - v)
+
+    def at(x, y):
+        return f"left:{100 * x / W:.3f}%;top:{100 * y / Hh:.3f}%"
     us_c, opp_c = colors
+    esc = lambda t: str(t).replace('&', '&amp;').replace('<', '&lt;')
     line = ' '.join(f"{X(i):.1f},{Y(v):.1f}" for i, (v, _p) in enumerate(pts))
-    o = [f'<svg viewBox="0 0 {W} {Hh}" class="wpc" role="img" aria-label="{names["us"]} win probability through the game" preserveAspectRatio="none">',
+    o = [CHART_CSS, f'<div class="wpk"><svg viewBox="0 0 {W} {Hh}" class="wpc" role="img" aria-label="{esc(names["us"])} win probability through the game" preserveAspectRatio="none">',
          f'<defs><clipPath id="wpa-top"><rect x="0" y="0" width="{W}" height="{Y(0.5):.1f}"/></clipPath><clipPath id="wpa-bot"><rect x="0" y="{Y(0.5):.1f}" width="{W}" height="{Hh}"/></clipPath></defs>']
+    lab = []
     for v in (0.25, 0.5, 0.75):
         dash = ' stroke-dasharray="4 4"' if v == 0.5 else ''
         col = '#9aa5ab' if v == 0.5 else '#e4e8ea'
-        o.append(f'<line x1="{padl}" x2="{W - padr}" y1="{Y(v):.1f}" y2="{Y(v):.1f}" stroke="{col}" stroke-width="1"{dash}/>')
-    for v, lab in ((1.0, '100%'), (0.5, '50%'), (0.0, '0%')):
-        o.append(f'<text x="{padl - 8}" y="{Y(v) + 4:.1f}" text-anchor="end" class="ax">{lab}</text>')
-    o.append(f'<text x="{padl + 6}" y="{padt + 12}" class="tl" fill="{us_c}">{names["us"]}</text>')
-    o.append(f'<text x="{padl + 6}" y="{Hh - padb - 6}" class="tl" fill="{opp_c}">{names["opp"]}</text>')
+        o.append(f'<line x1="{padl}" x2="{W - padr}" y1="{Y(v):.1f}" y2="{Y(v):.1f}" stroke="{col}" stroke-width="1" vector-effect="non-scaling-stroke"{dash}/>')
+    for v, t in ((1.0, '100%'), (0.5, '50%'), (0.0, '0%')):
+        lab.append(f'<span class="lb y" style="{at(padl, Y(v))}">{t}</span>')
+    lab.append(f'<span class="lb t" style="{at(padl + 6, padt + 2)};color:{us_c}">{esc(names["us"])}</span>')
+    lab.append(f'<span class="lb t" style="{at(padl + 6, Hh - padb - 16)};color:{opp_c}">{esc(names["opp"])}</span>')
     seen = set()
     for i, (_v, pa) in enumerate(pts):
         if pa is None or pa['inn'] in seen:
             continue
         seen.add(pa['inn'])
         x = X(i)
-        o.append(f'<line x1="{x:.1f}" x2="{x:.1f}" y1="{padt}" y2="{Hh - padb}" stroke="#eef1f2" stroke-width="1"/>')
-        o.append(f'<text x="{x + 3:.1f}" y="{Hh - 10}" class="ax">{pa["inn"]}</text>')
+        o.append(f'<line x1="{x:.1f}" x2="{x:.1f}" y1="{padt}" y2="{Hh - padb}" stroke="#eef1f2" stroke-width="1" vector-effect="non-scaling-stroke"/>')
+        lab.append(f'<span class="lb x" style="{at(x, Hh - padb + 8)}">{pa["inn"]}</span>')
     area = f"{X(0):.1f},{Y(0.5):.1f} {line} {X(n):.1f},{Y(0.5):.1f}"
     o.append(f'<polygon points="{area}" fill="{us_c}" fill-opacity=".16" clip-path="url(#wpa-top)"/>')
     o.append(f'<polygon points="{area}" fill="{opp_c}" fill-opacity=".16" clip-path="url(#wpa-bot)"/>')
@@ -333,9 +347,10 @@ def chart_svg(m, res, names, colors=('#2f6f80', '#b23b2e'), W=1000, Hh=260):
         x, y = X(i + 1), Y(pts[i + 1][0])
         pa['swing_no'] = rank + 1
         good = (pa['wpa'] > 0) == (pa['bat'] == 'us')
-        o.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="9" fill="{us_c if good else opp_c}" stroke="#fff" stroke-width="2"/>'
-                 f'<text x="{x:.1f}" y="{y + 3.6:.1f}" text-anchor="middle" class="no">{rank + 1}</text>')
+        lab.append(f'<span class="mk" style="{at(x, y)};background:{us_c if good else opp_c}">{rank + 1}</span>')
     o.append('</svg>')
+    o.extend(lab)
+    o.append('</div>')
     return ''.join(o)
 
 
