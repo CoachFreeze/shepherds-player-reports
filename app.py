@@ -1654,9 +1654,10 @@ def team_games(program):
         if not _bw[0] and not _bw[1] and _bx.years(program):        # one open-ended season (no tracking data yet): show the latest spring
             _ly = _bx.years(program)[-1]
             _bw = (f'{_ly}-01-01', f'{_ly}-07-01')
+        tracked = list(played)                                       # match against tracked games only (doubleheaders are two box games)
         for bg in _bx.games_between(program, *_bw):
             if any(x['date'] == bg['date'] and (_words(x['opp']) & _words(bg['opp']) or store.slugify(x['opp'])[:4] == store.slugify(bg['opp'])[:4])
-                   for x in played):
+                   for x in tracked):
                 continue
             played.append({'kind': 'played', 'box': True, 'gid': bg['gid'], 'opp': bg['opp'], 'date': bg['date'], 'n': 0, 'us': bg['us'],
                            'them': bg['them'], 'partial': False, 'time': '', 'loc': bg.get('site') or '', 'at': bg['at']})
@@ -1702,14 +1703,20 @@ def team_games(program):
         if not months or months[-1][0] != lab:
             months.append((lab, []))
         months[-1][1].append(x)
-    rec = {k: sum(1 for x in played if x['res'] == k) for k in 'WLT'}
+    # Fall games (July through December) are exhibitions: listed, but never part of the record, the form or the run differential
+    for x in played:
+        x['fall'] = int(x['date'][5:7]) >= 7
+    counted = [x for x in played if not x['fall']]
+    fall_games = [x for x in played if x['fall']]
+    fall_rec = {k: sum(1 for x in fall_games if x['res'] == k) for k in 'WLT'}
+    rec = {k: sum(1 for x in counted if x['res'] == k) for k in 'WLT'}
     split_rec = {}
     for where in ('Home', 'Away', 'Neutral'):
-        xs = [x for x in played if x.get('at') == where]
+        xs = [x for x in counted if x.get('at') == where]
         if xs:
             split_rec[where] = (sum(1 for x in xs if x['res'] == 'W'), sum(1 for x in xs if x['res'] == 'L'), sum(1 for x in xs if x['res'] == 'T'))
-    form = [x['res'] for x in sorted(played, key=lambda x: x['date'])][-5:]
-    rd = _run_diff(played)
+    form = [x['res'] for x in sorted(counted, key=lambda x: x['date'])][-5:]
+    rd = _run_diff(counted)
     n_sched = len(_sched.load(program))
     other = None                                 # nothing played this season yet: point to the latest season that has games
     if not played:
@@ -1721,7 +1728,7 @@ def team_games(program):
                          'l': sum(1 for x in xs if x['us'] < x['opp'])}
                 break
     return render_template('games.html', other=other, program=program, team_label=store.program_label(program), months=months, intra=intra, rec=rec, split_rec=split_rec,
-                           form=form, rd=rd, nxt=nxt, n_played=len(played), n_left=sum(1 for x in rest if x['date'] >= today), n_sched=n_sched,
+                           form=form, rd=rd, nxt=nxt, n_played=len(played), fall_n=len(fall_games), fall_rec=fall_rec, n_left=sum(1 for x in rest if x['date'] >= today), n_sched=n_sched,
                            msg=request.args.get('msg'), can_edit=not (is_assistant() or is_player()), show_ump=not is_player())
 
 

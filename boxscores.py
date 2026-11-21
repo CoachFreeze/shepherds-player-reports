@@ -199,12 +199,19 @@ def parse_game(raw, program):
     for lab, rows in T:
         if len(rows) >= 3 and rows[0] and rows[0][0] == 'Team' and len(rows[0]) > 6 and (rows[0][1] == '1' or 'innning' in rows[0][1] or rows[0][1].startswith('1')):
             hdr = [h.split()[-1] if h else h for h in rows[0]]
+            n_tail = sum(1 for h in hdr[-3:] if h in ('R', 'H', 'E'))
             for side, row in (('top', rows[1]), ('bot', rows[2])):
-                for h, v in zip(hdr[1:], row[1:]):
-                    if h.isdigit():
-                        ls[side].append(v if v not in ('', '-') else None)
-                    elif h in ('R', 'H', 'E'):
-                        rhe[side][h] = _int(v)
+                # R, H, E are always the last cells; everything between the team name and them is an inning, even when the
+                # header lists fewer innings than the row has (an extra inning, or an 'X' for an unplayed bottom half)
+                tail = row[len(row) - n_tail:] if n_tail else []
+                for h, v in zip([h for h in hdr[-3:] if h in ('R', 'H', 'E')], tail):
+                    rhe[side][h] = _int(v)
+                for v in row[1:len(row) - n_tail]:
+                    v = (v or '').strip()
+                    ls[side].append(v if v not in ('', '-') else None)
+            while ls['top'] and ls['bot'] and ls['top'][-1] is None and ls['bot'][-1] in (None, 'X'):
+                ls['top'].pop()
+                ls['bot'].pop()
             break
     # batting: the composite tables (POS, Player, AB, R, H, RBI, 2B, 3B, HR, BB, SB, CS, HBP, SH, SF, SO, KL, GDP, PO, A)
     comp = [(lab, rows) for lab, rows in T if rows and len(rows[0]) > 12 and rows[0][0].upper() == 'POS' and rows[0][1] == 'Player']
