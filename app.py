@@ -1814,7 +1814,8 @@ def team_box_game(program, gid):
     pts = [(ev['we_us'], {'inn': ev['inn'], 'bat': ev['bat'], 'wpa': (ev['wpa'] if ev['kind'] == 'pa' else None)}) for ev in evs]
     if evs:
         pts.append((evs[-1]['we_us_after'], None))
-    chart = winprob.chart_svg(None, {'points': pts}, names) if len(pts) > 2 else ''
+    wpc = _game_colors(program, gm['opp'])
+    chart = winprob.chart_svg(None, {'points': pts}, names, colors=(wpc['us'], wpc['opp'])) if len(pts) > 2 else ''
     swing_rows = [i for i, (_v, pa) in enumerate(pts) if pa and pa.get('swing_no')]
     swings = [{'no': pts[i][1]['swing_no'], 'ev': evs[i]} for i in swing_rows]
     for s_ in swings:
@@ -1842,7 +1843,7 @@ def team_box_game(program, gid):
     return render_template('box_stats.html', program=program, team_label=store.program_label(program), view='game', gm=gm, year=year, years=[year],
                            chart=chart, series=series, swings=swings, halves=halves, pw=pw, res=res, names=names,
                            date_pretty=d.strftime('%A, %B %-d, %Y'), pretty=_bx._pretty, pid_of=_bx.player_id,
-                           logo=_opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp']), us_logo=_wm_url(program), level=_bx.level(program), bio=_bx.bio)
+                           logo=_opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp']), us_logo=_team_logo_url(program), level=_bx.level(program), bio=_bx.bio, wpc=wpc)
 
 
 def _run_diff(played):
@@ -1929,7 +1930,8 @@ def team_game_recap(program, gid):
     tl = 'Home' if intra else store.program_label(program)
     ol = 'Visitors' if intra else gm['opp']
     names = {'us': tl, 'opp': ol}
-    R = gamerecap.summary(m, names)
+    wpc = ({'us': '#2f6f80', 'opp': '#b23b2e', 'us_ink': '#ffffff', 'opp_ink': '#ffffff'} if intra else _game_colors(program, ol))
+    R = gamerecap.summary(m, names, wpc)
     view = request.args.get('view') if request.args.get('view') in ('performers', 'plays') else 'recap'
     info = {'at': ('Home' if m['us_home'] else 'Away'), 'loc': '', 'time': ''}
     if not intra:
@@ -1948,7 +1950,7 @@ def team_game_recap(program, gid):
     return render_template('game_recap.html', program_name=store.program_label(program), program=program, gid=gid, m=m, R=R, view=view, names=names, order=order, info=info, intra=intra,
                            res=res, complete=complete, n_pitches=gm['n'], date_pretty=d.strftime('%A, %B %-d, %Y'), team_label=tl, opp=ol,
                            logo=(None if intra else _opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp'])),
-                           us_logo=(None if intra else _wm_url(program)), show_ump=not (is_player() or intra))
+                           us_logo=(None if intra else _team_logo_url(program)), wpc=wpc, show_ump=not (is_player() or intra))
 
 
 @app.route('/team/<program>/outings')
@@ -2458,6 +2460,52 @@ def _opp_logo_bg(program, opp_slug, label):
         return '#fff'
     b = pipeline.school_badge_file(label, None)
     return b[1] if b else '#fff'
+
+
+@functools.lru_cache(maxsize=64)
+def _mostly_white(path, mtime):
+    from PIL import Image
+    try:
+        im = Image.open(path).convert('RGBA')
+    except Exception:
+        return False
+    im.thumbnail((120, 120))
+    px = [p for p in im.getdata() if p[3] > 120]
+    return bool(px) and sum(1 for p in px if min(p[:3]) > 225) / len(px) > 0.7
+
+
+def _team_logo_url(program):
+    """Our logo for a white card (game pages). The header watermark is often a white mark made for the dark header (Long Beach
+    State's), which disappears on white, so a mostly-white mark falls back to the school logo."""
+    src = theme.watermark_source(program)
+    if src and src[0] in ('custom', 'builtin'):
+        try:
+            white = _mostly_white(src[1], os.path.getmtime(src[1]))
+        except OSError:
+            white = False
+        if not white:
+            return _wm_url(program)
+        b = pipeline.school_badge_file(store.program_label(program), program)
+        return url_for('school_mark', fname=b[0]) if b else None
+    return _wm_url(program)
+
+
+def _game_colors(program, opp_label):
+    """{'us': color, 'opp': color} for a win probability chart: our team color and the opponent's (read from its logo)."""
+    t = theme.for_program(program)
+    slug = store.slugify(opp_label) or 'unlabeled'
+    cols = ()
+    p = _opp_own_logo(program, slug)
+    if p:
+        cols = theme.logo_palette(p)
+    if not cols:
+        ent = pipeline._badge_entry(opp_label, None)
+        if ent:
+            cols = theme.logo_palette(pipeline.school_file_path(ent[0]))
+            if ent[1] and ent[1].upper() != '#FFFFFF':
+                cols = cols + (ent[1],)
+    us, opp = theme.matchup_colors((t['brand'], t['accent']), cols)
+    return {'us': us, 'opp': opp, 'us_ink': theme.on_color(us), 'opp_ink': theme.on_color(opp)}
 
 
 def _opp_logo_url(program, opp_slug, label, mark=False):

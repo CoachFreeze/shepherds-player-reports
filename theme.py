@@ -216,3 +216,82 @@ def watermark_source(program):
         return 'builtin', p
     b = pipeline.school_badge_file(store.program_label(program), program)
     return ('school', b[0]) if b else None
+
+
+# ------------------------------------------------------------------ team colors for charts (win probability)
+def chart_color(brand, accent):
+    """The one color that reads as a team on a white chart: the more colorful of the pair, kept between dark and washed out
+    (Long Beach State's black and gold -> gold; Biola's red and blue -> red)."""
+    best = None
+    for c in (brand, accent):
+        if not _valid(c):
+            continue
+        h, l, s = _hls(_rgb(c))
+        score = s * (1 - abs(l - 0.45) * 1.4)
+        if best is None or score > best[0]:
+            best = (score, c)
+    if not best or best[0] < 0.12:                                 # black / gray / white team: a slate that still reads
+        return '#3b4b55'
+    h, l, s = _hls(_rgb(best[1]))
+    return _hex(_from_hls(h, min(max(l, 0.32), 0.55), s))
+
+
+def _close(a, b):
+    ha, la, sa = _hls(_rgb(a))
+    hb, lb, sb = _hls(_rgb(b))
+    dh = abs(((ha - hb + 0.5) % 1) - 0.5)
+    if sa > 0.25 and sb > 0.25:
+        return dh < 0.07                                           # same hue family (gold vs gold, red vs maroon)
+    return contrast(_rgb(a), _rgb(b)) < 1.4                        # grays / near-blacks: only when they're also close in shade
+
+
+@functools.lru_cache(maxsize=256)
+def logo_palette(path):
+    """The logo's team colors, most used first (each at least 8% of the colored pixels): ['#00274c', '#ffcb05']."""
+    from PIL import Image
+    try:
+        im = Image.open(path).convert('RGBA')
+    except Exception:
+        return ()
+    im.thumbnail((140, 140))
+    sectors = {}
+    for r, g, b, al in im.getdata():
+        if al < 200:
+            continue
+        h, l, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+        if s >= 0.3 and 0.08 < l < 0.85:
+            k = int(h * 12) % 12
+            a = sectors.setdefault(k, [0, 0, 0, 0])
+            a[0] += 1
+            a[1] += r
+            a[2] += g
+            a[3] += b
+    tot = sum(a[0] for a in sectors.values())
+    cl = sorted((a for a in sectors.values() if a[0] >= 0.08 * max(tot, 1)), key=lambda a: -a[0])
+    return tuple(_hex((a[1] / a[0], a[2] / a[0], a[3] / a[0])) for a in cl)
+
+
+def matchup_colors(us_pair, opp_colors):
+    """(our chart color, theirs). The opponent gets the first of its colors that doesn't look like ours, else gray."""
+    us = chart_color(*us_pair)
+    for c in (opp_colors or ()):
+        cc = chart_color(c, c)
+        if cc != '#3b4b55' and not _close(us, cc):
+            return us, cc
+    return us, '#8a959c'
+
+
+def logo_pair(path, bg=None):
+    """Kept for callers that want (brand, accent) from a logo file, or None."""
+    if not path:
+        return None
+    try:
+        return _from_logo(path, bg)
+    except Exception:
+        return None
+
+
+def on_color(c):
+    """White or near-black text, whichever reads better on `c`."""
+    rgb = _rgb(c)
+    return '#ffffff' if contrast((255, 255, 255), rgb) >= contrast((27, 27, 27), rgb) else '#1b1b1b'

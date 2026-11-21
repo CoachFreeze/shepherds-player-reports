@@ -1,9 +1,13 @@
 """Game Recap: top performers and key plays for one game, from the built game model (gamereport.build).
 
-Trackman has no baserunner data, so runners on base are inferred (gamereport.advance_runners) and key plays are picked by a simple impact
-score rather than true win probability: runs that score, go-ahead and tying runs, late innings, and threats that end with runners stranded.
+Trackman has no baserunner data, so runners on base are inferred (gamereport.advance_runners). Every plate appearance carries its Win
+Probability Added (winprob.game); key plays are the scoring plays, stranded threats and double plays plus any at-bat that swung the win
+chance by WPA_KEY or more, and the top plays are the biggest swings.
 """
 import gamereport as gr
+import winprob
+
+WPA_KEY = 0.10            # an at-bat that moves the win chance this much is a key play even without a run
 
 HARD_HIT = 95.0
 _VERB = {'Single': 'singled', 'Double': 'doubled', 'Triple': 'tripled', 'Walk': 'walked', 'HBP': 'was hit by a pitch',
@@ -94,6 +98,9 @@ def key_plays(m, names):
             tag, imp = 'Double play', 2.0
         elif pa['result'] in ('Double', 'Triple') and (pa.get('ev') or 0) >= 100:
             tag, imp = 'Extra-base hit', 1.0
+        w = pa.get('wpa')
+        if not tag and w is not None and abs(w) >= WPA_KEY:
+            tag, imp = 'Big swing', 1.0
         if not tag:
             continue
         if pa['inn'] >= late:
@@ -104,7 +111,8 @@ def key_plays(m, names):
         score = f"{names['us']} {run['us']}, {names['opp']} {run['opp']}"
         out.append({'half': _half(pa), 'inn': pa['inn'], 'tb': pa['tb'], 'text': _describe(pa), 'tag': tag, 'impact': round(imp, 1), 'bat': bat,
                     'pitcher': gr._flip(pa['pitcher']), 'ctx': f"{_bases_text(on)}, {pa['outs']} out{'' if pa['outs'] == 1 else 's'}",
-                    'score': score + (' (tied)' if lead else ''), 'good': bat == 'us' if pa['runs'] or tag == 'Extra-base hit' else bat != 'us'})
+                    'score': score + (' (tied)' if lead else ''), 'wpa': w, 'swing_no': pa.get('swing_no'),
+                    'good': ((w > 0) == (bat == 'us')) if w is not None else (bat == 'us' if pa['runs'] or tag == 'Extra-base hit' else bat != 'us')})
     return out
 
 
@@ -132,7 +140,8 @@ def _hitter_lines(m, side):
             bits.append(f"{cnt['Walk']} BB" if cnt['Walk'] > 1 else 'BB')
         if cnt['HBP']:
             bits.append('HBP')
-        rows.append({'name': gr._flip(ent['name']), 'raw': ent['name'], 'line': ', '.join(bits), 'score': round(score, 2),
+        ws = [p['wpa'] for p in ps if p.get('wpa') is not None]
+        rows.append({'name': gr._flip(ent['name']), 'raw': ent['name'], 'line': ', '.join(bits), 'score': round(score, 2), 'wpa': sum(ws) if ws else None,
                      'max_ev': max(evs) if evs else None, 'hard': hard, 'kind': 'h'})
     return sorted(rows, key=lambda r: -r['score'])
 
@@ -145,7 +154,8 @@ def _pitcher_lines(m, side):
         outs = _ip_outs(p['ip'])
         gs = 40 + 2 * outs + p['k'] - 2 * p['bb'] - 2 * p['h'] - 3 * p['r'] - 6 * p['hr']      # game score, version 2
         line = f"{p['ip']} IP, {p['h']} H, {p['r']} R, {p['bb']} BB, {p['k']} K"
-        rows.append({'name': p['name'], 'raw': p['raw'], 'slug': p['slug'], 'line': line, 'score': gs, 'np': p['np'], 'top': p['top'],
+        ws = [-x['wpa'] for x in p['pas'] if x.get('wpa') is not None]
+        rows.append({'name': p['name'], 'raw': p['raw'], 'slug': p['slug'], 'line': line, 'score': gs, 'np': p['np'], 'top': p['top'], 'wpa': sum(ws) if ws else None,
                      'strike_pct': p['strike_pct'], 'kind': 'p'})
     return sorted(rows, key=lambda r: -r['score'])
 
@@ -155,11 +165,19 @@ def performers(m):
     return {s: {'hitters': _hitter_lines(m, s), 'pitchers': _pitcher_lines(m, s)} for s in ('us', 'opp')}
 
 
-def summary(m, names):
+def summary(m, names, colors=None):
+    wp = winprob.game(m)
+    chart = winprob.chart_svg(m, wp, names, **({'colors': (colors['us'], colors['opp'])} if colors else {}))       # numbers the three biggest swings, so it runs before key_plays
     P = performers(m)
     plays = key_plays(m, names)
-    top = sorted(plays, key=lambda x: -x['impact'])[:5]
+    top = sorted(plays, key=lambda x: -(abs(x['wpa']) if x['wpa'] is not None else x['impact'] / 100))[:5]
     top_ids = {id(x) for x in top}
-    return {'perf': P, 'plays': plays, 'top_plays': [x for x in plays if id(x) in top_ids],
+    swings = sorted([pa for pa in m['pas'] if pa.get('swing_no')], key=lambda pa: pa['swing_no'])
+    return {'perf': P, 'plays': plays, 'top_plays': [x for x in plays if id(x) in top_ids], 'chart': chart, 'wp_ok': wp['ok'],
+            'swings': [{'no': pa['swing_no'], 'half': _half(pa), 'text': _describe(pa), 'wpa': pa['wpa'], 'bat': pa['bat'],
+                        'good': (pa['wpa'] > 0) == (pa['bat'] == 'us')} for pa in swings],
+            'wp_series': [{'v': round(v, 4), 'lab': (f"{_half(pa)}, {pa['outs']} out{'' if pa['outs'] == 1 else 's'}: {_describe(pa)}" if pa else 'Final'),
+                           'w': (round(pa['wpa'] if pa['bat'] == 'us' else -pa['wpa'], 4) if pa and pa.get('wpa') is not None else None)}
+                          for v, pa in wp['points']],
             'hits': {s: sum(1 for p in m['teams'][s]['pas'] if p['result'] in gr.HITS) for s in ('us', 'opp')},
             'errs': {s: sum(1 for p in m['teams']['opp' if s == 'us' else 'us']['pas'] if p['result'] == 'Error') for s in ('us', 'opp')}}
