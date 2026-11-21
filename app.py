@@ -1764,7 +1764,7 @@ def team_box_stats(program):
     except ValueError:
         minpa = 1
     return render_template('box_stats.html', program=program, team_label=store.program_label(program), year=year, years=ys, view=view, L=L,
-                           games=games, rd=rd, level=_bx.level(program), minpa=minpa)
+                           games=games, rd=rd, level=_bx.level(program), minpa=minpa, bio=_bx.bio)
 
 
 @app.route('/team/<program>/stats/player/<pid>')
@@ -1796,7 +1796,7 @@ def team_box_player(program, pid):
             elif ev['bat'] == 'opp' and ev.get('pitcher') and _bx.player_id(ev['pitcher']) == pid:
                 wpa[gm['gid']] = wpa.get(gm['gid'], 0.0) - ev['wpa']
     return render_template('box_stats.html', program=program, team_label=store.program_label(program), view='player', P=P, pid=pid, year=year,
-                           years=yrs, log=log, wpa=wpa, level=_bx.level(program))
+                           years=yrs, log=log, wpa=wpa, level=_bx.level(program), bio=_bx.bio)
 
 
 @app.route('/team/<program>/box/<gid>')
@@ -1842,7 +1842,7 @@ def team_box_game(program, gid):
     return render_template('box_stats.html', program=program, team_label=store.program_label(program), view='game', gm=gm, year=year, years=[year],
                            chart=chart, series=series, swings=swings, halves=halves, pw=pw, res=res, names=names,
                            date_pretty=d.strftime('%A, %B %-d, %Y'), pretty=_bx._pretty, pid_of=_bx.player_id,
-                           logo=_opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp']), us_logo=_wm_url(program), level=_bx.level(program))
+                           logo=_opp_logo_url(program, store.slugify(gm['opp']) or 'unlabeled', gm['opp']), us_logo=_wm_url(program), level=_bx.level(program), bio=_bx.bio)
 
 
 def _run_diff(played):

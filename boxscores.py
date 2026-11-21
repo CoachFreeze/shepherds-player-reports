@@ -76,7 +76,11 @@ def _first(name):
 
 def _pretty(name):
     """'MCGREW, Sean' -> 'Sean McGrew'; 'Gamberdella,Vincent' -> 'Vincent Gamberdella'."""
-    n = re.sub(r'\s+', ' ', (name or '').strip())
+    import html as _h
+    n = re.sub(r'\s+', ' ', _h.unescape(name or '').strip())
+    m = re.match(r'^(Jr|Sr|II|III|IV)\.?,\s*(.+)$', n)                 # 'Jr., Matthew Ibrahim' -> 'Matthew Ibrahim Jr.'
+    if m:
+        n = f"{m.group(2)} {m.group(1)}{'.' if m.group(1) in ('Jr', 'Sr') else ''}"
     if ',' in n:
         last, first = [x.strip() for x in n.split(',', 1)]
         n = f'{first} {last}'.strip()
@@ -84,8 +88,13 @@ def _pretty(name):
 
 
 def player_id(name):
-    """Stable id for a box-score player inside one program: 'whitman-james'."""
-    n = re.sub(r'\s+', ' ', (name or '').strip())
+    """Stable id for a box-score player inside one program: 'whitman-james' (suffixes like Jr. dropped, so every spelling agrees)."""
+    import html as _h
+    n = re.sub(r'\s+', ' ', _h.unescape(name or '').strip())
+    n = re.sub(r'^(Jr|Sr|II|III|IV)\.?,\s*', '', n, flags=re.I)        # 'Jr., Matthew Ibrahim'
+    n = re.sub(r'(?<=[\s,])(jr|sr|ii|iii|iv)\.?(?=[\s,]|$)', '', n, flags=re.I)
+    n = re.sub(r'\s*,\s*,', ',', n).strip(' ,')
+    n = re.sub(r'\s+', ' ', n).replace(' ,', ',')
     if ',' in n:
         last, first = [x.strip() for x in n.split(',', 1)]
     else:
@@ -298,7 +307,7 @@ def import_season(path_or_obj):
 
 # ------------------------------------------------------------------ loading
 def _files():
-    return sorted(glob.glob(os.path.join(BOX_DIR, '*', '*.json')))
+    return sorted(glob.glob(os.path.join(BOX_DIR, '*', '[0-9][0-9][0-9][0-9].json')))
 
 
 def programs():
@@ -306,11 +315,11 @@ def programs():
 
 
 def has(program):
-    return os.path.isdir(os.path.join(BOX_DIR, program or '')) and bool(glob.glob(os.path.join(BOX_DIR, program, '*.json')))
+    return os.path.isdir(os.path.join(BOX_DIR, program or '')) and bool(glob.glob(os.path.join(BOX_DIR, program, '[0-9][0-9][0-9][0-9].json')))
 
 
 def years(program):
-    return sorted(int(os.path.basename(p)[:-5]) for p in glob.glob(os.path.join(BOX_DIR, program, '*.json')))
+    return sorted(int(os.path.basename(p)[:-5]) for p in glob.glob(os.path.join(BOX_DIR, program, '[0-9][0-9][0-9][0-9].json')))
 
 
 @cache.memo
@@ -660,6 +669,8 @@ def season_lines(program, year):
             if b.get('pos'):
                 x['pos'][b['pos']] = x['pos'].get(b['pos'], 0) + 1
         for q in g['pit']['us']:
+            if q['name'].strip().lower() in ('team', 'totals'):
+                continue
             pid = player_id(q['name'])
             x = P.setdefault(pid, {'id': pid, 'name': _pretty(q['name']), 'raw': q['name'], 'G': 0, 'GS': 0, 'W': 0, 'L': 0, 'SV': 0})
             x['G'] += 1
@@ -743,6 +754,31 @@ def season_lines(program, year):
     rs, ra = sum(g['us'] for g in S['games']), sum(g['them'] for g in S['games'])
     return {'bat': sorted(bat, key=lambda x: -x['PA']), 'pit': sorted(pit, key=lambda x: -x.get('IP', 0)), 'env': env, 'level': lvl,
             'record': (w, l_, t_), 'rs': rs, 'ra': ra, 'games': S['games'], 'year': year, 'source': S.get('source')}
+
+
+# ------------------------------------------------------------------ rosters: jersey numbers, positions and class
+@cache.memo
+def roster(program):
+    """{player id: {'name', 'years': {'2026': {'num','pos','cls','ht','wt','bt'}}}} from the program's roster pages."""
+    p = os.path.join(BOX_DIR, program or '', 'roster.json')
+    if not os.path.exists(p):
+        return {}
+    with open(p) as f:
+        return json.load(f)
+
+
+def bio(program, pid, year=None):
+    """The roster line for one player in `year` (or his nearest season before it, else his latest), or {}."""
+    e = roster(program).get(pid)
+    if not e:
+        return {}
+    ys = sorted(e['years'], key=int)
+    pick = None
+    if year is not None:
+        before = [y for y in ys if int(y) <= int(year)]
+        pick = before[-1] if before else None
+    pick = pick or ys[-1]
+    return dict(e['years'][pick], year=int(pick))
 
 
 def player_seasons(program, pid):
