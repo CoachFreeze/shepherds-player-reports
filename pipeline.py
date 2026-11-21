@@ -6,6 +6,8 @@ file, and (2) comps come from comps_engine + store (auto-generated, locked
 slots preserved) instead of a hand-maintained config file.
 """
 import os
+import re
+import json
 import jinja2
 import extract as e
 import savant_components as sc
@@ -98,8 +100,35 @@ SCHOOL_BADGES = [
 ]
 
 
+_LIB = None
+
+
+def _lib_norm(n):
+    n = re.sub(r'\([^)]*\)', '', n or '')
+    n = re.sub(r'^\s*(seed|#\d+)\s+', '', n, flags=re.I).lower().replace('&', 'and').replace("'", '').replace('\u2019', '')
+    return re.sub(r'[^a-z0-9]+', ' ', n).strip()
+
+
+def _lib_entry(school):
+    """Exact-name match in the opponent logo library (assets/schools/lib/index.json: logos taken from the programs' own schedule pages)."""
+    global _LIB
+    if _LIB is None:
+        try:
+            with open(os.path.join(APP_DIR, 'assets', 'schools', 'lib', 'index.json')) as f:
+                _LIB = json.load(f)
+        except (OSError, ValueError):
+            _LIB = {}
+    hit = _LIB.get(_lib_norm(school))
+    if hit and os.path.exists(os.path.join(APP_DIR, 'assets', 'schools', 'lib', hit[0])):
+        return hit[0], hit[1]
+    return None
+
+
 def _badge_entry(school, program=None):
     """Matches on the school name first, then falls back to the program (so a blank School box still works)."""
+    lib = _lib_entry(school)
+    if lib:
+        return lib
     s = (school or '').lower()
     for keys, fname, bg, *excl in SCHOOL_BADGES:
         if any(k in s for k in keys) and not any(x in s for x in (excl[0] if excl else ())):
@@ -110,6 +139,13 @@ def _badge_entry(school, program=None):
             if program == fname[:-4] and os.path.exists(os.path.join(APP_DIR, 'assets', 'schools', fname)):
                 return fname, bg
     return None
+
+
+def school_file_path(fname):
+    """Where a school logo file lives: the curated set in assets/schools/, or the opponent library in assets/schools/lib/."""
+    fname = os.path.basename(fname or '')
+    p = os.path.join(APP_DIR, 'assets', 'schools', fname)
+    return p if os.path.exists(p) else os.path.join(APP_DIR, 'assets', 'schools', 'lib', fname)
 
 
 def school_badge_file(school, program=None):
@@ -123,7 +159,7 @@ def school_badge(school, program=None):
     m = _badge_entry(school, program)
     if not m:
         return None
-    with open(os.path.join(APP_DIR, 'assets', 'schools', m[0]), 'rb') as f:
+    with open(school_file_path(m[0]), 'rb') as f:
         return {'logo': 'data:image/png;base64,' + base64.b64encode(f.read()).decode('ascii'), 'bg': m[1]}
 
 

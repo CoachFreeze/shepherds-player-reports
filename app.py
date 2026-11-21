@@ -2859,7 +2859,7 @@ def glossary_page():
 
 @app.route('/school-logo/<fname>')
 def school_logo(fname):
-    path = os.path.join(pipeline.APP_DIR, 'assets', 'schools', os.path.basename(fname))
+    path = pipeline.school_file_path(fname)
     if not os.path.exists(path):
         abort(404)
     resp = send_file(path)
@@ -2891,7 +2891,7 @@ def school_mark(fname):
     """The school logo with any solid white/near-white backing keyed out, so it can sit on a coloured header at low opacity."""
     fname = os.path.basename(fname)
     if fname not in _MARKS:
-        path = os.path.join(pipeline.APP_DIR, 'assets', 'schools', fname)
+        path = pipeline.school_file_path(fname)
         if not os.path.exists(path):
             abort(404)
         import io

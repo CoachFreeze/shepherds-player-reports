@@ -159,7 +159,7 @@ def default_pair(program):
     entry = pipeline._badge_entry(store.program_label(program), program) if program else None
     if entry:
         fname, bg = entry
-        got = _from_logo(os.path.join(pipeline.APP_DIR, 'assets', 'schools', fname), bg)
+        got = _from_logo(pipeline.school_file_path(fname), bg)
         if got:
             return got[0], got[1], 'logo'
     return DEFAULT['brand'], DEFAULT['accent'], 'default'

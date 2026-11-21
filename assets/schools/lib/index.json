@@ -1,0 +1,462 @@
+{
+"academy of art": [
+"opp_academy_of_art.png",
+"#FFFFFF"
+],
+"arizona state": [
+"opp_arizona_state_university.png",
+"#FFFFFF"
+],
+"arizona state university": [
+"opp_arizona_state_university.png",
+"#FFFFFF"
+],
+"azusa pacific": [
+"opp_azusa_pacific_university.png",
+"#FFFFFF"
+],
+"azusa pacific university": [
+"opp_azusa_pacific_university.png",
+"#FFFFFF"
+],
+"brigham young university": [
+"opp_brigham_young_university.png",
+"#FFFFFF"
+],
+"byu": [
+"opp_brigham_young_university.png",
+"#FFFFFF"
+],
+"cal poly": [
+"opp_cal_poly.png",
+"#FFFFFF"
+],
+"cal poly pomona": [
+"opp_cal_poly_pomona.png",
+"#FFFFFF"
+],
+"cal st dom hills": [
+"opp_csu_dominguez_hills.png",
+"#FFFFFF"
+],
+"cal st fullerton": [
+"opp_california_state_university_at_fullerton.png",
+"#FFFFFF"
+],
+"cal st san marcos": [
+"opp_cal_state_san_marcos.png",
+"#FFFFFF"
+],
+"cal state fullerton": [
+"opp_california_state_university_at_fullerton.png",
+"#FFFFFF"
+],
+"cal state la": [
+"opp_csu_los_angeles.png",
+"#FFFFFF"
+],
+"cal state san marcos": [
+"opp_cal_state_san_marcos.png",
+"#FFFFFF"
+],
+"california baptist": [
+"opp_california_baptist_university.png",
+"#FFFFFF"
+],
+"california baptist university": [
+"opp_california_baptist_university.png",
+"#FFFFFF"
+],
+"california state university at fullerton": [
+"opp_california_state_university_at_fullerton.png",
+"#FFFFFF"
+],
+"chaminade": [
+"opp_chaminade.png",
+"#FFFFFF"
+],
+"concordia": [
+"opp_concordia_university_irvine.png",
+"#FFFFFF"
+],
+"concordia university irvine": [
+"opp_concordia_university_irvine.png",
+"#FFFFFF"
+],
+"csu dominguez hills": [
+"opp_csu_dominguez_hills.png",
+"#FFFFFF"
+],
+"csu los angeles": [
+"opp_csu_los_angeles.png",
+"#FFFFFF"
+],
+"csu san bernardino": [
+"opp_csu_san_bernardino.png",
+"#FFFFFF"
+],
+"csu san marcos": [
+"opp_cal_state_san_marcos.png",
+"#FFFFFF"
+],
+"csun": [
+"opp_csun.png",
+"#FFFFFF"
+],
+"cui golden eagles": [
+"opp_concordia_university_irvine.png",
+"#FFFFFF"
+],
+"dartmouth": [
+"opp_dartmouth_college.png",
+"#FFFFFF"
+],
+"dartmouth college": [
+"opp_dartmouth_college.png",
+"#FFFFFF"
+],
+"east carolina": [
+"opp_east_carolina_university.png",
+"#FFFFFF"
+],
+"east carolina university": [
+"opp_east_carolina_university.png",
+"#FFFFFF"
+],
+"fpu": [
+"opp_fresno_pacific.png",
+"#FFFFFF"
+],
+"fresno pacific": [
+"opp_fresno_pacific.png",
+"#FFFFFF"
+],
+"fresno st": [
+"opp_fresno_state.png",
+"#FFFFFF"
+],
+"fresno state": [
+"opp_fresno_state.png",
+"#FFFFFF"
+],
+"georgetown": [
+"opp_georgetown_university.png",
+"#FFFFFF"
+],
+"georgetown university": [
+"opp_georgetown_university.png",
+"#FFFFFF"
+],
+"golden west college": [
+"opp_golden_west_college.png",
+"#FFFFFF"
+],
+"grand canyon": [
+"opp_grand_canyon_university.png",
+"#FFFFFF"
+],
+"grand canyon university": [
+"opp_grand_canyon_university.png",
+"#FFFFFF"
+],
+"hawaii": [
+"opp_university_of_hawaii.png",
+"#FFFFFF"
+],
+"hawaii hilo": [
+"opp_hawaii_hilo.png",
+"#FFFFFF"
+],
+"hawaii pacific": [
+"opp_hawaii_pacific.png",
+"#FFFFFF"
+],
+"holy names": [
+"opp_holy_names.png",
+"#FFFFFF"
+],
+"hope international": [
+"opp_hope_international.png",
+"#FFFFFF"
+],
+"indiana": [
+"opp_indiana_university.png",
+"#FFFFFF"
+],
+"indiana university": [
+"opp_indiana_university.png",
+"#FFFFFF"
+],
+"jessup": [
+"opp_jessup_university.png",
+"#FFFFFF"
+],
+"jessup university": [
+"opp_jessup_university.png",
+"#FFFFFF"
+],
+"lmu": [
+"opp_loyola_marymount.png",
+"#FFFFFF"
+],
+"loyola marymount": [
+"opp_loyola_marymount.png",
+"#FFFFFF"
+],
+"menlo": [
+"opp_menlo.png",
+"#FFFFFF"
+],
+"metro state denver": [
+"opp_metro_state_denver.png",
+"#FFFFFF"
+],
+"michigan": [
+"opp_university_of_michigan.png",
+"#FFFFFF"
+],
+"milwaukee": [
+"opp_milwaukee.png",
+"#FFFFFF"
+],
+"msu denver": [
+"opp_metro_state_denver.png",
+"#FFFFFF"
+],
+"nevada": [
+"opp_university_of_nevada.png",
+"#FFFFFF"
+],
+"northwest nazarene": [
+"opp_northwest_nazarene.png",
+"#FFFFFF"
+],
+"northwestern": [
+"opp_northwestern_university.png",
+"#FFFFFF"
+],
+"northwestern university": [
+"opp_northwestern_university.png",
+"#FFFFFF"
+],
+"occidental": [
+"opp_occidental_college.png",
+"#FFFFFF"
+],
+"occidental college": [
+"opp_occidental_college.png",
+"#FFFFFF"
+],
+"omaha": [
+"opp_university_of_nebraska_at_omaha.png",
+"#FFFFFF"
+],
+"oregon st": [
+"opp_oregon_state_university.png",
+"#FFFFFF"
+],
+"oregon state": [
+"opp_oregon_state_university.png",
+"#FFFFFF"
+],
+"oregon state university": [
+"opp_oregon_state_university.png",
+"#FFFFFF"
+],
+"palomar college": [
+"opp_palomar_college.png",
+"#22303A"
+],
+"pepperdine": [
+"opp_pepperdine_university.png",
+"#FFFFFF"
+],
+"pepperdine university": [
+"opp_pepperdine_university.png",
+"#FFFFFF"
+],
+"pittsburgh": [
+"opp_university_of_pittsburgh.png",
+"#FFFFFF"
+],
+"point loma": [
+"opp_point_loma.png",
+"#FFFFFF"
+],
+"redlands": [
+"opp_redlands.png",
+"#FFFFFF"
+],
+"regis": [
+"opp_regis.png",
+"#FFFFFF"
+],
+"san diego": [
+"opp_university_of_san_diego.png",
+"#FFFFFF"
+],
+"san diego st": [
+"opp_san_diego_state_university.png",
+"#FFFFFF"
+],
+"san diego state": [
+"opp_san_diego_state_university.png",
+"#FFFFFF"
+],
+"san diego state university": [
+"opp_san_diego_state_university.png",
+"#FFFFFF"
+],
+"san jose state": [
+"opp_san_jose_state_university.png",
+"#FFFFFF"
+],
+"san jose state university": [
+"opp_san_jose_state_university.png",
+"#FFFFFF"
+],
+"seattle": [
+"opp_seattle_university.png",
+"#FFFFFF"
+],
+"seattle u": [
+"opp_seattle_university.png",
+"#FFFFFF"
+],
+"seattle university": [
+"opp_seattle_university.png",
+"#FFFFFF"
+],
+"south florida": [
+"opp_university_of_south_florida.png",
+"#FFFFFF"
+],
+"southern california": [
+"opp_university_of_southern_california.png",
+"#FFFFFF"
+],
+"texas aandm corpus christi": [
+"opp_texas_aandm_corpus_christi.png",
+"#FFFFFF"
+],
+"texas am corpus christi": [
+"opp_texas_aandm_corpus_christi.png",
+"#FFFFFF"
+],
+"tulane": [
+"opp_tulane_university.png",
+"#FFFFFF"
+],
+"tulane university": [
+"opp_tulane_university.png",
+"#FFFFFF"
+],
+"uc davis": [
+"opp_uc_davis.png",
+"#FFFFFF"
+],
+"uc irvine": [
+"opp_uc_irvine.png",
+"#FFFFFF"
+],
+"uc riverside": [
+"opp_uc_riverside.png",
+"#FFFFFF"
+],
+"uc san diego": [
+"opp_uc_san_diego.png",
+"#FFFFFF"
+],
+"uc santa barbara": [
+"opp_university_of_california_santa_barbara.png",
+"#FFFFFF"
+],
+"ucla": [
+"opp_ucla.png",
+"#FFFFFF"
+],
+"university of california santa barbara": [
+"opp_university_of_california_santa_barbara.png",
+"#FFFFFF"
+],
+"university of hawaii": [
+"opp_university_of_hawaii.png",
+"#FFFFFF"
+],
+"university of michigan": [
+"opp_university_of_michigan.png",
+"#FFFFFF"
+],
+"university of nebraska at omaha": [
+"opp_university_of_nebraska_at_omaha.png",
+"#FFFFFF"
+],
+"university of nevada": [
+"opp_university_of_nevada.png",
+"#FFFFFF"
+],
+"university of pittsburgh": [
+"opp_university_of_pittsburgh.png",
+"#FFFFFF"
+],
+"university of san diego": [
+"opp_university_of_san_diego.png",
+"#FFFFFF"
+],
+"university of south florida": [
+"opp_university_of_south_florida.png",
+"#FFFFFF"
+],
+"university of southern california": [
+"opp_university_of_southern_california.png",
+"#FFFFFF"
+],
+"university of utah": [
+"opp_university_of_utah.png",
+"#FFFFFF"
+],
+"university of washington": [
+"opp_university_of_washington.png",
+"#FFFFFF"
+],
+"usc": [
+"opp_university_of_southern_california.png",
+"#FFFFFF"
+],
+"utah": [
+"opp_university_of_utah.png",
+"#FFFFFF"
+],
+"vanguard": [
+"opp_vanguard.png",
+"#FFFFFF"
+],
+"waseda": [
+"opp_waseda.png",
+"#22303A"
+],
+"washington": [
+"opp_university_of_washington.png",
+"#FFFFFF"
+],
+"washington state": [
+"opp_washington_state_university.png",
+"#FFFFFF"
+],
+"washington state university": [
+"opp_washington_state_university.png",
+"#FFFFFF"
+],
+"westmont": [
+"opp_westmont.png",
+"#FFFFFF"
+],
+"wichita state": [
+"opp_wichita_state_university.png",
+"#FFFFFF"
+],
+"wichita state university": [
+"opp_wichita_state_university.png",
+"#FFFFFF"
+]
+}
