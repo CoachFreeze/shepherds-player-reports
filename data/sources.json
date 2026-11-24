@@ -1,0 +1,5 @@
+{
+  "_about": "Programs whose official athletics site is read by scrapers/run.py (box scores, play-by-play, roster numbers, opponent logos). The key is the program's id in the app. site = the Sidearm site root, sport = the path segment for baseball, names = words that identify the program on its box scores, home = home-city words (home / away / neutral), level = run environment.",
+  "biola_university": {"label": "Biola", "site": "https://athletics.biola.edu", "sport": "baseball", "level": "D2", "names": ["biola"], "home": ["la mirada"]},
+  "long_beach_state": {"label": "Long Beach State", "site": "https://longbeachstate.com", "sport": "baseball", "level": "D1", "names": ["long beach", "lbsu"], "home": ["long beach"]}
+}

@@ -71,7 +71,7 @@ DEMO_PROGRAMS = {'demo_university'}      # bundled sample program (demo/ folder)
 SCOUTING_ONLY_PROGRAMS = {'ucla'}        # opponents we only scout: kept off the All Teams board (their scouting reports and rosters are unaffected)
 ADMIN_ONLY_PROGRAMS = {'shepherds'}      # Shepherds reports: only admins can see or be assigned to them
 TEAMS_PATH = os.path.join(DATA_DIR, 'teams.json')      # teams an admin added by hand, before they have any players or coaches
-_KNOWN_LABELS = {'shepherds': 'Shepherds', 'long_beach_state': 'Long Beach State', 'demo_university': 'Demo University (sample)', 'biola': 'Biola'}
+_KNOWN_LABELS = {'shepherds': 'Shepherds', 'long_beach_state': 'Long Beach State', 'demo_university': 'Demo University (sample)'}
 
 
 def program_slug(label):

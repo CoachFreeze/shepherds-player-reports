@@ -22,10 +22,26 @@ import store
 BOX_DIR = os.path.join(store.BUILD_DIR, 'data', 'boxscores')
 
 # programs whose box scores are loaded: names used on the box scores, home city (for home / away / neutral) and level
-PROGRAMS = {
-    'biola': {'label': 'Biola', 'names': ('biola',), 'home': ('la mirada',), 'level': 'D2'},
-    'long_beach_state': {'label': 'Long Beach State', 'names': ('long beach', 'lbsu'), 'home': ('long beach',), 'level': 'D1'},
-}
+SOURCES_PATH = os.path.join(store.BUILD_DIR, 'data', 'sources.json')
+
+
+def _load_sources():
+    """Programs with an official site to read (data/sources.json), keyed by the program's id in the app: add a program there and the
+    scrapers and Season Stats pick it up."""
+    try:
+        with open(SOURCES_PATH) as f:
+            raw = json.load(f)
+    except (OSError, ValueError):
+        raw = {}
+    out = {}
+    for k, v in raw.items():
+        if k.startswith('_') or not isinstance(v, dict):
+            continue
+        out[k] = dict(v, names=tuple(n.lower() for n in v.get('names') or ()), home=tuple(n.lower() for n in v.get('home') or ()))
+    return out
+
+
+PROGRAMS = _load_sources()
 
 W = {'BB': 0.69, 'HBP': 0.72, '1B': 0.88, '2B': 1.24, '3B': 1.56, 'HR': 2.00}       # NWBB / FanGraphs-style linear weights
 WOBA_SCALE = 1.25
@@ -285,31 +301,87 @@ def parse_game(raw, program):
             'bat': bat, 'pit': pit, 'pbp': pbp, 'ump': ump, 'innings': innings, 'url': raw.get('url'), 'abbr': hdr[1:3]}
 
 
-def import_season(path_or_obj):
-    """A scraped season file -> the stored season {'program','season','record','games': [...]}; also writes it under BOX_DIR."""
-    D = path_or_obj if isinstance(path_or_obj, dict) else json.load(open(path_or_obj))
-    program = D['program']
-    games, seen = [], {}
-    for raw in D.get('games') or []:
-        g = parse_game(raw, program)
-        if not g:
-            continue
+def save_season(program, year, games, record=None, source=None):
+    """Writes one season file from parsed games (parse_game), given in the order the site's stats page lists them. Doubleheaders are
+    numbered in that order (the site lists game 1 first), so ids stay the same from one run to the next. Returns the stored season."""
+    games = sorted(games, key=lambda g: g['date'])                 # stable: same-day games keep the site's order
+    seen = {}
+    for g in games:
         base = f"{g['date']}--{store.slugify(g['opp']) or 'opp'}"
         seen[base] = seen.get(base, 0) + 1
         g['gid'] = base + (f"-g{seen[base]}" if seen[base] > 1 else '')
-        games.append(g)
     for base, n in seen.items():                                 # doubleheaders: number both games
         if n > 1:
             for g in games:
                 if g['gid'] == base:
                     g['gid'] = base + '-g1'
-    games.sort(key=lambda g: (g['date'], g['gid']))
-    out = {'program': program, 'season': int(D['season']), 'record': D.get('record'), 'level': PROGRAMS[program]['level'],
-           'source': D.get('site'), 'imported': datetime.date.today().isoformat(), 'games': games}
+    out = {'program': program, 'season': int(year), 'record': record, 'level': PROGRAMS[program]['level'],
+           'source': source or PROGRAMS[program].get('site'), 'updated': datetime.date.today().isoformat(), 'games': games}
     os.makedirs(os.path.join(BOX_DIR, program), exist_ok=True)
-    with open(os.path.join(BOX_DIR, program, f"{out['season']}.json"), 'w') as f:
+    tmp = os.path.join(BOX_DIR, program, f'.{int(year)}.json.tmp')
+    with open(tmp, 'w') as f:
         json.dump(out, f, separators=(',', ':'))
+    os.replace(tmp, os.path.join(BOX_DIR, program, f'{int(year)}.json'))
     return out
+
+
+def import_season(path_or_obj):
+    """A whole scraped season ({'program','season','record','site','games': [raw pages]}) -> the stored season file."""
+    D = path_or_obj if isinstance(path_or_obj, dict) else json.load(open(path_or_obj))
+    program = D['program']
+    games = []
+    for raw in D.get('games') or []:
+        g = parse_game(raw, program)
+        if g:
+            games.append(g)
+    return save_season(program, D['season'], games, D.get('record'), D.get('site'))
+
+
+def stored_season_raw(program, year):
+    """The stored season file as written (no cache), or None."""
+    p = os.path.join(BOX_DIR, program, f'{int(year)}.json')
+    if not os.path.exists(p):
+        return None
+    with open(p) as f:
+        return json.load(f)
+
+
+def update_roster(program, year, players):
+    """Merges one season's roster lines (scrapers.sidearm.roster) into roster.json, matched to the box-score players by name.
+    Keeps jersey number, position, class, height, weight and B/T only. Returns (matched, unmatched)."""
+    import html as _h
+    S = stored_season_raw(program, year)
+    ids = set()
+    for g in (S or {}).get('games', []):
+        for x in g['bat']['us'] + g['pit']['us']:
+            ids.add(player_id(x['name']))
+    p = os.path.join(BOX_DIR, program, 'roster.json')
+    R = {}
+    if os.path.exists(p):
+        with open(p) as f:
+            R = json.load(f)
+    hit = miss = 0
+    for pl in players:
+        if not pl.get('name'):
+            continue
+        pid = player_id(pl['name'])
+        if ids and pid not in ids:
+            last, _, first = pid.partition('-')
+            c = [i for i in ids if (i.split('-')[0].startswith(last) or last.startswith(i.split('-')[0])) and i.split('-', 1)[-1][:1] == first[:1]]
+            if len(c) == 1:
+                pid = c[0]
+                hit += 1
+            else:
+                miss += 1
+        else:
+            hit += 1
+        R.setdefault(pid, {'name': _h.unescape(pl['name']), 'years': {}})['years'][str(year)] = {
+            'num': re.sub(r'[^0-9]', '', pl.get('num') or ''), 'pos': pl.get('pos') or '', 'cls': pl.get('cls') or '',
+            'ht': re.sub(r'\s+', '', pl.get('ht') or '').replace("''", '"'), 'wt': pl.get('wt') or '', 'bt': pl.get('bt') or ''}
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    with open(p, 'w') as f:
+        json.dump(R, f, separators=(',', ':'), sort_keys=True)
+    return hit, miss
 
 
 # ------------------------------------------------------------------ loading
@@ -318,11 +390,11 @@ def _files():
 
 
 def programs():
-    return sorted({os.path.basename(os.path.dirname(p)) for p in _files()})
+    return sorted({os.path.basename(os.path.dirname(p)) for p in _files()} & set(PROGRAMS))
 
 
 def has(program):
-    return os.path.isdir(os.path.join(BOX_DIR, program or '')) and bool(glob.glob(os.path.join(BOX_DIR, program, '[0-9][0-9][0-9][0-9].json')))
+    return (program or '') in PROGRAMS and os.path.isdir(os.path.join(BOX_DIR, program or '')) and bool(glob.glob(os.path.join(BOX_DIR, program, '[0-9][0-9][0-9][0-9].json')))
 
 
 def years(program):
@@ -760,7 +832,8 @@ def season_lines(program, year):
     t_ = len(S['games']) - w - l_
     rs, ra = sum(g['us'] for g in S['games']), sum(g['them'] for g in S['games'])
     return {'bat': sorted(bat, key=lambda x: -x['PA']), 'pit': sorted(pit, key=lambda x: -x.get('IP', 0)), 'env': env, 'level': lvl,
-            'record': (w, l_, t_), 'rs': rs, 'ra': ra, 'games': S['games'], 'year': year, 'source': S.get('source')}
+            'record': (w, l_, t_), 'rs': rs, 'ra': ra, 'games': S['games'], 'year': year, 'source': S.get('source'),
+            'updated': S.get('updated') or S.get('imported')}
 
 
 # ------------------------------------------------------------------ rosters: jersey numbers, positions and class
