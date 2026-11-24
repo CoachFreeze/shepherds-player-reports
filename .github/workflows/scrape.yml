@@ -1,0 +1,79 @@
+# Keeps the web-accessible data current (box scores and play-by-play, roster numbers, opponent logos) by reading each program's
+# official athletics site listed in data/sources.json. Anything new is committed to main, and Render redeploys with it.
+#
+# Schedule (times are UTC; Pacific is UTC-8 in winter, UTC-7 in summer):
+#   January through June: twice a day, about 6:15 am and 10:45 pm Pacific, so every game is in by the next morning.
+#   July through December: once a week (Monday morning) for roster and schedule changes.
+# Run it by hand any time: GitHub > Actions > "Update stats from athletics sites" > Run workflow.
+name: Update stats from athletics sites
+
+on:
+  schedule:
+    - cron: '17 14 * 1-6 *'
+    - cron: '47 6 * 1-6 *'
+    - cron: '23 15 * 7-12 1'
+  workflow_dispatch:
+    inputs:
+      program:
+        description: 'Only this program (blank = all), e.g. biola_university'
+        required: false
+        default: ''
+      years:
+        description: 'Seasons to read (blank = current), e.g. 2025 2026'
+        required: false
+        default: ''
+      full:
+        description: 'Re-read every box score of those seasons'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install
+        run: pip install -r requirements.txt -r scrapers/requirements.txt
+
+      - name: Read the athletics sites
+        env:
+          PROGRAM: ${{ github.event.inputs.program }}
+          YEARS: ${{ github.event.inputs.years }}
+          FULL: ${{ github.event.inputs.full }}
+        run: |
+          args=""
+          if [ -n "$PROGRAM" ]; then args="$args --program $PROGRAM"; fi
+          if [ -n "$YEARS" ]; then args="$args --years $YEARS"; fi
+          if [ "$FULL" = "true" ]; then args="$args --full"; fi
+          python -m scrapers.run $args
+
+      - name: Commit anything new
+        if: always()
+        run: |
+          git config user.name "shepsavant-stats-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f data/boxscores assets/schools/lib
+          if git diff --cached --quiet; then
+            echo "Nothing new on the sites."
+            exit 0
+          fi
+          git commit -m "Stats update from athletics sites ($(date -u +%Y-%m-%d))"
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep 10
+          done
+          exit 1
